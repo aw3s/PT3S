@@ -3,3 +3,26 @@
 ################################################################################
 
 /.vs/config/applicationhost.config
+/nb/.ipynb_checkpoints/MxWithPandas-checkpoint.ipynb
+/nb/MxWithPandas.ipynb
+/testdata/M-1-0-1.MX1
+/testdata/M-1-0-1.MX2
+/testdata/M-1-0-1.MX3
+/testdata/M-1-0-1.XML
+/testdata/M-1-0-1.ZIP
+/build/lib/PT3S
+/dist
+/nb/.ipynb_checkpoints
+/PT3S.egg-info
+/testresults
+/nb/1. Dates & Times.ipynb
+/nb/TimeSeriesAnalysisWithPython.pdf
+/nb/2. Time Zone Handling.ipynb
+/nb/3. Reading in data and making sensible data frames.ipynb
+/nb/4. Resampling.ipynb
+/nb/5. Moving Window Functions.ipynb
+/nb/6. Trend & Seasonality.ipynb
+/nb/7. Forecasting.ipynb
+/nb/8. Spectral Analysis.ipynb
+/nb/9. Clustering & Classification.ipynb
+/nb/README.md
