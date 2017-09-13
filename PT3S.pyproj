@@ -26,6 +26,7 @@
   <ItemGroup>
     <Content Include="LICENSE" />
     <Content Include="nb\MxWithPandas.ipynb" />
+    <Content Include="nb\MxWithPandas.pdf" />
     <Content Include="README.md" />
     <Content Include="README.rst" />
     <Content Include="setup.cfg" />

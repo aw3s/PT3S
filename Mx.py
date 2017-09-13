@@ -75,6 +75,7 @@ class Mx():
             self.__evalMxChannelsToBeProcessed(unpackVectorChannels,channelsNotToBeProcessedSir3sIDRegExp)
             self.__buildMxRecordStructUnpackFmtString()                          
 
+        #FileNotFoundError
         except OSError as e:
             logStrFinal="{0:s}mx1File: {1!s}: OSError.".format(logStr,mx1File)
             logger.error(logStrFinal) 
@@ -419,6 +420,7 @@ class Mx():
             pdf = pd.DataFrame.from_records(mxValues,index=mxTimes,columns=mxColumnNames)              
             logger.debug("{0:s}{1:s}: pdf.head(10): {2!s}.".format(logStr,mxsFileName,pdf.head(10)))                  
                                 
+        #FileNotFoundError
         except OSError as e:
             logStrFinal="{0:s}mxsZipFile: {1!s}: OSError.".format(logStr,mxsZipFile)
             logger.error(logStrFinal) 
