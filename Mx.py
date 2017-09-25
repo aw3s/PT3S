@@ -1,17 +1,26 @@
 """
- SIR 3S MX-Interface.
- MX is a SIR 3S file based channel-oriented interface for SIR 3S calculation results.
- Modul contains classes useful for dealing with MX in Python.  
+SIR 3S MX-Interface (short: MX):
+--------------------------------
+MX is a SIR 3S file based, channel-oriented interface for SIR 3S calculation results.
+Module Mx contains useful stuff to utilize MX (utilize SIR 3S calculation results) in pure Python.  
+SIR 3S calculation results:
+---------------------------
+A binary MXS-File contains SIR 3S calculations results. 
+A Model calculation run creates at least one MXS-File (Result-File).
+There is one MX1-File (an XML-File) for each SIR 3S Model calculation run.    
+This MX1-File defines in XML a sequence of MX-Channels. 
+And - as a result - the Byte-Layout of a single MX-Record.
+A MX-Record contains calculation results for one Timestamp.
+A MXS-File contains at least one MX-Record.
 """
 
 import os
-import shutil
 import sys
 import logging
 logger = logging.getLogger(__name__)     
 import argparse
 import unittest
-import doctest
+import timeit
 
 import xml.etree.ElementTree as ET
 import re
@@ -19,6 +28,156 @@ import struct
 import collections
 import zipfile
 import pandas as pd
+import h5py
+
+class MxTest(unittest.TestCase):
+
+    WithTimeItTests=False
+
+    def setUp(self):
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def test_01__init__FileNotFoundError(self):    
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)  
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.'))         
+        with self.assertLogs(logger=logger,level='ERROR') as cm:
+            with self.assertRaises(MxError,msg="Mx(mx1File='./testdata/None.MX1')"):
+                Mx(mx1File='./testdata/None.MX1')
+        logger.debug("{0:s}{1!s}".format(logStr,cm.output))   
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def test_02__init__OsError(self):     
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)  
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        with self.assertLogs(logger=logger,level='ERROR') as cm:
+            with self.assertRaises(MxError,msg="Mx(mx1File=666)"):
+                Mx(mx1File=666)
+        logger.debug("{0:s}{1!s}".format(logStr,cm.output))   
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def test_03__init__TypeError(self):  
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        with self.assertLogs(logger=logger,level='ERROR')as cm:     
+            with self.assertRaises(MxError,msg="Mx()"):
+                Mx()
+        logger.debug("{0:s}{1!s}".format(logStr,cm.output))   
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def test_04__init__ParseError(self):  
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        with self.assertLogs(logger=logger,level='ERROR')as cm:     
+            with self.assertRaises(MxError,msg="Mx(mx1File='./testdata/M-1-0-1.txt')"):
+                Mx(mx1File='./testdata/M-1-0-1.txt')  
+        logger.debug("{0:s}{1!s}".format(logStr,cm.output))   
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    @unittest.skipIf(WithTimeItTests==False,"test_21__init__timeit")
+    def test_21__init__timeit(self):  
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.'))                 
+        t=timeit.timeit(stmt="Mx.Mx(mx1File='./testdata/M-1-0-1.MX1')",setup="import Mx",number=1)                      
+        logger.debug("{0:s}Timeit: Mx.Mx(mx1File='./testdata/M-1-0-1.MX1':{1:06.2f}s".format(logStr,t))         
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+
+    def test_21__init__(self):  
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.'))         
+        with self.assertLogs(logger=logger,level='INFO') as cm:                                
+            MxTest.mx=Mx(mx1File='./testdata/M-1-0-1.MX1')            
+        logger.debug("{0:s}{1!s}".format(logStr,cm.output))   
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def test_41_initMxsZip_FileNotFoundError(self):    
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)  
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.'))         
+        with self.assertLogs(logger=logger,level='ERROR') as cm:
+            with self.assertRaises(MxError,msg="MxTest.mx.setResultsToMxsZipfile(mxsZipFile='./testdata/None.ZIP')"):
+                MxTest.mx.setResultsToMxsZipfile(mxsZipFile='./testdata/None.ZIP')                              
+        logger.debug("{0:s}{1!s}".format(logStr,cm.output))   
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def test_42_initMxsZip_OsError(self):    
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)  
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.'))         
+        with self.assertLogs(logger=logger,level='ERROR') as cm:
+            with self.assertRaises(MxError,msg="MxTest.mx.setResultsToMxsZipfile(mxsZipFile=666)"):
+                MxTest.mx.setResultsToMxsZipfile(mxsZipFile=666)                              
+        logger.debug("{0:s}{1!s}".format(logStr,cm.output))   
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+
+    def test_44_initMxsZip_ZipError(self):    
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)  
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.'))         
+        with self.assertLogs(logger=logger,level='ERROR') as cm:
+            with self.assertRaises(MxError,msg="MxTest.mx.setResultsToMxsZipfile(mxsZipFile='./testdata/M-1-0-1.txt')"):
+                MxTest.mx.setResultsToMxsZipfile(mxsZipFile='./testdata/M-1-0-1.txt')                              
+        logger.debug("{0:s}{1!s}".format(logStr,cm.output))   
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+
+    def test_51_setResultsToMxsZipfile(self):  
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.'))         
+        with self.assertLogs(logger=logger,level='INFO') as cm:                 
+            MxTest.mx.setResultsToMxsZipfile()
+        logger.debug("{0:s}{1!s}".format(logStr,cm.output))   
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def test_52_wrtResultsToH5File(self):  
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.'))     
+        
+        wD,base,ext = MxTest.mx.getMx1FilenameSplit()
+        h5Filename=wD+os.path.sep+base+'.'+'h5'    # ./testdata\M-1-0-1.h5
+        if os.path.exists(h5Filename):                        
+            logger.debug("{0:s}{1:s}: Delete ...".format(logStr,h5Filename))     
+            os.remove(h5Filename)
+
+        MxTest.mx.wrtResultsToH5File()
+
+        self.assertTrue(os.path.exists(h5Filename),msg='os.path.exists({0!s})'.format(h5Filename))        
+
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+        
+    def tearDown(self):
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+        
+class MxTestH5(unittest.TestCase):
+
+    def setUp(self):
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def test_01_readFromH5(self):  
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.'))  
+        
+        with pd.HDFStore('./testdata/M-1-0-1.h5')  as h5Store:
+        
+            keys=h5Store.keys()
+            h5Key=keys[0]
+            #MxTestH5.df = pd.read_hdf(h5Store,h5Key)  
+            MxTestH5.df=h5Store[h5Key]
+            metadata=h5Store.get_storer(h5Key).attrs.metadata
+
+        for r in metadata:             
+            setattr(MxTestH5.df,r,metadata[r])
+
+        logger.debug("{0:s}df.head(10): {1!s}.".format(logStr,MxTestH5.df.head(10)))   
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+        
+        
+    def tearDown(self):
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
 class MxError(Exception):
     def __init__(self, value):
@@ -28,39 +187,49 @@ class MxError(Exception):
 
 class Mx():
     """
-    Process Calculation Results from SIR 3S MX Files.
-    A binary MXS File contains SIR 3S Calculations Results. 
-    A Model Calculation-Run creates at least one MXS File (Result File).
-    There is one MX1 File (an XML File) for each SIR 3S Model Calculation-Run.    
-    This MX1 File defines a sequence of MX-Channels in XML. 
-    And - as a result - the Byte-Layout of an MX-Record.
-    A MXS File contains at least one MX-Record.
+    Class Mx holds a MX1-File defined SIR 3S calculation result set in a pandas DataFrame (self.pdf).
+    --------------------------------------------------------------------------------------
+    __init__:
+    ---------
+    (re-)initializes the set with a MX1-File. 
+    setResultsToMxsZipfile:
+    ------------------
+    equalizes self.pdf to the results in the Zip  
+    --------------------------------------------------------------------------------------
+    pandas DataFrame:
+    -----------------
+    index: Timestamps (UTC, not localized) - scenario time; 1st Channel in MX-Record
+    ---
+    columns: >= 2nd Channel in MX-Record  
+    ---
+    The following (String-)ID - called Sir3sID - is used as column-label:
+    OBJTYPE~NAME1~NAME2~NAME3~ATTRTYPE 
+    A Sir3sID consists of ~ seperated MX1-File terms.
     """
     def __init__(self,mx1File=None 
                      ,unpackVectorChannels=False
                      ,channelsNotToBeProcessedSir3sIDRegExp=
                      [
-                         r'(\S+)~(\S+)~(\S+)~(\S+)~*INST*'
-                        ,r'^ROHR_VRTX' # surprise: not a VectorChannel?!
-                        ,r'^ROHR~(\S+)~(\S+)~(\S*)~QM[I,K]{1}'
-                        ,r'^VENT~(\S+)~(\S+)~(\S*)~OEFFNET'
-                        ,r'^VENT~(\S+)~(\S+)~(\S*)~SCHLIESST'
-                        ,r'^VENT~(\S+)~(\S+)~(\S*)~AUF'
-                        ,r'^VENT~(\S+)~(\S+)~(\S*)~ZU'
-                        ,r'^KNOT~(\S+)~(\S*)~(\S*)~T'
-                        ,r'^KNOT~(\S+)~(\S*)~(\S*)~PDAMPF'
-                        ,r'^KNOT~(\S+)~(\S*)~(\S*)~RHO'
-                        ,r'^PUMP'
-                        ,r'^PGRP'
-                        ,r'^R\S+~(\S+)~(\S*)~(\S*)~X\S+'
+                         '(\S+)~(\S+)~(\S+)~(\S+)~*INST*'
+                        ,'^ROHR_VRTX' # surprise: not a VectorChannel?!
+                        ,'^ROHR~(\S+)~(\S+)~(\S*)~QM[I,K]{1}'
+                        ,'^VENT~(\S+)~(\S+)~(\S*)~OEFFNET'
+                        ,'^VENT~(\S+)~(\S+)~(\S*)~SCHLIESST'
+                        ,'^VENT~(\S+)~(\S+)~(\S*)~AUF'
+                        ,'^VENT~(\S+)~(\S+)~(\S*)~ZU'
+                        ,'^KNOT~(\S+)~(\S*)~(\S*)~T'
+                        ,'^KNOT~(\S+)~(\S*)~(\S*)~PDAMPF'
+                        ,'^KNOT~(\S+)~(\S*)~(\S*)~RHO'
+                        ,'^PUMP'
+                        ,'^PGRP'
+                        ,'^R\S+~(\S+)~(\S*)~(\S*)~X\S+'
                      ]):
         """
-        Initialize an SIR 3S MX Calculation Result Set with an MX1 File. 
-        >self.mx1File
-        MX-Channels can be Vectors. Default is not to process (read) VectorChannels.
-        Following (String-)ID - called Sir3sID - is used to identify an MX-Channel:
-        OBJTYPE~NAME1~NAME2~NAME3~ATTRTYPE                
-        channlesNot... is a list of RegExps of MX-Channels not to process (read).
+        __init__:
+        ---------
+        (re-)initialize the set with the MX1-File. 
+        ---------
+        >self.mx1File       
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -73,9 +242,13 @@ class Mx():
             logger.debug("{0:s}mx1File: {1:s}.".format(logStr,self.mx1File))     
             self.__readMxChannelDefinitions()
             self.__evalMxChannelsToBeProcessed(unpackVectorChannels,channelsNotToBeProcessedSir3sIDRegExp)
-            self.__buildMxRecordStructUnpackFmtString()                          
-
-        #FileNotFoundError
+            self.__buildMxRecordStructUnpackFmtString()      
+            self.pdf=None                    
+       
+        except FileNotFoundError as e:
+            logStrFinal="{0:s}mx1File: {1!s}: FileNotFoundError.".format(logStr,mx1File)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)
         except OSError as e:
             logStrFinal="{0:s}mx1File: {1!s}: OSError.".format(logStr,mx1File)
             logger.error(logStrFinal) 
@@ -95,19 +268,26 @@ class Mx():
 
     def __readMxChannelDefinitions(self):
         """
-        Read the MX-Channel Definitions from the MX1 File.
+        Read the MX-Channel Definitions from the MX1-File.
         >self.mxChannels[]
         >self.mxChannelsSir3sIDs[]     
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
         try:
             # XML Channel Def 
-            Mx1Tree = ET.parse(self.mx1File)
+            try:
+                Mx1Tree = ET.parse(self.mx1File)
+            except:
+                logStrFinal="{0:s}mx1File: {1:s}: ET.parse: Error.".format(logStr,self.mx1File)
+                logger.error(logStrFinal) 
+                raise MxError(logStrFinal)      
+
             Mx1Root = Mx1Tree.getroot()
-            self.mxChannels=Mx1Root.findall(r'XL1')
-            logger.debug("{0:s}mx1File: {1:s}: MX-Channels={2:d}.".format(logStr,self.mx1File,len(self.mxChannels)))      
+            self.mxChannels=Mx1Root.findall('XL1')
+            logger.info("{0:s}mx1File: {1:s}: MX-Channels={2:d}.".format(logStr,self.mx1File,len(self.mxChannels)))      
 
             # Sir3sID
             self.mxChannelsSir3sIDs=[]
@@ -119,7 +299,7 @@ class Mx():
             duplicateSir3sIDs = [item for item, count in collections.Counter(self.mxChannelsSir3sIDs).items() if count > 1]
             for duplicateSir3sID in duplicateSir3sIDs:
                 indices = [i for i, x in enumerate(self.mxChannelsSir3sIDs) if x == duplicateSir3sID]
-                logger.debug("{0:s}mx1File: {1:s}: Sir3sID: {2:s} is NOT unique! NoDuplicates={3:s}.".format(logStr,self.mx1File,duplicateSir3sID,str(indices)))      
+                logger.debug("{0:s}mx1File: {1:s}: Sir3sID: {2:s} is NOT unique! NoOfDuplicates={3:s}.".format(logStr,self.mx1File,duplicateSir3sID,str(indices)))      
                 
             if len(duplicateSir3sIDs)>0:
                 logStrFinal="{0:s}mx1File: {1:s}: Sir3sIDs are not unique! Error.".format(logStr,self.mx1File)
@@ -132,9 +312,8 @@ class Mx():
             logStrFinal="{0:s}mx1File: {1:s}: Error.".format(logStr,self.mx1File)
             logger.error(logStrFinal) 
             raise MxError(logStrFinal)                 
-        finally:
-            pass    
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+        else:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def __evalMxChannelsToBeProcessed(self
                                   ,unpackVectorChannels=True
@@ -145,6 +324,7 @@ class Mx():
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
         try:
                       
             # mark Channels to be processed
@@ -152,8 +332,8 @@ class Mx():
             # aspect unpackVectorChannels
             for idxChannel,mxChannel in enumerate(self.mxChannels):
                 Sir3sID=self.mxChannelsSir3sIDs[idxChannel]
-                cDTypeLength=int(mxChannel.get(r'DATATYPELENGTH'))
-                cDLength=int(mxChannel.get(r'DATALENGTH'))
+                cDTypeLength=int(mxChannel.get('DATATYPELENGTH'))
+                cDLength=int(mxChannel.get('DATALENGTH'))
                 items=int(cDLength/cDTypeLength)
                 if items>1 and not unpackVectorChannels:
                     self.mxChannelsToBeProcessed.append(False)
@@ -200,14 +380,12 @@ class Mx():
         return self.mxChannels[mxChannelIdx].get('OBJTYPE')+'~'+self.mxChannels[mxChannelIdx].get('NAME1')+'~'+self.mxChannels[mxChannelIdx].get('NAME2')+'~'+self.mxChannels[mxChannelIdx].get('NAME3')+'~'+self.mxChannels[mxChannelIdx].get('ATTRTYPE')                
 
     def __buildMxRecordStructUnpackFmtString(self):
-        """
-        Build the struct.unpack fmt-String: unpackedValues = struct.unpack(self.mxRecordStructUnpackFmtString,mxRecord)
-        >self.mxRecordStructUnpackFmtString
-        >self.mxRecordChannelsToStructMapping  
-            a list [] of tuples:
-                (idxChannel,idxUnpack)
+        """        
+        >self.mxRecordStructUnpackFmtString: struct.unpack(self.mxRecordStructUnpackFmtString,mxRecord)
+        >self.mxRecordChannelsToStructMapping: [(idxChannel,idxUnpack),...]  
         >self.bytesUnpacked
         """
+
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
@@ -224,9 +402,9 @@ class Mx():
                 sir3sID=self.mxChannelsSir3sIDs[idxChannel]
                 toBeUnpacked=self.mxChannelsToBeProcessed[idxChannel]
                                                                                    
-                cDType=mxChannel.get(r'DATATYPE')
-                cDTypeLength=int(mxChannel.get(r'DATATYPELENGTH'))
-                cDLength=int(mxChannel.get(r'DATALENGTH'))
+                cDType=mxChannel.get('DATATYPE')
+                cDTypeLength=int(mxChannel.get('DATATYPELENGTH'))
+                cDLength=int(mxChannel.get('DATALENGTH'))
                 items=int(cDLength/cDTypeLength)
 
                 if items>1:
@@ -300,7 +478,7 @@ class Mx():
                          logger.error(logStrFinal) 
                          raise MxError(logStrFinal)                                                
                     else:
-                         logStrFinal="{0:s}sir3sID: {1:s}: UNKNOWN DATATYPE={2:s}. Skipped".format(logStr,sir3sID,cDType)     
+                         logStrFinal="{0:s}sir3sID: {1:s}: UNKNOWN DATATYPE={2:s}. Skipped!".format(logStr,sir3sID,cDType)     
                          logger.debug(logStrFinal)                                               
                     bytesSkipped+=cDLength
                     fmtItem=str(cDLength)+'x'
@@ -325,23 +503,37 @@ class Mx():
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
-    def getPdfFromMxsZipFile(self,mxsZipFile=None,maxRecords=None):
+    def getMx1FilenameSplit(self):
         """
-        Returns a Pandas Data Frame.
+        Returns wD,base,ext of the MX1-File.
+        MX1-Filename: wD+os.path.sep+base+'.'+ext         
         """
+        (wD,Mx1FileName)=os.path.split(self.mx1File)
+        (base,ext)=os.path.splitext(Mx1FileName)
+        return wD,base,ext        
+
+    def setResultsToMxsZipfile(self,mxsZipFile=None,maxRecords=None):
+        """
+        Equalizes self.pdf to the results in the Zip.  
+        ---
+        Implicit specified is a Zip-File .ZIP in the same directory as the MX1-File .MX1.  
+        ---
+        It is implied that all calculation results in the Zip-File originate from the same MX1-File -  
+        from self.mx1File - and from the same Model operated with different input data at different scenario times.
+        """
+
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
         try: 
             if mxsZipFile == None:
-                (WDir,Mx1FileName)=os.path.split(self.mx1File)
-                (base,ext)=os.path.splitext(Mx1FileName)
-                mxsZipFile=WDir+os.path.sep+base+'.'+'ZIP'
+                wD,base,ext = self.getMx1FilenameSplit() 
+                mxsZipFile=wD+os.path.sep+base+'.'+'ZIP'
                            
             with open(mxsZipFile,'rb') as f:   
                 pass     
        
-            # ... some Work tbd before reading the Zip ...                           
+            # ... some Work tbd before reading the Zip ...                                  
             mxTimes=[]
             mxValues=[]           
             mxColumnNames=[] # used in Pandas
@@ -356,7 +548,13 @@ class Mx():
 
             # reading the Zip ...
             logger.debug("{0:s}Zip: {1:s} ...".format(logStr,mxsZipFile)) 
-            z = zipfile.ZipFile(mxsZipFile,'r')
+            try:
+                z = zipfile.ZipFile(mxsZipFile,'r')
+            except:
+                logStrFinal="{0:s}{1:s}: reading the Zip failed. Error.".format(logStr,mxsZipFile)
+                logger.error(logStrFinal) 
+                raise MxError(logStrFinal)   
+                               
             recsReadFromZip=0
             for mxsFileName in sorted(z.namelist()):
                 logger.debug("{0:s}{1:s} ...".format(logStr,mxsFileName))                                                        
@@ -399,7 +597,8 @@ class Mx():
                             if maxRecordsLimit:
                                 if recsReadFromZipFile == maxRecords:
                                     logger.debug("{0:s}{1:s}: maxRecords={2:d} read.".format(logStr,mxsFileName,maxRecords))  
-                                    raise EOFError                      
+                                    raise EOFError   
+                                                   
                     except EOFError:
                         recsReadFromZip+=recsReadFromZipFile
                         logger.debug("{0:s}{1:s}: Last Time read={2!s}. File finished.".format(logStr,mxsFileName,timeISO8601))                                                                                             
@@ -417,10 +616,13 @@ class Mx():
                                                                                                                                           ,self.bytesUnpacked/MxRecordLength*100
                                                                                                                                                  )
                         )                                                                     
-            pdf = pd.DataFrame.from_records(mxValues,index=mxTimes,columns=mxColumnNames)              
-            logger.debug("{0:s}{1:s}: pdf.head(10): {2!s}.".format(logStr,mxsFileName,pdf.head(10)))                  
-                                
-        #FileNotFoundError
+            self.pdf = pd.DataFrame.from_records(mxValues,index=mxTimes,columns=mxColumnNames)              
+            logger.debug("{0:s}{1:s}: pdf.head(10): {2!s}.".format(logStr,mxsFileName,self.pdf.head(10)))                  
+
+        except FileNotFoundError as e:
+            logStrFinal="{0:s}mxsZipFile: {1!s}: FileNotFoundError.".format(logStr,mxsZipFile)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)                                
         except OSError as e:
             logStrFinal="{0:s}mxsZipFile: {1!s}: OSError.".format(logStr,mxsZipFile)
             logger.error(logStrFinal) 
@@ -441,11 +643,73 @@ class Mx():
             raise MxError(logStrFinal)                                    
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
-            return pdf
+            return self.pdf
+
+    def wrtResultsToH5File(self,h5File=None):
+        """
+        Writes self.pdf to the h5File.  
+        Implicit specified is a .h5-File in the same directory as the .mx1-File.  
+        ---
+        The h5Key used imitates a relative path from .h5 to .mx1.        
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try: 
+            wD,base,ext = self.getMx1FilenameSplit()
+            if h5File == None:
+                h5File=wD+os.path.sep+base+'.'+'h5'
+
+            # h5Key
+            # '__/M_1_0_1' if .mx1-File is in parent dir
+            # 'M_1_0_1' if .mx1-File is in same dir
+            relPath=os.path.relpath(os.path.normpath(self.mx1File),start=os.path.normpath(h5File))
+            h5Key=re.sub('-','_'
+                    ,re.sub('\.','_'
+                           ,re.sub('^/',''
+                                   ,re.sub('.mX1',''
+                                                 ,re.sub('^\.{2}','',re.sub(r'\\+','/',relPath))
+                                                 ,flags=re.IGNORECASE                                                  
+                                           )
+                                   )
+                           )
+                        )
+                        
+            logger.debug("{0:s}pd.HDFStore({1:s}) ...".format(logStr,h5File))                 
+            with pd.HDFStore(h5File) as h5Store:               
+                logger.debug("{0:s}{1:s}: write data with key={2:s} ...".format(logStr,h5File,h5Key))     
+                #self.pdf.to_hdf(h5Store,h5Key,mode='w') 
+                h5Store.put(h5Key,self.pdf)
+                logger.debug("{0:s}{1:s}: write data with key={2:s} ... done.".format(logStr,h5File,h5Key))    
+                metadata = dict(mx1File=relPath)
+                h5Store.get_storer(h5Key).attrs.metadata=metadata
+                logger.debug("{0:s}{1:s}: write metadata={2!s} done.".format(logStr,h5File,metadata))     
+
+        except OSError as e:
+            logStrFinal="{0:s}h5File: {1!s}: OSError.".format(logStr,h5File)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)
+        except TypeError as e:
+            logStrFinal="{0:s}h5File: {1!s}: TypeError.".format(logStr,h5File)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)        
+        except PermissionError as e:
+            logStrFinal="{0:s}h5File: {1!s}: PermissionError.".format(logStr,h5File)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)               
+        except MxError:
+            raise
+        except:
+            logStrFinal="{0:s}h5File: {1!s}: Error.".format(logStr,h5File)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)                                    
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                 
 
 if __name__ == "__main__":
-    """.
-    .
+    """
+    Run Mx-Stuff or/and perform Mx-Unittests.
     """
 
     try:              
@@ -472,24 +736,54 @@ if __name__ == "__main__":
         logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
                                       
         # Arguments      
-        parser = argparse.ArgumentParser()
-        parser.add_argument("--mx1File",type=str, help=".mx1 File", default='./testdata/M-1-0-1.MX1')                        
-        parser.add_argument("-v","--verbose", help="Debug Messages On", action="store_true")               
+        parser = argparse.ArgumentParser(description='Run Mx-Stuff or/and perform Mx-Unittests.'
+        ,epilog='''
+        UsageExample#1: (without parameter): -v -u --x ./testdata/M-1-0-1.MX1 --z ./testdata/M-1-0-1.ZIP      
+        '''                                 
+        )
+        parser.add_argument('--x','--mx1File',type=str, help='.mx1 File (default: ./testdata/M-1-0-1.MX1)',default='./testdata/M-1-0-1.MX1')  
+
+        group = parser.add_mutually_exclusive_group()                
+        group.add_argument('--z','--mxsZipFile',type=str, help='parse .zip File (default: ./testdata/M-1-0-1.ZIP)',default='./testdata/M-1-0-1.ZIP')  
+        group.add_argument('--s','--mxsFile',type=str, help='parse .mxs File (default: ./testdata/M-1-0-1.MXS)',default='./testdata/M-1-0-1.MXS')  
+        group.add_argument('-a',help='parse all .mxs Files in MX1-Directory - NIY',action="store_true",default=False)    
+        group.add_argument('--r','--regExp',type=str,help='parse all Files (.mxs, .zip) in MX1-Directory matching RegExp - NIY',default=False)   
+        
+        group = parser.add_mutually_exclusive_group()                   
+        group.add_argument("-u","--unittest", help="Perform all Mx-Unittests", action="store_true",default=True)   
+        group.add_argument("-w","--unittestH5", help="Perform Mx-Unittests starting from read H5", action="store_true",default=False)   
+
+        group = parser.add_mutually_exclusive_group()                                
+        group.add_argument("-v","--verbose", help="Debug Messages On", action="store_true",default=True)      
+        group.add_argument("-q","--quiet", help="Debug Messages Off", action="store_true")                  
         args = parser.parse_args()
 
         if args.verbose:           
-            logger.setLevel(logging.DEBUG)                   
+            logger.setLevel(logging.DEBUG)     
+        else:            
+            logger.setLevel(logging.ERROR)  
+                      
         logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start. Argumente:',str(sys.argv))) 
 
-        mx = Mx(args.mx1File)
-        pdf = mx.getPdfFromMxsZipFile()
+        if args.unittestH5:
+            #suite=unittest.TestSuite()
+            #suite.addTest(MxTestH5('test_01_readFromH5'))
+            suite = unittest.defaultTestLoader.loadTestsFromTestCase(MxTestH5)
+            unittest.TextTestRunner().run(suite)           
+        elif args.unittest:
+            suite = unittest.defaultTestLoader.loadTestsFromTestCase(MxTest)
+            suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(MxTestH5))
+            unittest.TextTestRunner().run(suite)  
 
-        pass 
-       
-                                                     
+    except SystemExit:
+        pass                                              
     except:
         logger.error("{0:s}{1:s}".format(logStr,'logging.exception!')) 
         logging.exception('')  
+    else:
+        logger.debug("{0:s}{1:s}".format(logStr,'No Exception.')) 
+        sys.exit(0)
     finally:
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.')) 
         sys.exit(0)
+
