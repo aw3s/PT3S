@@ -4,7 +4,6 @@
 
 /.vs/config/applicationhost.config
 /nb/.ipynb_checkpoints/MxWithPandas-checkpoint.ipynb
-/nb/MxWithPandas.ipynb
 /testdata/M-1-0-1.MX1
 /testdata/M-1-0-1.MX2
 /testdata/M-1-0-1.MX3
@@ -35,3 +34,5 @@
 /__pycache__/Mx.cpython-35.pyc
 /.pypirc
 /nb/debug.log
+/nb3/.ipynb_checkpoints
+/nb3

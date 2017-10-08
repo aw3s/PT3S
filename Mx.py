@@ -2,7 +2,7 @@
 SIR 3S MX-Interface (short: MX):
 --------------------------------
 MX is a SIR 3S file based, channel-oriented interface for SIR 3S calculation results.
-Module Mx contains useful stuff to utilize MX (utilize SIR 3S calculation results) in pure Python.  
+Module Mx contains stuff to utilize MX (utilize SIR 3S calculation results) in pure Python.  
 SIR 3S calculation results:
 ---------------------------
 A binary MXS-File contains SIR 3S calculations results. 
@@ -12,6 +12,63 @@ This MX1-File defines in XML a sequence of MX-Channels.
 And - as a result - the Byte-Layout of a single MX-Record.
 A MX-Record contains calculation results for one Timestamp.
 A MXS-File contains at least one MX-Record.
+---------------------------
+DOCTEST
+---------------------------
+>>> # ---
+>>> # Init with MX1-File
+>>> # ---
+>>> # preparing for reading a huge Result-File ...
+>>> # ... therefore ignoring some MX-Channels: 
+>>> channelsNotToBeProcessedSir3sIDRegExp=[
+...                 '(\S+)~(\S+)~(\S+)~(\S+)~*INST*'
+...                ,'^ROHR_VRTX' # surprise: not a VectorChannel?!
+...                ,'^ROHR~(\S+)~(\S+)~(\S*)~QM[I,K]{1}'
+...                ,'^VENT~(\S+)~(\S+)~(\S*)~OEFFNET'
+...                ,'^VENT~(\S+)~(\S+)~(\S*)~SCHLIESST'
+...                ,'^VENT~(\S+)~(\S+)~(\S*)~AUF'
+...                ,'^VENT~(\S+)~(\S+)~(\S*)~ZU'
+...                ,'^KNOT~(\S+)~(\S*)~(\S*)~T'
+...                ,'^KNOT~(\S+)~(\S*)~(\S*)~PDAMPF'
+...                ,'^KNOT~(\S+)~(\S*)~(\S*)~RHO'
+...                ,'^PUMP'
+...                ,'^PGRP'
+...                ,'^R\S+~(\S+)~(\S*)~(\S*)~X\S+'
+...             ]
+>>> mx1File='./testdata/M-1-0-1.MX1'
+>>> mx=Mx(mx1File=mx1File,channelsNotToBeProcessedSir3sIDRegExp=channelsNotToBeProcessedSir3sIDRegExp)
+>>> # ---
+>>> # exploring after Init ...
+>>> # ---
+>>> len(mx.mxChannels)
+159703
+>>> # Bytes unpacked in a single MX-Record:
+>>> mx.bytesUnpacked
+15528
+>>> # Bytes in MX-Record:
+>>> MxRecordLength=struct.calcsize(mx.mxRecordStructUnpackFmtString)   
+>>> unpackingRate=mx.bytesUnpacked/MxRecordLength
+>>> # unpackingRate should be < 2%!
+>>> # ---
+>>> # Read MXS-ZIP...
+>>> # ---
+>>> pdf=mx.setResultsToMxsZipfile() # returns self.pdf
+>>> type(mx.pdf)
+<class 'pandas.core.frame.DataFrame'>
+>>> # ---
+>>> # Dump to H5...
+>>> # ---
+>>> mx.wrtResultsToH5File()
+>>> # ---
+>>> # Init with H5...
+>>> # ---
+>>> h5File='./testdata/M-1-0-1.h5'
+>>> mx=Mx(h5File=h5File)
+>>> # ---
+>>> # how fast is Init with H5? ...
+>>> # ---
+>>> t=timeit.timeit(stmt="Mx.Mx(h5File='./testdata/M-1-0-1.h5')",setup="import Mx",number=1)      
+>>> # t should be < 30s! 
 """
 
 import os
@@ -20,6 +77,7 @@ import logging
 logger = logging.getLogger(__name__)     
 import argparse
 import unittest
+import doctest
 import timeit
 
 import xml.etree.ElementTree as ET
@@ -168,9 +226,26 @@ class MxTestH5(unittest.TestCase):
     def test_21__init__h5(self):  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.'))   
-              
+        
+        h5File='./testdata/M-1-0-1.h5'
+
+        with pd.HDFStore(h5File) as h5Store:
+        
+                # key correct?
+                keys=h5Store.keys()
+                h5Key=keys[0]
+                self.assertEqual(h5Key,'/testdata/M_1_0_1',msg='h5Key <> /testdata/M_1_0_1')
+
+                # reference to MX1-File correct?
+                metadata=h5Store.get_storer(h5Key).attrs.metadata
+                mx1File=metadata['relPath2Mx1FromCurDir']
+                self.assertEqual(mx1File,'testdata\M-1-0-1.MX1',msg="metadata['relPath2Mx1FromCurDir'] <> testdata\M-1-0-1.MX1")
+
+                # MX1-File existing?
+                self.assertTrue(os.path.exists(mx1File))
+
         with self.assertLogs(logger=logger,level='INFO') as cm:                                
-            MxTestH5.mx=Mx(h5File='./testdata/M-1-0-1.h5')
+            MxTestH5.mx=Mx(h5File=h5File)
                      
         logger.debug("{0:s}{1!s}".format(logStr,cm.output))   
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
@@ -179,14 +254,6 @@ class MxTestH5(unittest.TestCase):
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
-
-    #@unittest.skipIf(WithTimeItTests==False,"test_21__init__timeit")
-    #def test_21__init__timeit(self):  
-    #    logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
-    #    logger.debug("{0:s}{1:s}".format(logStr,'Start.'))                 
-    #    t=timeit.timeit(stmt="Mx.Mx(mx1File='./testdata/M-1-0-1.MX1')",setup="import Mx",number=1)                      
-    #    logger.debug("{0:s}Timeit: Mx.Mx(mx1File='./testdata/M-1-0-1.MX1':{1:06.2f}s".format(logStr,t))         
-    #    logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
 class MxError(Exception):
     def __init__(self, value):
@@ -216,8 +283,12 @@ class Mx():
         (re-)initialize the set with an MX1-File (>self.pdf = None). 
         XOR
         (re-)initialize the set with an H5-File (>self.pdf = H5-Data).
-            The H5-File must be generated before with an MX1-File-initialized result set using .wrtResultsToH5File(). 
-            H5-File-Initializing is convenient (because much faster) if MXS-Results are already parsed and stored to H5.    
+            The H5-File must be generated before with an MX1-File-initialized result set using .wrtResultsToH5File():
+                if mx1File @ .wrtResultsToH5File() was:                ./testdata/M-1-0-1.MX1
+                than metadata['relPath2Mx1FromCurDir'] in H5 should be: testdata\M-1-0-1.MX1               
+                and Key in H5 should be:                                /testdata/M_1_0_1
+            H5-File-Initializing is convenient (because way faster) if MXS-Results are already parsed and stored to H5.   
+            The MX1-File referenced in the H5-Metadata must still exist. 
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -554,6 +625,7 @@ class Mx():
     def setResultsToMxsZipfile(self,mxsZipFile=None,maxRecords=None):
         """
         Equalizes >self.pdf to the results in the Zip.  
+        Returns self.pdf.
         ---
         Implicit specified is a Zip-File .ZIP in the same directory as the MX1-File .MX1.  
         ---
@@ -688,10 +760,11 @@ class Mx():
         """
         Writes >self.pdf to the h5File.  
         Implicit specified is a .h5-File in the same directory as the .mx1-File.  
-        The h5-File is !DELETED! before if existing.
+        A existing h5-File is !DELETED! before.
         ---
-        The h5Key used imitates a relative path from curDir to .mx1.      
-        This relative path is stored as attribute relPath2Mx1FromCurDir in metadata.  
+        if self.mx1File is:                              ./testdata/M-1-0-1.MX1
+        than metadata['relPath2Mx1FromCurDir'] in H5 is: testdata\M-1-0-1.MX1               
+        and Key in H5 is:                                /testdata/M_1_0_1
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -834,8 +907,9 @@ if __name__ == "__main__":
         group.add_argument('--r','--regExp',type=str,help='parse all Files (.mxs, .zip) in MX1-Directory matching RegExp - NIY',default=False)   
         
         group = parser.add_mutually_exclusive_group()                   
-        group.add_argument("-u","--unittest", help="Perform all Mx-Unittests", action="store_true",default=True)   
-        group.add_argument("-w","--unittestH5", help="Perform Mx-Unittests starting from read H5", action="store_true",default=False)   
+        group.add_argument("-u","--unittest", help="Perform Mx-Unittests: all (... + H5 + Doc)", action="store_true",default=True)   
+        group.add_argument("-w","--unittestH5", help="Perform Mx-Unittests: H5 only", action="store_true",default=False)   
+        group.add_argument("-d","--unittestDoc", help="Perform Mx-Unittests: doctests only", action="store_true",default=False)   
 
         group = parser.add_mutually_exclusive_group()                                
         group.add_argument("-v","--verbose", help="Debug Messages On", action="store_true",default=True)      
@@ -849,14 +923,20 @@ if __name__ == "__main__":
                       
         logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start. Argumente:',str(sys.argv))) 
 
-        if args.unittestH5:
+        suite=None
+        if args.unittestDoc:            
+            #doctest.testmod()
+            suite=doctest.DocTestSuite()                     
+        elif args.unittestH5:
             #suite=unittest.TestSuite()
             #suite.addTest(MxTestH5('test_01_readFromH5'))
-            suite = unittest.defaultTestLoader.loadTestsFromTestCase(MxTestH5)
-            unittest.TextTestRunner().run(suite)           
+            suite = unittest.defaultTestLoader.loadTestsFromTestCase(MxTestH5)                  
         elif args.unittest:
             suite = unittest.defaultTestLoader.loadTestsFromTestCase(MxTest)
             suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(MxTestH5))
+            suite.addTests(doctest.DocTestSuite())            
+        
+        if suite != None:
             unittest.TextTestRunner().run(suite)  
 
     except SystemExit:

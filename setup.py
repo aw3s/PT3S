@@ -1,5 +1,9 @@
 """A setuptools based setup module.
-
+sdist bdist_wheel upload
+pip uninstall PT3S -y
+pip install PT3S
+...
+pip install -e .
 See:
 https://packaging.python.org/tutorials/distributing-packages/
 https://github.com/pypa/sampleproject
@@ -24,7 +28,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.0.15.dev1',
+    version='0.0.16.dev1',
 
     description='Python Tools 3S',
     long_description=long_description,
@@ -53,7 +57,7 @@ setup(
        'PT3S':'.'},
     
 
-    python_requires='!=3.5',
+    python_requires='>=3',
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
