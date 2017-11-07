@@ -27,6 +27,7 @@
   <ItemGroup>
     <Content Include=".pypirc" />
     <Content Include="LICENSE" />
+    <Content Include="nb\LxWithPandas.ipynb" />
     <Content Include="nb\MxWithPandas.ipynb" />
     <Content Include="nb\MxWithPandas.pdf" />
     <Content Include="nb\PT3S.tplx" />
