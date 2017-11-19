@@ -67,12 +67,12 @@ class LxSirOPC():
                     rows[i][-1]=rows[i][-1]+delimiter+restValueStr
 
              index=range(len(rows))
-             df = pd.DataFrame(rows,columns=colNames,index=index)
+             self.pdf = pd.DataFrame(rows,columns=colNames,index=index)
 
-             logger.debug("{0:s}{1:s}: df.head(10): {2!s}.".format(logStr,logFile,df.head(10)))   
-             logger.debug("{0:s}{1:s}: df.describe(): {2!s}.".format(logStr,logFile,df.describe()))         
+             logger.debug("{0:s}{1:s}: head(10): {2!s}.".format(logStr,logFile,self.pdf.head(10)))   
+             logger.debug("{0:s}{1:s}: describe(): {2!s}.".format(logStr,logFile,self.pdf.describe()))         
 
-             self.pdf=df
+             self.__convertColumnData()
                           
         except LxError:
             raise            
@@ -82,6 +82,68 @@ class LxSirOPC():
             raise LxError(logStrFinal)               
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def __convertColumnData(self):
+        """
+        converts:
+        #LogTime to datetime
+        ProcessTime to datetime
+        Value to float64
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+             #LogTime
+             self.pdf['#LogTime']=pd.to_datetime(self.pdf['#LogTime'],unit='ms',errors='coerce') # NaT
+             self.pdf=self.pdf.dropna()
+             #ProcessTime
+             self.pdf['ProcessTime']=pd.to_datetime(self.pdf['ProcessTime'],errors='coerce') # NaT
+             #Value
+             self.pdf.Value=self.pdf.Value.str.replace(',', '.')
+             self.pdf.Value=pd.to_numeric(self.pdf.Value,errors='coerce') # NaN 
+                          
+        except LxError:
+            raise            
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def getProcessDataToSirCalc(self):
+        """
+        returns df containing only the ProcessData To SirCalc-Cmds and the following additional Columns:
+        TableName;ProcessDay;ProcessTime;Value
+        LogDay;LogTime
+        ProcessTime is not additional but different from the original ProcessTime (which is stored in Column ProcessTimeOrig)
+        the df is sorted by TableName,ProcessDay,ProcessTime
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        df=None
+        try: 
+             df=self.pdf[self.pdf['ID'].str.contains('^TABL')]
+             df=df.sort_values(by=['ID','ProcessTime','#LogTime'])
+             df['TableName']=df['ID'].replace('(TABL~)(\S+)~~~SWVT',r'\2',regex=True)#,inplace=True)
+             df['LogDay'], df['LogTime'] = df['#LogTime'].apply(lambda x: x.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]).str.split(' ',1).str
+             df = df.rename(columns={'ProcessTime':'ProcessTimeOrig'})
+             df['ProcessDay'], df['ProcessTime'] = df['ProcessTimeOrig'].apply(lambda x: x.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]).str.split(' ',1).str        
+             df['TimeNr'] = df.groupby('TableName')['ProcessTimeOrig'].rank(ascending=True,method='dense').astype(int)          
+        except LxError:
+            raise            
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        finally:
+            return df
 
 if __name__ == "__main__":
     """
