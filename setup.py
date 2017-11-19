@@ -33,8 +33,8 @@ setup(
     url='https://github.com/aw3s/PT3S',
 
     # Author details
-    author='The Python Packaging Authority',
-    author_email='pypa-dev@googlegroups.com',
+    author='PT3S',
+    author_email='andreashwolters@gmail.com',
 
     # Choose your license
     license='MIT',
