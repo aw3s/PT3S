@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{a4114edb-830b-4f14-adf1-5f2313ac1fea}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>Lx.py</StartupFile>
+    <StartupFile>Xm.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -16,8 +16,7 @@
     <InterpreterVersion>
     </InterpreterVersion>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <CommandLineArguments>
-    </CommandLineArguments>
+    <CommandLineArguments>-v --x ./testdata/MVV_FW.XML     </CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
@@ -33,6 +32,7 @@
     <Content Include="nb\MxWithPandas.ipynb" />
     <Content Include="nb\MxWithPandas.pdf" />
     <Content Include="nb\PT3S.tplx" />
+    <Content Include="nb\XmWithPandas.ipynb" />
     <Content Include="README.md" />
     <Content Include="README.rst" />
     <Content Include="setup.cfg" />
@@ -44,7 +44,7 @@
     <Compile Include="__init__.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Mx.py">
+    <Compile Include="Xm.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="setup.py" />
