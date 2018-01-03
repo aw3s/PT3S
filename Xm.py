@@ -44,17 +44,78 @@ class Xm():
         
         try: 
             if type(XmlFile) == str:
-                pass
+                self.xmlFile=XmlFile  
+                with open(self.xmlFile,'r') as f: 
+                    pass
                 
-           
-            else:
-                logStrFinal="{0:s}. Error.".format(logStr)
-                logger.error(logStrFinal) 
-                raise XmError(logStrFinal)                    
-        except XmError:
-            raise            
+                logger.debug("{0:s}xmlFile: {1:s}.".format(logStr,self.xmlFile))     
+                tree = ET.parse(self.xmlFile) # ElementTree
+                root = tree.getroot()  # Element
+                pm = {c:p for p in root.iter() for c in p}   # parentMap
+                tableNames=[]
+                oldTableName=None
+                for element in root.iter():
+                    p = None
+                    if element in pm:
+                        p = pm[element]
+                    if p != root:
+                        continue
+                    actTableName=element.tag
+                    if actTableName != oldTableName:
+                        tableNames.append(actTableName)
+                        oldTableName=actTableName                
+                self.dataFrames={}
+                for tableName in tableNames:
+                    all_records = []
+                    for elementRow in root.iter(tag=tableName):
+                        record = {}
+                        for elementCol in elementRow:
+                            record[elementCol.tag] = elementCol.text
+                        all_records.append(record)
+                    self.dataFrames[tableName]=pd.DataFrame(all_records) 
+                self.__convertAndFix()
+                
+        except FileNotFoundError as e:
+            logStrFinal="{0:s}xmlFile: {1!s}: FileNotFoundError.".format(logStr,self.xmlFile)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)
+        except OSError as e:
+            logStrFinal="{0:s}xmlFile: {1!s}: OSError.".format(logStr,self.xmlFile)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)
+        except TypeError as e:
+            logStrFinal="{0:s}xmlFile: {1!s}: TypeError.".format(logStr,self.xmlFile)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)                            
         except:
-            logStrFinal="{0:s}Error.".format(logStr)
+            logStrFinal="{0:s}mx1File: {1!s}: Error.".format(logStr,self.xmlFile)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+
+    def __convertAndFix(self):
+        """
+       
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            
+            self.dataFrames['SWVT_ROWT'].ZEIT=self.dataFrames['SWVT_ROWT'].ZEIT.str.replace(',', '.')
+            self.dataFrames['SWVT_ROWT'].W=self.dataFrames['SWVT_ROWT'].W.str.replace(',', '.')
+
+            self.dataFrames['LFKT_ROWT'].ZEIT=self.dataFrames['LFKT_ROWT'].ZEIT.str.replace(',', '.')
+            self.dataFrames['LFKT_ROWT'].LF=self.dataFrames['LFKT_ROWT'].LF.str.replace(',', '.')
+
+            self.dataFrames['SWVT_ROWT']=self.dataFrames['SWVT_ROWT'].fillna(0) # 1. Zeit ohne Wert fuer ZEIT?!
+            self.dataFrames['LFKT_ROWT']=self.dataFrames['LFKT_ROWT'].fillna(0) # 1. Zeit ohne Wert fuer ZEIT?!
+                      
+        except:
+            logStrFinal="{0:s}mx1File: {1!s}: Error.".format(logStr,self.xmlFile)
             logger.error(logStrFinal) 
             raise XmError(logStrFinal)               
         else:
@@ -91,10 +152,10 @@ if __name__ == "__main__":
         # Arguments      
         parser = argparse.ArgumentParser(description='Run Xm-Stuff or/and perform Xm-Unittests.'
         ,epilog='''
-        UsageExample#1: -v --x ./testdata/MVV_FW.XML       
+        UsageExample#1: -v --x ./testdata/FW.XML       
         '''                                 
         )
-        parser.add_argument('--x','--XmlFile',type=str, help='.xml File (default: ./testdata/MVV_FW.XML)',default='./testdata/MVV_FW.XML')  
+        parser.add_argument('--x','--XmlFile',type=str, help='.xml File (default: ./testdata/FW.XML)',default='./testdata/FW.XML')  
 
         group = parser.add_mutually_exclusive_group()                                
         group.add_argument("-v","--verbose", help="Debug Messages On", action="store_true",default=True)      
