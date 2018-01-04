@@ -74,6 +74,8 @@ class Xm():
                         all_records.append(record)
                     self.dataFrames[tableName]=pd.DataFrame(all_records) 
                 self.__convertAndFix()
+                self.__vLFKT()
+                self.__vFWVB()
                 
         except FileNotFoundError as e:
             logStrFinal="{0:s}xmlFile: {1!s}: FileNotFoundError.".format(logStr,self.xmlFile)
@@ -86,7 +88,11 @@ class Xm():
         except TypeError as e:
             logStrFinal="{0:s}xmlFile: {1!s}: TypeError.".format(logStr,self.xmlFile)
             logger.error(logStrFinal) 
-            raise XmError(logStrFinal)                            
+            raise XmError(logStrFinal)      
+        except MemoryError as e:
+            logStrFinal="{0:s}xmlFile: {1!s}: MemoryError. In Notebook: Try: Kernel/Restart.".format(logStr,self.xmlFile)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)                                    
         except:
             logStrFinal="{0:s}mx1File: {1!s}: Error.".format(logStr,self.xmlFile)
             logger.error(logStrFinal) 
@@ -115,11 +121,90 @@ class Xm():
             self.dataFrames['LFKT_ROWT']=self.dataFrames['LFKT_ROWT'].fillna(0) # 1. Zeit ohne Wert fuer ZEIT?!
                       
         except:
-            logStrFinal="{0:s}mx1File: {1!s}: Error.".format(logStr,self.xmlFile)
+            logStrFinal="{0:s}Error.".format(logStr)
             logger.error(logStrFinal) 
             raise XmError(logStrFinal)               
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def __vLFKT(self):
+        """
+       
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            self.vLFKT=pd.merge(self.dataFrames['LFKT'],self.dataFrames['LFKT_ROWT'],left_on='pk',right_on='fk')
+            self.vLFKT['ZEIT']=pd.to_numeric(self.vLFKT['ZEIT']) 
+            self.vLFKT['LF']=pd.to_numeric(self.vLFKT['LF']) 
+            self.vLFKT['ZEIT_RANG']=self.vLFKT.groupby(['pk_x'])['ZEIT'].rank(ascending=True)
+            #
+            vLFKT_gLF=self.vLFKT.groupby(['pk_x'], as_index=False).agg({'LF':[np.min,np.max]})
+            vLFKT_gLF.columns= [tup[0]+tup[1] for tup in zip(vLFKT_gLF.columns.get_level_values(0),vLFKT_gLF.columns.get_level_values(1))]
+            vLFKT_gLF=vLFKT_gLF.rename(columns={'LFamin':'LF_min','LFamax':'LF_max'})
+            #
+            self.vLFKT=pd.merge(self.vLFKT,vLFKT_gLF,left_on='pk_x',right_on='pk_x')
+            #
+            self.vLFKT=self.vLFKT[self.vLFKT['ZEIT_RANG']==1]
+            #
+            self.vLFKT=self.vLFKT[['NAME','BESCHREIBUNG','LF','LF_min','LF_max','INTPOL','ZEITOPTION','pk_x']]
+                                 
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+            
+    def __vFWVB(self):
+        """
+       
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:             
+            self.vFWVB=pd.merge(self.dataFrames['FWVB'],self.dataFrames['FWVB_BZ'],left_on='pk',right_on='fk')
+            #
+            self.vFWVB=self.vFWVB[self.vFWVB['W0'].notnull()]
+            self.vFWVB['W0']=self.vFWVB['W0'].str.replace(',', '.')
+            self.vFWVB['W0']=pd.to_numeric(self.vFWVB['W0']) 
+            #
+            self.vFWVB['LFK']=pd.to_numeric(self.vFWVB['LFK']) 
+            self.vFWVB['TVL0']=pd.to_numeric(self.vFWVB['TVL0']) 
+            self.vFWVB['TRS0']=pd.to_numeric(self.vFWVB['TRS0'])  
+            self.vFWVB['INDTR']=pd.to_numeric(self.vFWVB['INDTR'])  
+            self.vFWVB['TRSK']=pd.to_numeric(self.vFWVB['TRSK'])  
+            self.vFWVB['VTYP']=pd.to_numeric(self.vFWVB['VTYP'])  
+            self.vFWVB['IMBG']=pd.to_numeric(self.vFWVB['IMBG']) 
+            self.vFWVB['IRFV']=pd.to_numeric(self.vFWVB['IRFV']) 
+            
+            #
+            self.vFWVB=pd.merge(self.vFWVB,self.vLFKT,left_on='fkLFKT',right_on='pk_x')
+            #
+            self.vFWVB['W']      = self.vFWVB.apply(lambda row: row.LF     * row.W0, axis=1)
+            self.vFWVB['W_min']  = self.vFWVB.apply(lambda row: row.LF_min * row.W0, axis=1)
+            self.vFWVB['W_max']  = self.vFWVB.apply(lambda row: row.LF_max * row.W0, axis=1)
+            #
+            self.vFWVB=self.vFWVB[[
+                    'BESCHREIBUNG_x','IDREFERENZ'
+                   ,'W0','LFK' ,'TVL0' ,'TRS0'
+                   ,'W','W_min','W_max'
+                   ,'INDTR' ,'TRSK'
+                   ,'VTYP' ,'IMBG' ,'IRFV'
+                   ,'pk_x_x','tk'
+                   ,'NAME','BESCHREIBUNG_y'
+                 ]]
+                               
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                
 
 if __name__ == "__main__":
     """
