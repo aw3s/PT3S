@@ -74,9 +74,13 @@ class Xm():
                         all_records.append(record)
                     self.dataFrames[tableName]=pd.DataFrame(all_records) 
                 self.__convertAndFix()
+
                 self.__vLFKT()
+                self.__vQVAR()
+                
                 self.__vFWVB()
                 self.__vVKNO()
+                self.__vKNOT()
                 
         except FileNotFoundError as e:
             logStrFinal="{0:s}xmlFile: {1!s}: FileNotFoundError.".format(logStr,self.xmlFile)
@@ -118,8 +122,12 @@ class Xm():
             self.dataFrames['LFKT_ROWT'].ZEIT=self.dataFrames['LFKT_ROWT'].ZEIT.str.replace(',', '.')
             self.dataFrames['LFKT_ROWT'].LF=self.dataFrames['LFKT_ROWT'].LF.str.replace(',', '.')
 
+            self.dataFrames['QVAR_ROWT'].ZEIT=self.dataFrames['QVAR_ROWT'].ZEIT.str.replace(',', '.')
+            self.dataFrames['QVAR_ROWT'].QM=self.dataFrames['QVAR_ROWT'].QM.str.replace(',', '.')
+
             self.dataFrames['SWVT_ROWT']=self.dataFrames['SWVT_ROWT'].fillna(0) # 1. Zeit ohne Wert fuer ZEIT?!
             self.dataFrames['LFKT_ROWT']=self.dataFrames['LFKT_ROWT'].fillna(0) # 1. Zeit ohne Wert fuer ZEIT?!
+            self.dataFrames['QVAR_ROWT']=self.dataFrames['QVAR_ROWT'].fillna(0) # 1. Zeit ohne Wert fuer ZEIT?!
                       
         except:
             logStrFinal="{0:s}Error.".format(logStr)
@@ -151,6 +159,37 @@ class Xm():
             self.vLFKT=self.vLFKT[self.vLFKT['ZEIT_RANG']==1]
             #
             self.vLFKT=self.vLFKT[['NAME','BESCHREIBUNG','LF','LF_min','LF_max','INTPOL','ZEITOPTION','pk_x']]
+                                 
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+
+    def __vQVAR(self):
+        """
+       
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            self.vQVAR=pd.merge(self.dataFrames['QVAR'],self.dataFrames['QVAR_ROWT'],left_on='pk',right_on='fk')
+            self.vQVAR['ZEIT']=pd.to_numeric(self.vQVAR['ZEIT']) 
+            self.vQVAR['QM']=pd.to_numeric(self.vQVAR['QM']) 
+            self.vQVAR['ZEIT_RANG']=self.vQVAR.groupby(['pk_x'])['ZEIT'].rank(ascending=True)
+            #
+            vQVAR_gQM=self.vQVAR.groupby(['pk_x'], as_index=False).agg({'QM':[np.min,np.max]})
+            vQVAR_gQM.columns= [tup[0]+tup[1] for tup in zip(vQVAR_gQM.columns.get_level_values(0),vQVAR_gQM.columns.get_level_values(1))]
+            vQVAR_gQM=vQVAR_gQM.rename(columns={'QMamin':'QM_min','QMamax':'QM_max'})
+            #
+            self.vQVAR=pd.merge(self.vQVAR,vQVAR_gQM,left_on='pk_x',right_on='pk_x')
+            #
+            self.vQVAR=self.vQVAR[self.vQVAR['ZEIT_RANG']==1]
+            #
+            self.vQVAR=self.vQVAR[['NAME','BESCHREIBUNG','QM','QM_min','QM_max','INTPOL','ZEITOPTION','pk_x']]
                                  
         except:
             logStrFinal="{0:s}Error.".format(logStr)
@@ -224,11 +263,60 @@ class Xm():
                'NAME_x'     
               ,'NAME_y'     
               ,'KTYP'
-              ,'fkCONT','fkKNOT'
+              ,'fkCONT_x','fkKNOT'
               ,'LFAKT','QM_EIN'  
             ]]
-            self.vVKNO=self.vVKNO.rename(columns={'NAME_x':'CONT','NAME_y':'NAME'})
+            self.vVKNO=self.vVKNO.rename(columns={'NAME_x':'CONT','NAME_y':'NAME','fkCONT_x':'fkCONT'})
                                
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+
+    def __vKNOT(self):
+        """
+       
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:             
+            pass
+            self.vKNOT=pd.merge(self.dataFrames['KNOT'],self.dataFrames['KNOT_BZ'],left_on='pk',right_on='fk')
+            self.vKNOT=pd.merge(self.vKNOT,self.dataFrames['CONT'],left_on='fkCONT',right_on='pk')
+            self.vKNOT=pd.merge(self.vKNOT,self.vVKNO,left_on='pk_x',right_on='fkKNOT',how='left')
+
+            self.vKNOT=self.vKNOT[[
+                    'NAME_x'
+                   ,'BESCHREIBUNG','IDREFERENZ'
+                   ,'NAME_y'
+                   ,'CONT' # vVKNO
+                   ,'KTYP_x'
+                   ,'LFAKT_x','QM_EIN_x','fkQVAR'       
+                   ,'KVR' 
+                   ,'TE','TM' 
+                   ,'XKOR','YKOR','ZKOR'
+                ]]
+            self.vKNOT=self.vKNOT.rename(columns={'NAME_x':'NAME','NAME_y':'CONT','KTYP_x':'KTYP','LFAKT_x':'LFAKT','QM_EIN_x':'QM_EIN','CONT':'CONT_VKNO'})
+
+            self.vKNOT=pd.merge(self.vKNOT,self.vQVAR,left_on='fkQVAR',right_on='pk_x',how='left')
+            self.vKNOT=self.vKNOT.rename(columns={'NAME_x':'NAME','BESCHREIBUNG_x':'BESCHREIBUNG','NAME_y':'QVAR'})
+
+            self.vKNOT=self.vKNOT[[
+                    'NAME'
+                   ,'BESCHREIBUNG','IDREFERENZ'
+                   ,'CONT'
+                   ,'CONT_VKNO' # vVKNO
+                   ,'KTYP'
+                   ,'LFAKT','QM_EIN','QVAR','QM','QM_min','QM_max'     
+                   ,'KVR' 
+                   ,'TE','TM' 
+                   ,'XKOR','YKOR','ZKOR'
+                ]]
+          
         except:
             logStrFinal="{0:s}Error.".format(logStr)
             logger.error(logStrFinal) 
