@@ -76,6 +76,7 @@ class Xm():
                 self.__convertAndFix()
                 self.__vLFKT()
                 self.__vFWVB()
+                self.__vVKNO()
                 
         except FileNotFoundError as e:
             logStrFinal="{0:s}xmlFile: {1!s}: FileNotFoundError.".format(logStr,self.xmlFile)
@@ -205,6 +206,35 @@ class Xm():
             raise XmError(logStrFinal)               
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                
+
+    def __vVKNO(self):
+        """
+       
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:             
+            pass
+            self.vVKNO=pd.merge(self.dataFrames['VKNO'],self.dataFrames['CONT'],left_on='fkCONT',right_on='pk')
+            self.vVKNO=pd.merge(self.vVKNO,self.dataFrames['KNOT'],left_on='fkKNOT',right_on='pk')
+
+            self.vVKNO=self.vVKNO[[
+               'NAME_x'     
+              ,'NAME_y'     
+              ,'KTYP'
+              ,'fkCONT','fkKNOT'
+              ,'LFAKT','QM_EIN'  
+            ]]
+            self.vVKNO=self.vVKNO.rename(columns={'NAME_x':'CONT','NAME_y':'NAME'})
+                               
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
 if __name__ == "__main__":
     """
