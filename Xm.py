@@ -167,6 +167,37 @@ class Xm():
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
 
+    def __vSWVT(self):
+        """
+       
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            self.vSWVT=pd.merge(self.dataFrames['SWVT'],self.dataFrames['SWVT_ROWT'],left_on='pk',right_on='fk')
+            self.vSWVT['ZEIT']=pd.to_numeric(self.vSWVT['ZEIT']) 
+            self.vSWVT['W']=pd.to_numeric(self.vSWVT['W']) 
+            self.vSWVT['ZEIT_RANG']=self.vSWVT.groupby(['pk_x'])['ZEIT'].rank(ascending=True)
+            #
+            vSWVT_g=self.vSWVT.groupby(['pk_x'], as_index=False).agg({'W':[np.min,np.max]})
+            vSWVT_g.columns= [tup[0]+tup[1] for tup in zip(vSWVT_g.columns.get_level_values(0),vSWVT_g.columns.get_level_values(1))]
+            vSWVT_g=vSWVT_g.rename(columns={'Wamin':'W_min','Wamax':'W_max'})
+            #
+            self.vSWVT=pd.merge(self.vSWVT,vSWVT_g,left_on='pk_x',right_on='pk_x')
+            #
+            self.vSWVT=self.vSWVT[self.vSWVT['ZEIT_RANG']==1]
+            #
+            self.vSWVT=self.vSWVT[['NAME','BESCHREIBUNG','W','W_min','W_max','INTPOL','ZEITOPTION','pk_x']]
+                                 
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+
     def __vQVAR(self):
         """
        
