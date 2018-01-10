@@ -77,6 +77,8 @@ class Xm():
 
                 self.__vLFKT()
                 self.__vQVAR()
+                self.__vSWVT()
+                self.__vRSLW()
                 
                 self.__vFWVB()
                 self.__vVKNO()
@@ -169,7 +171,13 @@ class Xm():
 
     def __vSWVT(self):
         """
-       
+        # SWVT
+        'NAME'
+        ,'BESCHREIBUNG'
+        # SWVT_ROWT
+        ,'W','W_min','W_max','INTPOL','ZEITOPTION'
+        # SWVT ID
+        ,'pk'       
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -190,6 +198,11 @@ class Xm():
             self.vSWVT=self.vSWVT[self.vSWVT['ZEIT_RANG']==1]
             #
             self.vSWVT=self.vSWVT[['NAME','BESCHREIBUNG','W','W_min','W_max','INTPOL','ZEITOPTION','pk_x']]
+            #
+            self.vSWVT.rename(columns={'pk_x':'pk'},inplace=True)
+
+            # nb-Print
+            self.pSWVT=self.vSWVT[['NAME','BESCHREIBUNG','W','W_min','W_max','INTPOL','ZEITOPTION']]
                                  
         except:
             logStrFinal="{0:s}Error.".format(logStr)
@@ -197,6 +210,108 @@ class Xm():
             raise XmError(logStrFinal)               
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+
+    def __vRSLW(self):
+        """
+        # RSLW
+        'KA'
+        ,'BESCHREIBUNG'
+        ,'INDWBG','INDWNO'
+        # RSLW BZ
+        ,'INDSLW','SLWKON'
+        # CONT
+        ,'CONT' #(NAME)
+        ,'ID'          
+        # vSWVT
+        ,'SWVT' #(NAME)
+        ,'BESCHREIBUNG_SWVT' #(BESCHREIBUNG)
+        ,'W','W_min','W_max','INTPOL','ZEITOPTION'
+        # RSLW IDs   
+        ,'pk','tk'
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:                         
+            vRSLW=pd.merge(self.dataFrames['RSLW'],self.dataFrames['RSLW_BZ'],left_on='pk',right_on='fk')
+            vRSLW=pd.merge(vRSLW,self.dataFrames['CONT'],left_on='fkCONT',right_on='pk')
+
+            vRSLW=vRSLW[[
+            # RSLW
+            'KA'
+            ,'BESCHREIBUNG'
+            ,'INDWBG','INDWNO'
+            # RSLW BZ
+            ,'INDSLW','SLWKON','fkSWVT' 
+            # CONT
+            ,'NAME','ID'
+            # RSLW IDs   
+            ,'pk_x', 'tk_x'
+                 ]]
+
+            vRSLW=pd.merge(vRSLW,self.vSWVT,left_on='fkSWVT',right_on='pk',how='left')
+
+            vRSLW=vRSLW[[
+            # RSLW
+            'KA'
+            ,'BESCHREIBUNG_x'
+            ,'INDWBG','INDWNO'
+            # RSLW BZ
+            ,'INDSLW','SLWKON'
+            # CONT
+            ,'NAME_x','ID'          
+            # vSWVT
+            ,'NAME_y', 'BESCHREIBUNG_y', 'W', 'W_min', 'W_max', 'INTPOL','ZEITOPTION'
+            # RSLW IDs   
+            ,'pk_x', 'tk_x'
+                 ]]            
+
+            vRSLW.rename(columns=
+            {'BESCHREIBUNG_x': 'BESCHREIBUNG',
+             'BESCHREIBUNG_y': 'BESCHREIBUNG_SWVT',
+             'NAME_x': 'CONT',
+             'NAME_y': 'SWVT',
+             'pk_x': 'pk',
+             'tk_x': 'tk'}
+            ,inplace=True)
+
+            vRSLW=vRSLW[[
+            # RSLW
+            'KA'
+            ,'BESCHREIBUNG'
+            ,'INDWBG','INDWNO'
+            # RSLW BZ
+            ,'INDSLW','SLWKON'
+            # CONT
+            ,'CONT','ID'          
+            # vSWVT
+            ,'SWVT', 'BESCHREIBUNG_SWVT', 'W', 'W_min', 'W_max', 'INTPOL','ZEITOPTION'
+            # RSLW IDs   
+            ,'pk','tk'
+                 ]]          
+
+            self.vRSLW=vRSLW
+
+            # nb-Print
+            self.pRSLW=self.vRSLW[[
+            # RSLW
+            'KA'
+            ,'BESCHREIBUNG'            
+            # RSLW BZ
+            ,'INDSLW','SLWKON'
+            # CONT
+            ,'CONT'        
+            # vSWVT
+            ,'SWVT', 'BESCHREIBUNG_SWVT', 'W', 'W_min', 'W_max'
+                 ]]          
+
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
     def __vQVAR(self):
         """
@@ -308,7 +423,17 @@ class Xm():
 
     def __vKNOT(self):
         """
-       
+         'NAME'
+        ,'BESCHREIBUNG'
+        ,'IDREFERENZ'
+        ,'CONT'
+        ,'CONT_VKNO'
+        ,'KTYP'
+        ,'LFAKT','QM_EIN'
+        ,'QVAR','QM','QM_min','QM_max'
+        ,'KVR','TE','TM'
+        ,'XKOR','YKOR','ZKOR'
+        ,'pk','tk'       
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -323,29 +448,35 @@ class Xm():
             self.vKNOT=self.vKNOT[[
                     'NAME_x'
                    ,'BESCHREIBUNG','IDREFERENZ'
-                   ,'NAME_y'
-                   ,'CONT' # vVKNO
+                   ,'NAME_y' # CONT KNOT
+                   ,'CONT' # CONT vVKNO
                    ,'KTYP_x'
                    ,'LFAKT_x','QM_EIN_x','fkQVAR'       
                    ,'KVR' 
                    ,'TE','TM' 
                    ,'XKOR','YKOR','ZKOR'
+                   ,'pk_x','tk_x'
                 ]]
-            self.vKNOT=self.vKNOT.rename(columns={'NAME_x':'NAME','NAME_y':'CONT','KTYP_x':'KTYP','LFAKT_x':'LFAKT','QM_EIN_x':'QM_EIN','CONT':'CONT_VKNO'})
+            self.vKNOT.rename(columns={'NAME_x':'NAME','NAME_y':'CONT','KTYP_x':'KTYP'
+                                       ,'LFAKT_x':'LFAKT','QM_EIN_x':'QM_EIN'
+                                       ,'CONT':'CONT_VKNO'
+                                       ,'pk_x':'pk'
+                                       ,'tk_x':'tk'},inplace=True)
 
             self.vKNOT=pd.merge(self.vKNOT,self.vQVAR,left_on='fkQVAR',right_on='pk_x',how='left')
-            self.vKNOT=self.vKNOT.rename(columns={'NAME_x':'NAME','BESCHREIBUNG_x':'BESCHREIBUNG','NAME_y':'QVAR'})
+            self.vKNOT.rename(columns={'NAME_x':'NAME','BESCHREIBUNG_x':'BESCHREIBUNG','NAME_y':'QVAR'},inplace=True)
 
             self.vKNOT=self.vKNOT[[
                     'NAME'
                    ,'BESCHREIBUNG','IDREFERENZ'
-                   ,'CONT'
-                   ,'CONT_VKNO' # vVKNO
+                   ,'CONT' # CONT KNOT
+                   ,'CONT_VKNO' # CONT vVKNO
                    ,'KTYP'
                    ,'LFAKT','QM_EIN','QVAR','QM','QM_min','QM_max'     
                    ,'KVR' 
                    ,'TE','TM' 
                    ,'XKOR','YKOR','ZKOR'
+                   ,'pk','tk'
                 ]]
           
         except:
@@ -354,6 +485,7 @@ class Xm():
             raise XmError(logStrFinal)               
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+
 
 if __name__ == "__main__":
     """
