@@ -24,6 +24,9 @@ import zipfile
 import pandas as pd
 import numpy as np
 
+import matplotlib.pyplot as plt
+from matplotlib import colors
+
 class XmError(Exception):
     def __init__(self, value):
         self.value = value
@@ -161,6 +164,15 @@ class Xm():
             self.vLFKT=self.vLFKT[self.vLFKT['ZEIT_RANG']==1]
             #
             self.vLFKT=self.vLFKT[['NAME','BESCHREIBUNG','LF','LF_min','LF_max','INTPOL','ZEITOPTION','pk_x']]
+            #
+            self.vLFKT.rename(columns={'pk_x':'pk'},inplace=True)
+            #
+            self.vLFKT=self.vLFKT[[
+                'NAME','BESCHREIBUNG'
+                ,'LF','LF_min','LF_max'
+                ,'INTPOL','ZEITOPTION'
+                ,'pk'
+                ]]
                                  
         except:
             logStrFinal="{0:s}Error.".format(logStr)
@@ -369,7 +381,7 @@ class Xm():
             self.vFWVB['IRFV']=pd.to_numeric(self.vFWVB['IRFV']) 
             
             #
-            self.vFWVB=pd.merge(self.vFWVB,self.vLFKT,left_on='fkLFKT',right_on='pk_x')
+            self.vFWVB=pd.merge(self.vFWVB,self.vLFKT,left_on='fkLFKT',right_on='pk')
             #
             self.vFWVB['W']      = self.vFWVB.apply(lambda row: row.LF     * row.W0, axis=1)
             self.vFWVB['W_min']  = self.vFWVB.apply(lambda row: row.LF_min * row.W0, axis=1)
@@ -381,16 +393,194 @@ class Xm():
                    ,'W','W_min','W_max'
                    ,'INDTR' ,'TRSK'
                    ,'VTYP' ,'IMBG' ,'IRFV'
-                   ,'pk_x_x','tk'
+                   ,'pk_x','tk'
                    ,'NAME','BESCHREIBUNG_y'
                  ]]
-                               
+            self.vFWVB=self.vFWVB.rename(columns={'BESCHREIBUNG_x':'BESCHREIBUNG','pk_x':'pk','NAME':'LFKT'})       
+            self.vFWVB=self.vFWVB[[
+                    #FWVB
+                    'BESCHREIBUNG','IDREFERENZ'
+                   ,'W0','LFK' ,'TVL0' ,'TRS0'
+                    #LFKT
+                   ,'LFKT'
+                   ,'W','W_min','W_max'
+                    #FWVB contd.
+                   ,'INDTR' ,'TRSK'
+                   ,'VTYP' ,'IMBG' ,'IRFV'
+                    #FWVB IDs
+                   ,'pk','tk'                 
+                 ]]                 
         except:
             logStrFinal="{0:s}Error.".format(logStr)
             logger.error(logStrFinal) 
             raise XmError(logStrFinal)               
         else:
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))             
+
+    def vFWVB_Plt_Hist(self
+                       ,epsZero=0.001 #to distinguish FWVB Cat. with W0=0 from those with W0>0
+                       ,spaceBetweenCats=0.3 #the Space between the Categories; 1.0: no Space 
+                       ):
+        """
+        Plots a Histogram-alike Presentation on gca().  
+       
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:  
+            #Categories 
+            bins=[]
+            binlabels=[]
+
+            bins.append(0)
+            binlabels.append('=0')
+
+            bins.append(epsZero)
+            binlabels.append('>0')
+
+            bins.append(self.vFWVB.W0.quantile(.25))
+            binlabels.append('>=25%-Quart.')
+
+            if self.vFWVB.W0.median() < self.vFWVB.W0.mean(): #50%-Quartil < Mittelwert
+                bins.append(self.vFWVB.W0.median()) 
+                binlabels.append('>=Median')
+
+            bins.append(self.vFWVB.W0.mean())
+            binlabels.append('>=Mittelwert')
+
+            bins.append(bins[-1]*2)
+            binlabels.append('>=2xMittelw.')
+
+            if bins[-1] < self.vFWVB.W0.std():
+                bins.append(self.vFWVB.W0.std())
+                binlabels.append('>=Standardabw.')
+
+            if bins[-1] < self.vFWVB.W0.quantile(.95):
+                bins.append(self.vFWVB.W0.quantile(.95))
+                binlabels.append('>=95%-Quartil')
+
+            bins.append(self.vFWVB.W0.max())
+            binlabels.append('Max.')
+
+            W0cat=pd.cut(self.vFWVB.W0,bins,include_lowest=True,right=True,precision=1)
+
+            W0catLabels=[x + '-: ' +  re.sub('\]$','[',re.sub('\(' ,'[', y))  for x,y in zip(binlabels[:-1],W0cat.cat.categories)]
+            W0catLabels[-1]=re.sub('\[$',']',W0catLabels[-1])
+
+            #Category Data
+            W0catSumPercent=self.vFWVB[self.vFWVB.W0>=0].groupby(W0cat).W0.sum()  /self.vFWVB[self.vFWVB.W0>=0].W0.sum() # kW Summe
+            W0catAnzPercent=self.vFWVB[self.vFWVB.W0>=0].groupby(W0cat).W0.count()/self.vFWVB[self.vFWVB.W0>=0].W0.count() # Anzahl Summe
+
+            W0catSumPercentcs=W0catSumPercent.cumsum()
+            W0catAnzPercentcs=W0catAnzPercent.cumsum()
+
+            #Bar Layout
+            numOfBarsPerCat=2 # MW u. Anzahl
+            numOfCats=len(W0cat.cat.categories)
+            widthPerBar=numOfCats/(numOfCats*numOfBarsPerCat)*min(1.-spaceBetweenCats,1.0)
+            xCats0=np.arange(numOfCats) # the x-Coordinate of the left-most Bar per Cat
+
+
+            ax=plt.gca()
+
+            #1st MW Bars
+            barsW0catSumPercent = ax.bar(xCats0,W0catSumPercent,widthPerBar)
+            norm = colors.Normalize(W0catSumPercentcs.min(),W0catSumPercentcs.max())
+            colorSumPercent=[]
+            for thisfrac, thisbar in zip(W0catSumPercentcs,barsW0catSumPercent):
+                color = plt.cm.cool(norm(thisfrac))
+                thisbar.set_facecolor(color)
+                colorSumPercent.append(color)
+
+            #2nd Anz Bars
+            barsW0catAnzPercent = ax.bar(xCats0+widthPerBar,W0catAnzPercent,widthPerBar)
+            norm = colors.Normalize(W0catAnzPercentcs.min(),W0catAnzPercentcs.max())
+            colorAnzPercent=[]
+            for thisfrac, thisbar in zip(W0catAnzPercentcs,barsW0catAnzPercent):
+                color = plt.cm.autumn(norm(thisfrac))
+                thisbar.set_facecolor(color)
+                colorAnzPercent.append(color)
+
+            #xTicks
+            xTicks=ax.set_xticks(xCats0+numOfBarsPerCat*widthPerBar/2) #xTicks in the Middle of each Cat.
+            xTickValues=ax.get_xticks()
+
+            #xLabels
+            xTickLabels=ax.set_xticklabels(W0catLabels,rotation='vertical')
+            for xTickLabel in xTickLabels:
+                x,y=xTickLabel.get_position()
+                xTickLabel.set_position((x,y-0.0625*numOfBarsPerCat)) #Space for Cat Datanumbers (one row per Measure)
+
+            #yTicks rechts (0-1)
+            yTicksR=[x/10 for x in np.arange(10)+1]
+            yTicksR.insert(0,0)
+
+            #yTicks links
+            # 10 Abstaende / 11 Ticks wie die r. y-Achse
+            yMaxL=max(W0catSumPercent.max(),W0catAnzPercent.max())
+            dyMinL=yMaxL/(len(yTicksR)-1)
+            dyMinLr=round(dyMinL,2)
+            if dyMinLr*(len(yTicksR)-1) < yMaxL:
+                dyL=dyMinLr+0.01
+            else:
+                dyL=dyMinLr
+            yTicksL=[x*dyL for x in np.arange(10)+1]
+            yTicksL.insert(0,0)
+            yTicksLObjects=ax.set_yticks(yTicksL)
+            yTicksL=ax.get_yticks()
+
+            #r. y-Achse
+            ax2 = ax.twinx()
+            yTicksRObjects=ax2.set_yticks(yTicksR)
+            yTicksR=ax2.get_yticks()
+
+            #Sum Curves
+            lineW0catSumPercent,=ax2.plot(xTickValues,W0catSumPercentcs,color='gray',linewidth=1.0, ls='-',marker='s',clip_on=False)
+            lineW0catAnzPercent,=ax2.plot(xTickValues,W0catAnzPercentcs,color='gray',linewidth=1.0, ls='-',marker='o',clip_on=False)
+
+            # Cat Datanumbers (one row per Measure)
+            measureIdx=1
+
+            for kWSum, x,color in zip(self.vFWVB[self.vFWVB.W0>=0].groupby(W0cat).W0.sum(),xTickValues,colorSumPercent):
+                txt="{0:.0f}".format(float(kWSum)/1000)
+                ax.annotate(txt 
+                            ,xy=(x, 0), xycoords=('data', 'axes fraction')
+                            ,xytext=(0, measureIdx*-10), textcoords='offset points', va='top', ha='center'
+                            ,color=color
+                           )
+            ax.annotate("{0:.0f} MW Ges.".format(float(self.vFWVB[self.vFWVB.W0>=0].W0.sum())/1000) 
+                            ,xy=(x, 0), xycoords=('data', 'axes fraction')
+                            ,xytext=(+20,measureIdx*-10), textcoords='offset points', va='top', ha='left'
+                       )             
+
+            measureIdx=measureIdx+1
+            for count,x,color in zip(self.vFWVB[self.vFWVB.W0>=0].groupby(W0cat).W0.count(),xTickValues,colorAnzPercent):
+                txt="{0:d}".format(int(count))
+                ax.annotate(txt
+                           ,xy=(x, 0),xycoords=('data', 'axes fraction')
+                           ,xytext=(0, measureIdx*-10),textcoords='offset points', va='top', ha='center'
+                           ,color=color
+                           )
+            ax.annotate("{0:d} Anz Ges.".format(int(self.vFWVB[self.vFWVB.W0>=0].W0.count())) 
+                          ,xy=(x, 0),xycoords=('data', 'axes fraction')
+                          ,xytext=(+20, measureIdx*-10), textcoords='offset points', va='top', ha='left'
+                       )  
+            
+            #y-Labels 
+            txyl=ax.set_ylabel('MW/MW Ges. u. Anz/Anz Ges.')
+            txyr=ax2.set_ylabel('MW kum. in % u. Anz kum. in %')
+
+            legend=plt.legend([lineW0catSumPercent,lineW0catAnzPercent],['MW kum. in %','Anz kum. in %'],loc='upper left')
+            plt.grid()
+
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                           
 
     def __vVKNO(self):
         """
