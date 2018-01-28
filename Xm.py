@@ -24,6 +24,8 @@ import zipfile
 import pandas as pd
 import numpy as np
 
+import base64
+
 import matplotlib.pyplot as plt
 from matplotlib import colors
 
@@ -76,11 +78,18 @@ class Xm():
                             record[elementCol.tag] = elementCol.text
                         all_records.append(record)
                     self.dataFrames[tableName]=pd.DataFrame(all_records) 
+
+                #repairs
                 self.__convertAndFix()
 
+                #Layr
+                self.__vLAYR()
+
+                #time-Tables
                 self.__vLFKT()
                 self.__vQVAR()
                 self.__vSWVT()
+
                 self.__vRSLW()
                 
                 self.__vFWVB()
@@ -141,6 +150,48 @@ class Xm():
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
+    def __vLAYR(self):
+        """
+       
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            self.vLAYR_DATA=self.dataFrames['LAYR'][pd.notnull(self.dataFrames['LAYR']['OBJS'])][['LFDNR','NAME','OBJS','pk','tk']]
+            self.vLAYR_DATA['OBJS']=self.vLAYR_DATA['OBJS'].apply(lambda x: base64.b64decode(x)).str.decode('utf-8')
+            self.vLAYR_DATA['LFDNR']=pd.to_numeric(self.vLAYR_DATA.LFDNR,errors='coerce').fillna(-1).astype(np.int64)
+
+            self.vLAYR_OBJS=pd.concat(
+            [
+             pd.Series(
+             row['LFDNR'],
+             row['OBJS'].split('\t')
+              )              
+            for _, row in self.vLAYR_DATA.iterrows() 
+            ]
+            ).reset_index() # When we reset the index, the old index is added as a column, and a new sequential index is used
+
+            self.vLAYR_DATA.drop(['OBJS'],axis=1,inplace=True)
+            
+            self.vLAYR_OBJS.rename(columns={'index':'ETYPEEID',0:'LFDNR'},inplace=True)
+            self.vLAYR_OBJS=self.vLAYR_OBJS[self.vLAYR_OBJS['ETYPEEID'].notnull()]
+            self.vLAYR_OBJS=self.vLAYR_OBJS[self.vLAYR_OBJS['ETYPEEID'].str.len()>5]
+            self.vLAYR_OBJS['OBJID']=self.vLAYR_OBJS['ETYPEEID'].str[5:]
+            self.vLAYR_OBJS['OBJTYPE']=self.vLAYR_OBJS['ETYPEEID'].str[:4]
+
+            self.vLAYR_OBJS.drop(['ETYPEEID'],axis=1,inplace=True)
+
+            self.vLAYR=pd.merge(self.vLAYR_DATA,self.vLAYR_OBJS,left_on='LFDNR',right_on='LFDNR')
+          
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+
     def __vLFKT(self):
         """
        
@@ -157,7 +208,7 @@ class Xm():
             #
             vLFKT_gLF=self.vLFKT.groupby(['pk_x'], as_index=False).agg({'LF':[np.min,np.max]})
             vLFKT_gLF.columns= [tup[0]+tup[1] for tup in zip(vLFKT_gLF.columns.get_level_values(0),vLFKT_gLF.columns.get_level_values(1))]
-            vLFKT_gLF=vLFKT_gLF.rename(columns={'LFamin':'LF_min','LFamax':'LF_max'})
+            vLFKT_gLF.rename(columns={'LFamin':'LF_min','LFamax':'LF_max'},inplace=True)
             #
             self.vLFKT=pd.merge(self.vLFKT,vLFKT_gLF,left_on='pk_x',right_on='pk_x')
             #
@@ -203,7 +254,7 @@ class Xm():
             #
             vSWVT_g=self.vSWVT.groupby(['pk_x'], as_index=False).agg({'W':[np.min,np.max]})
             vSWVT_g.columns= [tup[0]+tup[1] for tup in zip(vSWVT_g.columns.get_level_values(0),vSWVT_g.columns.get_level_values(1))]
-            vSWVT_g=vSWVT_g.rename(columns={'Wamin':'W_min','Wamax':'W_max'})
+            vSWVT_g.rename(columns={'Wamin':'W_min','Wamax':'W_max'},inplace=True)
             #
             self.vSWVT=pd.merge(self.vSWVT,vSWVT_g,left_on='pk_x',right_on='pk_x')
             #
@@ -341,7 +392,7 @@ class Xm():
             #
             vQVAR_gQM=self.vQVAR.groupby(['pk_x'], as_index=False).agg({'QM':[np.min,np.max]})
             vQVAR_gQM.columns= [tup[0]+tup[1] for tup in zip(vQVAR_gQM.columns.get_level_values(0),vQVAR_gQM.columns.get_level_values(1))]
-            vQVAR_gQM=vQVAR_gQM.rename(columns={'QMamin':'QM_min','QMamax':'QM_max'})
+            vQVAR_gQM.rename(columns={'QMamin':'QM_min','QMamax':'QM_max'},inplace=True)
             #
             self.vQVAR=pd.merge(self.vQVAR,vQVAR_gQM,left_on='pk_x',right_on='pk_x')
             #
@@ -396,7 +447,7 @@ class Xm():
                    ,'pk_x','tk'
                    ,'NAME','BESCHREIBUNG_y'
                  ]]
-            self.vFWVB=self.vFWVB.rename(columns={'BESCHREIBUNG_x':'BESCHREIBUNG','pk_x':'pk','NAME':'LFKT'})       
+            self.vFWVB.rename(columns={'BESCHREIBUNG_x':'BESCHREIBUNG','pk_x':'pk','NAME':'LFKT'},inplace=True)       
             self.vFWVB=self.vFWVB[[
                     #FWVB
                     'BESCHREIBUNG','IDREFERENZ'
@@ -602,7 +653,7 @@ class Xm():
               ,'fkCONT_x','fkKNOT'
               ,'LFAKT','QM_EIN'  
             ]]
-            self.vVKNO=self.vVKNO.rename(columns={'NAME_x':'CONT','NAME_y':'NAME','fkCONT_x':'fkCONT'})
+            self.vVKNO.rename(columns={'NAME_x':'CONT','NAME_y':'NAME','fkCONT_x':'fkCONT'},inplace=True)
                                
         except:
             logStrFinal="{0:s}Error.".format(logStr)
