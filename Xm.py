@@ -92,9 +92,10 @@ class Xm():
 
                 self.__vRSLW()
                 
-                self.__vFWVB()
                 self.__vVKNO()
                 self.__vKNOT()
+
+                self.__vFWVB()
                 
         except FileNotFoundError as e:
             logStrFinal="{0:s}xmlFile: {1!s}: FileNotFoundError.".format(logStr,self.xmlFile)
@@ -407,6 +408,100 @@ class Xm():
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             
+    def __vVKNO(self):
+        """
+       
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:             
+            pass
+            self.vVKNO=pd.merge(self.dataFrames['VKNO'],self.dataFrames['CONT'],left_on='fkCONT',right_on='pk')
+            self.vVKNO=pd.merge(self.vVKNO,self.dataFrames['KNOT'],left_on='fkKNOT',right_on='pk')
+
+            self.vVKNO=self.vVKNO[[
+               'NAME_x'     
+              ,'NAME_y'     
+              ,'KTYP'
+              ,'fkCONT_x','fkKNOT'
+              ,'LFAKT','QM_EIN'  
+            ]]
+            self.vVKNO.rename(columns={'NAME_x':'CONT','NAME_y':'NAME','fkCONT_x':'fkCONT'},inplace=True)
+                               
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+
+    def __vKNOT(self):
+        """
+         'NAME'
+        ,'BESCHREIBUNG'
+        ,'IDREFERENZ'
+        ,'CONT' (der Block des Knotens)
+        ,'CONT_VKNO' (der Block fuer den der Knoten Blockknoten ist)
+        ,'KTYP'
+        ,'LFAKT','QM_EIN'
+        ,'QVAR','QM','QM_min','QM_max'
+        ,'KVR','TE','TM'
+        ,'XKOR','YKOR','ZKOR'
+        ,'pk','tk'       
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:             
+            pass
+            self.vKNOT=pd.merge(self.dataFrames['KNOT'],self.dataFrames['KNOT_BZ'],left_on='pk',right_on='fk')
+            self.vKNOT=pd.merge(self.vKNOT,self.dataFrames['CONT'],left_on='fkCONT',right_on='pk')
+            self.vKNOT=pd.merge(self.vKNOT,self.vVKNO,left_on='pk_x',right_on='fkKNOT',how='left')
+
+            self.vKNOT=self.vKNOT[[
+                    'NAME_x'
+                   ,'BESCHREIBUNG','IDREFERENZ'
+                   ,'NAME_y' # CONT KNOT (der Block des Knotens)
+                   ,'CONT' # CONT vVKNO (der Block fuer den der Knoten Blockknoten ist)
+                   ,'KTYP_x'
+                   ,'LFAKT_x','QM_EIN_x','fkQVAR'       
+                   ,'KVR' 
+                   ,'TE','TM' 
+                   ,'XKOR','YKOR','ZKOR'
+                   ,'pk_x','tk_x'
+                ]]
+            self.vKNOT.rename(columns={'NAME_x':'NAME','NAME_y':'CONT','KTYP_x':'KTYP'
+                                       ,'LFAKT_x':'LFAKT','QM_EIN_x':'QM_EIN'
+                                       ,'CONT':'CONT_VKNO'
+                                       ,'pk_x':'pk'
+                                       ,'tk_x':'tk'},inplace=True)
+
+            self.vKNOT=pd.merge(self.vKNOT,self.vQVAR,left_on='fkQVAR',right_on='pk_x',how='left')
+            self.vKNOT.rename(columns={'NAME_x':'NAME','BESCHREIBUNG_x':'BESCHREIBUNG','NAME_y':'QVAR'},inplace=True)
+
+            self.vKNOT=self.vKNOT[[
+                    'NAME'
+                   ,'BESCHREIBUNG','IDREFERENZ'
+                   ,'CONT' # CONT KNOT (der Block des Knotens)
+                   ,'CONT_VKNO' # CONT vVKNO (der Block fuer den der Knoten Blockknoten ist)
+                   ,'KTYP'
+                   ,'LFAKT','QM_EIN','QVAR','QM','QM_min','QM_max'     
+                   ,'KVR' 
+                   ,'TE','TM' 
+                   ,'XKOR','YKOR','ZKOR'
+                   ,'pk','tk'
+                ]]
+          
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+
     def __vFWVB(self):
         """
        
@@ -446,6 +541,7 @@ class Xm():
                    ,'VTYP' ,'IMBG' ,'IRFV'
                    ,'pk_x','tk'
                    ,'NAME','BESCHREIBUNG_y'
+                   ,'fkKI','fkKK'
                  ]]
             self.vFWVB.rename(columns={'BESCHREIBUNG_x':'BESCHREIBUNG','pk_x':'pk','NAME':'LFKT'},inplace=True)       
             self.vFWVB=self.vFWVB[[
@@ -459,8 +555,59 @@ class Xm():
                    ,'INDTR' ,'TRSK'
                    ,'VTYP' ,'IMBG' ,'IRFV'
                     #FWVB IDs
-                   ,'pk','tk'                 
-                 ]]                 
+                   ,'pk','tk'  
+                   ,'fkKI','fkKK'               
+                 ]]    
+
+            self.vFWVB=pd.merge(self.vFWVB,self.vKNOT,left_on='fkKI',right_on='pk')   
+            self.vFWVB.rename(columns={'BESCHREIBUNG_x':'BESCHREIBUNG','IDREFERENZ_x':'IDREFERENZ','pk_x':'pk','tk_x':'tk'},inplace=True)  
+            self.vFWVB=self.vFWVB[[
+                    #FWVB
+                    'BESCHREIBUNG','IDREFERENZ'
+                   ,'W0','LFK' ,'TVL0' ,'TRS0'
+                    #LFKT
+                   ,'LFKT'
+                   ,'W','W_min','W_max'
+                    #FWVB contd.
+                   ,'INDTR' ,'TRSK'
+                   ,'VTYP' ,'IMBG' ,'IRFV'
+                    #FWVB IDs
+                   ,'pk','tk'  
+                    #Ki
+                   ,'NAME'
+                   ,'KVR','TM'
+                   ,'XKOR','YKOR','ZKOR'
+                   ,'fkKK'               
+                 ]]     
+            self.vFWVB.rename(columns={'NAME':'NAME_i','KVR':'KVR_i','TM':'TM_i'},inplace=True)  
+            self.vFWVB.rename(columns={'XKOR':'XKOR_i','YKOR':'YKOR_i','ZKOR':'ZKOR_i'},inplace=True)    
+            
+            self.vFWVB=pd.merge(self.vFWVB,self.vKNOT,left_on='fkKK',right_on='pk')    
+            self.vFWVB.rename(columns={'BESCHREIBUNG_x':'BESCHREIBUNG','IDREFERENZ_x':'IDREFERENZ','pk_x':'pk','tk_x':'tk'},inplace=True)  
+            self.vFWVB=self.vFWVB[[
+                    #FWVB
+                    'BESCHREIBUNG','IDREFERENZ'
+                   ,'W0','LFK' ,'TVL0' ,'TRS0'
+                    #LFKT
+                   ,'LFKT'
+                   ,'W','W_min','W_max'
+                    #FWVB contd.
+                   ,'INDTR' ,'TRSK'
+                   ,'VTYP' ,'IMBG' ,'IRFV'
+                    #FWVB IDs
+                   ,'pk','tk'  
+                    #Ki
+                   ,'NAME_i'
+                   ,'KVR_i','TM_i'
+                   ,'XKOR_i','YKOR_i','ZKOR_i'
+                    #Kk
+                   ,'NAME'
+                   ,'KVR','TM'
+                   ,'XKOR','YKOR','ZKOR'          
+                 ]]     
+            self.vFWVB.rename(columns={'NAME':'NAME_k','KVR':'KVR_k','TM':'TM_k'},inplace=True)  
+            self.vFWVB.rename(columns={'XKOR':'XKOR_k','YKOR':'YKOR_k','ZKOR':'ZKOR_k'},inplace=True)                                   
+            
         except:
             logStrFinal="{0:s}Error.".format(logStr)
             logger.error(logStrFinal) 
@@ -631,103 +778,8 @@ class Xm():
             logger.error(logStrFinal) 
             raise XmError(logStrFinal)               
         else:
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                           
-
-    def __vVKNO(self):
-        """
-       
-        """
-
-        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-        
-        try:             
-            pass
-            self.vVKNO=pd.merge(self.dataFrames['VKNO'],self.dataFrames['CONT'],left_on='fkCONT',right_on='pk')
-            self.vVKNO=pd.merge(self.vVKNO,self.dataFrames['KNOT'],left_on='fkKNOT',right_on='pk')
-
-            self.vVKNO=self.vVKNO[[
-               'NAME_x'     
-              ,'NAME_y'     
-              ,'KTYP'
-              ,'fkCONT_x','fkKNOT'
-              ,'LFAKT','QM_EIN'  
-            ]]
-            self.vVKNO.rename(columns={'NAME_x':'CONT','NAME_y':'NAME','fkCONT_x':'fkCONT'},inplace=True)
-                               
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)               
-        else:
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
-
-    def __vKNOT(self):
-        """
-         'NAME'
-        ,'BESCHREIBUNG'
-        ,'IDREFERENZ'
-        ,'CONT'
-        ,'CONT_VKNO'
-        ,'KTYP'
-        ,'LFAKT','QM_EIN'
-        ,'QVAR','QM','QM_min','QM_max'
-        ,'KVR','TE','TM'
-        ,'XKOR','YKOR','ZKOR'
-        ,'pk','tk'       
-        """
-
-        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-        
-        try:             
-            pass
-            self.vKNOT=pd.merge(self.dataFrames['KNOT'],self.dataFrames['KNOT_BZ'],left_on='pk',right_on='fk')
-            self.vKNOT=pd.merge(self.vKNOT,self.dataFrames['CONT'],left_on='fkCONT',right_on='pk')
-            self.vKNOT=pd.merge(self.vKNOT,self.vVKNO,left_on='pk_x',right_on='fkKNOT',how='left')
-
-            self.vKNOT=self.vKNOT[[
-                    'NAME_x'
-                   ,'BESCHREIBUNG','IDREFERENZ'
-                   ,'NAME_y' # CONT KNOT
-                   ,'CONT' # CONT vVKNO
-                   ,'KTYP_x'
-                   ,'LFAKT_x','QM_EIN_x','fkQVAR'       
-                   ,'KVR' 
-                   ,'TE','TM' 
-                   ,'XKOR','YKOR','ZKOR'
-                   ,'pk_x','tk_x'
-                ]]
-            self.vKNOT.rename(columns={'NAME_x':'NAME','NAME_y':'CONT','KTYP_x':'KTYP'
-                                       ,'LFAKT_x':'LFAKT','QM_EIN_x':'QM_EIN'
-                                       ,'CONT':'CONT_VKNO'
-                                       ,'pk_x':'pk'
-                                       ,'tk_x':'tk'},inplace=True)
-
-            self.vKNOT=pd.merge(self.vKNOT,self.vQVAR,left_on='fkQVAR',right_on='pk_x',how='left')
-            self.vKNOT.rename(columns={'NAME_x':'NAME','BESCHREIBUNG_x':'BESCHREIBUNG','NAME_y':'QVAR'},inplace=True)
-
-            self.vKNOT=self.vKNOT[[
-                    'NAME'
-                   ,'BESCHREIBUNG','IDREFERENZ'
-                   ,'CONT' # CONT KNOT
-                   ,'CONT_VKNO' # CONT vVKNO
-                   ,'KTYP'
-                   ,'LFAKT','QM_EIN','QVAR','QM','QM_min','QM_max'     
-                   ,'KVR' 
-                   ,'TE','TM' 
-                   ,'XKOR','YKOR','ZKOR'
-                   ,'pk','tk'
-                ]]
-          
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)               
-        else:
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
-
-
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+                                  
 if __name__ == "__main__":
     """
     Run Xm-Stuff or/and perform Xm-Unittests.
