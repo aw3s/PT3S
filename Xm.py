@@ -95,6 +95,8 @@ class Xm():
                 self.__vVKNO()
                 self.__vKNOT()
 
+                self.__vROHR()
+
                 self.__vFWVB()
                 
         except FileNotFoundError as e:
@@ -417,7 +419,6 @@ class Xm():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try:             
-            pass
             self.vVKNO=pd.merge(self.dataFrames['VKNO'],self.dataFrames['CONT'],left_on='fkCONT',right_on='pk')
             self.vVKNO=pd.merge(self.vVKNO,self.dataFrames['KNOT'],left_on='fkKNOT',right_on='pk')
 
@@ -429,6 +430,13 @@ class Xm():
               ,'LFAKT','QM_EIN'  
             ]]
             self.vVKNO.rename(columns={'NAME_x':'CONT','NAME_y':'NAME','fkCONT_x':'fkCONT'},inplace=True)
+
+            self.vVKNO=self.vVKNO[[
+                'NAME' # der Name des Knotens
+               ,'CONT' # der Blockname des Blockes fuer den der Knoten Blockknoten ist
+               ,'fkCONT','fkKNOT'
+               #,'KTYP', 'LFAKT', 'QM_EIN'
+            ]]
                                
         except:
             logStrFinal="{0:s}Error.".format(logStr)
@@ -439,17 +447,7 @@ class Xm():
 
     def __vKNOT(self):
         """
-         'NAME'
-        ,'BESCHREIBUNG'
-        ,'IDREFERENZ'
-        ,'CONT' (der Block des Knotens)
-        ,'CONT_VKNO' (der Block fuer den der Knoten Blockknoten ist)
-        ,'KTYP'
-        ,'LFAKT','QM_EIN'
-        ,'QVAR','QM','QM_min','QM_max'
-        ,'KVR','TE','TM'
-        ,'XKOR','YKOR','ZKOR'
-        ,'pk','tk'       
+          
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -464,17 +462,22 @@ class Xm():
             self.vKNOT=self.vKNOT[[
                     'NAME_x'
                    ,'BESCHREIBUNG','IDREFERENZ'
-                   ,'NAME_y' # CONT KNOT (der Block des Knotens)
-                   ,'CONT' # CONT vVKNO (der Block fuer den der Knoten Blockknoten ist)
-                   ,'KTYP_x'
-                   ,'LFAKT_x','QM_EIN_x','fkQVAR'       
+                   ,'NAME_y' # aus KNOT>CONT (der Blockname des Knotens)
+                   ,'ID' # aus KNOT>CONT
+                   ,'LFDNR' # aus KNOT>CONT
+                   ,'CONT' # aus vVKNO (der Blockname des Blocks fuer den der Knoten Blockknoten ist)
+                   ,'KTYP'
+                   ,'LFAKT','QM_EIN','fkQVAR'       
                    ,'KVR' 
                    ,'TE','TM' 
                    ,'XKOR','YKOR','ZKOR'
                    ,'pk_x','tk_x'
                 ]]
-            self.vKNOT.rename(columns={'NAME_x':'NAME','NAME_y':'CONT','KTYP_x':'KTYP'
-                                       ,'LFAKT_x':'LFAKT','QM_EIN_x':'QM_EIN'
+            self.vKNOT.rename(columns={'NAME_x':'NAME'
+                                       ,'NAME_y':'CONT'
+                                       ,'ID':'CONT_ID'
+                                       ,'LFDNR':'CONT_LFDNR'
+                                       ,'ID':'CONT_ID','LFDNR':'CONT_LFDNR'
                                        ,'CONT':'CONT_VKNO'
                                        ,'pk_x':'pk'
                                        ,'tk_x':'tk'},inplace=True)
@@ -485,8 +488,10 @@ class Xm():
             self.vKNOT=self.vKNOT[[
                     'NAME'
                    ,'BESCHREIBUNG','IDREFERENZ'
-                   ,'CONT' # CONT KNOT (der Block des Knotens)
-                   ,'CONT_VKNO' # CONT vVKNO (der Block fuer den der Knoten Blockknoten ist)
+                   ,'CONT' # aus KNOT>CONT (der Blockname des Knotens)
+                   ,'CONT_ID' # aus KNOT>CONT
+                   ,'CONT_LFDNR' # aus KNOT>CONT
+                   ,'CONT_VKNO' # aus vVKNO (der Blockname des Blocks fuer den der Knoten Blockknoten ist)
                    ,'KTYP'
                    ,'LFAKT','QM_EIN','QVAR','QM','QM_min','QM_max'     
                    ,'KVR' 
@@ -501,6 +506,354 @@ class Xm():
             raise XmError(logStrFinal)               
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+
+    def __vROHR(self):
+        """
+       
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:      
+            
+            self.vROHR=pd.merge(self.dataFrames['ROHR'],self.dataFrames['ROHR_BZ'],left_on='pk',right_on='fk')
+
+            self.vROHR=self.vROHR[[
+                     'BESCHREIBUNG'
+                    ,'IDREFERENZ'
+                    #Asset
+                    ,'BAUJAHR','HAL'
+                    ,'IPLANUNG','KENNUNG'
+                    #Reibung
+                    ,'L','LZU','RAU','ZAUS','ZEIN','ZUML'
+                    ,'JLAMBS','LAMBDA0'
+                    #inst.
+                    ,'ASOLL','INDSCHALL'
+                    #FW
+                    ,'fk2LROHR','KVR'
+                    #Ref.
+                    ,'fkCONT'
+                    ,'fkDTRO_ROWD'
+                    ,'fkLTGR','fkSTRASSE'
+                    ,'fkKI','fkKK'
+                   #IDs 
+                    ,'pk_x','tk'
+                    ,'GEOM','GRAF'
+                   #BZ
+                    ,'IRTRENN'
+                    ,'LECKSTART','LECKEND','LECKMENGE','LECKORT','LECKSTATUS'
+                   #Rest
+                    ,'QSVB'
+                    ,'ZVLIMPTNZ'
+                    ,'KANTENZV'
+                            ]]
+
+            self.vROHR.rename(columns={'pk_x':'pk'},inplace=True)
+            self.vROHR=pd.merge(self.vROHR,self.dataFrames['CONT'],left_on='fkCONT',right_on='pk')
+
+            self.vROHR=self.vROHR[[
+             'BESCHREIBUNG'
+            ,'IDREFERENZ'
+            #Asset
+            ,'BAUJAHR','HAL'
+            ,'IPLANUNG','KENNUNG'
+            #Reibung
+            ,'L','LZU','RAU','ZAUS','ZEIN','ZUML'
+            ,'JLAMBS','LAMBDA0'
+            #inst.
+            ,'ASOLL','INDSCHALL'
+            #FW
+            ,'fk2LROHR','KVR'
+            #Ref.
+            ,'fkDTRO_ROWD'
+            ,'fkLTGR','fkSTRASSE'
+            ,'fkKI','fkKK'
+           #IDs 
+            ,'pk_x','tk_x'
+            ,'GEOM_x','GRAF_x'
+           #BZ
+            ,'IRTRENN'
+            ,'LECKSTART','LECKEND','LECKMENGE','LECKORT','LECKSTATUS'
+           #Rest
+            ,'QSVB'
+            ,'ZVLIMPTNZ'
+            ,'KANTENZV'
+           #CONT
+            ,'NAME' 
+            ,'ID'
+            ,'LFDNR'
+                    ]]
+            self.vROHR.rename(columns={'pk_x':'pk','tk_x':'tk','NAME':'CONT','ID':'CONT_ID','LFDNR':'CONT_LFDNR'},inplace=True)    
+            self.vROHR=pd.merge(self.vROHR,self.dataFrames['DTRO_ROWD'],left_on='fkDTRO_ROWD',right_on='pk')   
+
+            self.vROHR=self.vROHR[[
+             'BESCHREIBUNG'
+            ,'IDREFERENZ'
+            #Asset
+            ,'BAUJAHR','HAL'
+            ,'IPLANUNG','KENNUNG'
+            #Reibung
+            ,'L','LZU','RAU','ZAUS','ZEIN','ZUML'
+            ,'JLAMBS','LAMBDA0'
+            #inst.
+            ,'ASOLL','INDSCHALL'
+            #FW
+            ,'fk2LROHR','KVR'
+            #DTRO_ROWD
+            ,'AUSFALLZEIT', 'DA', 'DI', 'DN', 'KT', 'PN', 'REHABILITATION','REPARATUR', 'S', 'WSTEIG', 'WTIEFE'
+            #Ref.
+            ,'fkLTGR','fkSTRASSE'
+            ,'fkKI','fkKK'
+           #IDs 
+            ,'pk_x','tk_x'
+            ,'GEOM_x','GRAF_x'
+           #BZ
+            ,'IRTRENN'
+            ,'LECKSTART','LECKEND','LECKMENGE','LECKORT','LECKSTATUS'
+           #Rest
+            ,'QSVB'
+            ,'ZVLIMPTNZ'
+            ,'KANTENZV'
+           #CONT
+            ,'CONT' 
+            ,'CONT_ID'
+            ,'CONT_LFDNR'
+                    ]]
+            self.vROHR.rename(columns={'pk_x':'pk','tk_x':'tk'},inplace=True)
+            self.vROHR=pd.merge(self.vROHR,self.dataFrames['LTGR'],left_on='fkLTGR',right_on='pk')
+
+            self.vROHR=self.vROHR[[
+             'BESCHREIBUNG_x'
+            ,'IDREFERENZ'
+            #Asset
+            ,'BAUJAHR','HAL'
+            ,'IPLANUNG','KENNUNG'
+            #Reibung
+            ,'L','LZU','RAU','ZAUS','ZEIN','ZUML'
+            ,'JLAMBS','LAMBDA0'
+            #inst.
+            ,'ASOLL','INDSCHALL'
+            #FW
+            ,'fk2LROHR','KVR'
+            #DTRO_ROWD
+            ,'AUSFALLZEIT', 'DA', 'DI', 'DN', 'KT', 'PN', 'REHABILITATION','REPARATUR', 'S', 'WSTEIG', 'WTIEFE'
+            #LTGR
+            ,'NAME','BESCHREIBUNG_y','SICHTBARKEIT','VERLEGEART','fkDTRO','fkSRAT'
+            #Ref.
+            ,'fkSTRASSE'
+            ,'fkKI','fkKK'
+           #IDs 
+            ,'pk_x','tk_x'
+            ,'GEOM_x','GRAF_x'
+           #BZ
+            ,'IRTRENN'
+            ,'LECKSTART','LECKEND','LECKMENGE','LECKORT','LECKSTATUS'
+           #Rest
+            ,'QSVB'
+            ,'ZVLIMPTNZ'
+            ,'KANTENZV'
+           #CONT
+            ,'CONT' 
+            ,'CONT_ID'
+            ,'CONT_LFDNR'
+                    ]]
+            self.vROHR.rename(columns={'pk_x':'pk','tk_x':'tk','NAME':'LTGR_NAME','BESCHREIBUNG_y':'LTGR_BESCHREIBUNG','BESCHREIBUNG_x':'BESCHREIBUNG'},inplace=True)
+
+            self.vROHR=self.vROHR[[
+                     'BESCHREIBUNG'
+                    ,'IDREFERENZ'
+                    #Asset
+                    ,'BAUJAHR','HAL'
+                    ,'IPLANUNG','KENNUNG'
+                    #Reibung
+                    ,'L','LZU','RAU','ZAUS','ZEIN','ZUML'
+                    ,'JLAMBS','LAMBDA0'
+                    #inst.
+                    ,'ASOLL','INDSCHALL'
+                    #FW
+                    ,'fk2LROHR','KVR'
+                    #DTRO_ROWD
+                    ,'AUSFALLZEIT', 'DA', 'DI', 'DN', 'KT', 'PN', 'REHABILITATION','REPARATUR', 'S', 'WSTEIG', 'WTIEFE'
+                    #LTGR
+                    ,'LTGR_NAME','LTGR_BESCHREIBUNG','SICHTBARKEIT','VERLEGEART','fkDTRO','fkSRAT'
+                    #Ref.
+                    ,'fkSTRASSE'
+                    ,'fkKI','fkKK'
+                   #IDs 
+                    ,'pk','tk'
+                    ,'GEOM_x','GRAF_x'
+                   #BZ
+                    ,'IRTRENN'
+                    ,'LECKSTART','LECKEND','LECKMENGE','LECKORT','LECKSTATUS'
+                   #Rest
+                    ,'QSVB'
+                    ,'ZVLIMPTNZ'
+                    ,'KANTENZV'
+                   #CONT
+                    ,'CONT' 
+                    ,'CONT_ID'
+                    ,'CONT_LFDNR'
+                            ]]
+                                 
+            self.vROHR=pd.merge(self.vROHR,self.dataFrames['DTRO'],left_on='fkDTRO',right_on='pk')
+
+            self.vROHR=self.vROHR[[
+                     'BESCHREIBUNG_x'
+                    ,'IDREFERENZ'
+                    #Asset
+                    ,'BAUJAHR','HAL'
+                    ,'IPLANUNG','KENNUNG'
+                    #Reibung
+                    ,'L','LZU','RAU','ZAUS','ZEIN','ZUML'
+                    ,'JLAMBS','LAMBDA0'
+                    #inst.
+                    ,'ASOLL','INDSCHALL'
+                    #FW
+                    ,'fk2LROHR','KVR'
+                    #DTRO_ROWD
+                    ,'AUSFALLZEIT', 'DA', 'DI', 'DN', 'KT', 'PN', 'REHABILITATION','REPARATUR', 'S', 'WSTEIG', 'WTIEFE'
+                    #LTGR
+                    ,'LTGR_NAME','LTGR_BESCHREIBUNG','SICHTBARKEIT','VERLEGEART'
+                    #DTRO
+                    ,'NAME'
+                    ,'BESCHREIBUNG_y'
+                    ,'E'
+                    #Ref.
+                    ,'fkSTRASSE','fkSRAT'
+                    ,'fkKI','fkKK'
+                   #IDs 
+                    ,'pk_x','tk_x'
+                    ,'GEOM_x','GRAF_x'
+                   #BZ
+                    ,'IRTRENN'
+                    ,'LECKSTART','LECKEND','LECKMENGE','LECKORT','LECKSTATUS'
+                   #Rest
+                    ,'QSVB'
+                    ,'ZVLIMPTNZ'
+                    ,'KANTENZV'
+                   #CONT
+                    ,'CONT' 
+                    ,'CONT_ID'
+                    ,'CONT_LFDNR'
+                            ]]
+            self.vROHR.rename(columns={'pk_x':'pk','tk_x':'tk','NAME':'DTRO_NAME','BESCHREIBUNG_y':'DTRO_BESCHREIBUNG','BESCHREIBUNG_x':'BESCHREIBUNG'},inplace=True)
+            
+            self.vROHR=pd.merge(self.vROHR,self.vKNOT,left_on='fkKI',right_on='pk')   
+            self.vROHR.rename(columns={'BESCHREIBUNG_x':'BESCHREIBUNG','IDREFERENZ_x':'IDREFERENZ'
+                                       ,'pk_x':'pk','tk_x':'tk'
+                                       ,'CONT_ID_x':'CONT_ID','CONT_LFDNR_x':'CONT_LFDNR'
+                                       },inplace=True) 
+
+            self.vROHR=self.vROHR[[
+                     'BESCHREIBUNG'
+                    ,'IDREFERENZ'
+                    #Asset
+                    ,'BAUJAHR','HAL'
+                    ,'IPLANUNG','KENNUNG'
+                    #Reibung
+                    ,'L','LZU','RAU','ZAUS','ZEIN','ZUML'
+                    ,'JLAMBS','LAMBDA0'
+                    #inst.
+                    ,'ASOLL','INDSCHALL'
+                    #FW
+                    ,'fk2LROHR','KVR_x'
+                    #DTRO_ROWD
+                    ,'AUSFALLZEIT', 'DA', 'DI', 'DN', 'KT', 'PN', 'REHABILITATION','REPARATUR', 'S', 'WSTEIG', 'WTIEFE'
+                    #LTGR
+                    ,'LTGR_NAME','LTGR_BESCHREIBUNG','SICHTBARKEIT','VERLEGEART'
+                    #DTRO
+                    ,'DTRO_NAME'
+                    ,'DTRO_BESCHREIBUNG'
+                    ,'E'
+                    #Ref.
+                    ,'fkSTRASSE','fkSRAT'
+                    ,'fkKK'
+                   #IDs 
+                    ,'pk','tk'
+                    ,'GEOM_x','GRAF_x'
+                   #BZ
+                    ,'IRTRENN'
+                    ,'LECKSTART','LECKEND','LECKMENGE','LECKORT','LECKSTATUS'
+                   #Rest
+                    ,'QSVB'
+                    ,'ZVLIMPTNZ'
+                    ,'KANTENZV'
+                   #CONT
+                    ,'CONT_x' 
+                    ,'CONT_ID'
+                    ,'CONT_LFDNR'
+                   #Ki
+                   ,'NAME'
+                   ,'KVR_y','TM'
+                   ,'XKOR','YKOR','ZKOR'
+                            ]]
+
+            self.vROHR.rename(columns={'NAME':'NAME_i','KVR_x':'KVR','KVR_y':'KVR_i','TM':'TM_i','CONT_x':'CONT'},inplace=True)  
+            self.vROHR.rename(columns={'XKOR':'XKOR_i','YKOR':'YKOR_i','ZKOR':'ZKOR_i'},inplace=True)    
+            
+            self.vROHR=pd.merge(self.vROHR,self.vKNOT,left_on='fkKK',right_on='pk')    
+            self.vROHR.rename(columns={'BESCHREIBUNG_x':'BESCHREIBUNG','IDREFERENZ_x':'IDREFERENZ'
+                                       ,'pk_x':'pk','tk_x':'tk'
+                                       ,'CONT_ID_x':'CONT_ID','CONT_LFDNR_x':'CONT_LFDNR'
+                                       },inplace=True)  
+
+            self.vROHR.rename(columns={'NAME':'NAME_k','KVR_x':'KVR','KVR_y':'KVR_k','TM':'TM_k','CONT_x':'CONT'},inplace=True)  
+            self.vROHR.rename(columns={'XKOR':'XKOR_k','YKOR':'YKOR_k','ZKOR':'ZKOR_k'},inplace=True)                                   
+
+            self.vROHR=self.vROHR[[
+                     'BESCHREIBUNG'
+                    ,'IDREFERENZ'
+                    #Asset
+                    ,'BAUJAHR','HAL'
+                    ,'IPLANUNG','KENNUNG'
+                    #Reibung
+                    ,'L','LZU','RAU','ZAUS','ZEIN','ZUML'
+                    ,'JLAMBS','LAMBDA0'
+                    #inst.
+                    ,'ASOLL','INDSCHALL'
+                    #FW
+                    ,'fk2LROHR','KVR'
+                    #DTRO_ROWD
+                    ,'AUSFALLZEIT', 'DA', 'DI', 'DN', 'KT', 'PN', 'REHABILITATION','REPARATUR', 'S', 'WSTEIG', 'WTIEFE'
+                    #LTGR
+                    ,'LTGR_NAME','LTGR_BESCHREIBUNG','SICHTBARKEIT','VERLEGEART'
+                    #DTRO
+                    ,'DTRO_NAME'
+                    ,'DTRO_BESCHREIBUNG'
+                    ,'E'
+                    #Ref.
+                    ,'fkSTRASSE','fkSRAT'
+                   #IDs 
+                    ,'pk','tk'
+                    ,'GEOM_x','GRAF_x'
+                   #BZ
+                    ,'IRTRENN'
+                    ,'LECKSTART','LECKEND','LECKMENGE','LECKORT','LECKSTATUS'
+                   #Rest
+                    ,'QSVB'
+                    ,'ZVLIMPTNZ'
+                    ,'KANTENZV'
+                   #CONT
+                    ,'CONT' 
+                    ,'CONT_ID'
+                    ,'CONT_LFDNR'
+                   #Ki
+                   ,'NAME_i'
+                   ,'KVR_i','TM_i'
+                   ,'XKOR_i','YKOR_i','ZKOR_i'
+                   #Kk
+                   ,'NAME_k'
+                   ,'KVR_k','TM_k'
+                   ,'XKOR_k','YKOR_k','ZKOR_k'
+                            ]]
+
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))          
 
     def __vFWVB(self):
         """
@@ -542,6 +895,7 @@ class Xm():
                    ,'pk_x','tk'
                    ,'NAME','BESCHREIBUNG_y'
                    ,'fkKI','fkKK'
+                   ,'fkCONT'
                  ]]
             self.vFWVB.rename(columns={'BESCHREIBUNG_x':'BESCHREIBUNG','pk_x':'pk','NAME':'LFKT'},inplace=True)       
             self.vFWVB=self.vFWVB[[
@@ -556,7 +910,8 @@ class Xm():
                    ,'VTYP' ,'IMBG' ,'IRFV'
                     #FWVB IDs
                    ,'pk','tk'  
-                   ,'fkKI','fkKK'               
+                   ,'fkKI','fkKK'   
+                   ,'fkCONT'            
                  ]]    
 
             self.vFWVB=pd.merge(self.vFWVB,self.vKNOT,left_on='fkKI',right_on='pk')   
@@ -577,7 +932,8 @@ class Xm():
                    ,'NAME'
                    ,'KVR','TM'
                    ,'XKOR','YKOR','ZKOR'
-                   ,'fkKK'               
+                   ,'fkKK'    
+                   ,'fkCONT'           
                  ]]     
             self.vFWVB.rename(columns={'NAME':'NAME_i','KVR':'KVR_i','TM':'TM_i'},inplace=True)  
             self.vFWVB.rename(columns={'XKOR':'XKOR_i','YKOR':'YKOR_i','ZKOR':'ZKOR_i'},inplace=True)    
@@ -603,11 +959,39 @@ class Xm():
                     #Kk
                    ,'NAME'
                    ,'KVR','TM'
-                   ,'XKOR','YKOR','ZKOR'          
+                   ,'XKOR','YKOR','ZKOR'  
+                   ,'fkCONT'        
                  ]]     
             self.vFWVB.rename(columns={'NAME':'NAME_k','KVR':'KVR_k','TM':'TM_k'},inplace=True)  
-            self.vFWVB.rename(columns={'XKOR':'XKOR_k','YKOR':'YKOR_k','ZKOR':'ZKOR_k'},inplace=True)                                   
-            
+            self.vFWVB.rename(columns={'XKOR':'XKOR_k','YKOR':'YKOR_k','ZKOR':'ZKOR_k'},inplace=True)     
+                        
+            self.vFWVB=pd.merge(self.vFWVB,self.dataFrames['CONT'],left_on='fkCONT',right_on='pk')  
+            self.vFWVB.rename(columns={'pk_x':'pk','tk_x':'tk','NAME':'CONT','ID':'CONT_ID','LFDNR':'CONT_LFDNR'},inplace=True)    
+            self.vFWVB=self.vFWVB[[
+                    #FWVB
+                    'BESCHREIBUNG','IDREFERENZ'
+                   ,'W0','LFK' ,'TVL0' ,'TRS0'
+                    #LFKT
+                   ,'LFKT'
+                   ,'W','W_min','W_max'
+                    #FWVB contd.
+                   ,'INDTR' ,'TRSK'
+                   ,'VTYP' ,'IMBG' ,'IRFV'
+                    #FWVB IDs
+                   ,'pk','tk'  
+                    #Ki
+                   ,'NAME_i'
+                   ,'KVR_i','TM_i'
+                   ,'XKOR_i','YKOR_i','ZKOR_i'
+                    #Kk
+                   ,'NAME_k'
+                   ,'KVR_k','TM_k'
+                   ,'XKOR_k','YKOR_k','ZKOR_k'  
+                    #CONT
+                    ,'CONT' 
+                    ,'CONT_ID'
+                    ,'CONT_LFDNR' 
+                     ]]
         except:
             logStrFinal="{0:s}Error.".format(logStr)
             logger.error(logStrFinal) 
