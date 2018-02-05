@@ -28,11 +28,7 @@
   <ItemGroup>
     <Content Include=".pypirc" />
     <Content Include="LICENSE" />
-    <Content Include="nb\LxWithPandas.ipynb" />
-    <Content Include="nb\MxWithPandas.ipynb" />
-    <Content Include="nb\MxWithPandas.pdf" />
     <Content Include="nb\PT3S.tplx" />
-    <Content Include="nb\XmWithPandas.ipynb" />
     <Content Include="README.md" />
     <Content Include="README.rst" />
     <Content Include="setup.cfg" />
