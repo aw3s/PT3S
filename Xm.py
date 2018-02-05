@@ -500,6 +500,11 @@ class Xm():
                    ,'pk','tk'
                 ]]
           
+            self.pXCorZero=self.vKNOT[
+                (self.vKNOT['CONT_ID'].astype(int)==1001) 
+                & (self.vKNOT['BESCHREIBUNG'].str.startswith('Template Element') == False)]['XKOR'].astype(float).min()
+
+
         except:
             logStrFinal="{0:s}Error.".format(logStr)
             logger.error(logStrFinal) 
