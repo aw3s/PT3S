@@ -1,17 +1,17 @@
 """
 SIR 3S MX-Interface (short: MX):
 --------------------------------
-MX is a SIR 3S file based, channel-oriented interface for SIR 3S calculation results.
-Module Mx contains stuff to utilize MX (utilize SIR 3S calculation results) in pure Python.  
+MX is SIR 3S' file based, channel-oriented interface for calculation results.
+Module Mx contains stuff to utilize SIR 3S' MX calculation results) in pure Python.  
 SIR 3S calculation results:
 ---------------------------
-A binary MXS-File contains SIR 3S calculations results. 
-A Model calculation run creates at least one MXS-File (Result-File).
-There is one MX1-File (an XML-File) for each SIR 3S Model calculation run.    
-This MX1-File defines in XML a sequence of MX-Channels. 
-And - as a result - the Byte-Layout of a single MX-Record.
+Binary .MXS-Files contain SIR 3S calculations results. 
+A Model calculation run creates at least one .MXS-File (Result-File).
+There is one .MX1-File (an XML-File) for each SIR 3S Model calculation run.    
+This .MX1-File defines in XML a sequence of MX-Channels. 
+And - as a result - the Byte-Layout of a single MX-Record in .MXS.
 A MX-Record contains calculation results for one Timestamp.
-A MXS-File contains at least one MX-Record.
+A .MXS-File contains at least one MX-Record.
 ---------------------------
 DOCTEST
 ---------------------------
@@ -383,7 +383,7 @@ class MxError(Exception):
 
 class Mx():
     """
-    Class Mx holds a MX1-File defined SIR 3S calculation result set in a pandas DataFrame (self.pdf).
+    Class Mx holds a .MX1-File defined SIR 3S .MXS calculation result in a pandas DataFrame (self.pdf).
     --------------------------------------------------------------------------------------
     pandas DataFrame:
     -----------------

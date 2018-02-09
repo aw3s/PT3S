@@ -1,11 +1,17 @@
 """
-
+SIR 3S XML ModelFile To pandas DataFrames
+- Views (DataFrmes)
+- plotFunctions (plots To matplotlibs gca() (and .gcf))
+- exportFuntions (TBD): 
+   - .xlsx
+   - .pptx
+   - ...
 """
 
 import os
 import sys
 import logging
-logger = logging.getLogger(__name__)     
+logger = logging.getLogger('PT3S.Xm')     
 import argparse
 import unittest
 import doctest
@@ -37,11 +43,22 @@ class XmError(Exception):
 
 class Xm():
     """
-   
+    SIR 3S XML ModelFile To pandas DataFrames
+    - Views (DataFrmes)
+    - plotFunctions (plots To matplotlibs gca() (and .gcf))
+    - exportFuntions (TBD): 
+       - .xlsx
+       - .pptx
+       - ...
     """
     def __init__(self,XmlFile=None ):
         """
-       
+        Reads SIR 3S XML ModelFile (with ET)
+        Stores all SIR 3S ModelData in DataFrames:
+             self.dataFrames[tableName]=pd.DataFrame(all_records) 
+             tableName example: SWVT_ROWT
+        Performs fixes and basic conversions inplace the DataFrames 
+        Creates some Views (i.e. self.vKNOT) as DataFrames
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -53,8 +70,8 @@ class Xm():
                 with open(self.xmlFile,'r') as f: 
                     pass
                 
-                logger.debug("{0:s}xmlFile: {1:s}.".format(logStr,self.xmlFile))     
-                tree = ET.parse(self.xmlFile) # ElementTree
+                logger.debug("{0:s}xmlFile: {1:s} parse ...".format(logStr,self.xmlFile))     
+                tree = ET.parse(self.xmlFile) # ElementTree                 
                 root = tree.getroot()  # Element
                 pm = {c:p for p in root.iter() for c in p}   # parentMap
                 tableNames=[]
@@ -78,27 +95,14 @@ class Xm():
                             record[elementCol.tag] = elementCol.text
                         all_records.append(record)
                     self.dataFrames[tableName]=pd.DataFrame(all_records) 
+                logger.debug("{0:s}xmlFile: {1:s} done.".format(logStr,self.xmlFile)) 
 
-                #repairs
+                #fixes and conversions
                 self.__convertAndFix()
 
-                #Layr
-                self.__vLAYR()
-
-                #time-Tables
-                self.__vLFKT()
-                self.__vQVAR()
-                self.__vSWVT()
-
-                self.__vRSLW()
-                
-                self.__vVKNO()
-                self.__vKNOT()
-
-                self.__vROHR()
-
-                self.__vFWVB()
-                
+                #Views
+                self.__vXXXX()
+          
         except FileNotFoundError as e:
             logStrFinal="{0:s}xmlFile: {1!s}: FileNotFoundError.".format(logStr,self.xmlFile)
             logger.error(logStrFinal) 
@@ -125,7 +129,13 @@ class Xm():
 
     def __convertAndFix(self):
         """
-       
+        Performs fixes and basic conversions inplace the DataFrames
+        Fixes and conbversions here are integrity-oriented
+        Usage-oriented conversions (i.e. pd.to_numeric and base64.b64decode) are done in the vXXXX-functions
+        conversions: 
+        - , > . (converted in: SWVT_ROWT, LFKT_ROWT, QVAR_ROWT)
+        fixes:
+        - 1st Time without Value?! (fixed in: SWVT_ROWT, LFKT_ROWT, QVAR_ROWT)       
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -153,9 +163,88 @@ class Xm():
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
+    def __vXXXX(self):
+        """
+        Creates some Views as DataFrems
+        The Views are designed to deal with tedious groundwork
+         
+        Most types will be unchanged (pandas' Object-Type)
+        If suitable conversions (i.e. pd.to_numeric and base64.b64decode) are performed inplace
+
+        Most Colummn-Names will be unchanged
+        If suitable renames (i.e. pd.to_numeric and base64.b64decode) are performed inplace
+        Some Model-oriented calculations are performed
+
+        Yes, all operations are performed somhwat arbitrary ...
+        ... However, the plot and export functions further down build on it
+
+        Views created:
+            #Anschitsgruppen
+            vLAYR()
+
+            #time-Tables
+            vLFKT()
+            vQVAR()
+            vSWVT()
+
+            #Signal-Model
+            self.__vRSLW()
+            
+            #Block-Nodes    
+            self.__vVKNO()
+            
+            #Nodes
+            self.__vKNOT()
+            
+            #Pipes
+            self.__vROHR()
+            
+            #House-Stations (district heating)
+            self.__vFWVB()        
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+
+            #Layr
+            self.__vLAYR()
+
+            #time-Tables
+            self.__vLFKT()
+            self.__vQVAR()
+            self.__vSWVT()
+
+            self.__vRSLW()
+                
+            self.__vVKNO()
+            self.__vKNOT()
+
+            self.__vROHR()
+
+            self.__vFWVB()            
+           
+                      
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
     def __vLAYR(self):
         """
-       
+            vLAYR:
+                One row per LAYR and OBJ:
+                #LAYR_DATA (vLAYR_DATA)
+                'LFDNR'
+                ,'NAME'
+                #LAYR_OBJS (vLAYR_OBJS)
+                ,'OBJID' #pk (or tk?!) of a LAYR OBJ
+                ,'OBJTYPE' #type (i.e.ROHR) of a LAYR OBJ
+                #IDs (of the LAYR)
+                ,'pk','tk'                   
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -187,6 +276,16 @@ class Xm():
             self.vLAYR_OBJS.drop(['ETYPEEID'],axis=1,inplace=True)
 
             self.vLAYR=pd.merge(self.vLAYR_DATA,self.vLAYR_OBJS,left_on='LFDNR',right_on='LFDNR')
+
+            self.vLAYR=self.vLAYR[[
+            'LFDNR'
+            ,'NAME'
+            #from LAYR's OBJS: 
+            ,'OBJID' #pk (or tk?!) of a LAYR OBJ
+            ,'OBJTYPE' #type (i.e.ROHR) of a LAYR OBJ
+            #IDs (of the LAYR)
+            ,'pk','tk'
+            ]]
           
         except:
             logStrFinal="{0:s}Error.".format(logStr)
@@ -197,7 +296,19 @@ class Xm():
 
     def __vLFKT(self):
         """
-       
+        vLFKT:
+            One row per Loadfactor time-Table:
+            #LFKT
+             'NAME'
+            ,'BESCHREIBUNG'
+            ,'INTPOL'
+            ,'ZEITOPTION'
+            #ROWT
+            ,'LF' #1st Value
+            #time-Table aggregates:
+            ,'LF_min','LF_max'
+            #ID (of the LFKT)
+            ,'pk'
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -237,13 +348,17 @@ class Xm():
 
     def __vSWVT(self):
         """
-        # SWVT
-        'NAME'
-        ,'BESCHREIBUNG'
-        # SWVT_ROWT
-        ,'W','W_min','W_max','INTPOL','ZEITOPTION'
-        # SWVT ID
-        ,'pk'       
+        vSWVT:
+            #SWVT
+             'NAME'
+            ,'BESCHREIBUNG'
+            ,'INTPOL','ZEITOPTION'
+            #ROWT
+            ,'W' #1st Value
+            #time-Table aggregates:
+            ,'W_min','W_max'
+            #ID (of the SWVT)
+            ,'pk'       
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -263,12 +378,9 @@ class Xm():
             #
             self.vSWVT=self.vSWVT[self.vSWVT['ZEIT_RANG']==1]
             #
-            self.vSWVT=self.vSWVT[['NAME','BESCHREIBUNG','W','W_min','W_max','INTPOL','ZEITOPTION','pk_x']]
+            self.vSWVT=self.vSWVT[['NAME','BESCHREIBUNG','INTPOL','ZEITOPTION','W','W_min','W_max','pk_x']]
             #
             self.vSWVT.rename(columns={'pk_x':'pk'},inplace=True)
-
-            # nb-Print
-            self.pSWVT=self.vSWVT[['NAME','BESCHREIBUNG','W','W_min','W_max','INTPOL','ZEITOPTION']]
                                  
         except:
             logStrFinal="{0:s}Error.".format(logStr)
@@ -279,21 +391,23 @@ class Xm():
 
     def __vRSLW(self):
         """
-        # RSLW
-        'KA'
-        ,'BESCHREIBUNG'
-        ,'INDWBG','INDWNO'
-        # RSLW BZ
-        ,'INDSLW','SLWKON'
-        # CONT
-        ,'CONT' #(NAME)
-        ,'ID'          
-        # vSWVT
-        ,'SWVT' #(NAME)
-        ,'BESCHREIBUNG_SWVT' #(BESCHREIBUNG)
-        ,'W','W_min','W_max','INTPOL','ZEITOPTION'
-        # RSLW IDs   
-        ,'pk','tk'
+        vRSLW:
+            # RSLW
+            'KA'
+            ,'BESCHREIBUNG'
+            ,'INDWBG','INDWNO'
+            # RSLW BZ
+            ,'INDSLW','SLWKON'
+            # CONT
+            ,'CONT' #(NAME)
+            ,'ID'          
+            # vSWVT
+            ,'SWVT' #(NAME)
+            ,'BESCHREIBUNG_SWVT' #(BESCHREIBUNG)
+            ,'INTPOL','ZEITOPTION'
+            ,'W','W_min','W_max'
+            # RSLW IDs   
+            ,'pk','tk'
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -359,19 +473,6 @@ class Xm():
 
             self.vRSLW=vRSLW
 
-            # nb-Print
-            self.pRSLW=self.vRSLW[[
-            # RSLW
-            'KA'
-            ,'BESCHREIBUNG'            
-            # RSLW BZ
-            ,'INDSLW','SLWKON'
-            # CONT
-            ,'CONT'        
-            # vSWVT
-            ,'SWVT', 'BESCHREIBUNG_SWVT', 'W', 'W_min', 'W_max'
-                 ]]          
-
         except:
             logStrFinal="{0:s}Error.".format(logStr)
             logger.error(logStrFinal) 
@@ -381,7 +482,14 @@ class Xm():
 
     def __vQVAR(self):
         """
-       
+        vQVAR:
+            'NAME'
+           ,'BESCHREIBUNG'
+           ,'INTPOL'
+           ,'ZEITOPTION'
+           ,'QM'
+           ,'QM_min','QM_max'
+           ,'pk'       
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -401,7 +509,9 @@ class Xm():
             #
             self.vQVAR=self.vQVAR[self.vQVAR['ZEIT_RANG']==1]
             #
-            self.vQVAR=self.vQVAR[['NAME','BESCHREIBUNG','QM','QM_min','QM_max','INTPOL','ZEITOPTION','pk_x']]
+            self.vQVAR=self.vQVAR[['NAME','BESCHREIBUNG','INTPOL','ZEITOPTION','QM','QM_min','QM_max','pk_x']]
+            #
+            self.vQVAR.rename(columns={'pk_x':'pk'},inplace=True)
                                  
         except:
             logStrFinal="{0:s}Error.".format(logStr)
@@ -412,7 +522,11 @@ class Xm():
             
     def __vVKNO(self):
         """
-       
+        vVKNO:
+           'NAME' # der Name des Knotens
+          ,'CONT' # der Blockname des Blockes fuer den der Knoten Blockknoten ist
+          ,'fkKNOT'
+          ,'fkCONT'       
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -425,17 +539,15 @@ class Xm():
             self.vVKNO=self.vVKNO[[
                'NAME_x'     
               ,'NAME_y'     
-              ,'KTYP'
-              ,'fkCONT_x','fkKNOT'
-              ,'LFAKT','QM_EIN'  
+              ,'fkCONT_x','fkKNOT' 
             ]]
             self.vVKNO.rename(columns={'NAME_x':'CONT','NAME_y':'NAME','fkCONT_x':'fkCONT'},inplace=True)
 
             self.vVKNO=self.vVKNO[[
                 'NAME' # der Name des Knotens
                ,'CONT' # der Blockname des Blockes fuer den der Knoten Blockknoten ist
-               ,'fkCONT','fkKNOT'
-               #,'KTYP', 'LFAKT', 'QM_EIN'
+               ,'fkKNOT'
+               ,'fkCONT'
             ]]
                                
         except:
@@ -447,6 +559,25 @@ class Xm():
 
     def __vKNOT(self):
         """
+        vKNOT:
+            'NAME'
+           ,'BESCHREIBUNG'
+           ,'IDREFERENZ'
+           ,'CONT' # aus KNOT>CONT (der Blockname des Knotens)
+           ,'CONT_ID' # aus KNOT>CONT
+           ,'CONT_LFDNR' # aus KNOT>CONT
+           ,'CONT_VKNO' # aus vVKNO (der Blockname des Blocks fuer den der Knoten Blockknoten ist)
+           ,'KTYP'
+           ,'LFAKT','QM_EIN'
+           ,'QVAR_NAME'
+           ,'QM','QM_min','QM_max'     
+           ,'KVR' 
+           ,'TE','TM' 
+           ,'XKOR','YKOR','ZKOR'
+           ,'pk','tk'
+           #plotCors
+           ,'pXCor' # x-self.pXCorZero 
+           ,'pYCor' # x-self.pYCorZero 
           
         """
 
@@ -482,18 +613,22 @@ class Xm():
                                        ,'pk_x':'pk'
                                        ,'tk_x':'tk'},inplace=True)
 
-            self.vKNOT=pd.merge(self.vKNOT,self.vQVAR,left_on='fkQVAR',right_on='pk_x',how='left')
-            self.vKNOT.rename(columns={'NAME_x':'NAME','BESCHREIBUNG_x':'BESCHREIBUNG','NAME_y':'QVAR'},inplace=True)
+            self.vKNOT=pd.merge(self.vKNOT,self.vQVAR,left_on='fkQVAR',right_on='pk',how='left')
+            self.vKNOT.rename(columns={'NAME_x':'NAME','BESCHREIBUNG_x':'BESCHREIBUNG','NAME_y':'QVAR_NAME'},inplace=True)
+            self.vKNOT.rename(columns={'pk_x':'pk'},inplace=True)
 
             self.vKNOT=self.vKNOT[[
                     'NAME'
-                   ,'BESCHREIBUNG','IDREFERENZ'
+                   ,'BESCHREIBUNG'
+                   ,'IDREFERENZ'
                    ,'CONT' # aus KNOT>CONT (der Blockname des Knotens)
                    ,'CONT_ID' # aus KNOT>CONT
                    ,'CONT_LFDNR' # aus KNOT>CONT
                    ,'CONT_VKNO' # aus vVKNO (der Blockname des Blocks fuer den der Knoten Blockknoten ist)
                    ,'KTYP'
-                   ,'LFAKT','QM_EIN','QVAR','QM','QM_min','QM_max'     
+                   ,'LFAKT','QM_EIN'
+                   ,'QVAR_NAME'
+                   ,'QM','QM_min','QM_max'     
                    ,'KVR' 
                    ,'TE','TM' 
                    ,'XKOR','YKOR','ZKOR'
@@ -504,6 +639,33 @@ class Xm():
                 (self.vKNOT['CONT_ID'].astype(int)==1001) 
                 & (self.vKNOT['BESCHREIBUNG'].str.startswith('Template Element') == False)]['XKOR'].astype(float).min()
 
+            self.vKNOT['pXCor'] = [
+                 x-self.pXCorZero 
+                 if 
+                 y==1001 and not z
+                 else
+                 x
+                 for x,y,z in zip(self.vKNOT['XKOR'].astype(float)
+                             ,self.vKNOT['CONT_ID'].astype(int)
+                             ,self.vKNOT['BESCHREIBUNG'].str.startswith('Template Element')
+                             )
+                ] 
+
+            self.pYCorZero=self.vKNOT[
+                (self.vKNOT['CONT_ID'].astype(int)==1001) 
+                & (self.vKNOT['BESCHREIBUNG'].str.startswith('Template Element') == False)]['YKOR'].astype(float).min()
+
+            self.vKNOT['pYCor'] = [
+                 x-self.pYCorZero 
+                 if 
+                 y==1001 and not z
+                 else
+                 x
+                 for x,y,z in zip(self.vKNOT['YKOR'].astype(float)
+                             ,self.vKNOT['CONT_ID'].astype(int)
+                             ,self.vKNOT['BESCHREIBUNG'].str.startswith('Template Element')
+                             )
+                ] 
 
         except:
             logStrFinal="{0:s}Error.".format(logStr)
@@ -514,6 +676,55 @@ class Xm():
 
     def __vROHR(self):
         """
+        vROHR:
+                     'BESCHREIBUNG'
+                    ,'IDREFERENZ'
+                    #Asset
+                    ,'BAUJAHR','HAL'
+                    ,'IPLANUNG','KENNUNG'
+                    #Reibung
+                    ,'L','LZU','RAU','ZAUS','ZEIN','ZUML'
+                    ,'JLAMBS','LAMBDA0'
+                    #inst.
+                    ,'ASOLL','INDSCHALL'
+                    #FW
+                    ,'fk2LROHR','KVR'
+                    #DTRO_ROWD
+                    ,'AUSFALLZEIT','DA','DI','DN','KT','PN','REHABILITATION','REPARATUR','S','WSTEIG','WTIEFE'
+                    #LTGR
+                    ,'LTGR_NAME','LTGR_BESCHREIBUNG','SICHTBARKEIT','VERLEGEART'
+                    #DTRO
+                    ,'DTRO_NAME'
+                    ,'DTRO_BESCHREIBUNG'
+                    ,'E'
+                    #Ref.
+                    ,'fkSTRASSE','fkSRAT'
+                    #IDs 
+                    ,'pk','tk'
+                    ,'GEOM_x','GRAF_x'
+                    #BZ
+                    ,'IRTRENN'
+                    ,'LECKSTART','LECKEND','LECKMENGE','LECKORT','LECKSTATUS'
+                    #Rest
+                    ,'QSVB'
+                    ,'ZVLIMPTNZ'
+                    ,'KANTENZV'
+                    #CONT
+                    ,'CONT' 
+                    ,'CONT_ID'
+                    ,'CONT_LFDNR'
+                    #Ki
+                    ,'NAME_i'
+                    ,'KVR_i','TM_i'
+                    ,'XKOR_i','YKOR_i','ZKOR_i'                 
+                    #Kk
+                    ,'NAME_k'
+                    ,'KVR_k','TM_k'
+                    ,'XKOR_k','YKOR_k','ZKOR_k'
+                    #plotCors
+                    ,'pXCor_i','pYCor_i'
+                    ,'pXCor_k','pYCor_k'
+                    ,'pXCors','pYCors' # matplotlibs's .plot(pXCors,pYCors,...)
        
         """
 
@@ -792,10 +1003,14 @@ class Xm():
                    ,'NAME'
                    ,'KVR_y','TM'
                    ,'XKOR','YKOR','ZKOR'
+                   ,'pXCor','pYCor'
                             ]]
 
             self.vROHR.rename(columns={'NAME':'NAME_i','KVR_x':'KVR','KVR_y':'KVR_i','TM':'TM_i','CONT_x':'CONT'},inplace=True)  
-            self.vROHR.rename(columns={'XKOR':'XKOR_i','YKOR':'YKOR_i','ZKOR':'ZKOR_i'},inplace=True)    
+            self.vROHR.rename(columns={'XKOR':'XKOR_i','YKOR':'YKOR_i','ZKOR':'ZKOR_i'
+                                       ,'pXCor':'pXCor_i'
+                                       ,'pYCor':'pYCor_i'
+                                       },inplace=True)    
             
             self.vROHR=pd.merge(self.vROHR,self.vKNOT,left_on='fkKK',right_on='pk')    
             self.vROHR.rename(columns={'BESCHREIBUNG_x':'BESCHREIBUNG','IDREFERENZ_x':'IDREFERENZ'
@@ -804,8 +1019,14 @@ class Xm():
                                        },inplace=True)  
 
             self.vROHR.rename(columns={'NAME':'NAME_k','KVR_x':'KVR','KVR_y':'KVR_k','TM':'TM_k','CONT_x':'CONT'},inplace=True)  
-            self.vROHR.rename(columns={'XKOR':'XKOR_k','YKOR':'YKOR_k','ZKOR':'ZKOR_k'},inplace=True)                                   
+            self.vROHR.rename(columns={'XKOR':'XKOR_k','YKOR':'YKOR_k','ZKOR':'ZKOR_k'
+                                       ,'pXCor':'pXCor_k'
+                                       ,'pYCor':'pYCor_k'
+                                       },inplace=True)                                   
 
+            self.vROHR['pXCors']=[[xi,xk] for xi,xk in zip(self.vROHR['pXCor_i'],self.vROHR['pXCor_k'])]
+            self.vROHR['pYCors']=[[xi,xk] for xi,xk in zip(self.vROHR['pYCor_i'],self.vROHR['pYCor_k'])]
+            
             self.vROHR=self.vROHR[[
                      'BESCHREIBUNG'
                     ,'IDREFERENZ'
@@ -846,11 +1067,15 @@ class Xm():
                    #Ki
                    ,'NAME_i'
                    ,'KVR_i','TM_i'
-                   ,'XKOR_i','YKOR_i','ZKOR_i'
+                   ,'XKOR_i','YKOR_i','ZKOR_i'                 
                    #Kk
                    ,'NAME_k'
                    ,'KVR_k','TM_k'
                    ,'XKOR_k','YKOR_k','ZKOR_k'
+                   #plotCors
+                   ,'pXCor_i','pYCor_i'
+                   ,'pXCor_k','pYCor_k'
+                   ,'pXCors','pYCors' # matplotlibs's .plot(pXCors,pYCors,...)
                             ]]
 
         except:
@@ -862,6 +1087,35 @@ class Xm():
 
     def __vFWVB(self):
         """
+        vFWVB:
+             'BESCHREIBUNG'
+            ,'IDREFERENZ'
+            ,'W0'
+            ,'LFK' ,'TVL0' ,'TRS0'
+            #LFKT
+            ,'LFKT'
+            ,'W','W_min','W_max'
+            #FWVB contd.
+            ,'INDTR' ,'TRSK'
+            ,'VTYP' ,'IMBG' ,'IRFV'
+            #FWVB IDs
+            ,'pk','tk'  
+            #Ki
+            ,'NAME_i'
+            ,'KVR_i','TM_i'
+            ,'XKOR_i','YKOR_i','ZKOR_i'
+            ,'pXCor_i','pYCor_i'
+            #Kk
+            ,'NAME_k'
+            ,'KVR_k','TM_k'
+            ,'XKOR_k','YKOR_k','ZKOR_k'  
+            ,'pXCor_k','pYCor_k'
+            #CONT
+            ,'CONT' 
+            ,'CONT_ID'
+            ,'CONT_LFDNR' 
+            #Categories
+            ,'W0cat'
        
         """
 
@@ -937,11 +1191,14 @@ class Xm():
                    ,'NAME'
                    ,'KVR','TM'
                    ,'XKOR','YKOR','ZKOR'
+                   ,'pXCor','pYCor'
                    ,'fkKK'    
                    ,'fkCONT'           
                  ]]     
             self.vFWVB.rename(columns={'NAME':'NAME_i','KVR':'KVR_i','TM':'TM_i'},inplace=True)  
-            self.vFWVB.rename(columns={'XKOR':'XKOR_i','YKOR':'YKOR_i','ZKOR':'ZKOR_i'},inplace=True)    
+            self.vFWVB.rename(columns={'XKOR':'XKOR_i','YKOR':'YKOR_i','ZKOR':'ZKOR_i'
+                                       ,'pXCor':'pXCor_i'
+                                       ,'pYCor':'pYCor_i'},inplace=True)    
             
             self.vFWVB=pd.merge(self.vFWVB,self.vKNOT,left_on='fkKK',right_on='pk')    
             self.vFWVB.rename(columns={'BESCHREIBUNG_x':'BESCHREIBUNG','IDREFERENZ_x':'IDREFERENZ','pk_x':'pk','tk_x':'tk'},inplace=True)  
@@ -961,14 +1218,18 @@ class Xm():
                    ,'NAME_i'
                    ,'KVR_i','TM_i'
                    ,'XKOR_i','YKOR_i','ZKOR_i'
+                   ,'pXCor_i','pYCor_i'
                     #Kk
                    ,'NAME'
                    ,'KVR','TM'
                    ,'XKOR','YKOR','ZKOR'  
+                   ,'pXCor','pYCor'
                    ,'fkCONT'        
                  ]]     
             self.vFWVB.rename(columns={'NAME':'NAME_k','KVR':'KVR_k','TM':'TM_k'},inplace=True)  
-            self.vFWVB.rename(columns={'XKOR':'XKOR_k','YKOR':'YKOR_k','ZKOR':'ZKOR_k'},inplace=True)     
+            self.vFWVB.rename(columns={'XKOR':'XKOR_k','YKOR':'YKOR_k','ZKOR':'ZKOR_k'
+                                       ,'pXCor':'pXCor_k'
+                                       ,'pYCor':'pYCor_k'},inplace=True)     
                         
             self.vFWVB=pd.merge(self.vFWVB,self.dataFrames['CONT'],left_on='fkCONT',right_on='pk')  
             self.vFWVB.rename(columns={'pk_x':'pk','tk_x':'tk','NAME':'CONT','ID':'CONT_ID','LFDNR':'CONT_LFDNR'},inplace=True)    
@@ -988,15 +1249,74 @@ class Xm():
                    ,'NAME_i'
                    ,'KVR_i','TM_i'
                    ,'XKOR_i','YKOR_i','ZKOR_i'
+                   ,'pXCor_i','pYCor_i'
                     #Kk
                    ,'NAME_k'
                    ,'KVR_k','TM_k'
                    ,'XKOR_k','YKOR_k','ZKOR_k'  
+                   ,'pXCor_k','pYCor_k'
                     #CONT
                     ,'CONT' 
                     ,'CONT_ID'
                     ,'CONT_LFDNR' 
                      ]]
+
+            # Last Kategorien (Load Categories); kategorisieren der FWVB nach Anschlusswert
+            Load=self.vFWVB.W0
+
+            bins=[]
+            binlabels=[]
+
+            bins.append(0)
+            binlabels.append('=0')
+
+            epsZero=0.001 #to distinguish FWVB Cat. with W0=0 from those with W0>0
+            bins.append(epsZero)
+            binlabels.append('>0')
+
+            bins.append(Load.quantile(.25))
+            binlabels.append('>=25%-Quart.')
+
+            if Load.median() < Load.mean(): #50%-Quartil < Mittelwert
+                bins.append(Load.median()) 
+                binlabels.append('>=Median')
+
+            bins.append(Load.mean())
+            binlabels.append('>=Mittelwert')
+
+            bins.append(bins[-1]*2)
+            binlabels.append('>=2xMittelw.')
+
+            if bins[-1] < Load.std():
+                bins.append(Load.std())
+                binlabels.append('>=Standardabw.')
+
+            if bins[-1] < 2*Load.std():
+                bins.append(2*Load.std())
+                binlabels.append('>=2*Standardabw.')
+
+            if bins[-1] < Load.quantile(.90):
+                bins.append(Load.quantile(.90))
+                binlabels.append('>=90%-Quartil')
+            else: 
+                if bins[-1] < Load.quantile(.95):
+                    bins.append(Load.quantile(.95))
+                    binlabels.append('>=95%-Quartil')
+
+            bins.append(Load.max())
+            binlabels.append('Max.')
+
+            W0cat=pd.cut(Load,bins,include_lowest=True,right=True,precision=1)
+
+            W0catLabels=[x + '-: ' +  re.sub('\]$','[',re.sub('\(' ,'[', y))  for x,y in zip(binlabels[:-1],W0cat.cat.categories)]
+            W0catLabels[-1]=re.sub('\[$',']',W0catLabels[-1])
+
+            W0cat.cat.rename_categories(W0catLabels,inplace=True)
+
+            self.vFWVB['W0cat']=W0cat
+            #self.vFWVB.groupby('W0Cat').describe()
+            #self.vFWVB.groupby('W0Cat').W0.sum()
+
         except:
             logStrFinal="{0:s}Error.".format(logStr)
             logger.error(logStrFinal) 
