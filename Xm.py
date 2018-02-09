@@ -637,7 +637,8 @@ class Xm():
           
             self.pXCorZero=self.vKNOT[
                 (self.vKNOT['CONT_ID'].astype(int)==1001) 
-                & (self.vKNOT['BESCHREIBUNG'].str.startswith('Template Element') == False)]['XKOR'].astype(float).min()
+                & 
+                (self.vKNOT['BESCHREIBUNG'].fillna('').str.startswith('Template Element') == False)]['XKOR'].astype(float).min()
 
             self.vKNOT['pXCor'] = [
                  x-self.pXCorZero 
@@ -647,13 +648,13 @@ class Xm():
                  x
                  for x,y,z in zip(self.vKNOT['XKOR'].astype(float)
                              ,self.vKNOT['CONT_ID'].astype(int)
-                             ,self.vKNOT['BESCHREIBUNG'].str.startswith('Template Element')
+                             ,self.vKNOT['BESCHREIBUNG'].fillna('').str.startswith('Template Element')
                              )
                 ] 
 
             self.pYCorZero=self.vKNOT[
                 (self.vKNOT['CONT_ID'].astype(int)==1001) 
-                & (self.vKNOT['BESCHREIBUNG'].str.startswith('Template Element') == False)]['YKOR'].astype(float).min()
+                & (self.vKNOT['BESCHREIBUNG'].fillna('').str.startswith('Template Element') == False)]['YKOR'].astype(float).min()
 
             self.vKNOT['pYCor'] = [
                  x-self.pYCorZero 
@@ -663,7 +664,7 @@ class Xm():
                  x
                  for x,y,z in zip(self.vKNOT['YKOR'].astype(float)
                              ,self.vKNOT['CONT_ID'].astype(int)
-                             ,self.vKNOT['BESCHREIBUNG'].str.startswith('Template Element')
+                             ,self.vKNOT['BESCHREIBUNG'].fillna('').str.startswith('Template Element')
                              )
                 ] 
 
