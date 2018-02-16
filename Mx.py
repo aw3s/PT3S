@@ -584,6 +584,167 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
             return self.pdf
 
+    def setResultsToMxsFile(self,mxsFile=None,maxRecords=None):
+        """
+        Equalizes >self.pdf to the results in the Mxs.          
+        ---
+        Implicit specified is a MXS-File .MXS in the same directory as the MX1-File .MX1.  
+        ---
+        It is implied that the calculation results in the MXS-File originate from self.mx1File.
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try: 
+            if mxsFile == None:
+                logger.debug("{0:s}Mxs: Implicit specified ...".format(logStr))                
+                wD,base,ext = self.getMx1FilenameSplit() 
+                mxsFile=wD+os.path.sep+base+'.'+'MXS'
+            
+            logger.debug("{0:s}Mxs: {1:s} ...".format(logStr,mxsFile))                
+            with open(mxsFile,'rb') as f:
+                logger.debug("{0:s}Mxs: {1:s} reading ...".format(logStr,mxsFile))                
+                df=self._readMxsFile(f)                        
+            
+            
+                          
+            #Equalizes >self.pdf to the results in the Mxs.                                                 
+            self.pdf = df       
+
+            #regExpCompiledPerfWarnI=re.compile('ALLG~(\S*)~(\S*)~(\S*)~CVERSO|SNAPSHOTTYPE') 
+            #perfWarnColsI=[column for column in self.pdf.columns if regExpCompiledPerfWarnI.search(column) != None]
+
+            #regExpCompiledPerfWarnII=re.compile('(\S+)~(\S+)~(\S+)~(\S*)~RART') 
+            #perfWarnColsII=[column for column in self.pdf.columns if regExpCompiledPerfWarnII.search(column) != None]
+
+            #perfWarnCols=perfWarnColsI+perfWarnColsII
+            #self.pdf.loc[:,perfWarnCols] =  self.pdf[ perfWarnCols].applymap(str)
+                   
+                 
+
+        except FileNotFoundError as e:
+            logStrFinal="{0:s}mxsFile: {1!s}: FileNotFoundError.".format(logStr,mxsFile)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)                                
+        except OSError as e:
+            logStrFinal="{0:s}mxsFile: {1!s}: OSError.".format(logStr,mxsFile)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)
+        except TypeError as e:
+            logStrFinal="{0:s}mxsFile: {1!s}: TypeError.".format(logStr,mxsFile)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)        
+        except MemoryError as e:
+            logStrFinal="{0:s}mxsFile: {1!s}: MemoryError.".format(logStr,mxsFile)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)                             
+        except MxError:
+            raise
+        except:
+            logStrFinal="{0:s}mxsFile: {1!s}: Error.".format(logStr,mxsFile)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)                                    
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+            return self.pdf
+
+    def _readMxsFile(self,mxsFilePtr=None,maxRecords=None):
+        """
+        Returns the File-Content as df.  
+        ---
+        It is implied that the calculation results in the File originate from self.mx1File.  
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try:   
+            df = None #Returns the File-Content as df.  
+                           
+            # ... some Work tbd before reading the File ...                                  
+            mxTimes=[]
+            mxValues=[]           
+            mxColumnNames=[] # used in Pandas
+            for idx, (idxChannel,idxStruct) in enumerate(self.mxRecordChannelsToStructMapping):                               
+                mxColumnNames.append(self.mxChannelsSir3sIDs[idxChannel])
+            del mxColumnNames[self.channelTsIdx] # remove Timestamp (index not value)
+            MxRecordLength=struct.calcsize(self.mxRecordStructUnpackFmtString)    
+            if isinstance(maxRecords,int):
+                maxRecordsLimit=True
+            else:
+                maxRecordsLimit=False   
+                                         
+            recsReadFromFile=0                                                          
+            with mxsFilePtr: 
+                try:                    
+                    while True:   # while f.tell() != os.fstat(f.fileno()).st_size does NOT work with Zip's file objects ...    
+                            
+                        # read record 
+                        try: 
+                            record=mxsFilePtr.read(MxRecordLength)
+                            recordData = struct.unpack(self.mxRecordStructUnpackFmtString,record)  
+                        except:
+                            logger.debug("{0:s}record=f.read(MxRecordLength) failed (EOF probably).".format(logStr))  
+                            raise EOFError
+                        else:
+                            timeISO8601=None
+
+                        # process record
+                        try:
+                            timeISO8601 = recordData[self.channelTsIdx]
+                            time = pd.to_datetime(timeISO8601)      
+                            logger.debug("{0:s}Time read={1!s}.".format(logStr,time))                         
+                            values =recordData[0:self.channelTsIdx] + recordData[self.channelTsIdx+1:] # remove Timestamp (index not value)                                                        
+                        except:
+                            logStrFinal="{0:s}process record failed. Error.".format(logStr)
+                            logger.error(logStrFinal) 
+                            raise MxError(logStrFinal)                                                                                                          
+                                                  
+                        # store record
+                        try:
+                            mxTimes.append(time)                         
+                            mxValues.append(values)
+                        except:
+                            logStrFinal="{0:s}store record failed at Time={1!s}. Error.".format(logStr,timeISO8601)
+                            logger.error(logStrFinal) 
+                            raise MxError(logStrFinal)                                   
+
+                        # next record                            
+                        recsReadFromFile+=1                               
+                        if maxRecordsLimit:
+                            if recsReadFromFile == maxRecords:
+                                logger.debug("{0:s}maxRecords={1:d} read.".format(logStr,maxRecords))  
+                                raise EOFError   
+                                                   
+                except EOFError:                    
+                    logger.debug("{0:s}Last Time read={1!s}. File finished.".format(logStr,timeISO8601))                                                                                             
+                except:
+                    logStrFinal="{0:s}Last Time read={1!s}. Error.".format(logStr,timeISO8601)
+                    logger.error(logStrFinal) 
+                    raise MxError(logStrFinal)    
+                                  
+            logger.debug("{0:s}File finished: Records read={1:d}. Last Time read={2!s}. MB read={3:07.2f}. MB unpacked={4:07.2f} (making up {5:06.2f} %). ".format(logStr                                                                                                                                         
+                                                                                                                                          ,recsReadFromFile
+                                                                                                                                          ,timeISO8601
+                                                                                                                                          ,recsReadFromFile*MxRecordLength/pow(10,6)
+                                                                                                                                          ,recsReadFromFile*self.bytesUnpacked/pow(10,6)
+                                                                                                                                          ,self.bytesUnpacked/MxRecordLength*100
+                                                                                                                                                 )
+                        )                                                                     
+            df = pd.DataFrame.from_records(mxValues,index=mxTimes,columns=mxColumnNames)                
+            logger.debug("{0:s}df.shape(): {1!s}.".format(logStr,df.shape))   
+                                                                        
+        except MxError:
+            raise
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)                                    
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+            return df
+
     def ToH5(self,h5File=None):
         """
         Writes >self.pdf to the h5File.  
