@@ -72,7 +72,12 @@ class Mx():
                      ,unpackVectorChannels=False
                      ,channelsNotToBeProcessedSir3sIDRegExp=['^NONE']):
         """
-        (re-)initialize the set with an MX1-File (>self.pdf = None). 
+        (re-)initialize the set with an MX1-File (>self.df = None). 
+        ---
+        If an .MX1.h5-File not exists or is older than the .MX1-File the .MX1.h5-File is written.  
+        ---
+        If an .MX1.h5-File exists and is newer than the .MX1-File the .MX1.h5-File is read.
+        ---
         XOR
         (re-)initialize the set with an H5-File (>self.pdf = H5-Data).
             The H5-File must be generated before with an MX1-File-initialized result set using .wrtResultsToH5File():
@@ -117,7 +122,7 @@ class Mx():
 
     def __initWithMx1(self,mx1File,unpackVectorChannels,channelsNotToBeProcessedSir3sIDRegExp):
         """
-        (re-)initialize the set with an MX1-File (>self.pdf = None).      
+        (re-)initialize the set with an MX1-File (>self.df = None).      
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -151,7 +156,7 @@ class Mx():
             self.__readMxChannelDefinitions()
             self.__evalMxChannelsToBeProcessed(unpackVectorChannels,channelsNotToBeProcessedSir3sIDRegExp)
             self.__buildMxRecordStructUnpackFmtString()      
-            self.pdf=None                    
+            self.df=None                    
        
         except FileNotFoundError as e:
             logStrFinal="{0:s}mx1File: {1!s}: FileNotFoundError.".format(logStr,mx1File)
@@ -437,192 +442,48 @@ class Mx():
         (base,ext)=os.path.splitext(Mx1FileName)
         return wD,base,ext        
 
-    def setResultsToMxsZipfileAlt(self,mxsZipFile=None,maxRecords=None):
-        """
-        Equalizes >self.pdf to the results in the Zip.  
-        Returns self.pdf.
-        ---
-        Implicit specified is a Zip-File .ZIP in the same directory as the MX1-File .MX1.  
-        ---
-        It is implied that all calculation results in the Zip-File originate from the same MX1-File -  
-        from self.mx1File - and from the same Model at different scenario times.
-        """
-
-        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-        try: 
-            if mxsZipFile == None:
-                wD,base,ext = self.getMx1FilenameSplit() 
-                mxsZipFile=wD+os.path.sep+base+'.'+'ZIP'
-                           
-            with open(mxsZipFile,'rb') as f:   
-                pass     
-       
-            # ... some Work tbd before reading the Zip ...                                  
-            mxTimes=[]
-            mxValues=[]           
-            mxColumnNames=[] # used in Pandas
-            for idx, (idxChannel,idxStruct) in enumerate(self.mxRecordChannelsToStructMapping):                               
-                mxColumnNames.append(self.mxChannelsSir3sIDs[idxChannel])
-            del mxColumnNames[self.channelTsIdx] # remove Timestamp (index not value)
-            MxRecordLength=struct.calcsize(self.mxRecordStructUnpackFmtString)    
-            if isinstance(maxRecords,int):
-                maxRecordsLimit=True
-            else:
-                maxRecordsLimit=False   
-
-            # reading the Zip ...
-            logger.debug("{0:s}Zip: {1:s} ...".format(logStr,mxsZipFile)) 
-            try:
-                z = zipfile.ZipFile(mxsZipFile,'r')
-            except:
-                logStrFinal="{0:s}{1:s}: reading the Zip failed. Error.".format(logStr,mxsZipFile)
-                logger.error(logStrFinal) 
-                raise MxError(logStrFinal)   
-                               
-            recsReadFromZip=0
-            for mxsFileName in sorted(z.namelist()):
-                logger.debug("{0:s}{1:s} ...".format(logStr,mxsFileName))                                                        
-                with z.open(mxsFileName,'r') as f: 
-                    try:
-                        recsReadFromZipFile=0
-                        while True:   # while f.tell() != os.fstat(f.fileno()).st_size does NOT work with Zip's file objects ...    
-                            
-                            # read record 
-                            try: 
-                                record=f.read(MxRecordLength)
-                                recordData = struct.unpack(self.mxRecordStructUnpackFmtString,record)  
-                            except:
-                                logger.debug("{0:s}{1:s}: record=f.read(MxRecordLength) failed (EOF probably).".format(logStr,mxsFileName))  
-                                raise EOFError
-                            else:
-                                timeISO8601=None
-
-                            # process record
-                            try:
-                                timeISO8601 = recordData[self.channelTsIdx]
-                                time = pd.to_datetime(timeISO8601)      
-                                logger.debug("{0:s}{1:s}: Time read={2!s}.".format(logStr,mxsFileName,time))                         
-                                values =recordData[0:self.channelTsIdx] + recordData[self.channelTsIdx+1:] # remove Timestamp (index not value)                                                        
-                            except:
-                                logStrFinal="{0:s}{1:s}: process record failed. Error.".format(logStr,mxsFileName)
-                                logger.error(logStrFinal) 
-                                raise MxError(logStrFinal)                                                                                                          
-                                                  
-                            # store record
-                            try:
-                                mxTimes.append(time)                         
-                                mxValues.append(values)
-                            except:
-                                logStrFinal="{0:s}{1:s}: store record failed at Time={2!s}. Error.".format(logStr,mxsFileName,timeISO8601)
-                                logger.error(logStrFinal) 
-                                raise MxError(logStrFinal)                                   
-
-                            # next record                            
-                            recsReadFromZipFile+=1                               
-                            if maxRecordsLimit:
-                                if recsReadFromZipFile == maxRecords:
-                                    logger.debug("{0:s}{1:s}: maxRecords={2:d} read.".format(logStr,mxsFileName,maxRecords))  
-                                    raise EOFError   
-                                                   
-                    except EOFError:
-                        recsReadFromZip+=recsReadFromZipFile
-                        logger.debug("{0:s}{1:s}: Last Time read={2!s}. File finished.".format(logStr,mxsFileName,timeISO8601))                                                                                             
-                    except:
-                        logStrFinal="{0:s}{1:s}: Last Time read={2!s}. Error.".format(logStr,mxsFileName,timeISO8601)
-                        logger.error(logStrFinal) 
-                        raise MxError(logStrFinal)    
-                                  
-            logger.debug("{0:s}Zip: {1:s}: finished: Records read={2:d}. Last Time read={3!s}. MB read={4:07.2f}. MB unpacked={5:07.2f} (making up {6:06.2f} %). ".format(logStr
-                                                                                                                                          ,mxsZipFile
-                                                                                                                                          ,recsReadFromZip
-                                                                                                                                          ,timeISO8601
-                                                                                                                                          ,recsReadFromZip*MxRecordLength/pow(10,6)
-                                                                                                                                          ,recsReadFromZip*self.bytesUnpacked/pow(10,6)
-                                                                                                                                          ,self.bytesUnpacked/MxRecordLength*100
-                                                                                                                                                 )
-                        )                                                                     
-            self.pdf = pd.DataFrame.from_records(mxValues,index=mxTimes,columns=mxColumnNames)       
-
-            regExpCompiledPerfWarnI=re.compile('ALLG~(\S*)~(\S*)~(\S*)~CVERSO|SNAPSHOTTYPE') 
-            perfWarnColsI=[column for column in self.pdf.columns if regExpCompiledPerfWarnI.search(column) != None]
-
-            regExpCompiledPerfWarnII=re.compile('(\S+)~(\S+)~(\S+)~(\S*)~RART') 
-            perfWarnColsII=[column for column in self.pdf.columns if regExpCompiledPerfWarnII.search(column) != None]
-
-            perfWarnCols=perfWarnColsI+perfWarnColsII
-            self.pdf.loc[:,perfWarnCols] =  self.pdf[ perfWarnCols].applymap(str)
-            
-            #df.loc[:,columns] = df[columns].applymap(str)
-                   
-            logger.debug("{0:s}{1:s}: pdf.head(10): {2!s}.".format(logStr,mxsFileName,self.pdf.head(10)))                  
-
-        except FileNotFoundError as e:
-            logStrFinal="{0:s}mxsZipFile: {1!s}: FileNotFoundError.".format(logStr,mxsZipFile)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                                
-        except OSError as e:
-            logStrFinal="{0:s}mxsZipFile: {1!s}: OSError.".format(logStr,mxsZipFile)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)
-        except TypeError as e:
-            logStrFinal="{0:s}mxsZipFile: {1!s}: TypeError.".format(logStr,mxsZipFile)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)        
-        except MemoryError as e:
-            logStrFinal="{0:s}mxsZipFile: {1!s}: MemoryError.".format(logStr,mxsZipFile)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                             
-        except MxError:
-            raise
-        except:
-            logStrFinal="{0:s}mxsZipFile: {1!s}: Error.".format(logStr,mxsZipFile)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                                    
-        else:
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
-            return self.pdf
-
     def setResultsToMxsFile(self,mxsFile=None,maxRecords=None):
         """
         Equalizes >self.df to the results in the Mxs.          
         ---
         Implicit specified is a MXS-File .MXS in the same directory as the MX1-File .MX1.  
         ---
-        It is implied that the calculation results in the MXS-File originate from self.mx1File.
+        It is implied that the calculation results in the MXS-File originate from self.mx1File.        
+        ---
+        TIMESTAMP is used as index.
+        ---
+        self.df.index.is_unique 
+        will be True 
+        because in SIR 3S'
+        1st Time twice (SNAPSHOTTYPE: STAT+TIME) and Last Time triple (SNAPSHOTTYPE: TIME+TMIN/TMAX)  
+        +TIME       is dropped                                
+        +TMIN/TMAX are dropped                                                                                           
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
         try: 
+            # Mxs specification ...
             if mxsFile == None:
                 logger.debug("{0:s}Mxs: Implicit specified ...".format(logStr))                
                 wD,base,ext = self.getMx1FilenameSplit() 
                 mxsFile=wD+os.path.sep+base+'.'+'MXS'
-            
+                       
             logger.debug("{0:s}Mxs: {1:s} ...".format(logStr,mxsFile))                
             with open(mxsFile,'rb') as f:
+                 # Mxs exists ...
                 logger.debug("{0:s}Mxs: {1:s} reading ...".format(logStr,mxsFile))                
-                df=self._readMxsFile(f)                        
-            
-            
+                # Mxs reading ...
+                df=self._readMxsFile(f,maxRecords=maxRecords)     
+                           
+            if isinstance(df,pd.core.frame.DataFrame):                                  
+                # Unique index ...
+                df=df[df.index.duplicated() == False]       
+                self.df=df                   
+            else:
+                logger.warning("{0:s}Mxs: {1:s}: Reading failed.".format(logStr,mxsFile))    
                           
-            #Equalizes >self.df to the results in the Mxs.                                                 
-            self.df = df       
-
-            #regExpCompiledPerfWarnI=re.compile('ALLG~(\S*)~(\S*)~(\S*)~CVERSO|SNAPSHOTTYPE') 
-            #perfWarnColsI=[column for column in self.pdf.columns if regExpCompiledPerfWarnI.search(column) != None]
-
-            #regExpCompiledPerfWarnII=re.compile('(\S+)~(\S+)~(\S+)~(\S*)~RART') 
-            #perfWarnColsII=[column for column in self.pdf.columns if regExpCompiledPerfWarnII.search(column) != None]
-
-            #perfWarnCols=perfWarnColsI+perfWarnColsII
-            #self.pdf.loc[:,perfWarnCols] =  self.pdf[ perfWarnCols].applymap(str)
-                   
-                 
-
         except FileNotFoundError as e:
             logStrFinal="{0:s}mxsFile: {1!s}: FileNotFoundError.".format(logStr,mxsFile)
             logger.error(logStrFinal) 
@@ -648,7 +509,7 @@ class Mx():
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                 
 
-    def setResultsToMxsZipfile(self,mxsZipFile=None,maxRecords=None):
+    def setResultsToMxsZipFile(self,mxsZipFile=None,maxRecords=None):
         """
         Equalizes >self.df to the results in the Zip.          
         ---
@@ -656,20 +517,31 @@ class Mx():
         ---
         It is implied that all calculation results in the Zip-File originate from self.mx1File.   
         ---
-        The Mxs-Files in the Zip-File are read in alphabetical order.     
+        The Mxs-Files in the Zip-File are read in alphabetical order.    
+        ---
+        TIMESTAMP is used as index.
+        ---
+        self.df.index.is_unique 
+        will be True 
+        because in SIR 3S' 
+        1st Time twice (SNAPSHOTTYPE: STAT+TIME) and Last Time triple (SNAPSHOTTYPE: TIME+TMIN/TMAX)  
+        +TIME       is  dropped                                
+        +TMIN/TMAX  are dropped 
+        ---
+        and resulting overlapping TIMESTAMPs due to intersections between the Zip-MXS are also dropped
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
         try: 
-            # Zip
+            # Zip specification ...
             if mxsZipFile == None:
                 logger.debug("{0:s}Zip: Implicit specified ...".format(logStr))            
                 wD,base,ext = self.getMx1FilenameSplit() 
                 mxsZipFile=wD+os.path.sep+base+'.'+'ZIP'
             
-            # Zip Existence 
+            # Zip existence ... 
             logger.debug("{0:s}Zip: {1:s} ...".format(logStr,mxsZipFile))                               
             with open(mxsZipFile,'rb') as f:   
                 pass     
@@ -695,41 +567,36 @@ class Mx():
             for mxsFileName in sorted(z.namelist()):                          
                 with z.open(mxsFileName,'r') as f: 
                     logger.debug("{0:s}Zip: {1:s}: {2:s} reading ...".format(logStr,mxsZipFile,mxsFileName))       
-                    dfMxs=self._readMxsFile(f)
+                    dfMxs=self._readMxsFile(f,maxRecords=maxRecords)
 
-                if isinstance(dfMxs,pd.core.frame.DataFrame):                   
+                if isinstance(dfMxs,pd.core.frame.DataFrame):                                                                  
+                    # Unique index ...
+                    dfMxs=dfMxs[dfMxs.index.duplicated() == False]                                                              
                     recsReadFromZip+=len(dfMxs.index)
                 else:
-                    logger.debug("{0:s}Zip: {1:s}: {2:s}: Reading failed.".format(logStr,mxsZipFile,mxsFileName))    
+                    logger.warning("{0:s}Zip: {1:s}: {2:s}: Reading failed.".format(logStr,mxsZipFile,mxsFileName))    
                     continue   
 
                 if not isinstance(dfZip,pd.core.frame.DataFrame):
                     # 1st Mxs
                     dfZip=dfMxs
-                else:
-                    dfZip=dfZip+dfMxs
+                    logger.debug("{0:s}Zip: {1:s}: {2:s}: Assigned. First Shape: {3!s}.".format(logStr,mxsZipFile,mxsFileName,dfZip.shape))    
+                else:                    
+                    dfZip=pd.concat([dfZip,dfMxs])
+                    logger.debug("{0:s}Zip: {1:s}: {2:s}: Added.    New   Shape: {3!s}.".format(logStr,mxsZipFile,mxsFileName,dfZip.shape))    
+                    if not dfZip.index.is_unique:                        
+                        logger.debug("{0:s}Zip: {1:s}: {2:s}: Adds NOT unique TIMESTAMPS: Their Shape: {3!s}.".format(logStr,mxsZipFile,mxsFileName,dfZip[dfZip.index.duplicated()].shape))    
+                        dfZip=dfZip[dfZip.index.duplicated() == False] 
+                        logger.debug("{0:s}Zip: {1:s}: {2:s}: New unique Shape: {3!s}.".format(logStr,mxsZipFile,mxsFileName,dfZip.shape))             
                 
                 if maxRecordsLimit:
                     if recsReadFromZip >= maxRecords:
                         logger.debug("{0:s}>=maxRecords ({1:d}) read.".format(logStr,maxRecords))  
                         break
 
-            logger.debug("{0:s}{1:s}: dfZip.shape: {2!s}.".format(logStr,mxsFileName,dfZip.shape))     
-                                                      
-            self.df = dfZip        
-
-            #regExpCompiledPerfWarnI=re.compile('ALLG~(\S*)~(\S*)~(\S*)~CVERSO|SNAPSHOTTYPE') 
-            #perfWarnColsI=[column for column in self.pdf.columns if regExpCompiledPerfWarnI.search(column) != None]
-
-            #regExpCompiledPerfWarnII=re.compile('(\S+)~(\S+)~(\S+)~(\S*)~RART') 
-            #perfWarnColsII=[column for column in self.pdf.columns if regExpCompiledPerfWarnII.search(column) != None]
-
-            #perfWarnCols=perfWarnColsI+perfWarnColsII
-            #self.pdf.loc[:,perfWarnCols] =  self.pdf[ perfWarnCols].applymap(str)
-            
-            #df.loc[:,columns] = df[columns].applymap(str)
-                   
-                         
+            if isinstance(dfZip,pd.core.frame.DataFrame):
+                logger.debug("{0:s}{1:s}: Final Shape: {2!s}.".format(logStr,mxsZipFile,dfZip.shape))                                                           
+                self.df = dfZip        
 
         except FileNotFoundError as e:
             logStrFinal="{0:s}mxsZipFile: {1!s}: FileNotFoundError.".format(logStr,mxsZipFile)
@@ -761,6 +628,13 @@ class Mx():
         Returns the File-Content as df.  
         ---
         It is implied that the calculation results in the File originate from self.mx1File.  
+        ---
+        TIMESTAMP is used as index.
+        ---
+        df.index.is_unique 
+        might be False 
+        because of SIR 3S'
+        1st Time twice (SNAPSHOTTYPE: STAT+TIME) and Last Time triple (SNAPSHOTTYPE: TIME+TMIN/TMAX)  
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -897,6 +771,19 @@ class Mx():
                 metadata = dict(relPath2Mx1FromCurDir=relPath2Mx1FromCurDir)
                 h5Store.get_storer(relPath2Mx1FromCurDirH5Key).attrs.metadata=metadata
                 logger.debug("{0:s}{1:s}: write metadata={2!s} done.".format(logStr,h5File,metadata))     
+
+
+
+            #regExpCompiledPerfWarnI=re.compile('ALLG~(\S*)~(\S*)~(\S*)~CVERSO|SNAPSHOTTYPE') 
+            #perfWarnColsI=[column for column in self.pdf.columns if regExpCompiledPerfWarnI.search(column) != None]
+
+            #regExpCompiledPerfWarnII=re.compile('(\S+)~(\S+)~(\S+)~(\S*)~RART') 
+            #perfWarnColsII=[column for column in self.pdf.columns if regExpCompiledPerfWarnII.search(column) != None]
+
+            #perfWarnCols=perfWarnColsI+perfWarnColsII
+            #self.pdf.loc[:,perfWarnCols] =  self.pdf[ perfWarnCols].applymap(str)
+                   
+
 
         except OSError as e:
             logStrFinal="{0:s}h5File: {1!s}: OSError.".format(logStr,h5File)
