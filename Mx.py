@@ -128,6 +128,26 @@ class Mx():
                 pass
             self.mx1File=mx1File  
             logger.debug("{0:s}mx1File: {1:s}.".format(logStr,self.mx1File))     
+
+
+            # read mx1File To DataFrame
+            Mx1Tree = ET.parse(self.mx1File)
+            Mx1Root = Mx1Tree.getroot()
+
+            all_records = []
+            for mxChannel in Mx1Root.findall('XL1'): # returns a list containing all matching elements in document order
+                record = {}
+                for attrName in sorted(mxChannel.keys()):
+                    attrValue=mxChannel.get(attrName)
+                    record[attrName]=attrValue 
+                all_records.append(record)
+            self.mx1Df=pd.DataFrame(all_records) 
+
+            #tsElement=MxRoot.find('./XL1[@OBJTYPE="ALLG"]/.[@ATTRTYPE="TIMESTAMP"]')
+            dfTsIdx = self.mx1Df.index[(self.mx1Df['OBJTYPE']=='ALLG') & (self.mx1Df['ATTRTYPE']=='TIMESTAMP')] 
+            self.channelTsIdx=dfTsIdx.tolist()[0] #channelNumber of the TimeStamp
+            logger.debug("{0:s}mx1File: {1:s}: channelNumber of the TimeStamp: {2:d}.".format(logStr,self.mx1File,self.channelTsIdx))    
+            
             self.__readMxChannelDefinitions()
             self.__evalMxChannelsToBeProcessed(unpackVectorChannels,channelsNotToBeProcessedSir3sIDRegExp)
             self.__buildMxRecordStructUnpackFmtString()      
@@ -445,7 +465,7 @@ class Mx():
             mxColumnNames=[] # used in Pandas
             for idx, (idxChannel,idxStruct) in enumerate(self.mxRecordChannelsToStructMapping):                               
                 mxColumnNames.append(self.mxChannelsSir3sIDs[idxChannel])
-            del mxColumnNames[0] # remove Timestamp (index not value)
+            del mxColumnNames[self.channelTsIdx] # remove Timestamp (index not value)
             MxRecordLength=struct.calcsize(self.mxRecordStructUnpackFmtString)    
             if isinstance(maxRecords,int):
                 maxRecordsLimit=True
@@ -481,10 +501,10 @@ class Mx():
 
                             # process record
                             try:
-                                timeISO8601 = recordData[0]
+                                timeISO8601 = recordData[self.channelTsIdx]
                                 time = pd.to_datetime(timeISO8601)      
                                 logger.debug("{0:s}{1:s}: Time read={2!s}.".format(logStr,mxsFileName,time))                         
-                                values = recordData[1:]                                                           
+                                values =recordData[0:self.channelTsIdx] + recordData[self.channelTsIdx+1:] # remove Timestamp (index not value)                                                        
                             except:
                                 logStrFinal="{0:s}{1:s}: process record failed. Error.".format(logStr,mxsFileName)
                                 logger.error(logStrFinal) 
