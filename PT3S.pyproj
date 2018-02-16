@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{a4114edb-830b-4f14-adf1-5f2313ac1fea}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>Xm.py</StartupFile>
+    <StartupFile>Mx.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -16,7 +16,8 @@
     <InterpreterVersion>
     </InterpreterVersion>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <CommandLineArguments>-v --x  C:\3S\Modelle\MVV_FW.XML</CommandLineArguments>
+    <CommandLineArguments>
+    </CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
@@ -38,6 +39,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Mx.py" />
+    <Compile Include="test.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="__init__.py">
       <SubType>Code</SubType>
     </Compile>
@@ -48,8 +52,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="nb\" />
-    <Folder Include="testresults\" />
-    <Folder Include="testdata\" />
   </ItemGroup>
   <Import Project="$(PtvsTargetsFile)" Condition="Exists($(PtvsTargetsFile))" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" Condition="!Exists($(PtvsTargetsFile))" />
