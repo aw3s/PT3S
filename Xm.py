@@ -117,6 +117,8 @@ class Xm():
                 else:
                     logger.debug("{0:s}h5File {1:s} exists _parallel but is NOT newer than xmlFile {2:s}.".format(logStr,self.h5File,self.xmlFile))     
                     h5Read=False
+            else:
+                h5Read=False
             
             if not h5Read:
                 self.__xmlRead()

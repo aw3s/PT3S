@@ -72,11 +72,12 @@ class Mx():
                      ,unpackVectorChannels=False
                      ,channelsNotToBeProcessedSir3sIDRegExp=['^NONE']):
         """
-        (re-)initialize the set with an MX1-File (>self.df = None). 
+        (re-)initialize the set with an MX1-File:
+            self.mx1Df = MX1-File Content
+            self.df = None 
         ---
-        If an .MX1.h5-File not exists or is older than the .MX1-File the .MX1.h5-File is written.  
-        ---
-        If an .MX1.h5-File exists and is newer than the .MX1-File the .MX1.h5-File is read.
+        If a .h5-File exists _parallel _and is newer than .MX1-File:
+            The .h5-File is read _instead of the xmlFile
         ---
         XOR
         (re-)initialize the set with an H5-File (>self.pdf = H5-Data).
@@ -92,25 +93,75 @@ class Mx():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try: 
+
             if type(mx1File) == str:
-                self.__initWithMx1(mx1File,unpackVectorChannels,channelsNotToBeProcessedSir3sIDRegExp)    
-            elif type(h5File) == str:
-                self.pdf,metadata=self.FromH5(h5File)
-
-                self.mx1File=metadata['relPath2Mx1FromCurDir']
-
-                self.__readMxChannelDefinitions()
-                self.mxChannelsProcessed=[]
-                for idxChannel,Sir3sID in enumerate(self.mxChannelsSir3sIDs):
-                    if Sir3sID in self.pdf.columns:
-                        self.mxChannelsProcessed.append(True)
-                    else:
-                        self.mxChannelsProcessed.append(False)
-                self.__buildMxRecordStructUnpackFmtString()    
+                    self.mx1File=mx1File  
+                    #check if mx1File exists ...
+                    if not os.path.exists(self.mx1File): 
+                        logStrFinal="{0:s}{1:s}: Not existing!".format(logStr,mx1File)                                 
+                        raise XmError(logStrFinal)  
             else:
-                logStrFinal="{0:s}Neither mx1File nor h5File defined. Error.".format(logStr)
-                logger.error(logStrFinal) 
-                raise MxError(logStrFinal)                    
+                    logStrFinal="{0:s}{1!s}: Not of type str!".format(logStr,mx1File)                                 
+                    raise XmError(logStrFinal)     
+                              
+            #Determine corresponding .h5 Filename
+            (wD,fileName)=os.path.split(self.mx1File)
+            (base,ext)=os.path.splitext(fileName)
+            self.h5File=wD+os.path.sep+base+'.'+'h5'           
+
+            #check if h5File exists parallel 
+            if os.path.exists(self.h5File):  
+                #check if h5File is newer
+                mx1FileTime=os.path.getmtime(self.mx1File) 
+                h5FileTime=os.path.getmtime(self.h5File)
+                if(h5FileTime>mx1FileTime):
+                    logger.debug("{0:s}h5File {1:s} exists _parallel _and is newer than mx1File {2:s}:".format(logStr,self.h5File,self.mx1File))     
+                    logger.debug("{0:s}The h5File is read _instead of the mx1File.".format(logStr))   
+                    h5Read=True  
+                else:
+                    logger.debug("{0:s}h5File {1:s} exists _parallel but is NOT newer than mx1File {2:s}.".format(logStr,self.h5File,self.mx1File))     
+                    h5Read=False
+            else:
+                h5Read=False
+            
+            if not h5Read:
+                self.df=None   
+                self.mx1Df=None
+                self.__initWithMx1(mx1File,unpackVectorChannels,channelsNotToBeProcessedSir3sIDRegExp)    
+            else:
+                pass
+                #self.FromH5(h5File=self.h5File)
+
+
+
+
+
+
+
+
+
+            #if type(mx1File) == str:
+            #    self.__initWithMx1(mx1File,unpackVectorChannels,channelsNotToBeProcessedSir3sIDRegExp)    
+            #elif type(h5File) == str:
+            #    self.pdf,metadata=self.FromH5(h5File)
+
+            #    self.mx1File=metadata['relPath2Mx1FromCurDir']
+
+            #    self.__readMxChannelDefinitions()
+            #    self.mxChannelsProcessed=[]
+            #    for idxChannel,Sir3sID in enumerate(self.mxChannelsSir3sIDs):
+            #        if Sir3sID in self.pdf.columns:
+            #            self.mxChannelsProcessed.append(True)
+            #        else:
+            #            self.mxChannelsProcessed.append(False)
+            #    self.__buildMxRecordStructUnpackFmtString()    
+            #else:
+            #    logStrFinal="{0:s}Neither mx1File nor h5File defined. Error.".format(logStr)
+            #    logger.error(logStrFinal) 
+            #    raise MxError(logStrFinal)   
+            
+            
+                             
         except MxError:
             raise            
         except:
@@ -122,23 +173,20 @@ class Mx():
 
     def __initWithMx1(self,mx1File,unpackVectorChannels,channelsNotToBeProcessedSir3sIDRegExp):
         """
-        (re-)initialize the set with an MX1-File (>self.df = None).      
+        (re-)initialize the set with an existing MX1-File:
+            self.mx1Df = MX1-File Content     
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
         try: 
-            with open(mx1File,'r') as f: 
-                pass
-            self.mx1File=mx1File  
-            logger.debug("{0:s}mx1File: {1:s}.".format(logStr,self.mx1File))     
-
-
+            logger.debug("{0:s}mx1File: {1:s} reading ...".format(logStr,self.mx1File))    
             # read mx1File To DataFrame
             Mx1Tree = ET.parse(self.mx1File)
             Mx1Root = Mx1Tree.getroot()
 
+            logger.debug("{0:s}mx1File: {1:s} parsing ...".format(logStr,self.mx1File))    
             all_records = []
             for mxChannel in Mx1Root.findall('XL1'): # returns a list containing all matching elements in document order
                 record = {}
@@ -147,16 +195,37 @@ class Mx():
                     record[attrName]=attrValue 
                 all_records.append(record)
             self.mx1Df=pd.DataFrame(all_records) 
+            logger.debug("{0:s}mx1File: {1:s} mx1Df read. Shape: {2!s}.".format(logStr,self.mx1File,self.mx1Df.shape))    
+
+            #Conversions
+            self.mx1Df['DATALENGTH']=self.mx1Df['DATALENGTH'].astype('int64')
+            self.mx1Df['DATATYPELENGTH']=self.mx1Df['DATATYPELENGTH'].astype('int64')
+            self.mx1Df['DATAOFFSET']=self.mx1Df['DATAOFFSET'].astype('int64')
 
             #tsElement=MxRoot.find('./XL1[@OBJTYPE="ALLG"]/.[@ATTRTYPE="TIMESTAMP"]')
             dfTsIdx = self.mx1Df.index[(self.mx1Df['OBJTYPE']=='ALLG') & (self.mx1Df['ATTRTYPE']=='TIMESTAMP')] 
             self.channelTsIdx=dfTsIdx.tolist()[0] #channelNumber of the TimeStamp
             logger.debug("{0:s}mx1File: {1:s}: channelNumber of the TimeStamp: {2:d}.".format(logStr,self.mx1File,self.channelTsIdx))    
             
-            self.__readMxChannelDefinitions()
-            self.__evalMxChannelsToBeProcessed(unpackVectorChannels,channelsNotToBeProcessedSir3sIDRegExp)
+            #Sir3sID
+            sep='~'
+            self.mx1Df['Sir3sID']=self.mx1Df['OBJTYPE']+sep+self.mx1Df['NAME1']+sep+self.mx1Df['NAME2']+sep+self.mx1Df['NAME3']+sep+self.mx1Df['ATTRTYPE']
+            self.mx1Df['Sir3sID']=self.mx1Df['Sir3sID'].astype(str)
+
+            #markVectorChannels
+            self.mx1Df['isVectorChannel']=[True if int(cDLength/cDTypeLength)>1 else False for cDLength,cDTypeLength in zip(self.mx1Df['DATALENGTH'],self.mx1Df['DATATYPELENGTH'])] 
+
+            logger.debug("{0:s}mx1Df after some generated Columns: Shape: {1!s}.".format(logStr,self.mx1Df.shape))    
+
+           
+
+
+
+
+            #self.__readMxChannelDefinitions()
+            #self.__evalMxChannelsToBeProcessed(unpackVectorChannels,channelsNotToBeProcessedSir3sIDRegExp)
             self.__buildMxRecordStructUnpackFmtString()      
-            self.df=None                    
+                            
        
         except FileNotFoundError as e:
             logStrFinal="{0:s}mx1File: {1!s}: FileNotFoundError.".format(logStr,mx1File)
@@ -321,30 +390,42 @@ class Mx():
 
         try:
             self.mxRecordStructUnpackFmtString=''
+            #self.mx1Df['StructMapping']=None 
             self.mxRecordChannelsToStructMapping=[]
+            channelsToStructMapping=[]
             idxUnpack=0
             bytesSkipped=0
 
-            for idxChannel,mxChannel in enumerate(self.mxChannels):
+            for row in self.mx1Df.itertuples():
+
+            #for idxChannel,mxChannel in enumerate(self.mxChannels):
+
+                idxChannel=int(row.Index)
 
                 fmtItem='' # End of Loop: self.mxRecordStructUnpackFmtString+=fmtItem
 
-                sir3sID=self.mxChannelsSir3sIDs[idxChannel]
-                toBeUnpacked=self.mxChannelsProcessed[idxChannel]
-                                                                                   
-                cDType=mxChannel.get('DATATYPE')
-                cDTypeLength=int(mxChannel.get('DATATYPELENGTH'))
-                cDLength=int(mxChannel.get('DATALENGTH'))
-                items=int(cDLength/cDTypeLength)
+                sir3sID=row.Sir3sID #self.mxChannelsSir3sIDs[idxChannel]
 
-                if items>1:
-                    isVectorChannel=True
+                isVectorChannel=row.isVectorChannel #self.mxChannelsProcessed[idxChannel]
+
+                if isVectorChannel:
+                    toBeUnpacked=False
                 else:
-                    isVectorChannel=False
+                    toBeUnpacked=True
+
+
+
+               
+                                                                                   
+                cDType=row.DATATYPE #mxChannel.get('DATATYPE')
+                cDTypeLength=row.DATATYPELENGTH #int(mxChannel.get('DATATYPELENGTH'))
+                cDLength=row.DATALENGTH #int(mxChannel.get('DATALENGTH'))
+                items=int(cDLength/cDTypeLength)
                 
                 if cDType=='CHAR':
                     if toBeUnpacked:
-                        self.mxRecordChannelsToStructMapping.append((idxChannel,idxUnpack))             
+                        self.mxRecordChannelsToStructMapping.append((idxChannel,idxUnpack))         
+                        channelsToStructMapping.append(idxUnpack)    
                         if isVectorChannel:                                                                                  
                             for idx in range(items):
                                 fmtItem+=(str(cDTypeLength)+'s') 
@@ -355,6 +436,7 @@ class Mx():
                     else:
                         bytesSkipped+=cDLength
                         fmtItem=str(cDLength)+'x'  
+                        channelsToStructMapping.append(None)
                                                     
                 elif cDType=='INT4':    
                     if toBeUnpacked:
@@ -362,7 +444,8 @@ class Mx():
                             logStrFinal="{0:s}sir3sID: {1:s}: DATATYPE={2:s} and DATATYPELENGTH<>4 ({3:d})?! Error.".format(logStr,sir3sID,cDType,cDTypeLength)
                             logger.error(logStrFinal) 
                             raise MxError(logStrFinal)   
-                        self.mxRecordChannelsToStructMapping.append((idxChannel,idxUnpack))             
+                        self.mxRecordChannelsToStructMapping.append((idxChannel,idxUnpack))     
+                        channelsToStructMapping.append(idxUnpack)        
                         if isVectorChannel:                                                                                                                                                                                                                                                                                            
                             fmtItem=str(items)+'i'                    
                             idxUnpack+=items                           
@@ -371,7 +454,8 @@ class Mx():
                             idxUnpack+=1    
                     else:
                         bytesSkipped+=cDLength
-                        fmtItem=str(cDLength)+'x'                                      
+                        fmtItem=str(cDLength)+'x' 
+                        channelsToStructMapping.append(None)                                     
                             
                 elif cDType=='REAL':
                     if toBeUnpacked:
@@ -379,7 +463,8 @@ class Mx():
                             logStrFinal="{0:s}sir3sID: {1:s}: DATATYPE={2:s} and DATATYPELENGTH<>4 ({3:d})?! Error.".format(logStr,sir3sID,cDType,cDTypeLength)
                             logger.error(logStrFinal) 
                             raise MxError(logStrFinal)   
-                        self.mxRecordChannelsToStructMapping.append((idxChannel,idxUnpack))             
+                        self.mxRecordChannelsToStructMapping.append((idxChannel,idxUnpack))     
+                        channelsToStructMapping.append(idxUnpack)        
                         if isVectorChannel:                                                                                                                                                                                                                                                                                            
                             fmtItem=str(items)+'f'                    
                             idxUnpack+=items                           
@@ -389,6 +474,7 @@ class Mx():
                     else:
                         bytesSkipped+=cDLength
                         fmtItem=str(cDLength)+'x'
+                        channelsToStructMapping.append(None)
                                                                                      
                 elif cDType=='RVEC':
                     if toBeUnpacked:
@@ -396,12 +482,14 @@ class Mx():
                             logStrFinal="{0:s}sir3sID: {1:s}: DATATYPE={2:s} and DATATYPELENGTH<>4 ({3:d})?! Error.".format(logStr,sir3sID,cDType,cDTypeLength)
                             logger.error(logStrFinal) 
                             raise MxError(logStrFinal)   
-                        self.mxRecordChannelsToStructMapping.append((idxChannel,idxUnpack))                                                                                                                                                                                                                                                                                                                                
+                        self.mxRecordChannelsToStructMapping.append((idxChannel,idxUnpack))    
+                        channelsToStructMapping.append(idxUnpack)                                                                                                                                                                                                                                                                                                                            
                         fmtItem=str(items)+'f'                    
                         idxUnpack+=items                             
                     else:
                         bytesSkipped+=cDLength
                         fmtItem=str(cDLength)+'x'
+                        channelsToStructMapping.append(None)
                 else:                       
                     if toBeUnpacked:
                          logStrFinal="{0:s}sir3sID: {1:s}: UNKNOWN DATATYPE={2:s}. Error.".format(logStr,sir3sID,cDType)     
@@ -412,10 +500,11 @@ class Mx():
                          logger.debug(logStrFinal)                                               
                     bytesSkipped+=cDLength
                     fmtItem=str(cDLength)+'x'
+                    channelsToStructMapping.append(None)
                     
                 self.mxRecordStructUnpackFmtString+=fmtItem
 
-            MxRecordLengthMx1=int(self.mxChannels[-1].get('DATAOFFSET'))+int(self.mxChannels[-1].get('DATALENGTH'))
+            MxRecordLengthMx1=self.mx1Df['DATAOFFSET'].iloc[-1]+self.mx1Df['DATALENGTH'].iloc[-1]            
             MxRecordLengthFmt=struct.calcsize(self.mxRecordStructUnpackFmtString)            
             if MxRecordLengthMx1 != MxRecordLengthFmt:
                 logStrFinal="{0:s}Bytes per MX-Record from MX-Channels={1:d} <> Bytes from struct fmt-String for MX-Records={2:d}?! Error.".format(logStr,MxRecordLengthMx1,MxRecordLengthFmt)
@@ -423,6 +512,9 @@ class Mx():
 
             self.bytesUnpacked = MxRecordLengthFmt - bytesSkipped
             logger.debug("{0:s}Bytes per MX-Record={1:d}. Bytes Unpacked={2:d} (making up {3:06.2f} Bytes-%).".format(logStr,MxRecordLengthMx1,self.bytesUnpacked,self.bytesUnpacked/MxRecordLengthFmt*100))                                                  
+
+            self.mx1Df['channelToStructMapping']=pd.Series(channelsToStructMapping)
+            logger.debug("{0:s}channelsToStructMapping={1:d}".format(logStr,len(channelsToStructMapping)))                                                  
 
         except MxError:
             raise            
@@ -648,8 +740,12 @@ class Mx():
             mxValues=[]           
             mxColumnNames=[] # used in Pandas
             for idx, (idxChannel,idxStruct) in enumerate(self.mxRecordChannelsToStructMapping):                               
-                mxColumnNames.append(self.mxChannelsSir3sIDs[idxChannel])
+                #mxColumnNames.append(self.mxChannelsSir3sIDs[idxChannel])
+                mxColumnNames.append(self.mx1Df['Sir3sID'].iloc[idxChannel])
             del mxColumnNames[self.channelTsIdx] # remove Timestamp (index not value)
+
+            logger.debug("{0:s}Columns (without Timestamp): {1:d}.".format(logStr,len(mxColumnNames)))                  
+
             MxRecordLength=struct.calcsize(self.mxRecordStructUnpackFmtString)    
             if isinstance(maxRecords,int):
                 maxRecordsLimit=True
@@ -674,9 +770,9 @@ class Mx():
                         # process record
                         try:
                             timeISO8601 = recordData[self.channelTsIdx]
-                            time = pd.to_datetime(timeISO8601)      
-                            logger.debug("{0:s}Time read={1!s}.".format(logStr,time))                         
-                            values =recordData[0:self.channelTsIdx] + recordData[self.channelTsIdx+1:] # remove Timestamp (index not value)                                                        
+                            time = pd.to_datetime(timeISO8601)                                              
+                            values =recordData[0:self.channelTsIdx] + recordData[self.channelTsIdx+1:] # remove Timestamp (index not value)        
+                            logger.debug("{0:s}Time read={1!s}: Values (without Timestamp): {2:d}.".format(logStr,time,len(values)))                                                             
                         except:
                             logStrFinal="{0:s}process record failed. Error.".format(logStr)
                             logger.error(logStrFinal) 
@@ -713,6 +809,7 @@ class Mx():
                                                                                                                                           ,self.bytesUnpacked/MxRecordLength*100
                                                                                                                                                  )
                         )                                                                     
+            #logger.debug("{0:s}mxColumnNames: {1!s}.".format(logStr,mxColumnNames))
             df = pd.DataFrame.from_records(mxValues,index=mxTimes,columns=mxColumnNames)                
             logger.debug("{0:s}df.shape(): {1!s}.".format(logStr,df.shape))   
                                                                         
@@ -895,8 +992,11 @@ if __name__ == "__main__":
                       
         logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start. Argumente:',str(sys.argv))) 
 
-        suite=doctest.DocTestSuite()   
-        unittest.TextTestRunner().run(suite)         
+        mx=Mx(r'C:\3S\Modelle\WDMVV_FW\B1\V0\BZ1\M-1-0-1.MX1')
+        mx.setResultsToMxsFile()
+
+        #suite=doctest.DocTestSuite()   
+        #unittest.TextTestRunner().run(suite)         
 
     except SystemExit:
         pass                                              
