@@ -347,6 +347,7 @@ class Xm():
             raise XmError(logStrFinal)               
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
     def __convertAndFix(self):
         """
         Performs fixes and basic conversions inplace the DataFrames

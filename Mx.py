@@ -1,25 +1,167 @@
 """
 SIR 3S MX-Interface (short: MX):
 --------------------------------
-MX is SIR 3S' file based, channel-oriented interface for calculation results.
-Module Mx contains stuff to utilize SIR 3S' MX calculation results) in pure Python.  
-SIR 3S calculation results:
+MX is a file based, channel-oriented interface for SIR 3S' calculation results.
+Module Mx contains stuff to utilize SIR 3S' MX calculation results in pure Python.  
+SIR 3S MX calculation results:
 ---------------------------
-Binary .MXS-Files contain SIR 3S calculations results. 
+Binary .MXS-Files contain the SIR 3S calculations results. 
 A Model calculation run creates at least one .MXS-File (Result-File).
 There is one .MX1-File (an XML-File) for each SIR 3S Model calculation run.    
 This .MX1-File defines in XML a sequence of MX-Channels. 
-And - as a result - the Byte-Layout of a single MX-Record in .MXS.
-A MX-Record contains calculation results for one Timestamp.
-A .MXS-File contains at least one MX-Record.
+And - as a result - the Byte-Layout of a single MX3-Record in .MXS.
+A MX3-Record contains calculation results for one Timestamp.
+A .MXS-File contains at least one MX3-Record.
 ---------------------------
 DOCTEST
 ---------------------------
-# ---
-# Init
-# ---
+>>> # ---
+>>> # Imports
+>>> import os
+>>> import logging
+>>> import __init__ # PT3S' __init__.py
+>>> logger = logging.getLogger('PT3S.Mx')  
+>>> # ---
+>>> # Init
+>>> # ---
 >>> mx1File=r'C:\\3S\Modelle\WDMVV_FW\B1\V0\BZ1\M-1-0-1.MX1'
->>> mx=Mx(mx1File=mx1File)
+>>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
+>>> type(mx.mx1Df) # MX1-Content
+<class 'pandas.core.frame.DataFrame'>
+>>> type(mx.df) # MXS-Content
+<class 'NoneType'>
+>>> # ---
+>>> # Read MXS
+>>> # ---
+>>> mx.setResultsToMxsFile() # looks for M-1-0-1.MXS in same Dir 
+>>> type(mx.df) # MXS-Content
+<class 'pandas.core.frame.DataFrame'>
+>>> # ---
+>>> # Write H5
+>>> # ---
+>>> if os.path.exists(mx.h5File):                        
+...      os.remove(mx.h5File)
+>>> mx.ToH5() # M-1-0-1.h5 in same Dir 
+>>> os.path.exists(mx.h5File)
+True
+>>> mx.ToH5() # M-1-0-1.h5 in same Dir is deleted if exists before written again
+>>> os.path.exists(mx.h5File)
+True
+>>> # ---
+>>> # Init with H5
+>>> # ---
+>>> mx=Mx(mx1File=mx1File) # looks for M-1-0-1.h5 in same Dir 
+>>> # and reads the .h5 if newer than .MX1 and newer than an existing .MXS 
+>>> type(mx.mx1Df) # MX1-Content
+<class 'pandas.core.frame.DataFrame'>
+>>> type(mx.df) # MXS-Content
+<class 'pandas.core.frame.DataFrame'>
+>>> # ---
+>>> # Read MXS Zip
+>>> # ---
+>>> import zipfile # create the Zip first
+>>> with zipfile.ZipFile(mx.mxsZipFile,'w') as myzip:
+...     myzip.write(mx.mxsFile)  
+>>> mx.setResultsToMxsZipFile() # looks for M-1-0-1.ZIP in same Dir
+>>> type(mx.df) # MXS-Content
+<class 'pandas.core.frame.DataFrame'>
+>>> rowsMxs,colsMxs = mx.df.shape
+>>> mx.df.index.is_unique # all setResultsTo... will ensure this uniqueness under all circumstances
+True
+>>> # uniqueness under all circumstances: also when add=True (setResultsTo... shall add the MXS-Content) is used
+>>> # ---
+>>> # Add same MXS (for testing ensuring uniqueness) 
+>>> # ---
+>>> oldShape=mx.df.shape
+>>> mx.setResultsToMxsFile(add=True) # looks for M-1-0-1.MXS in same Dir 
+>>> newShape=mx.df.shape
+>>> newShape==oldShape
+True
+>>> # ---
+>>> # Add same MXS Zip (for testing ensuring uniqueness) 
+>>> # ---
+>>> mx.setResultsToMxsZipFile(add=True) # looks for M-1-0-1.ZIP in same Dir 
+>>> newShape=mx.df.shape
+>>> newShape==oldShape
+True
+>>> # ---
+>>> # Read MXS Zip with overlapping Timestamps (for testing ensuring uniqueness) 
+>>> # ---
+>>> with zipfile.ZipFile(mx.mxsZipFile,'w') as myzip:
+...      myzip.write(mx.mxsFile)  
+...      myzip.write(mx.mxsFile,arcname=mx.mxsFile+'.2')  
+>>> mx.setResultsToMxsZipFile() # looks for M-1-0-1.ZIP in same Dir 
+>>> newShape=mx.df.shape
+>>> newShape==oldShape
+True
+>>> # ---
+>>> # shift to younger Timestamps (for testing purposes) 
+>>> # ---
+>>> lastTimestamp=mx.df.index[-1]
+>>> firstTimestamp=mx.df.index[0]
+>>> timeSpan=lastTimestamp-firstTimestamp
+>>> if len(mx.df.index)>1:
+...      timeStep=mx.df.index[-1]-mx.df.index[-2]
+... else:
+...      timeStep=pd.Timestamp(0)-pd.Timestamp(0)
+>>> mx.df.index=mx.df.index-(timeSpan+timeStep)
+>>> # ---
+>>> # Read MXS (with the original Timestamps)
+>>> # ---
+>>> mx.setResultsToMxsFile(add=True) # looks for M-1-0-1.MXS in same Dir 
+>>> rowsNew,colsNew=mx.df.shape
+>>> rowsOld,colsOld=oldShape
+>>> rowsNew==2*rowsOld
+True
+>>> colsNew==colsOld
+True
+>>> # ---
+>>> # shift to older Timestamps (for testing purposes) 
+>>> # ---
+>>> lastTimestamp=mx.df.index[-1]
+>>> firstTimestamp=mx.df.index[0]
+>>> timeSpan=lastTimestamp-firstTimestamp
+>>> if len(mx.df.index)>1:
+...      timeStep=mx.df.index[-1]-mx.df.index[-2]
+... else:
+...      timeStep=pd.Timestamp(0)-pd.Timestamp(0)
+>>> mx.df.index=mx.df.index+(timeSpan+timeStep)
+>>> # ---
+>>> # Read MXS (with the original Timestamps)
+>>> # ---
+>>> mx.setResultsToMxsFile(add=True) # looks for M-1-0-1.MXS in same Dir 
+>>> rowsNew,colsNew=mx.df.shape
+>>> rowsNew==3*rowsOld
+True
+>>> colsNew==colsOld
+True
+>>> # ---
+>>> # Dump (for testing purposes)
+>>> # ---
+>>> logger.debug("{0:s}: Shape before Dump: {1!s} Uniqueness: {2!s} First Time: {3!s} Last Time: {4!s}.".format('DOCTEST',mx.df.shape,mx.df.index.is_unique,mx.df.index[0],mx.df.index[-1])) 
+>>> mx.dumpInMxsFormat() # dumps to .MXS.dump-File in same Dir
+>>> rowsDump,colsDump = mx.df.shape
+>>> # ---
+>>> mxsDumpFile=mx.mxsFile+'.dump'
+>>> mx.setResultsToMxsFile(mxsFile=mxsDumpFile)
+>>> logger.debug("{0:s}: Shape after Reading Dump: {1!s} Uniqueness: {2!s} First Time: {3!s} Last Time: {4!s}.".format('DOCTEST',mx.df.shape,mx.df.index.is_unique,mx.df.index[0],mx.df.index[-1])) 
+>>> with zipfile.ZipFile(mx.mxsZipFile,'w') as myzip:
+...     myzip.write(mx.mxsFile)  
+...     myzip.write(mxsDumpFile)  
+>>> mx.setResultsToMxsZipFile()
+>>> logger.debug("{0:s}: Shape after Reading Zip with original Mxs + Dump: {1!s} Uniqueness: {2!s} First Time: {3!s} Last Time: {4!s}.".format('DOCTEST',mx.df.shape,mx.df.index.is_unique,mx.df.index[0],mx.df.index[-1])) 
+>>> rowsZip,colsZip = mx.df.shape
+>>> rowsZip==rowsMxs+rowsDump
+True
+>>> # ---
+>>> # Clean Up
+>>> # ---
+>>> if os.path.exists(mx.h5File):                        
+...     os.remove(mx.h5File)
+>>> if os.path.exists(mx.mxsZipFile):                        
+...     os.remove(mx.mxsZipFile)
+>>> if os.path.exists(mxsDumpFile):                        
+...    os.remove(mxsDumpFile)
 """
 
 import os
@@ -46,6 +188,9 @@ import h5py
 
 import subprocess
 
+import warnings
+import tables
+
 
 class MxError(Exception):
     def __init__(self, value):
@@ -55,38 +200,29 @@ class MxError(Exception):
 
 class Mx():
     """
-    Class Mx holds a .MX1-File defined SIR 3S .MXS calculation result in a pandas DataFrame (self.pdf).
-    --------------------------------------------------------------------------------------
-    pandas DataFrame:
-    -----------------
-    index: Timestamps (UTC, not localized) - scenario time; 1st Channel in MX-Record
+    Class Mx holds 2 Dataframes:
+    the .MX1-File Definition    self.mx1Df and 
+    the .MXS-File Data (if any) self.df.
     ---
-    columns: >= 2nd Channel in MX-Record  
-    ---
-    The following (String-)ID - called Sir3sID - is used as column-label:
-    OBJTYPE~NAME1~NAME2~NAME3~ATTRTYPE 
-    A Sir3sID consists of ~ seperated MX1-File terms.
+    the .MXS-File Data: calculations results 
+    index:   Timestamps 
+             scenario time (UTC, not localized)
+    columns: Values  
+             The following (String-)ID - called Sir3sID - is used as Column-Label:
+             OBJTYPE~NAME1~NAME2~NAME3~ATTRTYPE 
+             A Sir3sID consists of ~ seperated MX1-File terms.
     """
-    def __init__(self,mx1File=None 
-                     ,h5File=None
-                     ,unpackVectorChannels=False
-                     ,channelsNotToBeProcessedSir3sIDRegExp=['^NONE']):
+    def __init__(self,mx1File=None,NoH5Read=False,NoMxsRead=False): 
         """
-        (re-)initialize the set with an MX1-File:
-            self.mx1Df = MX1-File Content
-            self.df = None 
+        (re-)initialize the Set with an MX1-File.
         ---
-        If a .h5-File exists _parallel _and is newer than .MX1-File:
-            The .h5-File is read _instead of the xmlFile
+        NoH5Read False:
+        If a .h5-File exists _parallel _and is newer than .MX1-File _and newer than an (_existing) .MXS-File:
+            The .h5-File is read _instead of the .MX1-File
         ---
-        XOR
-        (re-)initialize the set with an H5-File (>self.pdf = H5-Data).
-            The H5-File must be generated before with an MX1-File-initialized result set using .wrtResultsToH5File():
-                if mx1File @ .wrtResultsToH5File() was:                ./testdata/M-1-0-1.MX1
-                than metadata['relPath2Mx1FromCurDir'] in H5 should be: testdata\M-1-0-1.MX1               
-                and Key in H5 should be:                                /testdata/M_1_0_1
-            H5-File-Initializing is convenient (because way faster) if MXS-Results are already parsed and stored to H5.   
-            The MX1-File referenced in the H5-Metadata must still exist. 
+        NoMxsRead False:
+        If a .MXS-File exists _parallel _and is newer than .MX1-File and .h5 is not read:
+            The .MXS-File is read.           
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -103,11 +239,20 @@ class Mx():
             else:
                     logStrFinal="{0:s}{1!s}: Not of type str!".format(logStr,mx1File)                                 
                     raise XmError(logStrFinal)     
-                              
-            #Determine corresponding .h5 Filename
+
+            #Determine corresponding .MX2 Filename
             (wD,fileName)=os.path.split(self.mx1File)
             (base,ext)=os.path.splitext(fileName)
-            self.h5File=wD+os.path.sep+base+'.'+'h5'           
+            self.mx2File=wD+os.path.sep+base+'.'+'MX2'        
+                                          
+            #Determine corresponding .h5 Filename
+            self.h5File=wD+os.path.sep+base+'.'+'h5'        
+            
+            #Determine corresponding .MXS Filename
+            self.mxsFile=wD+os.path.sep+base+'.'+'MXS'  
+          
+            #Determine corresponding .MXS Zip-Filename
+            self.mxsZipFile=wD+os.path.sep+base+'.'+'ZIP'   
 
             #check if h5File exists parallel 
             if os.path.exists(self.h5File):  
@@ -115,52 +260,37 @@ class Mx():
                 mx1FileTime=os.path.getmtime(self.mx1File) 
                 h5FileTime=os.path.getmtime(self.h5File)
                 if(h5FileTime>mx1FileTime):
-                    logger.debug("{0:s}h5File {1:s} exists _parallel _and is newer than mx1File {2:s}:".format(logStr,self.h5File,self.mx1File))     
-                    logger.debug("{0:s}The h5File is read _instead of the mx1File.".format(logStr))   
-                    h5Read=True  
+                    if os.path.exists(self.mxsFile):  
+                        mxsFileTime=os.path.getmtime(self.mxsFile)
+                        if(h5FileTime>mxsFileTime):
+                            logger.debug("{0:s}h5File {1:s} exists _parallel _and is newer than mx1File {2:s} _and newer than mxsFile {3:s}:".format(logStr,self.h5File,self.mx1File,self.mxsFile))     
+                            logger.debug("{0:s}The h5File is read _instead of the mx1File.".format(logStr))   
+                            h5Read=True
+                        else:                                 
+                            logger.debug("{0:s}h5File {1:s} exists _parallel but ===NO h5Read=== because mxsFile {2:s} newer.".format(logStr,self.h5File,self.mxsFile))     
+                            h5Read=False  
+                    else:
+                        logger.debug("{0:s}h5File {1:s} exists _parallel _and is newer than mx1File {2:s} and there is no mxsFile like {3:s}:".format(logStr,self.h5File,self.mx1File,self.mxsFile))     
+                        logger.debug("{0:s}The h5File is read _instead of the mx1File.".format(logStr))   
+                        h5Read=True  
                 else:
-                    logger.debug("{0:s}h5File {1:s} exists _parallel but is NOT newer than mx1File {2:s}.".format(logStr,self.h5File,self.mx1File))     
+                    logger.debug("{0:s}h5File {1:s} exists _parallel but ===NO h5Read=== because mx1File {2:s} is newer.".format(logStr,self.h5File,self.mx1File))     
                     h5Read=False
             else:
                 h5Read=False
-            
-            if not h5Read:
-                self.df=None   
-                self.mx1Df=None
-                self.__initWithMx1(mx1File,unpackVectorChannels,channelsNotToBeProcessedSir3sIDRegExp)    
-            else:
-                pass
-                #self.FromH5(h5File=self.h5File)
 
+            self.df=None   
+            self.mx1Df=None
 
-
-
-
-
-
-
-
-            #if type(mx1File) == str:
-            #    self.__initWithMx1(mx1File,unpackVectorChannels,channelsNotToBeProcessedSir3sIDRegExp)    
-            #elif type(h5File) == str:
-            #    self.pdf,metadata=self.FromH5(h5File)
-
-            #    self.mx1File=metadata['relPath2Mx1FromCurDir']
-
-            #    self.__readMxChannelDefinitions()
-            #    self.mxChannelsProcessed=[]
-            #    for idxChannel,Sir3sID in enumerate(self.mxChannelsSir3sIDs):
-            #        if Sir3sID in self.pdf.columns:
-            #            self.mxChannelsProcessed.append(True)
-            #        else:
-            #            self.mxChannelsProcessed.append(False)
-            #    self.__buildMxRecordStructUnpackFmtString()    
-            #else:
-            #    logStrFinal="{0:s}Neither mx1File nor h5File defined. Error.".format(logStr)
-            #    logger.error(logStrFinal) 
-            #    raise MxError(logStrFinal)   
-            
-            
+            if not h5Read or NoH5Read:               
+                self.__initWithMx1(mx1File)    
+                if os.path.exists(self.mxsFile):  
+                    mx1FileTime=os.path.getmtime(self.mx1File) 
+                    mxsFileTime=os.path.getmtime(self.mxsFile)
+                    if(mxsFileTime>mx1FileTime) and not NoMxsRead:
+                        self.setResultsToMxsFile()                     
+            else:                
+                self.FromH5(h5File=self.h5File)
                              
         except MxError:
             raise            
@@ -171,10 +301,11 @@ class Mx():
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
-    def __initWithMx1(self,mx1File,unpackVectorChannels,channelsNotToBeProcessedSir3sIDRegExp):
+    def __initWithMx1(self,mx1File):
         """
         (re-)initialize the set with an existing MX1-File:
-            self.mx1Df = MX1-File Content     
+            self.mx1Df = MX1-File Content   
+        (re-)builds MxRecordStructUnpackFmtString  
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -182,7 +313,7 @@ class Mx():
 
         try: 
             logger.debug("{0:s}mx1File: {1:s} reading ...".format(logStr,self.mx1File))    
-            # read mx1File To DataFrame
+            # read mx1File To Dataframe
             Mx1Tree = ET.parse(self.mx1File)
             Mx1Root = Mx1Tree.getroot()
 
@@ -203,9 +334,9 @@ class Mx():
             self.mx1Df['DATAOFFSET']=self.mx1Df['DATAOFFSET'].astype('int64')
 
             #tsElement=MxRoot.find('./XL1[@OBJTYPE="ALLG"]/.[@ATTRTYPE="TIMESTAMP"]')
-            dfTsIdx = self.mx1Df.index[(self.mx1Df['OBJTYPE']=='ALLG') & (self.mx1Df['ATTRTYPE']=='TIMESTAMP')] 
-            self.channelTsIdx=dfTsIdx.tolist()[0] #channelNumber of the TimeStamp
-            logger.debug("{0:s}mx1File: {1:s}: channelNumber of the TimeStamp: {2:d}.".format(logStr,self.mx1File,self.channelTsIdx))    
+            #dfTsIdx = self.mx1Df.index[(self.mx1Df['OBJTYPE']=='ALLG') & (self.mx1Df['ATTRTYPE']=='TIMESTAMP')] 
+            #self.channelTsIdx=dfTsIdx.tolist()[0] #channelNumber of the TimeStamp
+            #logger.debug("{0:s}mx1File: {1:s}: channelNumber of the TimeStamp: {2:d}.".format(logStr,self.mx1File,self.channelTsIdx))    
             
             #Sir3sID
             sep='~'
@@ -214,19 +345,15 @@ class Mx():
 
             #markVectorChannels
             self.mx1Df['isVectorChannel']=[True if int(cDLength/cDTypeLength)>1 else False for cDLength,cDTypeLength in zip(self.mx1Df['DATALENGTH'],self.mx1Df['DATATYPELENGTH'])] 
+            #Bei Datenpunkten dieser Art muss zwischen Rohrvektor-Datenpunkten und  Vektor-Datenpunkten (zu denen auch die Vektor- Rohrvektor-Datenpunkte gehören) unterschieden werden. 
+            #Die Rohrvektor-Datenpunkte enthalten DATALENGTH/ DATATYPELENGTH Werte an aufeinanderfolgenden äquidistanten Stützstellen am Rohr, beginnend am Rohranfang (KI) und endend am Rohrende (KK). 
+            # Ein Vektordatenpunkt hingegen enthält die Attributwerte für alle Objekte eines Typs (z. B. alle Knotendrücke „KNOT.P“ oder die Rohrvektor-Drücke aller Rohre „ROHR.PVEC“). 
+            # Ein Vektordatenpunkt ist dadurch gekennzeichnet, dass das 3. Bit (2²) im FELD FLAGS gesetzt ist und wird zusätzlich durch einen „*“  im Feld OBJTYPE_PK markiert.
 
             logger.debug("{0:s}mx1Df after some generated Columns: Shape: {1!s}.".format(logStr,self.mx1Df.shape))    
 
-           
-
-
-
-
-            #self.__readMxChannelDefinitions()
-            #self.__evalMxChannelsToBeProcessed(unpackVectorChannels,channelsNotToBeProcessedSir3sIDRegExp)
             self.__buildMxRecordStructUnpackFmtString()      
                             
-       
         except FileNotFoundError as e:
             logStrFinal="{0:s}mx1File: {1!s}: FileNotFoundError.".format(logStr,mx1File)
             logger.error(logStrFinal) 
@@ -248,184 +375,48 @@ class Mx():
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
-    def __readMxChannelDefinitions(self):
-        """
-        Read the MX-Channel Definitions from the MX1-File.
-        >self.mxChannels[]
-        >self.mxChannelsSir3sIDs[]     
-        """
-
-        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-        try:
-            # XML Channel Def 
-            try:
-                Mx1Tree = ET.parse(self.mx1File)
-            except:
-                logStrFinal="{0:s}mx1File: {1:s}: ET.parse: Error.".format(logStr,self.mx1File)
-                logger.error(logStrFinal) 
-                raise MxError(logStrFinal)      
-
-            Mx1Root = Mx1Tree.getroot()
-            self.mxChannels=Mx1Root.findall('XL1')
-            logger.debug("{0:s}mx1File: {1:s}: MX-Channels={2:d}.".format(logStr,self.mx1File,len(self.mxChannels)))      
-
-            # Sir3sID
-            self.mxChannelsSir3sIDs=[]
-            for idxChannel,mxChannel in enumerate(self.mxChannels):               
-                sir3sID=self.__getSir3sID(idxChannel)
-                self.mxChannelsSir3sIDs.append(sir3sID)
-
-            # test if Sir3sID is unique
-            duplicateSir3sIDs = [item for item, count in collections.Counter(self.mxChannelsSir3sIDs).items() if count > 1]
-            for duplicateSir3sID in duplicateSir3sIDs:
-                indices = [i for i, x in enumerate(self.mxChannelsSir3sIDs) if x == duplicateSir3sID]
-                logger.debug("{0:s}mx1File: {1:s}: Sir3sID: {2:s} is NOT unique! NoOfDuplicates={3:s}.".format(logStr,self.mx1File,duplicateSir3sID,str(indices)))      
-                
-            if len(duplicateSir3sIDs)>0:
-                logStrFinal="{0:s}mx1File: {1:s}: Sir3sIDs are not unique! Error.".format(logStr,self.mx1File)
-                logger.error(logStrFinal) 
-                raise MxError(logStrFinal)      
-
-        except MxError:
-            raise                      
-        except:
-            logStrFinal="{0:s}mx1File: {1:s}: Error.".format(logStr,self.mx1File)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                 
-        else:           
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
-
-    def __evalMxChannelsToBeProcessed(self,unpackVectorChannels,channelsNotToBeProcessedSir3sIDRegExp):
-        """              
-        >self.mxChannelsProcessed[]
-        """
-
-        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-        try:
-                      
-            # mark Channels to be processed
-            self.mxChannelsProcessed=[]
-            # 1st aspect unpackVectorChannels
-            for idxChannel,mxChannel in enumerate(self.mxChannels):
-                Sir3sID=self.mxChannelsSir3sIDs[idxChannel]
-                cDTypeLength=int(mxChannel.get('DATATYPELENGTH'))
-                cDLength=int(mxChannel.get('DATALENGTH'))
-                items=int(cDLength/cDTypeLength)
-                if items>1 and not unpackVectorChannels:
-                    self.mxChannelsProcessed.append(False)
-                    logger.debug("{0:s}MX-Channel: {1:s} will NOT be processed because not unpackVectorChannels matches.".format(logStr,Sir3sID))      
-                else:
-                    self.mxChannelsProcessed.append(True)
-
-            # additional aspect RegExp
-            channelsNotToBeProcessedSir3sIDRegExpCompiled=[]
-            for idx, regExp in enumerate(channelsNotToBeProcessedSir3sIDRegExp):
-                regExpCompiled=re.compile(regExp)
-                channelsNotToBeProcessedSir3sIDRegExpCompiled.append(regExpCompiled)
-            
-            for idxChannel,Sir3sID in enumerate(self.mxChannelsSir3sIDs):
-                if not self.mxChannelsProcessed[idxChannel]:
-                    continue
-                tbProcessed=True
-                for idxRegExp, regExpCompiled in enumerate(channelsNotToBeProcessedSir3sIDRegExpCompiled):
-                    m=regExpCompiled.search(Sir3sID)
-                    if m != None:
-                        tbProcessed=False
-                        logger.debug("{0:s}MX-Channel: {1:s} will NOT be processed because -v regExp {2:s} matches.".format(logStr,Sir3sID,channelsNotToBeProcessedSir3sIDRegExp[idxRegExp]))      
-                        break
-                self.mxChannelsProcessed[idxChannel]=tbProcessed
-
-            # report
-            self.__reportMxChannelsProcessed()
-           
-        except:
-            logStrFinal="{0:s}mx1File: {1:s}: Error.".format(logStr,self.mx1File)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                 
-        else:           
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
-
-    def __reportMxChannelsProcessed(self):
-
-        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-        try:                      
-            for idxChannel,Sir3sID in enumerate(self.mxChannelsSir3sIDs):
-                if self.mxChannelsProcessed[idxChannel]:
-                    logger.debug("{0:s}MX-Channel: {1:s} processed.".format(logStr,Sir3sID))      
-            idxList = [i for i in range(len(self.mxChannelsProcessed)) if self.mxChannelsProcessed[i]]
-            logger.debug("{0:s}{1:d} from {2:d} MX-Channels processed (making up {3:06.2f} Channel-%).".format(logStr,len(idxList),len(self.mxChannels),len(idxList)/len(self.mxChannels)*100))            
-           
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                 
-        else:           
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
-
-    def __getSir3sID(self,mxChannelIdx=0):
-        """
-        Returns the Sir3sID (a String) for the MX-Channel Idx.
-        """
-        sep='~'
-        #sep='.'
-        #sep='_'
-
-        return self.mxChannels[mxChannelIdx].get('OBJTYPE')+sep+self.mxChannels[mxChannelIdx].get('NAME1')+sep+self.mxChannels[mxChannelIdx].get('NAME2')+sep+self.mxChannels[mxChannelIdx].get('NAME3')+sep+self.mxChannels[mxChannelIdx].get('ATTRTYPE')                
-
     def __buildMxRecordStructUnpackFmtString(self):
-        """        
-        >self.mxRecordStructUnpackFmtString: struct.unpack(self.mxRecordStructUnpackFmtString,mxRecord)
-        >self.mxRecordChannelsToStructMapping: [(idxChannel,idxUnpack),...]  
-        >self.bytesUnpacked
+        """    
+        (re-)builds mxRecordStructFmtString and releated stuff:      
+            >self.mxRecordStructFmtString: struct.unpack(self.mxRecordStructFmtString,mxRecord)       
+            >self.bytesUnpacked
+            >self.mx1Df['unpackIdx']
+            >self.mxColumnNames=[] 
+            >self.idxTIMESTAMP
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
         try:
-            self.mxRecordStructUnpackFmtString=''
-            #self.mx1Df['StructMapping']=None 
-            self.mxRecordChannelsToStructMapping=[]
-            channelsToStructMapping=[]
+            self.mxRecordStructFmtString=''
+            unpackIdx=[]
             idxUnpack=0
             bytesSkipped=0
 
             for row in self.mx1Df.itertuples():
 
-            #for idxChannel,mxChannel in enumerate(self.mxChannels):
-
                 idxChannel=int(row.Index)
 
                 fmtItem='' # End of Loop: self.mxRecordStructUnpackFmtString+=fmtItem
 
-                sir3sID=row.Sir3sID #self.mxChannelsSir3sIDs[idxChannel]
+                sir3sID=row.Sir3sID
 
-                isVectorChannel=row.isVectorChannel #self.mxChannelsProcessed[idxChannel]
+                isVectorChannel=row.isVectorChannel
 
                 if isVectorChannel:
                     toBeUnpacked=False
                 else:
                     toBeUnpacked=True
-
-
-
-               
                                                                                    
-                cDType=row.DATATYPE #mxChannel.get('DATATYPE')
-                cDTypeLength=row.DATATYPELENGTH #int(mxChannel.get('DATATYPELENGTH'))
-                cDLength=row.DATALENGTH #int(mxChannel.get('DATALENGTH'))
+                cDType=row.DATATYPE 
+                cDTypeLength=row.DATATYPELENGTH 
+                cDLength=row.DATALENGTH 
                 items=int(cDLength/cDTypeLength)
                 
                 if cDType=='CHAR':
-                    if toBeUnpacked:
-                        self.mxRecordChannelsToStructMapping.append((idxChannel,idxUnpack))         
-                        channelsToStructMapping.append(idxUnpack)    
+                    if toBeUnpacked:   
+                        unpackIdx.append(idxUnpack)    
                         if isVectorChannel:                                                                                  
                             for idx in range(items):
                                 fmtItem+=(str(cDTypeLength)+'s') 
@@ -436,16 +427,15 @@ class Mx():
                     else:
                         bytesSkipped+=cDLength
                         fmtItem=str(cDLength)+'x'  
-                        channelsToStructMapping.append(None)
+                        unpackIdx.append(-1)
                                                     
                 elif cDType=='INT4':    
                     if toBeUnpacked:
                         if cDTypeLength != 4:    
                             logStrFinal="{0:s}sir3sID: {1:s}: DATATYPE={2:s} and DATATYPELENGTH<>4 ({3:d})?! Error.".format(logStr,sir3sID,cDType,cDTypeLength)
                             logger.error(logStrFinal) 
-                            raise MxError(logStrFinal)   
-                        self.mxRecordChannelsToStructMapping.append((idxChannel,idxUnpack))     
-                        channelsToStructMapping.append(idxUnpack)        
+                            raise MxError(logStrFinal)     
+                        unpackIdx.append(idxUnpack)        
                         if isVectorChannel:                                                                                                                                                                                                                                                                                            
                             fmtItem=str(items)+'i'                    
                             idxUnpack+=items                           
@@ -455,16 +445,15 @@ class Mx():
                     else:
                         bytesSkipped+=cDLength
                         fmtItem=str(cDLength)+'x' 
-                        channelsToStructMapping.append(None)                                     
+                        unpackIdx.append(-1)                                     
                             
                 elif cDType=='REAL':
                     if toBeUnpacked:
                         if cDTypeLength != 4:    
                             logStrFinal="{0:s}sir3sID: {1:s}: DATATYPE={2:s} and DATATYPELENGTH<>4 ({3:d})?! Error.".format(logStr,sir3sID,cDType,cDTypeLength)
                             logger.error(logStrFinal) 
-                            raise MxError(logStrFinal)   
-                        self.mxRecordChannelsToStructMapping.append((idxChannel,idxUnpack))     
-                        channelsToStructMapping.append(idxUnpack)        
+                            raise MxError(logStrFinal)    
+                        unpackIdx.append(idxUnpack)        
                         if isVectorChannel:                                                                                                                                                                                                                                                                                            
                             fmtItem=str(items)+'f'                    
                             idxUnpack+=items                           
@@ -474,7 +463,7 @@ class Mx():
                     else:
                         bytesSkipped+=cDLength
                         fmtItem=str(cDLength)+'x'
-                        channelsToStructMapping.append(None)
+                        unpackIdx.append(-1)
                                                                                      
                 elif cDType=='RVEC':
                     if toBeUnpacked:
@@ -482,14 +471,13 @@ class Mx():
                             logStrFinal="{0:s}sir3sID: {1:s}: DATATYPE={2:s} and DATATYPELENGTH<>4 ({3:d})?! Error.".format(logStr,sir3sID,cDType,cDTypeLength)
                             logger.error(logStrFinal) 
                             raise MxError(logStrFinal)   
-                        self.mxRecordChannelsToStructMapping.append((idxChannel,idxUnpack))    
-                        channelsToStructMapping.append(idxUnpack)                                                                                                                                                                                                                                                                                                                            
+                        unpackIdx.append(idxUnpack)                                                                                                                                                                                                                                                                                                                            
                         fmtItem=str(items)+'f'                    
                         idxUnpack+=items                             
                     else:
                         bytesSkipped+=cDLength
                         fmtItem=str(cDLength)+'x'
-                        channelsToStructMapping.append(None)
+                        unpackIdx.append(-1)
                 else:                       
                     if toBeUnpacked:
                          logStrFinal="{0:s}sir3sID: {1:s}: UNKNOWN DATATYPE={2:s}. Error.".format(logStr,sir3sID,cDType)     
@@ -500,12 +488,12 @@ class Mx():
                          logger.debug(logStrFinal)                                               
                     bytesSkipped+=cDLength
                     fmtItem=str(cDLength)+'x'
-                    channelsToStructMapping.append(None)
+                    unpackIdx.append(-1)
                     
-                self.mxRecordStructUnpackFmtString+=fmtItem
+                self.mxRecordStructFmtString+=fmtItem
 
-            MxRecordLengthMx1=self.mx1Df['DATAOFFSET'].iloc[-1]+self.mx1Df['DATALENGTH'].iloc[-1]            
-            MxRecordLengthFmt=struct.calcsize(self.mxRecordStructUnpackFmtString)            
+            MxRecordLengthMx1=self.mx1Df['DATAOFFSET'].iloc[-1]+self.mx1Df['DATALENGTH'].iloc[-1] # Die Byte-Laenge des ganzen Ergebnisdatensatzes berechnet sich demnach aus DATAOFFSET+ DATALENGTH des letzten Datenpunktes der MX1    
+            MxRecordLengthFmt=struct.calcsize(self.mxRecordStructFmtString)            
             if MxRecordLengthMx1 != MxRecordLengthFmt:
                 logStrFinal="{0:s}Bytes per MX-Record from MX-Channels={1:d} <> Bytes from struct fmt-String for MX-Records={2:d}?! Error.".format(logStr,MxRecordLengthMx1,MxRecordLengthFmt)
                 raise MxError(logStrFinal)    
@@ -513,9 +501,22 @@ class Mx():
             self.bytesUnpacked = MxRecordLengthFmt - bytesSkipped
             logger.debug("{0:s}Bytes per MX-Record={1:d}. Bytes Unpacked={2:d} (making up {3:06.2f} Bytes-%).".format(logStr,MxRecordLengthMx1,self.bytesUnpacked,self.bytesUnpacked/MxRecordLengthFmt*100))                                                  
 
-            self.mx1Df['channelToStructMapping']=pd.Series(channelsToStructMapping)
-            logger.debug("{0:s}channelsToStructMapping={1:d}".format(logStr,len(channelsToStructMapping)))                                                  
+            self.mx1Df['unpackIdx']=pd.Series(unpackIdx)
+            self.mx1Df['unpackIdx']=self.mx1Df['unpackIdx'].astype('int64')      
+            logger.debug("{0:s}mx1Df after generated Column: Shape: {1!s}.".format(logStr,self.mx1Df.shape))            
+                        
+            self.mxColumnNames=[] # used in Pandas 
+            for idxChannel,idxUnpack in [(idxChannel,idxUnpack)  for idxChannel,idxUnpack in enumerate(self.mx1Df['unpackIdx']) if idxUnpack >=0]:                 
+                sir3sID=self.mx1Df['Sir3sID'].iloc[idxChannel]
+                idxUnpack=self.mx1Df['unpackIdx'].iloc[idxChannel]
+                logger.debug("{0:s}Channel-Nr. {1:d} Sir3sID {2:s} idxUnpack {3:d}.".format(logStr,idxChannel,sir3sID,idxUnpack))  
+                self.mxColumnNames.append(sir3sID)
 
+            self.idxTIMESTAMP=self.mxColumnNames.index('ALLG~~~~TIMESTAMP')
+            del self.mxColumnNames[self.idxTIMESTAMP] # remove Timestamp (index not value)
+
+            logger.debug("{0:s}Columns (without Timestamp): {1:d}.".format(logStr,len(self.mxColumnNames)))                  
+                                                                              
         except MxError:
             raise            
         except:
@@ -525,18 +526,9 @@ class Mx():
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
-    def getMx1FilenameSplit(self):
+    def setResultsToMxsFile(self,mxsFile=None,add=False,maxRecords=None):
         """
-        Returns wD,base,ext of the MX1-File.
-        MX1-Filename: wD+os.path.sep+base+'.'+ext         
-        """
-        (wD,Mx1FileName)=os.path.split(self.mx1File)
-        (base,ext)=os.path.splitext(Mx1FileName)
-        return wD,base,ext        
-
-    def setResultsToMxsFile(self,mxsFile=None,maxRecords=None):
-        """
-        Equalizes >self.df to the results in the Mxs.          
+        Sets or adds the MXS-Results to the set.          
         ---
         Implicit specified is a MXS-File .MXS in the same directory as the MX1-File .MX1.  
         ---
@@ -549,7 +541,9 @@ class Mx():
         because in SIR 3S'
         1st Time twice (SNAPSHOTTYPE: STAT+TIME) and Last Time triple (SNAPSHOTTYPE: TIME+TMIN/TMAX)  
         +TIME       is dropped                                
-        +TMIN/TMAX are dropped                                                                                           
+        +TMIN/TMAX are dropped   
+        ---
+        and because resulting overlapping TIMESTAMPs due to intersections (add=True) are also dropped                                                                                        
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -558,23 +552,37 @@ class Mx():
         try: 
             # Mxs specification ...
             if mxsFile == None:
-                logger.debug("{0:s}Mxs: Implicit specified ...".format(logStr))                
-                wD,base,ext = self.getMx1FilenameSplit() 
-                mxsFile=wD+os.path.sep+base+'.'+'MXS'
+                logger.debug("{0:s}Mxs: Implicit specified ...".format(logStr))                                
+                mxsFile=self.mxsFile
                        
             logger.debug("{0:s}Mxs: {1:s} ...".format(logStr,mxsFile))                
             with open(mxsFile,'rb') as f:
                  # Mxs exists ...
                 logger.debug("{0:s}Mxs: {1:s} reading ...".format(logStr,mxsFile))                
                 # Mxs reading ...
-                df=self._readMxsFile(f,maxRecords=maxRecords)     
+                dfMxs=self._readMxsFile(f,maxRecords=maxRecords)     
                            
-            if isinstance(df,pd.core.frame.DataFrame):                                  
+            if isinstance(dfMxs,pd.core.frame.DataFrame):                                     
                 # Unique index ...
-                df=df[df.index.duplicated() == False]       
-                self.df=df                   
+                if not dfMxs.index.is_unique:                        
+                     logger.debug("{0:s}Mxs: {1:s}: NOT unique TIMESTAMPS: Their dfMxs Shape: {2!s}.".format(logStr,mxsFile,dfMxs[dfMxs.index.duplicated()].shape))    
+                     dfMxs=dfMxs[dfMxs.index.duplicated() == False]     
+                     logger.debug("{0:s}Mxs: {1:s}: New unique                   dfMxs Shape: {2!s}.".format(logStr,mxsFile,dfMxs.shape))   
+                if not add or not isinstance(self.df,pd.core.frame.DataFrame): 
+                    self.df=dfMxs
+                    logger.debug("{0:s}Mxs: {1:s}: Assigned.     df Shape: {2!s}.".format(logStr,mxsFile,self.df.shape))    
+                else:
+                    self.df=pd.concat([self.df,dfMxs])
+                    logger.debug("{0:s}Mxs: {1:s}: Added.    New df Shape: {2!s}.".format(logStr,mxsFile,self.df.shape))    
+                    if not self.df.index.is_unique:                        
+                        logger.debug("{0:s}Mxs: {1:s}: NOT unique TIMESTAMPS added (intersection): Their df Shape: {2!s}.".format(logStr,mxsFile,self.df[self.df.index.duplicated()].shape))    
+                        self.df=self.df[self.df.index.duplicated() == False] 
+                        logger.debug("{0:s}Mxs: {1:s}: New unique                                        df Shape: {2!s}.".format(logStr,mxsFile,self.df.shape))       
+                # sort
+                self.df.sort_index(inplace=True)    
+                logger.debug("{0:s}RESULT after {1:s}: df Shape: {2!s} First Time: {3!s} Last Time: {4!s}.".format(logStr,mxsFile,self.df.shape,self.df.index[0],self.df.index[-1]))                                                
             else:
-                logger.warning("{0:s}Mxs: {1:s}: Reading failed.".format(logStr,mxsFile))    
+                logger.error("{0:s}Mxs: {1:s}: Reading failed.".format(logStr,mxsFile))    
                           
         except FileNotFoundError as e:
             logStrFinal="{0:s}mxsFile: {1!s}: FileNotFoundError.".format(logStr,mxsFile)
@@ -601,9 +609,9 @@ class Mx():
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                 
 
-    def setResultsToMxsZipFile(self,mxsZipFile=None,maxRecords=None):
+    def setResultsToMxsZipFile(self,mxsZipFile=None,add=False,maxRecords=None):
         """
-        Equalizes >self.df to the results in the Zip.          
+        Sets or adds the MXS-Results in the Zip to the set.                 
         ---
         Implicit specified is a Zip-File .ZIP in the same directory as the MX1-File .MX1.  
         ---
@@ -620,7 +628,7 @@ class Mx():
         +TIME       is  dropped                                
         +TMIN/TMAX  are dropped 
         ---
-        and resulting overlapping TIMESTAMPs due to intersections between the Zip-MXS are also dropped
+        and because resulting overlapping TIMESTAMPs due to intersections between the Zip-MXS (or due to add=True) are also dropped
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -629,9 +637,7 @@ class Mx():
         try: 
             # Zip specification ...
             if mxsZipFile == None:
-                logger.debug("{0:s}Zip: Implicit specified ...".format(logStr))            
-                wD,base,ext = self.getMx1FilenameSplit() 
-                mxsZipFile=wD+os.path.sep+base+'.'+'ZIP'
+                mxsZipFile=self.mxsZipFile
             
             # Zip existence ... 
             logger.debug("{0:s}Zip: {1:s} ...".format(logStr,mxsZipFile))                               
@@ -656,14 +662,18 @@ class Mx():
             # Zip reading ...              
             recsReadFromZip=0            
             dfZip=None
-            for mxsFileName in sorted(z.namelist()):                          
+            for mxsFileName in sorted(z.namelist()):  
+                # Mxs reading ...                        
                 with z.open(mxsFileName,'r') as f: 
                     logger.debug("{0:s}Zip: {1:s}: {2:s} reading ...".format(logStr,mxsZipFile,mxsFileName))       
                     dfMxs=self._readMxsFile(f,maxRecords=maxRecords)
 
-                if isinstance(dfMxs,pd.core.frame.DataFrame):                                                                  
+                if isinstance(dfMxs,pd.core.frame.DataFrame):                                                                                      
                     # Unique index ...
-                    dfMxs=dfMxs[dfMxs.index.duplicated() == False]                                                              
+                    if not dfMxs.index.is_unique:                        
+                         logger.debug("{0:s}Mxs: {1:s}: NOT unique TIMESTAMPS: Their dfMxs Shape: {2!s}.".format(logStr,mxsFileName,dfMxs[dfMxs.index.duplicated()].shape))    
+                         dfMxs=dfMxs[dfMxs.index.duplicated() == False]     
+                         logger.debug("{0:s}Mxs: {1:s}: New unique                   dfMxs Shape: {2!s}.".format(logStr,mxsFileName,dfMxs.shape))                                                                            
                     recsReadFromZip+=len(dfMxs.index)
                 else:
                     logger.warning("{0:s}Zip: {1:s}: {2:s}: Reading failed.".format(logStr,mxsZipFile,mxsFileName))    
@@ -672,14 +682,15 @@ class Mx():
                 if not isinstance(dfZip,pd.core.frame.DataFrame):
                     # 1st Mxs
                     dfZip=dfMxs
-                    logger.debug("{0:s}Zip: {1:s}: {2:s}: Assigned. First Shape: {3!s}.".format(logStr,mxsZipFile,mxsFileName,dfZip.shape))    
+                    logger.debug("{0:s}Zip: {1:s}: {2:s}: Assigned. Shape: {3!s}.".format(logStr,mxsZipFile,mxsFileName,dfZip.shape))    
                 else:                    
                     dfZip=pd.concat([dfZip,dfMxs])
-                    logger.debug("{0:s}Zip: {1:s}: {2:s}: Added.    New   Shape: {3!s}.".format(logStr,mxsZipFile,mxsFileName,dfZip.shape))    
-                    if not dfZip.index.is_unique:                        
-                        logger.debug("{0:s}Zip: {1:s}: {2:s}: Adds NOT unique TIMESTAMPS: Their Shape: {3!s}.".format(logStr,mxsZipFile,mxsFileName,dfZip[dfZip.index.duplicated()].shape))    
-                        dfZip=dfZip[dfZip.index.duplicated() == False] 
-                        logger.debug("{0:s}Zip: {1:s}: {2:s}: New unique Shape: {3!s}.".format(logStr,mxsZipFile,mxsFileName,dfZip.shape))             
+                    logger.debug("{0:s}Zip: {1:s}: {2:s}: Added.    Shape: {3!s}.".format(logStr,mxsZipFile,mxsFileName,dfZip.shape))    
+                # Unique index ...
+                if not dfZip.index.is_unique:                        
+                    logger.debug("{0:s}Zip: {1:s}: {2:s}: NOT unique TIMESTAMPS added (intersection): Their Shape: {3!s}.".format(logStr,mxsZipFile,mxsFileName,dfZip[dfZip.index.duplicated()].shape))    
+                    dfZip=dfZip[dfZip.index.duplicated() == False] 
+                    logger.debug("{0:s}Zip: {1:s}: {2:s}: New unique Shape: {3!s}.".format(logStr,mxsZipFile,mxsFileName,dfZip.shape))             
                 
                 if maxRecordsLimit:
                     if recsReadFromZip >= maxRecords:
@@ -687,9 +698,27 @@ class Mx():
                         break
 
             if isinstance(dfZip,pd.core.frame.DataFrame):
-                logger.debug("{0:s}{1:s}: Final Shape: {2!s}.".format(logStr,mxsZipFile,dfZip.shape))                                                           
-                self.df = dfZip        
+                logger.debug("{0:s}Zip: {1:s}: Final dfZip Shape: {2!s}.".format(logStr,mxsZipFile,dfZip.shape))  
 
+                if not add or not isinstance(self.df,pd.core.frame.DataFrame): 
+                    self.df = dfZip   
+                    logger.debug("{0:s}Zip: {1:s}: Assigned dfZip To df. df     Shape: {2!s}.".format(logStr,mxsZipFile,self.df.shape))    
+                else:
+                    self.df=pd.concat([self.df,dfZip])
+                    logger.debug("{0:s}Zip: {1:s}: Added    dfZip To df. New df Shape: {2!s}.".format(logStr,mxsZipFile,self.df.shape))    
+                # Unique index ...
+                if not self.df.index.is_unique:                        
+                    logger.debug("{0:s}Zip: {1:s}: NOT unique TIMESTAMPS added (intersection): Their df Shape: {2!s}.".format(logStr,mxsZipFile,self.df[self.df.index.duplicated()].shape))    
+                    self.df=self.df[self.df.index.duplicated() == False] 
+                    logger.debug("{0:s}Zip: {1:s}: New unique                                        df Shape: {2!s}.".format(logStr,mxsZipFile,self.df.shape))   
+                
+                # sort
+                self.df.sort_index(inplace=True)  
+                logger.debug("{0:s}RESULT after {1:s}: df Shape: {2!s} First Time: {3!s} Last Time: {4!s}.".format(logStr,mxsZipFile,self.df.shape,self.df.index[0],self.df.index[-1]))         
+
+            else:
+                logger.error("{0:s}Zip: {1:s}: Reading failed.".format(logStr,mxsZipFile))                                          
+                                                                    
         except FileNotFoundError as e:
             logStrFinal="{0:s}mxsZipFile: {1!s}: FileNotFoundError.".format(logStr,mxsZipFile)
             logger.error(logStrFinal) 
@@ -734,19 +763,11 @@ class Mx():
 
         try:   
             df = None #Returns the File-Content as df.  
-                           
-            # ... some Work tbd before reading the File ...                                  
+                                                       
             mxTimes=[]
             mxValues=[]           
-            mxColumnNames=[] # used in Pandas
-            for idx, (idxChannel,idxStruct) in enumerate(self.mxRecordChannelsToStructMapping):                               
-                #mxColumnNames.append(self.mxChannelsSir3sIDs[idxChannel])
-                mxColumnNames.append(self.mx1Df['Sir3sID'].iloc[idxChannel])
-            del mxColumnNames[self.channelTsIdx] # remove Timestamp (index not value)
-
-            logger.debug("{0:s}Columns (without Timestamp): {1:d}.".format(logStr,len(mxColumnNames)))                  
-
-            MxRecordLength=struct.calcsize(self.mxRecordStructUnpackFmtString)    
+            
+            MxRecordLength=struct.calcsize(self.mxRecordStructFmtString)    
             if isinstance(maxRecords,int):
                 maxRecordsLimit=True
             else:
@@ -760,7 +781,7 @@ class Mx():
                         # read record 
                         try: 
                             record=mxsFilePtr.read(MxRecordLength)
-                            recordData = struct.unpack(self.mxRecordStructUnpackFmtString,record)  
+                            recordData = struct.unpack(self.mxRecordStructFmtString,record)  
                         except:
                             logger.debug("{0:s}record=f.read(MxRecordLength) failed (EOF probably).".format(logStr))  
                             raise EOFError
@@ -769,9 +790,9 @@ class Mx():
 
                         # process record
                         try:
-                            timeISO8601 = recordData[self.channelTsIdx]
+                            timeISO8601 = recordData[self.idxTIMESTAMP] #b'2017-10-20 00:00:00.000000+01:00'
                             time = pd.to_datetime(timeISO8601)                                              
-                            values =recordData[0:self.channelTsIdx] + recordData[self.channelTsIdx+1:] # remove Timestamp (index not value)        
+                            values =recordData[0:self.idxTIMESTAMP] + recordData[self.idxTIMESTAMP+1:] # remove Timestamp (index not value)        
                             logger.debug("{0:s}Time read={1!s}: Values (without Timestamp): {2:d}.".format(logStr,time,len(values)))                                                             
                         except:
                             logStrFinal="{0:s}process record failed. Error.".format(logStr)
@@ -809,12 +830,16 @@ class Mx():
                                                                                                                                           ,self.bytesUnpacked/MxRecordLength*100
                                                                                                                                                  )
                         )                                                                     
-            #logger.debug("{0:s}mxColumnNames: {1!s}.".format(logStr,mxColumnNames))
-            df = pd.DataFrame.from_records(mxValues,index=mxTimes,columns=mxColumnNames)                
+
+            df = pd.DataFrame.from_records(mxValues,index=mxTimes,columns=self.mxColumnNames)                
             logger.debug("{0:s}df.shape(): {1!s}.".format(logStr,df.shape))   
                                                                         
         except MxError:
             raise
+        except MemoryError as e:
+            logStrFinal="{0:s}MemoryError.".format(logStr)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)      
         except:
             logStrFinal="{0:s}Error.".format(logStr)
             logger.error(logStrFinal) 
@@ -825,51 +850,49 @@ class Mx():
 
     def ToH5(self,h5File=None):
         """
-        Writes >self.pdf to the h5File.  
-        Implicit specified is a .h5-File in the same directory as the .mx1-File.  
-        A existing h5-File is !DELETED! before.
+        Stores both Dataframes 
+        mx1Df h5Key: .../MX1 and 
+        df    h5Key: .../MXS  
+        in a .h5-File.      
         ---
-        if self.mx1File is:                              ./testdata/M-1-0-1.MX1
-        than metadata['relPath2Mx1FromCurDir'] in H5 is: testdata\M-1-0-1.MX1               
-        and Key in H5 is:                                /testdata/M_1_0_1
+        If the .h5-File exists it is !DELETED! before.          
+        ---
+        Implicit specified is a .h5-File in the same directory as the .mx1-File.  
+        ---
+        If mx1Df is not defined mx1Df is not stored.
+        If df    is not defined    df is not stored.
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
         try: 
-            wD,base,ext = self.getMx1FilenameSplit()
             if h5File == None:
-                h5File=wD+os.path.sep+base+'.'+'h5'
+                h5File=self.h5File
 
-            relPath2Mx1FromCurDir=os.path.normpath(os.path.relpath(os.path.normpath(self.mx1File),start=os.path.normpath(os.path.curdir)))
-            relPath2Mx1FromCurDirH5Key=re.sub('\.','_',re.sub(r'\\','/',re.sub('-','_',re.sub('.mX1','',relPath2Mx1FromCurDir,flags=re.IGNORECASE))))
-                        
-            logger.debug("{0:s}mx1File: {1:s} h5File: {2:s} relPath2Mx1FromCurDir: {3:s} relPath2Mx1FromCurDirH5Key: {4:s}.".format(logStr
-                                                                                                                                       ,self.mx1File
-                                                                                                                                       ,h5File
-                                                                                                                                       ,relPath2Mx1FromCurDir
-                                                                                                                                       ,relPath2Mx1FromCurDirH5Key))    
-                                     
             if os.path.exists(h5File):                        
                 logger.debug("{0:s}{1:s}: Delete ...".format(logStr,h5File))     
                 os.remove(h5File)
-            
+
+            relPath2Mx1FromCurDir=os.path.normpath(os.path.relpath(os.path.normpath(self.mx1File),start=os.path.normpath(os.path.curdir)))
+            h5KeySep='/'
+            h5KeyCharForDot='_'
+            h5KeyCharForMinus='_'
+            relPath2Mx1FromCurDirH5BaseKey=re.sub('\.',h5KeyCharForDot,re.sub(r'\\',h5KeySep,re.sub('-',h5KeyCharForMinus,re.sub('.mx1','',relPath2Mx1FromCurDir,flags=re.IGNORECASE))))
+                       
+            warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
+            warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)
+                                      
             logger.debug("{0:s}pd.HDFStore({1:s}) ...".format(logStr,h5File))                 
-            with pd.HDFStore(h5File) as h5Store:               
-                logger.debug("{0:s}{1:s}: write data with key={2:s} ...".format(logStr,h5File,relPath2Mx1FromCurDirH5Key))     
-                #self.pdf.to_hdf(h5Store,relPath2Mx1FromCurDirH5Key,mode='w') 
-                h5Store.put(relPath2Mx1FromCurDirH5Key,self.pdf)#,format='table')
-
-                #import warnings
-                #warnings.filterwarnings('ignore',category=pandas.io.pytables.PerformanceWarning)
-
-                logger.debug("{0:s}{1:s}: write data with key={2:s} ... done.".format(logStr,h5File,relPath2Mx1FromCurDirH5Key))    
-                metadata = dict(relPath2Mx1FromCurDir=relPath2Mx1FromCurDir)
-                h5Store.get_storer(relPath2Mx1FromCurDirH5Key).attrs.metadata=metadata
-                logger.debug("{0:s}{1:s}: write metadata={2!s} done.".format(logStr,h5File,metadata))     
-
-
+            with pd.HDFStore(h5File) as h5Store:  
+                if isinstance(self.mx1Df,pd.core.frame.DataFrame):      
+                    h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MX1' 
+                    logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'mx1Df',h5Key))           
+                    h5Store.put(h5Key,self.mx1Df)
+                if isinstance(self.df,pd.core.frame.DataFrame):    
+                    h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MXS'  
+                    logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'df',h5Key))         
+                    h5Store.put(h5Key,self.df)
 
             #regExpCompiledPerfWarnI=re.compile('ALLG~(\S*)~(\S*)~(\S*)~CVERSO|SNAPSHOTTYPE') 
             #perfWarnColsI=[column for column in self.pdf.columns if regExpCompiledPerfWarnI.search(column) != None]
@@ -879,8 +902,6 @@ class Mx():
 
             #perfWarnCols=perfWarnColsI+perfWarnColsII
             #self.pdf.loc[:,perfWarnCols] =  self.pdf[ perfWarnCols].applymap(str)
-                   
-
 
         except OSError as e:
             logStrFinal="{0:s}h5File: {1!s}: OSError.".format(logStr,h5File)
@@ -905,21 +926,39 @@ class Mx():
 
     def FromH5(self,h5File=None):
         """
-        returns df, metadata
+        The h5File is read
+        and 
+        self.mx1Df (h5Key: .../MX1) and
+        self.df    (h5Key: .../MXS) 
+        are overwritten with the Dataframes in the h5File if any.     
+        ---
+        /MX1 in h5File:
+        mxRecordStructUnpackFmtString and releated stuff is (re-)builded
         """
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.'))  
         
         try:
 
+            #Check if h5File exists
+            if not os.path.exists(h5File):    
+                logStrFinal="{0:s}{1:s}: Not Existing!".format(logStr,h5File)                                 
+                raise MxError(logStrFinal)           
+  
+            #Read
             with pd.HDFStore(h5File) as h5Store:
-        
-                keys=h5Store.keys()
-                h5Key=keys[0]
-                #df = pd.read_hdf(h5Store,h5Key)  
-                df=h5Store[h5Key]
-                metadata=h5Store.get_storer(h5Key).attrs.metadata
-                logger.debug("{0:s}h5File: {1!s} h5Key: {2!s} data:{3!s}  metadata: {4!s} read.".format(logStr,h5File,h5Key,type(df),str(metadata)))   
+                h5Keys=h5Store.keys()
+                for h5Key in h5Keys:
+                    h5KeySep='/'
+                    match=re.search('('+h5KeySep+')(\w+$)',h5Key)
+                    key=match.group(2)
+                    if key == 'MX1':                            
+                        logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
+                        self.mx1Df=h5Store[h5Key]
+                        self.__buildMxRecordStructUnpackFmtString()      
+                    if key == 'MXS':                           
+                        logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
+                        self.df=h5Store[h5Key]
 
         except FileNotFoundError as e:
             logStrFinal="{0:s}h5File: {1!s}: FileNotFoundError.".format(logStr,h5File)
@@ -943,10 +982,52 @@ class Mx():
             logStrFinal="{0:s}h5File: {1!s}: Error.".format(logStr,h5File)
             logger.error(logStrFinal) 
             raise MxError(logStrFinal)                                    
+        else:             
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                
+
+    def dumpInMxsFormat(self,mxsDumpFile=None):
+        """
+        Dumps Data (self.df) in MXS-Format to mxsDumpFile (for testing purposes). 
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try: 
+            if mxsDumpFile == None:
+                mxsDumpFile=self.mxsFile+'.dump'
+
+            with open(mxsDumpFile,'wb') as f:
+
+                for idx,row in enumerate(self.df.itertuples(index=False)):
+                    values=list(row)
+                    scenTime=self.df.index[idx]
+                    scenTimeStr=scenTime.strftime("%Y-%m-%d %H:%M:%S.%f+01:00") 
+                    values.insert(self.idxTIMESTAMP,scenTimeStr.encode('utf-8'))                   
+                    bytes=struct.pack(self.mxRecordStructFmtString,*values)
+                    f.write(bytes)      
+               
+        except OSError as e:
+            logStrFinal="{0:s}h5File: {1!s}: OSError.".format(logStr,mxsDumpFile)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)
+        except TypeError as e:
+            logStrFinal="{0:s}h5File: {1!s}: TypeError.".format(logStr,mxsDumpFile)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)        
+        except PermissionError as e:
+            logStrFinal="{0:s}h5File: {1!s}: PermissionError.".format(logStr,mxsDumpFile)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)               
+        except MxError:
+            raise
+        except:
+            logStrFinal="{0:s}h5File: {1!s}: Error.".format(logStr,mxsDumpFile)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)                                    
         else:
-            logger.debug("{0:s}df.head(10): {1!s}.".format(logStr,df.head(10)))   
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
-            return df,metadata
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))               
+
 
 if __name__ == "__main__":
     """
@@ -992,11 +1073,11 @@ if __name__ == "__main__":
                       
         logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start. Argumente:',str(sys.argv))) 
 
-        mx=Mx(r'C:\3S\Modelle\WDMVV_FW\B1\V0\BZ1\M-1-0-1.MX1')
-        mx.setResultsToMxsFile()
+        #mx=Mx(r'C:\3S\Modelle\WDMVV_FW\B1\V0\BZ1\M-1-0-1.MX1')
+        #mx.setResultsToMxsFile()
 
-        #suite=doctest.DocTestSuite()   
-        #unittest.TextTestRunner().run(suite)         
+        suite=doctest.DocTestSuite()   
+        unittest.TextTestRunner().run(suite)         
 
     except SystemExit:
         pass                                              
