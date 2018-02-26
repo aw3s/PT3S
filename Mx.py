@@ -253,7 +253,8 @@ class Mx():
             #Determine corresponding .MX2 Filename
             (wD,fileName)=os.path.split(self.mx1File)
             (base,ext)=os.path.splitext(fileName)
-            self.mx2File=wD+os.path.sep+base+'.'+'MX2'        
+            self.mx2File=wD+os.path.sep+base+'.'+'MX2'   
+            self.__parseMx2()     
                                           
             #Determine corresponding .h5 Filename
             self.h5File=wD+os.path.sep+base+'.'+'h5'        
@@ -356,17 +357,25 @@ class Mx():
             self.mx1Df['Sir3sID']=self.mx1Df['OBJTYPE']+sep+self.mx1Df['NAME1']+sep+self.mx1Df['NAME2']+sep+self.mx1Df['NAME3']+sep+self.mx1Df['ATTRTYPE']
             self.mx1Df['Sir3sID']=self.mx1Df['Sir3sID'].astype(str)
 
-            #markVectorChannels
+            #markVectorChannels (vectorChannel-Definition here := more than 1 Item)
             self.mx1Df['isVectorChannel']=[True if int(cDLength/cDTypeLength)>1 else False for cDLength,cDTypeLength in zip(self.mx1Df['DATALENGTH'],self.mx1Df['DATATYPELENGTH'])] 
             #Bei Datenpunkten dieser Art muss zwischen Rohrvektor-Datenpunkten und  Vektor-Datenpunkten (zu denen auch die Vektor- Rohrvektor-Datenpunkte gehören) unterschieden werden. 
             #Die Rohrvektor-Datenpunkte enthalten DATALENGTH/ DATATYPELENGTH Werte an aufeinanderfolgenden äquidistanten Stützstellen am Rohr, beginnend am Rohranfang (KI) und endend am Rohrende (KK). 
             # Ein Vektordatenpunkt hingegen enthält die Attributwerte für alle Objekte eines Typs (z. B. alle Knotendrücke „KNOT.P“ oder die Rohrvektor-Drücke aller Rohre „ROHR.PVEC“). 
             # Ein Vektordatenpunkt ist dadurch gekennzeichnet, dass das 3. Bit (2²) im FELD FLAGS gesetzt ist und wird zusätzlich durch einen „*“  im Feld OBJTYPE_PK markiert.
 
+            #^?
+            #set(mx.mx1Df['DATATYPE'])
+            #{'RVEC', 'CHAR', 'INT4', 'REAL'}
+            #set(mx.mx1Df['DATATYPELENGTH'])
+            #{80, 32, 4, 12}
+            # RVEC: Rohrvektor-Datenpunkte
+
             #markMx2DefinedVectorChannels
-            self.mx1Df['isVectorChannelMx2Defined']=[True if isVectorChannel and bit3rd and flagStr[-3]=='1' else False for isVectorChannel,flagStr,bit3rd in zip(self.mx1Df['isVectorChannel'],self.mx1Df['FLAGS'].apply(bin),self.mx1Df['FLAGS'].apply(lambda x: True if x >=4 else False))] 
-
-
+            #True for all Mx2-defined-Types
+            self.mx1Df['isVectorChannelMx2']=[True if isVectorChannel and bit3rd and flagStr[-3]=='1' else False for isVectorChannel,flagStr,bit3rd in zip(self.mx1Df['isVectorChannel'],self.mx1Df['FLAGS'].apply(bin),self.mx1Df['FLAGS'].apply(lambda x: True if x >=4 else False))] 
+            #True for a special Mx2-defined-Type (Mx2 AttrType = N_OF_POINTS) 
+            self.mx1Df['isVectorChannelMx2Rvec']=[True if isVectorChannelMx2 and dataType=='RVEC' else False for isVectorChannelMx2,dataType in zip(self.mx1Df['isVectorChannelMx2'],self.mx1Df['DATATYPE'])] 
 
             logger.debug("{0:s}mx1Df after some generated Columns: Shape: {1!s}.".format(logStr,self.mx1Df.shape))    
 
@@ -392,6 +401,93 @@ class Mx():
             raise MxError(logStrFinal)               
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def __parseMx2(self):
+        """
+        .
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try: 
+            logger.debug("{0:s}mx2File: {1:s} parsing ...".format(logStr,self.mx2File))    
+
+            #Der jeweiligen Liste voraus geht ein beschreibender Datensatz der Länge 64 Byte mit folgender Struktur:
+            #<ObjType[CHAR12]><AttrType[CHAR12]><DataType[INT4]><DataTypeLength[INT4]><Leer[NUL28]><DataLength[INT4]>
+            #Der AttrType ist hier „tk“ oder „pk“, letzterer wenn es zum ObjType keinen tk gibt. 
+
+            #Da bei einem Rohrvektor-Vektor-Datenpunkt alle Rohrvektoren gem. der ROHR-Objektschlüssel-Liste aufeinanderfolgen, 
+            #sind die Längen der einzelnen Rohrvektoren im Ergebnis auf Basis der MX1 nicht mehr bestimmbar. 
+            #Dafür wird in der MX2-Datei ein zusätzlicher Datenblock abgelegt mit ObjType=ROHR und AttrType=N_OF_POINTS im Header mit nachfolgender Liste, 
+            #die die Anzahlen der Stützstellen (Rohrvektorlängen) für jedes Rohr (natürlich in entspr.  Reihenfolge der Rohrschlüssel) enthält.  (DataType ist hier „INT4“ und DatatypeLength = 4.)
+
+            #headerFmtString='12s12sii28xi' falsch
+            headerFmtString='12s12s4si28xi'
+            with open(self.mx2File,'rb') as f:               
+                offsetToNextHeader=0
+                all_records = []
+                while True:
+                    header=f.read(64)
+                    headerLength=len(header)
+
+                    if headerLength!=64:
+                        if headerLength != 0:
+                            logger.error("{:s}:  headerLength:{:d}: != 0?".format(logStr,headeLength))      
+                        self.mx2Df=pd.DataFrame(all_records)                       
+                        break
+
+                    record = {}
+                    headerData = struct.unpack(headerFmtString,header)  
+
+                    ObjType=headerData[0].decode('utf-8')
+                    AttrType=headerData[1].decode('utf-8')
+                    DataType=headerData[2].decode('utf-8')
+                    DataTypeLength=headerData[3]
+                    DataLength=headerData[4]                   
+                    
+                    record['ObjType']=ObjType
+                    record['AttrType']=AttrType
+                    record['DataType']=DataType
+                    record['DataTypeLength']=DataTypeLength
+                    record['DataLength']=DataLength
+                    all_records.append(record)
+                                                           
+                    offsetToNextHeader=offsetToNextHeader+64+DataLength
+
+                    logger.debug("{:s}ObjType:{:s} AttrType:{:s} DataType:{:s} DataTypeLength:{:>3d} DataLength:{:>8d} offsetToNextHeader:{:>11d}".format(logStr
+                           ,ObjType #headerData[0]
+                           ,AttrType #headerData[1]
+                           ,DataType #headerData[2]
+                           ,DataTypeLength #headerData[3]
+                           ,DataLength #headerData[4]
+                           ,offsetToNextHeader
+                           )
+                                 )    
+
+                    f.seek(offsetToNextHeader)
+                                        
+        except FileNotFoundError as e:
+            logStrFinal="{0:s}mx2File: {1!s}: FileNotFoundError.".format(logStr,self.mx2File)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)
+        except OSError as e:
+            logStrFinal="{0:s}mx2File: {1!s}: OSError.".format(logStr,self.mx2File)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)
+        except TypeError as e:
+            logStrFinal="{0:s}mx2File: {1!s}: TypeError.".format(logStr,self.mx2File)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)    
+        except MxError:
+            raise            
+        except:
+            logStrFinal="{0:s}mx2File: {1!s}: Error.".format(logStr,self.mx2File)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)               
+        else:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
 
     def __buildMxRecordStructUnpackFmtString(self):
         """    
