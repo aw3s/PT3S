@@ -254,8 +254,7 @@ class Mx():
             (wD,fileName)=os.path.split(self.mx1File)
             (base,ext)=os.path.splitext(fileName)
             self.mx2File=wD+os.path.sep+base+'.'+'MX2'   
-            self.__parseMx2()     
-                                          
+                                                     
             #Determine corresponding .h5 Filename
             self.h5File=wD+os.path.sep+base+'.'+'h5'        
             
@@ -295,6 +294,7 @@ class Mx():
 
             if not h5Read or NoH5Read:               
                 self.__initWithMx1(mx1File)    
+                self.__parseMx2()     
                 if os.path.exists(self.mxsFile):  
                     mx1FileTime=os.path.getmtime(self.mx1File) 
                     mxsFileTime=os.path.getmtime(self.mxsFile)
@@ -422,7 +422,6 @@ class Mx():
             #Dafür wird in der MX2-Datei ein zusätzlicher Datenblock abgelegt mit ObjType=ROHR und AttrType=N_OF_POINTS im Header mit nachfolgender Liste, 
             #die die Anzahlen der Stützstellen (Rohrvektorlängen) für jedes Rohr (natürlich in entspr.  Reihenfolge der Rohrschlüssel) enthält.  (DataType ist hier „INT4“ und DatatypeLength = 4.)
 
-            #headerFmtString='12s12sii28xi' falsch
             headerFmtString='12s12s4si28xi'
             with open(self.mx2File,'rb') as f:               
                 offsetToNextHeader=0
@@ -433,7 +432,7 @@ class Mx():
 
                     if headerLength!=64:
                         if headerLength != 0:
-                            logger.error("{:s}:  headerLength:{:d}: != 0?".format(logStr,headeLength))      
+                            logger.error("{:s}:headerLength: {:d} != 0?".format(logStr,headeLength))      
                         self.mx2Df=pd.DataFrame(all_records)                       
                         break
 
@@ -451,9 +450,29 @@ class Mx():
                     record['DataType']=DataType
                     record['DataTypeLength']=DataTypeLength
                     record['DataLength']=DataLength
+                    NOfItems=int(DataLength/DataTypeLength)
+                    record['NOfItems']=NOfItems
+
+                    if DataType=='CHAR':
+                        fmtItem=str(DataTypeLength)+'s'
+                        dataFmtString=fmtItem*NOfItems 
+                    elif DataType=='INT4':
+                        fmtItem='i'
+                        dataFmtString=fmtItem*NOfItems 
+                    else:
+                        fmtItem='x'
+                        dataFmtString=str(DataLength)+fmtItem
+
+                    dataBytes=f.read(DataLength)
+                    Data = struct.unpack(dataFmtString,dataBytes)  
+                    record['Data']=Data
+
                     all_records.append(record)
                                                            
                     offsetToNextHeader=offsetToNextHeader+64+DataLength
+                    if f.tell() != offsetToNextHeader:
+                        logger.error("{:s}:offsetToNextHeader: {:d} != {:d}?".format(logStr,offsetToNextHeader,f.tell()))     
+                        f.seek(offsetToNextHeader)                    
 
                     logger.debug("{:s}ObjType:{:s} AttrType:{:s} DataType:{:s} DataTypeLength:{:>3d} DataLength:{:>8d} offsetToNextHeader:{:>11d}".format(logStr
                            ,ObjType #headerData[0]
@@ -465,7 +484,7 @@ class Mx():
                            )
                                  )    
 
-                    f.seek(offsetToNextHeader)
+                    
                                         
         except FileNotFoundError as e:
             logStrFinal="{0:s}mx2File: {1!s}: FileNotFoundError.".format(logStr,self.mx2File)
@@ -623,13 +642,28 @@ class Mx():
             for idxChannel,idxUnpack in [(idxChannel,idxUnpack)  for idxChannel,idxUnpack in enumerate(self.mx1Df['unpackIdx']) if idxUnpack >=0]:                 
                 sir3sID=self.mx1Df['Sir3sID'].iloc[idxChannel]
                 idxUnpack=self.mx1Df['unpackIdx'].iloc[idxChannel]
-                logger.debug("{0:s}Channel-Nr. {1:d} Sir3sID {2:s} idxUnpack {3:d}.".format(logStr,idxChannel,sir3sID,idxUnpack))  
+                logger.debug("{0:s}Channel-Nr. {1:>6d} Sir3sID {2:>36s} idxUnpack {3:>6d}.".format(logStr,idxChannel,sir3sID,idxUnpack))  
                 self.mxColumnNames.append(sir3sID)
 
             self.idxTIMESTAMP=self.mxColumnNames.index('ALLG~~~~TIMESTAMP')
             del self.mxColumnNames[self.idxTIMESTAMP] # remove Timestamp (index not value)
 
-            logger.debug("{0:s}Columns (without Timestamp): {1:d}.".format(logStr,len(self.mxColumnNames)))                  
+            columns=len(self.mxColumnNames)
+            logger.debug("{0:s}Columns (without Timestamp): {1:d}.".format(logStr,columns))                  
+
+            idxUnpackNonVectorChannel_bTS=[self.mx1Df['unpackIdx'].iloc[idx] for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if not isVectorChannel and idx < self.idxTIMESTAMP]
+            logger.debug("{:s}idxUnpackNonVectorChannel_bTS: {:d}.".format(logStr,len(idxUnpackNonVectorChannel_bTS)))
+            idxUnpackNonVectorChannel_aTS=[self.mx1Df['unpackIdx'].iloc[idx] for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if not isVectorChannel and idx > self.idxTIMESTAMP]
+            logger.debug("{:s}idxUnpackNonVectorChannel_aTS: {:d}.".format(logStr,len(idxUnpackNonVectorChannel_aTS)))
+
+            idxUnpackNonVectorChannel_bTS.extend(idxUnpackNonVectorChannel_aTS)
+            self.idxUnpackNonVectorChannels=idxUnpackNonVectorChannel_bTS
+
+            idxUnpackNonVectorChannelsLen=len(self.idxUnpackNonVectorChannels)
+            logger.debug("{:s}idxUnpackNonVectorChannelsLen: {:d}.".format(logStr,idxUnpackNonVectorChannelsLen))
+
+            if idxUnpackNonVectorChannelsLen != columns:
+                logger.error("{:s}idxUnpackNonVectorChannelsLen: {:d} != Columns (without Timestamp): {:d}?!".format(logStr,idxUnpackNonVectorChannelsLen,columns))               
                                                                               
         except MxError:
             raise            
@@ -887,7 +921,7 @@ class Mx():
                 maxRecordsLimit=True
             else:
                 maxRecordsLimit=False   
-                                         
+                      
             recsReadFromFile=0                                                          
             with mxsFilePtr: 
                 try:                    
@@ -910,7 +944,11 @@ class Mx():
                             time_read_after_to_datetime=time.strftime("%Y-%m-%d %H:%M:%S.%f%z") #%z: UTC offset in the form +HHMM or -HHMM (empty string if the object is naive)        
                             time = time + pd.to_timedelta('1 hour')   
                             time_read_finally=time.strftime("%Y-%m-%d %H:%M:%S.%f%z")                                 
-                            values =recordData[0:self.idxTIMESTAMP] + recordData[self.idxTIMESTAMP+1:] # remove Timestamp (index not value)        
+                                                       
+                            # Filter NonVectorChannels and Skip Timestamp (index not value)     
+                            values=[recordData[idx] for idx in self.idxUnpackNonVectorChannels]
+                            #recordData[0:self.idxTIMESTAMP]
+                            #+recordData[self.idxTIMESTAMP+1:]    
                             logger.debug("{0:s}Time read finally={1!s} Time read after to_datetime: {2!s} timeISO8601 read: {3!s} Values (without Timestamp): {4:d}.".format(logStr
                                               ,time_read_finally
                                               ,time_read_after_to_datetime
