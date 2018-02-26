@@ -541,6 +541,8 @@ class Mx():
                     toBeUnpacked=False
                 else:
                     toBeUnpacked=True
+
+                toBeUnpacked=True
                                                                                    
                 cDType=row.DATATYPE 
                 cDTypeLength=row.DATATYPELENGTH 
@@ -637,31 +639,47 @@ class Mx():
             self.mx1Df['unpackIdx']=pd.Series(unpackIdx)
             self.mx1Df['unpackIdx']=self.mx1Df['unpackIdx'].astype('int64')      
             logger.debug("{0:s}mx1Df after generated Column: Shape: {1!s}.".format(logStr,self.mx1Df.shape))            
-                        
-            self.mxColumnNames=[] # used in Pandas 
+            
+            # list all Channels with their relevant attributes 
+            # columnNames used in Pandas for Non Vector Channels           
+            self.mxColumnNames=[]  
             for idxChannel,idxUnpack in [(idxChannel,idxUnpack)  for idxChannel,idxUnpack in enumerate(self.mx1Df['unpackIdx']) if idxUnpack >=0]:                 
                 sir3sID=self.mx1Df['Sir3sID'].iloc[idxChannel]
                 idxUnpack=self.mx1Df['unpackIdx'].iloc[idxChannel]
-                logger.debug("{0:s}Channel-Nr. {1:>6d} Sir3sID {2:>36s} idxUnpack {3:>6d}.".format(logStr,idxChannel,sir3sID,idxUnpack))  
-                self.mxColumnNames.append(sir3sID)
+                isVectorChannel=self.mx1Df['isVectorChannel'].iloc[idxChannel]
+                isVectorChannelMx2=self.mx1Df['isVectorChannelMx2'].iloc[idxChannel]             
+                isVectorChannelMx2Rvec=self.mx1Df['isVectorChannelMx2Rvec'].iloc[idxChannel]
 
+                logger.debug("{:s}Channel-Nr. {:>6d} Sir3sID {:>36s} idxUnpack {:>6d}  isVectorChannel {!s:>6s} isVectorChannelMx2 {!s:>6s} isVectorChannelMx2Rvec {!s:>6s}.".format(logStr
+                         ,idxChannel
+                         ,sir3sID
+                         ,idxUnpack
+                         ,isVectorChannel
+                         ,isVectorChannelMx2
+                         ,isVectorChannelMx2Rvec))  
+                
+                if not isVectorChannel:
+                    self.mxColumnNames.append(sir3sID)
+
+            # idxTIMESTAMP
             self.idxTIMESTAMP=self.mxColumnNames.index('ALLG~~~~TIMESTAMP')
-            del self.mxColumnNames[self.idxTIMESTAMP] # remove Timestamp (index not value)
 
+            # remove Timestamp (index not value)
+            del self.mxColumnNames[self.idxTIMESTAMP] 
             columns=len(self.mxColumnNames)
             logger.debug("{0:s}Columns (without Timestamp): {1:d}.".format(logStr,columns))                  
 
+            # unpack Idx of Non Vector Channels
             idxUnpackNonVectorChannel_bTS=[self.mx1Df['unpackIdx'].iloc[idx] for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if not isVectorChannel and idx < self.idxTIMESTAMP]
             logger.debug("{:s}idxUnpackNonVectorChannel_bTS: {:d}.".format(logStr,len(idxUnpackNonVectorChannel_bTS)))
             idxUnpackNonVectorChannel_aTS=[self.mx1Df['unpackIdx'].iloc[idx] for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if not isVectorChannel and idx > self.idxTIMESTAMP]
             logger.debug("{:s}idxUnpackNonVectorChannel_aTS: {:d}.".format(logStr,len(idxUnpackNonVectorChannel_aTS)))
-
             idxUnpackNonVectorChannel_bTS.extend(idxUnpackNonVectorChannel_aTS)
             self.idxUnpackNonVectorChannels=idxUnpackNonVectorChannel_bTS
-
             idxUnpackNonVectorChannelsLen=len(self.idxUnpackNonVectorChannels)
             logger.debug("{:s}idxUnpackNonVectorChannelsLen: {:d}.".format(logStr,idxUnpackNonVectorChannelsLen))
 
+            # check
             if idxUnpackNonVectorChannelsLen != columns:
                 logger.error("{:s}idxUnpackNonVectorChannelsLen: {:d} != Columns (without Timestamp): {:d}?!".format(logStr,idxUnpackNonVectorChannelsLen,columns))               
                                                                               
