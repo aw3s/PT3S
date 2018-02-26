@@ -1,6 +1,6 @@
 """
 SIR 3S MX-Interface (short: MX):
---------------------------------
+---------------------------
 MX is a file based, channel-oriented interface for SIR 3S' calculation results.
 Module Mx contains stuff to utilize SIR 3S' MX calculation results in pure Python.  
 SIR 3S MX calculation results:
@@ -13,10 +13,9 @@ And - as a result - the Byte-Layout of a single MX3-Record in .MXS.
 A MX3-Record contains calculation results for one Timestamp.
 A .MXS-File contains at least one MX3-Record.
 ---------------------------
-DOCTEST
----------------------------
 >>> # ---
 >>> # Imports
+>>> # ---
 >>> import os
 >>> import logging
 >>> import __init__ # PT3S' __init__.py
@@ -31,8 +30,9 @@ DOCTEST
 >>> type(mx.df) # MXS-Content
 <class 'NoneType'>
 >>> # ---
->>> # Read MXS
+>>> # 1st Read MXS
 >>> # ---
+>>> logger.debug("{0:s}: 1st Read MXS".format('DOCTEST')) 
 >>> mx.setResultsToMxsFile() # looks for M-1-0-1.MXS in same Dir 
 >>> type(mx.df) # MXS-Content
 <class 'pandas.core.frame.DataFrame'>
@@ -57,11 +57,12 @@ True
 >>> type(mx.df) # MXS-Content
 <class 'pandas.core.frame.DataFrame'>
 >>> # ---
->>> # Read MXS Zip
+>>> # 1st Read MXS Zip
 >>> # ---
 >>> import zipfile # create the Zip first
 >>> with zipfile.ZipFile(mx.mxsZipFile,'w') as myzip:
 ...     myzip.write(mx.mxsFile)  
+>>> logger.debug("{0:s}: 1st Read MXS Zip".format('DOCTEST')) 
 >>> mx.setResultsToMxsZipFile() # looks for M-1-0-1.ZIP in same Dir
 >>> type(mx.df) # MXS-Content
 <class 'pandas.core.frame.DataFrame'>
@@ -70,26 +71,29 @@ True
 True
 >>> # uniqueness under all circumstances: also when add=True (setResultsTo... shall add the MXS-Content) is used
 >>> # ---
->>> # Add same MXS (for testing ensuring uniqueness) 
+>>> # 1st Add same MXS (for testing ensuring uniqueness) 
 >>> # ---
 >>> oldShape=mx.df.shape
+>>> logger.debug("{0:s}: 1st Add same MXS (for testing ensuring uniqueness)".format('DOCTEST')) 
 >>> mx.setResultsToMxsFile(add=True) # looks for M-1-0-1.MXS in same Dir 
 >>> newShape=mx.df.shape
 >>> newShape==oldShape
 True
 >>> # ---
->>> # Add same MXS Zip (for testing ensuring uniqueness) 
+>>> # 1st Add same Zip (for testing ensuring uniqueness) 
 >>> # ---
+>>> logger.debug("{0:s}: 1st Add same Zip (for testing ensuring uniqueness)".format('DOCTEST')) 
 >>> mx.setResultsToMxsZipFile(add=True) # looks for M-1-0-1.ZIP in same Dir 
 >>> newShape=mx.df.shape
 >>> newShape==oldShape
 True
 >>> # ---
->>> # Read MXS Zip with overlapping Timestamps (for testing ensuring uniqueness) 
+>>> # 1st Read MXS Zip with overlapping Timestamps (for testing ensuring uniqueness) 
 >>> # ---
 >>> with zipfile.ZipFile(mx.mxsZipFile,'w') as myzip:
 ...      myzip.write(mx.mxsFile)  
 ...      myzip.write(mx.mxsFile,arcname=mx.mxsFile+'.2')  
+>>> logger.debug("{0:s}: 1st Read MXS Zip with overlapping Timestamps (for testing ensuring uniqueness)".format('DOCTEST')) 
 >>> mx.setResultsToMxsZipFile() # looks for M-1-0-1.ZIP in same Dir 
 >>> newShape=mx.df.shape
 >>> newShape==oldShape
@@ -103,11 +107,12 @@ True
 >>> if len(mx.df.index)>1:
 ...      timeStep=mx.df.index[-1]-mx.df.index[-2]
 ... else:
-...      timeStep=pd.Timestamp(0)-pd.Timestamp(0)
+...      timeStep=pd.to_timedelta('1 second')
 >>> mx.df.index=mx.df.index-(timeSpan+timeStep)
 >>> # ---
->>> # Read MXS (with the original Timestamps)
+>>> # 1st Read MXS (with the original Timestamps)
 >>> # ---
+>>> logger.debug("{0:s}: 1st Read MXS (with the original Timestamps)".format('DOCTEST')) 
 >>> mx.setResultsToMxsFile(add=True) # looks for M-1-0-1.MXS in same Dir 
 >>> rowsNew,colsNew=mx.df.shape
 >>> rowsOld,colsOld=oldShape
@@ -124,11 +129,12 @@ True
 >>> if len(mx.df.index)>1:
 ...      timeStep=mx.df.index[-1]-mx.df.index[-2]
 ... else:
-...      timeStep=pd.Timestamp(0)-pd.Timestamp(0)
+...      timeStep=pd.to_timedelta('1 second')
 >>> mx.df.index=mx.df.index+(timeSpan+timeStep)
 >>> # ---
->>> # Read MXS (with the original Timestamps)
+>>> # 2nd Read MXS (with the original Timestamps)
 >>> # ---
+>>> logger.debug("{0:s}: 2nd Read MXS (with the original Timestamps)".format('DOCTEST')) 
 >>> mx.setResultsToMxsFile(add=True) # looks for M-1-0-1.MXS in same Dir 
 >>> rowsNew,colsNew=mx.df.shape
 >>> rowsNew==3*rowsOld
@@ -136,22 +142,26 @@ True
 >>> colsNew==colsOld
 True
 >>> # ---
->>> # Dump (for testing purposes)
+>>> # Write Dump
 >>> # ---
->>> logger.debug("{0:s}: Shape before Dump: {1!s} Uniqueness: {2!s} First Time: {3!s} Last Time: {4!s}.".format('DOCTEST',mx.df.shape,mx.df.index.is_unique,mx.df.index[0],mx.df.index[-1])) 
 >>> mx.dumpInMxsFormat() # dumps to .MXS.dump-File in same Dir
 >>> rowsDump,colsDump = mx.df.shape
 >>> # ---
+>>> # Read Dump
+>>> # ---
 >>> mxsDumpFile=mx.mxsFile+'.dump'
+>>> logger.debug("{0:s}: Read Dump".format('DOCTEST')) 
 >>> mx.setResultsToMxsFile(mxsFile=mxsDumpFile)
->>> logger.debug("{0:s}: Shape after Reading Dump: {1!s} Uniqueness: {2!s} First Time: {3!s} Last Time: {4!s}.".format('DOCTEST',mx.df.shape,mx.df.index.is_unique,mx.df.index[0],mx.df.index[-1])) 
 >>> with zipfile.ZipFile(mx.mxsZipFile,'w') as myzip:
 ...     myzip.write(mx.mxsFile)  
 ...     myzip.write(mxsDumpFile)  
+>>> # ---
+>>> # Read Zip with Orig and Dump
+>>> # ---
+>>> logger.debug("{0:s}: Read Zip with Orig and Dump".format('DOCTEST')) 
 >>> mx.setResultsToMxsZipFile()
->>> logger.debug("{0:s}: Shape after Reading Zip with original Mxs + Dump: {1!s} Uniqueness: {2!s} First Time: {3!s} Last Time: {4!s}.".format('DOCTEST',mx.df.shape,mx.df.index.is_unique,mx.df.index[0],mx.df.index[-1])) 
 >>> rowsZip,colsZip = mx.df.shape
->>> rowsZip==rowsMxs+rowsDump
+>>> rowsZip==rowsDump
 True
 >>> # ---
 >>> # Clean Up
@@ -333,6 +343,9 @@ class Mx():
             self.mx1Df['DATATYPELENGTH']=self.mx1Df['DATATYPELENGTH'].astype('int64')
             self.mx1Df['DATAOFFSET']=self.mx1Df['DATAOFFSET'].astype('int64')
 
+            self.mx1Df['FLAGS']=self.mx1Df['FLAGS'].astype('int64')
+
+            #XPath-Example:
             #tsElement=MxRoot.find('./XL1[@OBJTYPE="ALLG"]/.[@ATTRTYPE="TIMESTAMP"]')
             #dfTsIdx = self.mx1Df.index[(self.mx1Df['OBJTYPE']=='ALLG') & (self.mx1Df['ATTRTYPE']=='TIMESTAMP')] 
             #self.channelTsIdx=dfTsIdx.tolist()[0] #channelNumber of the TimeStamp
@@ -349,6 +362,11 @@ class Mx():
             #Die Rohrvektor-Datenpunkte enthalten DATALENGTH/ DATATYPELENGTH Werte an aufeinanderfolgenden äquidistanten Stützstellen am Rohr, beginnend am Rohranfang (KI) und endend am Rohrende (KK). 
             # Ein Vektordatenpunkt hingegen enthält die Attributwerte für alle Objekte eines Typs (z. B. alle Knotendrücke „KNOT.P“ oder die Rohrvektor-Drücke aller Rohre „ROHR.PVEC“). 
             # Ein Vektordatenpunkt ist dadurch gekennzeichnet, dass das 3. Bit (2²) im FELD FLAGS gesetzt ist und wird zusätzlich durch einen „*“  im Feld OBJTYPE_PK markiert.
+
+            #markMx2DefinedVectorChannels
+            self.mx1Df['isVectorChannelMx2Defined']=[True if isVectorChannel and bit3rd and flagStr[-3]=='1' else False for isVectorChannel,flagStr,bit3rd in zip(self.mx1Df['isVectorChannel'],self.mx1Df['FLAGS'].apply(bin),self.mx1Df['FLAGS'].apply(lambda x: True if x >=4 else False))] 
+
+
 
             logger.debug("{0:s}mx1Df after some generated Columns: Shape: {1!s}.".format(logStr,self.mx1Df.shape))    
 
@@ -579,7 +597,8 @@ class Mx():
                         self.df=self.df[self.df.index.duplicated() == False] 
                         logger.debug("{0:s}Mxs: {1:s}: New unique                                        df Shape: {2!s}.".format(logStr,mxsFile,self.df.shape))       
                 # sort
-                self.df.sort_index(inplace=True)    
+                if add:
+                    self.df.sort_index(inplace=True)    
                 logger.debug("{0:s}RESULT after {1:s}: df Shape: {2!s} First Time: {3!s} Last Time: {4!s}.".format(logStr,mxsFile,self.df.shape,self.df.index[0],self.df.index[-1]))                                                
             else:
                 logger.error("{0:s}Mxs: {1:s}: Reading failed.".format(logStr,mxsFile))    
@@ -790,10 +809,17 @@ class Mx():
 
                         # process record
                         try:
-                            timeISO8601 = recordData[self.idxTIMESTAMP] #b'2017-10-20 00:00:00.000000+01:00'
-                            time = pd.to_datetime(timeISO8601)                                              
+                            timeISO8601 = recordData[self.idxTIMESTAMP] #b'2017-10-20 00:00:00.000000+01:00' for scenTime 2017-10-20 00:00:00
+                            time = pd.to_datetime(timeISO8601,utc=True) 
+                            time_read_after_to_datetime=time.strftime("%Y-%m-%d %H:%M:%S.%f%z") #%z: UTC offset in the form +HHMM or -HHMM (empty string if the object is naive)        
+                            time = time + pd.to_timedelta('1 hour')   
+                            time_read_finally=time.strftime("%Y-%m-%d %H:%M:%S.%f%z")                                 
                             values =recordData[0:self.idxTIMESTAMP] + recordData[self.idxTIMESTAMP+1:] # remove Timestamp (index not value)        
-                            logger.debug("{0:s}Time read={1!s}: Values (without Timestamp): {2:d}.".format(logStr,time,len(values)))                                                             
+                            logger.debug("{0:s}Time read finally={1!s} Time read after to_datetime: {2!s} timeISO8601 read: {3!s} Values (without Timestamp): {4:d}.".format(logStr
+                                              ,time_read_finally
+                                              ,time_read_after_to_datetime
+                                              ,timeISO8601
+                                              ,len(values)))                                                             
                         except:
                             logStrFinal="{0:s}process record failed. Error.".format(logStr)
                             logger.error(logStrFinal) 
@@ -1001,7 +1027,12 @@ class Mx():
 
                 for idx,row in enumerate(self.df.itertuples(index=False)):
                     values=list(row)
-                    scenTime=self.df.index[idx]
+                    scenTime=self.df.index[idx]                   
+                                                                            
+                    #timeISO8601 read:          b'2017-10-20 00:00:00.000000+01:00' - the original timeISO8601 read is marked as UTC +1 written as +01:00
+                    #Time read after to_datetime: 2017-10-19 23:00:00.000000+0000   - the result after pd.to_datetime(timeISO8601,utc=True) 
+                    #Time read finally            2017-10-20 00:00:00.000000+0000   - the time used - "corrected" manually +1 hour 
+                    #+01:00 instead of %z because %z will be +0000 ...  
                     scenTimeStr=scenTime.strftime("%Y-%m-%d %H:%M:%S.%f+01:00") 
                     values.insert(self.idxTIMESTAMP,scenTimeStr.encode('utf-8'))                   
                     bytes=struct.pack(self.mxRecordStructFmtString,*values)
@@ -1072,9 +1103,6 @@ if __name__ == "__main__":
             logger.setLevel(logging.ERROR)  
                       
         logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start. Argumente:',str(sys.argv))) 
-
-        #mx=Mx(r'C:\3S\Modelle\WDMVV_FW\B1\V0\BZ1\M-1-0-1.MX1')
-        #mx.setResultsToMxsFile()
 
         suite=doctest.DocTestSuite()   
         unittest.TextTestRunner().run(suite)         
