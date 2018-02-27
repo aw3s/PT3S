@@ -13,6 +13,15 @@ And - as a result - the Byte-Layout of a single MX3-Record in .MXS.
 A MX3-Record contains calculation results for one Timestamp.
 A .MXS-File contains at least one MX3-Record.
 ---------------------------
+A MX-Channel can be 
+a single Value or a
+Vector: Sequence of calculation results of the same AType
+    of all Objects of a certain OType or (called Vectorchannels)
+    of all interior Points for all Pipes (called Pipevectorchannels)
+    and Vectors with ATTRTYPE in: {'SVEC', 'PVECMIN_INST', 'PVECMAX_INST'}.
+For Vectorchannels and Pipevectorchannels the sequence of Objects is defined in the .MX2-File. 
+For Pipevectorchannels the Number of interior Points per Pipe is defined in the .MX2-File. 
+---------------------------
 >>> # ---
 >>> # Imports
 >>> # ---
@@ -210,16 +219,15 @@ class MxError(Exception):
 
 class Mx():
     """
-    Class Mx holds 2 Dataframes:
+    Class Mx holds the following Dataframes:
     the .MX1-File Definition    self.mx1Df and 
-    the .MXS-File Data (if any) self.df.
+    the .MXS-File Data (if any) self.df (Non-Vectorchannels only).
     ---
     the .MXS-File Data: calculations results 
-    index:   Timestamps 
-             scenario time (UTC, not localized)
+    index:   Timestamps (scenario time)
     columns: Values  
              The following (String-)ID - called Sir3sID - is used as Column-Label:
-             OBJTYPE~NAME1~NAME2~NAME3~ATTRTYPE 
+             OBJTYPE~NAME1~NAME2~OBJTYPE_PK~ATTRTYPE 
              A Sir3sID consists of ~ seperated MX1-File terms.
     """
     def __init__(self,mx1File=None,NoH5Read=False,NoMxsRead=False): 
@@ -343,7 +351,6 @@ class Mx():
             self.mx1Df['DATALENGTH']=self.mx1Df['DATALENGTH'].astype('int64')
             self.mx1Df['DATATYPELENGTH']=self.mx1Df['DATATYPELENGTH'].astype('int64')
             self.mx1Df['DATAOFFSET']=self.mx1Df['DATAOFFSET'].astype('int64')
-
             self.mx1Df['FLAGS']=self.mx1Df['FLAGS'].astype('int64')
 
             #XPath-Example:
@@ -354,23 +361,17 @@ class Mx():
             
             #Sir3sID
             sep='~'
-            self.mx1Df['Sir3sID']=self.mx1Df['OBJTYPE']+sep+self.mx1Df['NAME1']+sep+self.mx1Df['NAME2']+sep+self.mx1Df['NAME3']+sep+self.mx1Df['ATTRTYPE']
+            self.mx1Df['Sir3sID']=self.mx1Df['OBJTYPE']+sep+self.mx1Df['NAME1']+sep+self.mx1Df['NAME2']+sep+self.mx1Df['OBJTYPE_PK']+sep+self.mx1Df['ATTRTYPE']
             self.mx1Df['Sir3sID']=self.mx1Df['Sir3sID'].astype(str)
 
             #markVectorChannels (vectorChannel-Definition here := more than 1 Item)
-            self.mx1Df['isVectorChannel']=[True if int(cDLength/cDTypeLength)>1 else False for cDLength,cDTypeLength in zip(self.mx1Df['DATALENGTH'],self.mx1Df['DATATYPELENGTH'])] 
-            #Bei Datenpunkten dieser Art muss zwischen Rohrvektor-Datenpunkten und  Vektor-Datenpunkten (zu denen auch die Vektor- Rohrvektor-Datenpunkte gehören) unterschieden werden. 
-            #Die Rohrvektor-Datenpunkte enthalten DATALENGTH/ DATATYPELENGTH Werte an aufeinanderfolgenden äquidistanten Stützstellen am Rohr, beginnend am Rohranfang (KI) und endend am Rohrende (KK). 
-            # Ein Vektordatenpunkt hingegen enthält die Attributwerte für alle Objekte eines Typs (z. B. alle Knotendrücke „KNOT.P“ oder die Rohrvektor-Drücke aller Rohre „ROHR.PVEC“). 
-            # Ein Vektordatenpunkt ist dadurch gekennzeichnet, dass das 3. Bit (2²) im FELD FLAGS gesetzt ist und wird zusätzlich durch einen „*“  im Feld OBJTYPE_PK markiert.
-
-            #^?
+            self.mx1Df['NOfItems']=[int(cDLength/cDTypeLength) for cDLength,cDTypeLength in zip(self.mx1Df['DATALENGTH'],self.mx1Df['DATATYPELENGTH'])] 
+            #self.mx1Df['isVectorChannel']=[True if int(cDLength/cDTypeLength)>1 else False for cDLength,cDTypeLength in zip(self.mx1Df['DATALENGTH'],self.mx1Df['DATATYPELENGTH'])] 
+            self.mx1Df['isVectorChannel']=[True if nItems>1 else False for nItems in self.mx1Df['NOfItems']] 
+           
             #set(mx.mx1Df['DATATYPE'])
             #{'RVEC', 'CHAR', 'INT4', 'REAL'}
-            #set(mx.mx1Df['DATATYPELENGTH'])
-            #{80, 32, 4, 12}
-            # RVEC: Rohrvektor-Datenpunkte
-
+          
             #markMx2DefinedVectorChannels
             #True for all Mx2-defined-Types
             self.mx1Df['isVectorChannelMx2']=[True if isVectorChannel and bit3rd and flagStr[-3]=='1' else False for isVectorChannel,flagStr,bit3rd in zip(self.mx1Df['isVectorChannel'],self.mx1Df['FLAGS'].apply(bin),self.mx1Df['FLAGS'].apply(lambda x: True if x >=4 else False))] 
@@ -412,15 +413,6 @@ class Mx():
 
         try: 
             logger.debug("{0:s}mx2File: {1:s} parsing ...".format(logStr,self.mx2File))    
-
-            #Der jeweiligen Liste voraus geht ein beschreibender Datensatz der Länge 64 Byte mit folgender Struktur:
-            #<ObjType[CHAR12]><AttrType[CHAR12]><DataType[INT4]><DataTypeLength[INT4]><Leer[NUL28]><DataLength[INT4]>
-            #Der AttrType ist hier „tk“ oder „pk“, letzterer wenn es zum ObjType keinen tk gibt. 
-
-            #Da bei einem Rohrvektor-Vektor-Datenpunkt alle Rohrvektoren gem. der ROHR-Objektschlüssel-Liste aufeinanderfolgen, 
-            #sind die Längen der einzelnen Rohrvektoren im Ergebnis auf Basis der MX1 nicht mehr bestimmbar. 
-            #Dafür wird in der MX2-Datei ein zusätzlicher Datenblock abgelegt mit ObjType=ROHR und AttrType=N_OF_POINTS im Header mit nachfolgender Liste, 
-            #die die Anzahlen der Stützstellen (Rohrvektorlängen) für jedes Rohr (natürlich in entspr.  Reihenfolge der Rohrschlüssel) enthält.  (DataType ist hier „INT4“ und DatatypeLength = 4.)
 
             headerFmtString='12s12s4si28xi'
             with open(self.mx2File,'rb') as f:               
@@ -465,6 +457,10 @@ class Mx():
 
                     dataBytes=f.read(DataLength)
                     Data = struct.unpack(dataFmtString,dataBytes)  
+
+                    if DataType=='CHAR':
+                        Data=list(map(lambda x: x.decode('utf-8').rstrip(),Data)) #20 vs. 19?!
+
                     record['Data']=Data
 
                     all_records.append(record)
@@ -474,18 +470,18 @@ class Mx():
                         logger.error("{:s}:offsetToNextHeader: {:d} != {:d}?".format(logStr,offsetToNextHeader,f.tell()))     
                         f.seek(offsetToNextHeader)                    
 
-                    logger.debug("{:s}ObjType:{:s} AttrType:{:s} DataType:{:s} DataTypeLength:{:>3d} DataLength:{:>8d} offsetToNextHeader:{:>11d}".format(logStr
+                    logger.debug("{:s}ObjType:{:s} AttrType:{:s} DataType:{:s} DataTypeLength:{:>3d} DataLength:{:>8d} Data[0]:{!s:>20s} Data[-1]:{!s:>20s} offsetToNextHeader:{:>11d}".format(logStr
                            ,ObjType #headerData[0]
                            ,AttrType #headerData[1]
                            ,DataType #headerData[2]
                            ,DataTypeLength #headerData[3]
                            ,DataLength #headerData[4]
+                           ,Data[0]
+                           ,Data[-1]
                            ,offsetToNextHeader
                            )
                                  )    
-
-                    
-                                        
+                                                            
         except FileNotFoundError as e:
             logStrFinal="{0:s}mx2File: {1!s}: FileNotFoundError.".format(logStr,self.mx2File)
             logger.error(logStrFinal) 
@@ -537,25 +533,26 @@ class Mx():
 
                 isVectorChannel=row.isVectorChannel
 
-                if isVectorChannel:
-                    toBeUnpacked=False
-                else:
-                    toBeUnpacked=True
+                #if isVectorChannel:
+                #    toBeUnpacked=False
+                #else:
+                #    toBeUnpacked=True
 
                 toBeUnpacked=True
                                                                                    
                 cDType=row.DATATYPE 
                 cDTypeLength=row.DATATYPELENGTH 
                 cDLength=row.DATALENGTH 
-                items=int(cDLength/cDTypeLength)
+                nItems=row.NOfItems
+                #items=int(cDLength/cDTypeLength)
                 
                 if cDType=='CHAR':
                     if toBeUnpacked:   
                         unpackIdx.append(idxUnpack)    
                         if isVectorChannel:                                                                                  
-                            for idx in range(items):
+                            for idx in range(nItems):
                                 fmtItem+=(str(cDTypeLength)+'s') 
-                            idxUnpack+=items                            
+                            idxUnpack+=nItems                            
                         else:                            
                             fmtItem=str(cDLength)+'s'                         
                             idxUnpack+=1 
@@ -572,8 +569,8 @@ class Mx():
                             raise MxError(logStrFinal)     
                         unpackIdx.append(idxUnpack)        
                         if isVectorChannel:                                                                                                                                                                                                                                                                                            
-                            fmtItem=str(items)+'i'                    
-                            idxUnpack+=items                           
+                            fmtItem=str(nItems)+'i'                    
+                            idxUnpack+=nItems                           
                         else:                            
                             fmtItem='i'                         
                             idxUnpack+=1    
@@ -590,8 +587,8 @@ class Mx():
                             raise MxError(logStrFinal)    
                         unpackIdx.append(idxUnpack)        
                         if isVectorChannel:                                                                                                                                                                                                                                                                                            
-                            fmtItem=str(items)+'f'                    
-                            idxUnpack+=items                           
+                            fmtItem=str(nItems)+'f'                    
+                            idxUnpack+=nItems                           
                         else:                            
                             fmtItem='f'                         
                             idxUnpack+=1    
@@ -607,8 +604,8 @@ class Mx():
                             logger.error(logStrFinal) 
                             raise MxError(logStrFinal)   
                         unpackIdx.append(idxUnpack)                                                                                                                                                                                                                                                                                                                            
-                        fmtItem=str(items)+'f'                    
-                        idxUnpack+=items                             
+                        fmtItem=str(nItems)+'f'                    
+                        idxUnpack+=nItems                             
                     else:
                         bytesSkipped+=cDLength
                         fmtItem=str(cDLength)+'x'
@@ -641,8 +638,9 @@ class Mx():
             logger.debug("{0:s}mx1Df after generated Column: Shape: {1!s}.".format(logStr,self.mx1Df.shape))            
             
             # list all Channels with their relevant attributes 
-            # columnNames used in Pandas for Non Vector Channels           
+            # columnNames used in Pandas        
             self.mxColumnNames=[]  
+            self.mxColumnNamesVecs=[]  
             for idxChannel,idxUnpack in [(idxChannel,idxUnpack)  for idxChannel,idxUnpack in enumerate(self.mx1Df['unpackIdx']) if idxUnpack >=0]:                 
                 sir3sID=self.mx1Df['Sir3sID'].iloc[idxChannel]
                 idxUnpack=self.mx1Df['unpackIdx'].iloc[idxChannel]
@@ -650,7 +648,7 @@ class Mx():
                 isVectorChannelMx2=self.mx1Df['isVectorChannelMx2'].iloc[idxChannel]             
                 isVectorChannelMx2Rvec=self.mx1Df['isVectorChannelMx2Rvec'].iloc[idxChannel]
 
-                logger.debug("{:s}Channel-Nr. {:>6d} Sir3sID {:>36s} idxUnpack {:>6d}  isVectorChannel {!s:>6s} isVectorChannelMx2 {!s:>6s} isVectorChannelMx2Rvec {!s:>6s}.".format(logStr
+                logger.debug("{:s}Channel-Nr. {:>6d} Sir3sID {:>60s} idxUnpack {:>6d}  isVectorChannel {!s:>6s} isVectorChannelMx2 {!s:>6s} isVectorChannelMx2Rvec {!s:>6s}.".format(logStr
                          ,idxChannel
                          ,sir3sID
                          ,idxUnpack
@@ -660,14 +658,18 @@ class Mx():
                 
                 if not isVectorChannel:
                     self.mxColumnNames.append(sir3sID)
+                else:
+                    self.mxColumnNamesVecs.append(sir3sID)
 
             # idxTIMESTAMP
-            self.idxTIMESTAMP=self.mxColumnNames.index('ALLG~~~~TIMESTAMP')
+            self.idxTIMESTAMP=self.mxColumnNames.index('ALLG~~~-1~TIMESTAMP')
 
             # remove Timestamp (index not value)
             del self.mxColumnNames[self.idxTIMESTAMP] 
             columns=len(self.mxColumnNames)
-            logger.debug("{0:s}Columns (without Timestamp): {1:d}.".format(logStr,columns))                  
+            logger.debug("{0:s}Columns (without Timestamp): {1:d}.".format(logStr,columns))    
+            
+            logger.debug("{0:s}ColumnsVecs: {1:d}.".format(logStr,len(self.mxColumnNamesVecs)))                  
 
             # unpack Idx of Non Vector Channels
             idxUnpackNonVectorChannel_bTS=[self.mx1Df['unpackIdx'].iloc[idx] for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if not isVectorChannel and idx < self.idxTIMESTAMP]
@@ -682,6 +684,12 @@ class Mx():
             # check
             if idxUnpackNonVectorChannelsLen != columns:
                 logger.error("{:s}idxUnpackNonVectorChannelsLen: {:d} != Columns (without Timestamp): {:d}?!".format(logStr,idxUnpackNonVectorChannelsLen,columns))               
+
+            # unpack Idx of Vector Channels
+            self.idxUnpackVectorChannel=[self.mx1Df['unpackIdx'].iloc[idx] for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if isVectorChannel]
+            logger.debug("{:s}idxUnpackVectorChannel: {:d}.".format(logStr,len(self.idxUnpackVectorChannel)))
+            self.idxOfVectorChannel=[idx for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if isVectorChannel]
+            logger.debug("{:s}idxVectorChannel: {:d}.".format(logStr,len(self.idxOfVectorChannel)))
                                                                               
         except MxError:
             raise            
@@ -932,7 +940,8 @@ class Mx():
             df = None #Returns the File-Content as df.  
                                                        
             mxTimes=[]
-            mxValues=[]           
+            mxValues=[]      
+            mxValuesVecs=[]           
             
             MxRecordLength=struct.calcsize(self.mxRecordStructFmtString)    
             if isinstance(maxRecords,int):
@@ -971,7 +980,15 @@ class Mx():
                                               ,time_read_finally
                                               ,time_read_after_to_datetime
                                               ,timeISO8601
-                                              ,len(values)))                                                             
+                                              ,len(values)))  
+                            
+                            #Vecs
+                            valuesVecs=[]
+
+                            for idx,idxOf,idxUnpack in enumerate(zip(self.idxOfVectorChannel,self.idxUnpackVectorChannel)):                                                            
+                                valueVec=recordData[idxUnpack:idxUnpack+self.mx1Df['NOfItems'].iloc[idxOf]]
+                                valuesVecs.append(valueVec)                            
+                                                                                       
                         except:
                             logStrFinal="{0:s}process record failed. Error.".format(logStr)
                             logger.error(logStrFinal) 
@@ -1001,11 +1018,11 @@ class Mx():
                     raise MxError(logStrFinal)    
                                   
             logger.debug("{0:s}File finished: Records read={1:d}. Last Time read={2!s}. MB read={3:07.2f}. MB unpacked={4:07.2f} (making up {5:06.2f} %). ".format(logStr                                                                                                                                         
-                                                                                                                                          ,recsReadFromFile
-                                                                                                                                          ,timeISO8601
-                                                                                                                                          ,recsReadFromFile*MxRecordLength/pow(10,6)
-                                                                                                                                          ,recsReadFromFile*self.bytesUnpacked/pow(10,6)
-                                                                                                                                          ,self.bytesUnpacked/MxRecordLength*100
+                                                                                    ,recsReadFromFile
+                                                                                    ,timeISO8601
+                                                                                    ,recsReadFromFile*MxRecordLength/pow(10,6)
+                                                                                    ,recsReadFromFile*self.bytesUnpacked/pow(10,6)
+                                                                                    ,self.bytesUnpacked/MxRecordLength*100
                                                                                                                                                  )
                         )                                                                     
 
@@ -1028,8 +1045,9 @@ class Mx():
 
     def ToH5(self,h5File=None):
         """
-        Stores both Dataframes 
-        mx1Df h5Key: .../MX1 and 
+        Stores the Dataframes 
+        mx1Df h5Key: .../MX1 
+        mx2Df h5Key: .../MX2 
         df    h5Key: .../MXS  
         in a .h5-File.      
         ---
@@ -1067,19 +1085,14 @@ class Mx():
                     h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MX1' 
                     logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'mx1Df',h5Key))           
                     h5Store.put(h5Key,self.mx1Df)
+                if isinstance(self.mx2Df,pd.core.frame.DataFrame):      
+                    h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MX2' 
+                    logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'mx2Df',h5Key))           
+                    h5Store.put(h5Key,self.mx2Df)
                 if isinstance(self.df,pd.core.frame.DataFrame):    
                     h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MXS'  
                     logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'df',h5Key))         
                     h5Store.put(h5Key,self.df)
-
-            #regExpCompiledPerfWarnI=re.compile('ALLG~(\S*)~(\S*)~(\S*)~CVERSO|SNAPSHOTTYPE') 
-            #perfWarnColsI=[column for column in self.pdf.columns if regExpCompiledPerfWarnI.search(column) != None]
-
-            #regExpCompiledPerfWarnII=re.compile('(\S+)~(\S+)~(\S+)~(\S*)~RART') 
-            #perfWarnColsII=[column for column in self.pdf.columns if regExpCompiledPerfWarnII.search(column) != None]
-
-            #perfWarnCols=perfWarnColsI+perfWarnColsII
-            #self.pdf.loc[:,perfWarnCols] =  self.pdf[ perfWarnCols].applymap(str)
 
         except OSError as e:
             logStrFinal="{0:s}h5File: {1!s}: OSError.".format(logStr,h5File)
@@ -1105,8 +1118,9 @@ class Mx():
     def FromH5(self,h5File=None):
         """
         The h5File is read
-        and 
-        self.mx1Df (h5Key: .../MX1) and
+        and the following Dataframes
+        self.mx1Df (h5Key: .../MX1) 
+        self.mx2Df (h5Key: .../MX1) 
         self.df    (h5Key: .../MXS) 
         are overwritten with the Dataframes in the h5File if any.     
         ---
@@ -1134,6 +1148,9 @@ class Mx():
                         logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
                         self.mx1Df=h5Store[h5Key]
                         self.__buildMxRecordStructUnpackFmtString()      
+                    if key == 'MX2':                            
+                        logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
+                        self.mx2Df=h5Store[h5Key]                         
                     if key == 'MXS':                           
                         logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
                         self.df=h5Store[h5Key]
