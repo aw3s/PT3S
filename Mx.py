@@ -28,24 +28,23 @@ For Pipevectorchannels the Number of interior Points per Pipe is defined in the 
 >>> import os
 >>> import zipfile 
 >>> import logging
->>> import __init__ # PT3S' __init__.py
->>> logger = logging.getLogger('PT3S.Mx')  
 >>> # ---
 >>> # Init
 >>> # ---
->>> mx1File=r'C:\\3S\Modelle\WDMVV_FW1\B1\V0\BZ1\M-1-0-1.MX1'
+>>> mx1File=r'testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX1'
 >>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
 >>> type(mx.mx1Df) # MX1-Content
 <class 'pandas.core.frame.DataFrame'>
 >>> type(mx.df) # MXS-Content
 <class 'NoneType'>
-# ---
-# Clean Up
-# ---
+>>> # ---
+>>> # Clean Up
+>>> # ---
 >>> if os.path.exists(mx.h5File):                        
 ...    os.remove(mx.h5File)
 >>> if os.path.exists(mx.mxsZipFile):                        
 ...    os.remove(mx.mxsZipFile)
+>>> mxsDumpFile=mx.mxsFile+'.dump'
 >>> if os.path.exists(mxsDumpFile):                        
 ...    os.remove(mxsDumpFile)
 >>> if os.path.exists(mx.h5FileMxsVecs):                        
@@ -57,6 +56,7 @@ For Pipevectorchannels the Number of interior Points per Pipe is defined in the 
 >>> mx.setResultsToMxsFile() # looks for M-1-0-1.MXS in same Dir 
 >>> type(mx.df) # MXS-Content
 <class 'pandas.core.frame.DataFrame'>
+>>> mx._checkMxsVecsFile()
 >>> # ---
 >>> # Write H5
 >>> # ---
@@ -166,11 +166,9 @@ True
 >>> # Write Dump
 >>> # ---
 >>> mx.dumpInMxsFormat() # dumps to .MXS.dump-File in same Dir
->>> rowsDump,colsDump = mx.df.shape
 >>> # ---
 >>> # Read Dump
 >>> # ---
->>> mxsDumpFile=mx.mxsFile+'.dump'
 >>> logger.debug("{0:s}: Read Dump".format('DOCTEST')) 
 >>> mx.setResultsToMxsFile(mxsFile=mxsDumpFile)
 >>> with zipfile.ZipFile(mx.mxsZipFile,'w') as myzip:
@@ -182,7 +180,7 @@ True
 >>> logger.debug("{0:s}: Read Zip with Orig and Dump".format('DOCTEST')) 
 >>> mx.setResultsToMxsZipFile()
 >>> rowsZip,colsZip = mx.df.shape
->>> rowsZip==rowsDump
+>>> rowsZip==rowsOld
 True
 >>> # ---
 >>> # Clean Up
@@ -872,8 +870,8 @@ class Mx():
                                         dfVecs = pd.DataFrame.from_records(mxValuesVecs,index=mxTimesVecs,columns=self.mxColumnNamesVecs)                                                                                                      
                                         logger.debug("{:s}Writing DataFrame {:s} with h5Key=/{!s:>20s}".format(logStr,'dfVecs',h5Key))     
                                         #H5
-                                        #warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
-                                        #warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)                          
+                                        warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
+                                        warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)                          
                                         mxsVecsH5StorePtr.put(str(h5Key),dfVecs)                         
                             except:
                                 logStrFinal="{0:s}store record as df in H5 failed at Time={1!s}. Error.".format(logStr,time_read_finally)
@@ -920,7 +918,7 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
             return df
 
-    def _checkMxsVecsFile(self,mxsVecsH5StorePtr=None):
+    def _checkMxsVecsFile(self):
         """
         .
         """
@@ -928,13 +926,15 @@ class Mx():
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
-        try:                                                                                                                                            
-            keys=sorted([int(key.replace('/','')) for key in mxsVecsH5StorePtr.keys()])
+        try:         
+            with pd.HDFStore(self.h5FileMxsVecs) as mxsVecsH5Store: 
+                                                                                                                                               
+                keys=sorted([int(key.replace('/','')) for key in mxsVecsH5Store.keys()])
 
-            for key in [ '/'+str(key) for key in keys]:                
-                dfVecs=mxsVecsH5StorePtr[key]  
-                time=dfVecs.index[0]
-                logger.debug("{:s}key {!s:>20s} TIMESTAMP {!s:s}.".format(logStr,key,time))         
+                for key in [ '/'+str(key) for key in keys]:                
+                    dfVecs=mxsVecsH5Store[key]  
+                    time=dfVecs.index[0]
+                    logger.debug("{:s}key {!s:>20s} TIMESTAMP {!s:s}.".format(logStr,key,time))         
                                                                                                                 
         except MxError:
             raise
@@ -990,7 +990,6 @@ class Mx():
                     os.remove(self.h5FileMxsVecs)
                 
             mxsVecH5Store=pd.HDFStore(self.h5FileMxsVecs) 
-            #self._checkMxsVecsFile(mxsVecsH5StorePtr=mxsVecH5Store)  
                                                                                       
             if isinstance(self.df,pd.core.frame.DataFrame):   
                 firstTime=self.df.index[0]
@@ -1024,8 +1023,7 @@ class Mx():
                 # sort
                 if add:
                     self.df.sort_index(inplace=True)    
-                logger.debug("{0:s}RESULT after {1:s}: df Shape: {2!s} First Time: {3!s} Last Time: {4!s}.".format(logStr,mxsFile,self.df.shape,self.df.index[0],self.df.index[-1]))            
-                self._checkMxsVecsFile(mxsVecsH5StorePtr=mxsVecH5Store)                                    
+                logger.debug("{0:s}RESULT after {1:s}: df Shape: {2!s} First Time: {3!s} Last Time: {4!s}.".format(logStr,mxsFile,self.df.shape,self.df.index[0],self.df.index[-1]))                                             
             else:
                 logger.error("{0:s}Mxs: {1:s}: Reading failed.".format(logStr,mxsFile))    
                           
@@ -1123,7 +1121,6 @@ class Mx():
                     os.remove(self.h5FileMxsVecs)
                 
             mxsVecH5Store=pd.HDFStore(self.h5FileMxsVecs) 
-            #self._checkMxsVecsFile(mxsVecsH5StorePtr=mxsVecH5Store)  
                                                                                       
             if isinstance(self.df,pd.core.frame.DataFrame):   
                 firstTime=self.df.index[0]
@@ -1185,8 +1182,7 @@ class Mx():
                 
                 # sort
                 self.df.sort_index(inplace=True)  
-                logger.debug("{0:s}RESULT after {1:s}: df Shape: {2!s} First Time: {3!s} Last Time: {4!s}.".format(logStr,mxsZipFile,self.df.shape,self.df.index[0],self.df.index[-1]))         
-                self._checkMxsVecsFile(mxsVecsH5StorePtr=mxsVecH5Store)        
+                logger.debug("{0:s}RESULT after {1:s}: df Shape: {2!s} First Time: {3!s} Last Time: {4!s}.".format(logStr,mxsZipFile,self.df.shape,self.df.index[0],self.df.index[-1]))                
 
             else:
                 logger.error("{0:s}Zip: {1:s}: Reading failed.".format(logStr,mxsZipFile))                                          
@@ -1250,8 +1246,8 @@ class Mx():
             h5KeyCharForMinus='_'
             relPath2Mx1FromCurDirH5BaseKey=re.sub('\.',h5KeyCharForDot,re.sub(r'\\',h5KeySep,re.sub('-',h5KeyCharForMinus,re.sub('.mx1','',relPath2Mx1FromCurDir,flags=re.IGNORECASE))))
                        
-            #warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
-            #warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)
+            warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
+            warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)
                                       
             logger.debug("{0:s}pd.HDFStore({1:s}) ...".format(logStr,h5File))                 
             with pd.HDFStore(h5File) as h5Store:  
