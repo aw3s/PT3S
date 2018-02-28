@@ -507,11 +507,15 @@ class Mx():
     def __buildMxRecordStructUnpackFmtString(self):
         """    
         (re-)builds mxRecordStructFmtString and releated stuff:      
-            >self.mxRecordStructFmtString: struct.unpack(self.mxRecordStructFmtString,mxRecord)       
+            >self.mxRecordStructFmtString: recordData = struct.unpack(self.mxRecordStructFmtString,record)  
             >self.bytesUnpacked
             >self.mx1Df['unpackIdx']
+            >self.unpackIdxTIMESTAMP
             >self.mxColumnNames=[] 
-            >self.idxTIMESTAMP
+            >self.mxColumnNamesVecs=[] 
+            >self.idxUnpackNonVectorChannels[]: the idx in recordData
+            >self.idxUnpackVectorChannels[]: the idx in recordData of the 1st ([0]) Element of the Vector
+            >self.idxVectorChannels[]: the idx in MX1
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -635,7 +639,10 @@ class Mx():
 
             self.mx1Df['unpackIdx']=pd.Series(unpackIdx)
             self.mx1Df['unpackIdx']=self.mx1Df['unpackIdx'].astype('int64')      
-            logger.debug("{0:s}mx1Df after generated Column: Shape: {1!s}.".format(logStr,self.mx1Df.shape))            
+            logger.debug("{0:s}mx1Df after generated Column: Shape: {1!s}.".format(logStr,self.mx1Df.shape))        
+            
+            # unpackIdxTIMESTAMP
+            self.unpackIdxTIMESTAMP=self.mx1Df['unpackIdx'][self.mx1Df['Sir3sID']=='ALLG~~~-1~TIMESTAMP'].iloc[0]                
             
             # list all Channels with their relevant attributes 
             # columnNames used in Pandas        
@@ -661,20 +668,17 @@ class Mx():
                 else:
                     self.mxColumnNamesVecs.append(sir3sID)
 
-            # idxTIMESTAMP
-            self.idxTIMESTAMP=self.mxColumnNames.index('ALLG~~~-1~TIMESTAMP')
-
-            # remove Timestamp (index not value)
-            del self.mxColumnNames[self.idxTIMESTAMP] 
+            # remove Timestamp in mxColumnNamesVecs (index not value)
+            idxTIMESTAMP=self.mxColumnNames.index('ALLG~~~-1~TIMESTAMP')
+            del self.mxColumnNames[idxTIMESTAMP] 
             columns=len(self.mxColumnNames)
-            logger.debug("{0:s}Columns (without Timestamp): {1:d}.".format(logStr,columns))    
-            
-            logger.debug("{0:s}ColumnsVecs: {1:d}.".format(logStr,len(self.mxColumnNamesVecs)))                  
+            logger.debug("{0:s}NOfColumns (without Timestamp): {1:d}.".format(logStr,columns))                
+            logger.debug("{0:s}NOfColumnsVecs: {1:d}.".format(logStr,len(self.mxColumnNamesVecs)))                  
 
             # unpack Idx of Non Vector Channels
-            idxUnpackNonVectorChannel_bTS=[self.mx1Df['unpackIdx'].iloc[idx] for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if not isVectorChannel and idx < self.idxTIMESTAMP]
+            idxUnpackNonVectorChannel_bTS=[self.mx1Df['unpackIdx'].iloc[idx] for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if not isVectorChannel and idx < self.unpackIdxTIMESTAMP]
             logger.debug("{:s}idxUnpackNonVectorChannel_bTS: {:d}.".format(logStr,len(idxUnpackNonVectorChannel_bTS)))
-            idxUnpackNonVectorChannel_aTS=[self.mx1Df['unpackIdx'].iloc[idx] for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if not isVectorChannel and idx > self.idxTIMESTAMP]
+            idxUnpackNonVectorChannel_aTS=[self.mx1Df['unpackIdx'].iloc[idx] for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if not isVectorChannel and idx > self.unpackIdxTIMESTAMP]
             logger.debug("{:s}idxUnpackNonVectorChannel_aTS: {:d}.".format(logStr,len(idxUnpackNonVectorChannel_aTS)))
             idxUnpackNonVectorChannel_bTS.extend(idxUnpackNonVectorChannel_aTS)
             self.idxUnpackNonVectorChannels=idxUnpackNonVectorChannel_bTS
@@ -683,13 +687,15 @@ class Mx():
 
             # check
             if idxUnpackNonVectorChannelsLen != columns:
-                logger.error("{:s}idxUnpackNonVectorChannelsLen: {:d} != Columns (without Timestamp): {:d}?!".format(logStr,idxUnpackNonVectorChannelsLen,columns))               
+                logger.error("{:s}idxUnpackNonVectorChannelsLen: {:d} != NOfColumns (without Timestamp): {:d}?!".format(logStr,idxUnpackNonVectorChannelsLen,columns))               
 
             # unpack Idx of Vector Channels
-            self.idxUnpackVectorChannel=[self.mx1Df['unpackIdx'].iloc[idx] for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if isVectorChannel]
-            logger.debug("{:s}idxUnpackVectorChannel: {:d}.".format(logStr,len(self.idxUnpackVectorChannel)))
-            self.idxOfVectorChannel=[idx for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if isVectorChannel]
-            logger.debug("{:s}idxVectorChannel: {:d}.".format(logStr,len(self.idxOfVectorChannel)))
+            self.idxUnpackVectorChannels=[self.mx1Df['unpackIdx'].iloc[idx] for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if isVectorChannel]
+            logger.debug("{:s}idxUnpackVectorChannel: {:d}.".format(logStr,len(self.idxUnpackVectorChannels)))
+
+
+            self.idxOfVectorChannels=[idx for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if isVectorChannel]
+            logger.debug("{:s}idxVectorChannel: {:d}.".format(logStr,len(self.idxOfVectorChannels)))
                                                                               
         except MxError:
             raise            
@@ -964,14 +970,21 @@ class Mx():
                         else:
                             timeISO8601=None
 
-                        # process record
+                        # process record time
                         try:
-                            timeISO8601 = recordData[self.idxTIMESTAMP] #b'2017-10-20 00:00:00.000000+01:00' for scenTime 2017-10-20 00:00:00
+                            timeISO8601 = recordData[self.unpackIdxTIMESTAMP] #b'2017-10-20 00:00:00.000000+01:00' for scenTime 2017-10-20 00:00:00
                             time = pd.to_datetime(timeISO8601,utc=True) 
                             time_read_after_to_datetime=time.strftime("%Y-%m-%d %H:%M:%S.%f%z") #%z: UTC offset in the form +HHMM or -HHMM (empty string if the object is naive)        
                             time = time + pd.to_timedelta('1 hour')   
                             time_read_finally=time.strftime("%Y-%m-%d %H:%M:%S.%f%z")                                 
-                                                       
+                                                                                                                                                                                             
+                        except:
+                            logStrFinal="{0:s}process record time failed. Error.".format(logStr)
+                            logger.error(logStrFinal) 
+                            raise MxError(logStrFinal)                
+                        
+                        # process record
+                        try:                                                                                                                 
                             # Filter NonVectorChannels and Skip Timestamp (index not value)     
                             values=[recordData[idx] for idx in self.idxUnpackNonVectorChannels]
                             #recordData[0:self.idxTIMESTAMP]
@@ -984,8 +997,7 @@ class Mx():
                             
                             #Vecs
                             valuesVecs=[]
-
-                            for idx,idxOf,idxUnpack in enumerate(zip(self.idxOfVectorChannel,self.idxUnpackVectorChannel)):                                                            
+                            for idx,idxOf,idxUnpack in enumerate(zip(self.idxOfVectorChannels,self.idxUnpackVectorChannels)):                                                            
                                 valueVec=recordData[idxUnpack:idxUnpack+self.mx1Df['NOfItems'].iloc[idxOf]]
                                 valuesVecs.append(valueVec)                            
                                                                                        
@@ -998,6 +1010,7 @@ class Mx():
                         try:
                             mxTimes.append(time)                         
                             mxValues.append(values)
+                            mxValuesVecs.append(valuesVecs)
                         except:
                             logStrFinal="{0:s}store record failed at Time={1!s}. Error.".format(logStr,timeISO8601)
                             logger.error(logStrFinal) 
@@ -1028,6 +1041,8 @@ class Mx():
 
             df = pd.DataFrame.from_records(mxValues,index=mxTimes,columns=self.mxColumnNames)                
             logger.debug("{0:s}df.shape(): {1!s}.".format(logStr,df.shape))   
+            self.dfVecs = pd.DataFrame.from_records(mxValuesVecs,index=mxTimes,columns=self.mxColumnNamesVecs)                
+            logger.debug("{0:s}dfVecs.shape(): {1!s}.".format(logStr,self.dfVecs.shape))   
                                                                         
         except MxError:
             raise
