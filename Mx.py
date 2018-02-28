@@ -26,18 +26,30 @@ For Pipevectorchannels the Number of interior Points per Pipe is defined in the 
 >>> # Imports
 >>> # ---
 >>> import os
+>>> import zipfile 
 >>> import logging
 >>> import __init__ # PT3S' __init__.py
 >>> logger = logging.getLogger('PT3S.Mx')  
 >>> # ---
 >>> # Init
 >>> # ---
->>> mx1File=r'C:\\3S\Modelle\WDMVV_FW\B1\V0\BZ1\M-1-0-1.MX1'
+>>> mx1File=r'C:\\3S\Modelle\WDMVV_FW1\B1\V0\BZ1\M-1-0-1.MX1'
 >>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
 >>> type(mx.mx1Df) # MX1-Content
 <class 'pandas.core.frame.DataFrame'>
 >>> type(mx.df) # MXS-Content
 <class 'NoneType'>
+# ---
+# Clean Up
+# ---
+>>> if os.path.exists(mx.h5File):                        
+...    os.remove(mx.h5File)
+>>> if os.path.exists(mx.mxsZipFile):                        
+...    os.remove(mx.mxsZipFile)
+>>> if os.path.exists(mxsDumpFile):                        
+...    os.remove(mxsDumpFile)
+>>> if os.path.exists(mx.h5FileMxsVecs):                        
+...    os.remove(mx.h5FileMxsVecs)
 >>> # ---
 >>> # 1st Read MXS
 >>> # ---
@@ -68,7 +80,7 @@ True
 >>> # ---
 >>> # 1st Read MXS Zip
 >>> # ---
->>> import zipfile # create the Zip first
+>>> # create the Zip first
 >>> with zipfile.ZipFile(mx.mxsZipFile,'w') as myzip:
 ...     myzip.write(mx.mxsFile)  
 >>> logger.debug("{0:s}: 1st Read MXS Zip".format('DOCTEST')) 
@@ -181,6 +193,8 @@ True
 ...     os.remove(mx.mxsZipFile)
 >>> if os.path.exists(mxsDumpFile):                        
 ...    os.remove(mxsDumpFile)
+>>> if os.path.exists(mx.h5FileMxsVecs):                        
+...    os.remove(mx.h5FileMxsVecs)
 """
 
 import os
@@ -211,6 +225,8 @@ import warnings
 import tables
 
 
+#math.floor(tds.total_seconds())*1000+tds.microseconds
+
 class MxError(Exception):
     def __init__(self, value):
         self.value = value
@@ -220,15 +236,20 @@ class MxError(Exception):
 class Mx():
     """
     Class Mx holds the following Dataframes:
-    the .MX1-File Definition    self.mx1Df and 
-    the .MXS-File Data (if any) self.df (Non-Vectorchannels only).
+    the .MX1-File Definition    self.mx1Df  
+    the .MX2-File Definition    self.mx2Df  
+    the .MXS-File Data (if any) self.df (Non Vectorchannels Only)
     ---
     the .MXS-File Data: calculations results 
-    index:   Timestamps (scenario time)
+    index:   TIMESTAMP (scenario time)
     columns: Values  
              The following (String-)ID - called Sir3sID - is used as Column-Label:
              OBJTYPE~NAME1~NAME2~OBJTYPE_PK~ATTRTYPE 
              A Sir3sID consists of ~ seperated MX1-File terms.
+    ---
+    Note the following implicit Effect:
+        Calls To setResultsTo... 
+        will dump Vectorchannel Data to .MXS.vec.h5    
     """
     def __init__(self,mx1File=None,NoH5Read=False,NoMxsRead=False): 
         """
@@ -239,7 +260,7 @@ class Mx():
             The .h5-File is read _instead of the .MX1-File
         ---
         NoMxsRead False:
-        If a .MXS-File exists _parallel _and is newer than .MX1-File and .h5 is not read:
+        If a .MXS-File exists _parallel _and is newer than .MX1-File and .h5-File is not read:
             The .MXS-File is read.           
         """
 
@@ -253,18 +274,19 @@ class Mx():
                     #check if mx1File exists ...
                     if not os.path.exists(self.mx1File): 
                         logStrFinal="{0:s}{1:s}: Not existing!".format(logStr,mx1File)                                 
-                        raise XmError(logStrFinal)  
+                        raise MxError(logStrFinal)  
             else:
                     logStrFinal="{0:s}{1!s}: Not of type str!".format(logStr,mx1File)                                 
-                    raise XmError(logStrFinal)     
+                    raise MxError(logStrFinal)     
 
             #Determine corresponding .MX2 Filename
             (wD,fileName)=os.path.split(self.mx1File)
             (base,ext)=os.path.splitext(fileName)
             self.mx2File=wD+os.path.sep+base+'.'+'MX2'   
                                                      
-            #Determine corresponding .h5 Filename
-            self.h5File=wD+os.path.sep+base+'.'+'h5'        
+            #Determine corresponding .h5 Filename(s)
+            self.h5File=wD+os.path.sep+base+'.'+'h5'    # mx1Df, mx2Df, df (Non Vectordata Only)
+            self.h5FileMxsVecs=wD+os.path.sep+base+'.'+'vec'+'.'+'h5' # (Vectordata)           
             
             #Determine corresponding .MXS Filename
             self.mxsFile=wD+os.path.sep+base+'.'+'MXS'  
@@ -280,19 +302,20 @@ class Mx():
                 if(h5FileTime>mx1FileTime):
                     if os.path.exists(self.mxsFile):  
                         mxsFileTime=os.path.getmtime(self.mxsFile)
-                        if(h5FileTime>mxsFileTime):
-                            logger.debug("{0:s}h5File {1:s} exists _parallel _and is newer than mx1File {2:s} _and newer than mxsFile {3:s}:".format(logStr,self.h5File,self.mx1File,self.mxsFile))     
-                            logger.debug("{0:s}The h5File is read _instead of the mx1File.".format(logStr))   
+                        if(h5FileTime>mxsFileTime and not NoH5Read):
+                            logger.debug("{0:s}h5File {1:s} exists _parallel _and is newer than mx1File {2:s} _and is newer than existing mxsFile {3:s} _and NoH5Read False:".format(logStr,self.h5File,self.mx1File,self.mxsFile))     
+                            logger.debug("{0:s}The h5File is read _instead of the mx1File (mxsFile exists).".format(logStr))   
                             h5Read=True
-                        else:                                 
-                            logger.debug("{0:s}h5File {1:s} exists _parallel but ===NO h5Read=== because mxsFile {2:s} newer.".format(logStr,self.h5File,self.mxsFile))     
+                        else:                                                             
                             h5Read=False  
                     else:
-                        logger.debug("{0:s}h5File {1:s} exists _parallel _and is newer than mx1File {2:s} and there is no mxsFile like {3:s}:".format(logStr,self.h5File,self.mx1File,self.mxsFile))     
-                        logger.debug("{0:s}The h5File is read _instead of the mx1File.".format(logStr))   
-                        h5Read=True  
-                else:
-                    logger.debug("{0:s}h5File {1:s} exists _parallel but ===NO h5Read=== because mx1File {2:s} is newer.".format(logStr,self.h5File,self.mx1File))     
+                        if not NoH5Read:
+                            logger.debug("{0:s}h5File {1:s} exists _parallel _and is newer than mx1File {2:s} _and there is no mxsFile like {3:s} _and NoH5Read False:".format(logStr,self.h5File,self.mx1File,self.mxsFile))     
+                            logger.debug("{0:s}The h5File is read _instead of the mx1File.".format(logStr))   
+                            h5Read=True  
+                        else:
+                            h5Read=False  
+                else:                    
                     h5Read=False
             else:
                 h5Read=False
@@ -300,13 +323,14 @@ class Mx():
             self.df=None   
             self.mx1Df=None
 
-            if not h5Read or NoH5Read:               
-                self.__initWithMx1(mx1File)    
-                self.__parseMx2()     
+            if not h5Read:               
+                self.__initWithMx1(mx1File)                    
                 if os.path.exists(self.mxsFile):  
                     mx1FileTime=os.path.getmtime(self.mx1File) 
                     mxsFileTime=os.path.getmtime(self.mxsFile)
                     if(mxsFileTime>mx1FileTime) and not NoMxsRead:
+                        logger.debug("{:s}mxsFile {:s} exists _and is newer than mx1File {:s} _and NoMxsRead False:".format(logStr,self.mxsFile,self.mx1File))     
+                        logger.debug("{:s}The mxsFile is read.".format(logStr))   
                         self.setResultsToMxsFile()                     
             else:                
                 self.FromH5(h5File=self.h5File)
@@ -323,8 +347,9 @@ class Mx():
     def __initWithMx1(self,mx1File):
         """
         (re-)initialize the set with an existing MX1-File:
-            self.mx1Df = MX1-File Content   
-        (re-)builds MxRecordStructUnpackFmtString  
+            self.mx1Df = MX1-File Content           
+        self.__parseMx2()    
+        self.__buildMxRecordStructUnpackFmtString()  
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -380,6 +405,7 @@ class Mx():
 
             logger.debug("{0:s}mx1Df after some generated Columns: Shape: {1!s}.".format(logStr,self.mx1Df.shape))    
 
+            self.__parseMx2()     
             self.__buildMxRecordStructUnpackFmtString()      
                             
         except FileNotFoundError as e:
@@ -405,7 +431,7 @@ class Mx():
 
     def __parseMx2(self):
         """
-        .
+        >self.mx2Df
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -503,11 +529,10 @@ class Mx():
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
-
     def __buildMxRecordStructUnpackFmtString(self):
         """    
         (re-)builds mxRecordStructFmtString and releated stuff:      
-            >self.mxRecordStructFmtString: recordData = struct.unpack(self.mxRecordStructFmtString,record)  
+            >self.mxRecordStructFmtString: recordData = struct.unpack(self.mxRecordStructFmtString,record)              
             >self.bytesUnpacked
             >self.mx1Df['unpackIdx']
             >self.idxTIMESTAMP (idx of TIMESTAMP in MX1)
@@ -516,6 +541,7 @@ class Mx():
             >self.mxColumnNamesVecs=[] (of Vector Channels without TIMESTAMP in MX1-Sequence)
             >self.idxUnpackNonVectorChannels[] (idx in recordData)
             >self.idxUnpackVectorChannels[] (idx in recordData of the 1st ([0]) Element of the Vector)
+            >self.idxOfNonVectorChannels[] (idx in MX1 without TIMESTAMP)
             >self.idxVectorChannels[] (idx in MX1)
         """
 
@@ -548,8 +574,7 @@ class Mx():
                 cDType=row.DATATYPE 
                 cDTypeLength=row.DATATYPELENGTH 
                 cDLength=row.DATALENGTH 
-                nItems=row.NOfItems
-                #items=int(cDLength/cDTypeLength)
+                nItems=row.NOfItems                
                 
                 if cDType=='CHAR':
                     if toBeUnpacked:   
@@ -629,7 +654,7 @@ class Mx():
                     
                 self.mxRecordStructFmtString+=fmtItem
 
-            MxRecordLengthMx1=self.mx1Df['DATAOFFSET'].iloc[-1]+self.mx1Df['DATALENGTH'].iloc[-1] # Die Byte-Laenge des ganzen Ergebnisdatensatzes berechnet sich demnach aus DATAOFFSET+ DATALENGTH des letzten Datenpunktes der MX1    
+            MxRecordLengthMx1=self.mx1Df['DATAOFFSET'].iloc[-1]+self.mx1Df['DATALENGTH'].iloc[-1]     
             MxRecordLengthFmt=struct.calcsize(self.mxRecordStructFmtString)            
             if MxRecordLengthMx1 != MxRecordLengthFmt:
                 logStrFinal="{0:s}Bytes per MX-Record from MX-Channels={1:d} <> Bytes from struct fmt-String for MX-Records={2:d}?! Error.".format(logStr,MxRecordLengthMx1,MxRecordLengthFmt)
@@ -646,7 +671,7 @@ class Mx():
             self.idxTIMESTAMP=self.mx1Df['Sir3sID'][self.mx1Df['Sir3sID']=='ALLG~~~-1~TIMESTAMP'].index[0]
             # unpackIdxTIMESTAMP
             self.unpackIdxTIMESTAMP=self.mx1Df['unpackIdx'][self.mx1Df['Sir3sID']=='ALLG~~~-1~TIMESTAMP'].iloc[0]    
-            logger.debug("{0:s}idxTIMESTAMP={:d} (idx in MX1) unpackIdxTIMESTAMP={:d} (idx in recordData).".format(logStr,self.idxTIMESTAMP,self.unpackIdxTIMESTAMP))                    
+            logger.debug("{:s}idxTIMESTAMP={:d} (idx in MX1) unpackIdxTIMESTAMP={:d} (idx in recordData).".format(logStr,self.idxTIMESTAMP,self.unpackIdxTIMESTAMP))                    
             
             # list all Channels with their relevant attributes 
             # columnNames used in Pandas        
@@ -680,35 +705,39 @@ class Mx():
             logger.debug("{0:s}NOfColumnsVecs: {1:d}.".format(logStr,len(self.mxColumnNamesVecs)))                  
 
             # unpack Idx of Non Vector Channels (without unpack Idx of TIMESTAMP)
-                #idxUnpackNonVectorChannel_bTS=[self.mx1Df['unpackIdx'].iloc[idx] for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if not isVectorChannel and idx < self.unpackIdxTIMESTAMP]
-                #logger.debug("{:s}idxUnpackNonVectorChannel_bTS: {:d}.".format(logStr,len(idxUnpackNonVectorChannel_bTS)))
-                #idxUnpackNonVectorChannel_aTS=[self.mx1Df['unpackIdx'].iloc[idx] for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if not isVectorChannel and idx > self.unpackIdxTIMESTAMP]
-                #logger.debug("{:s}idxUnpackNonVectorChannel_aTS: {:d}.".format(logStr,len(idxUnpackNonVectorChannel_aTS)))
-            
-                #idxUnpackNonVectorChannel_bTS.extend(idxUnpackNonVectorChannel_aTS)            
-                #self.idxUnpackNonVectorChannels=idxUnpackNonVectorChannel_bTS
-
             self.idxUnpackNonVectorChannels=[self.mx1Df['unpackIdx'].iloc[idx] for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if not isVectorChannel]
             self.idxUnpackNonVectorChannels.remove(self.unpackIdxTIMESTAMP) 
             idxUnpackNonVectorChannelsLen=len(self.idxUnpackNonVectorChannels)
             logger.debug("{:s}idxUnpackNonVectorChannelsLen: {:d}.".format(logStr,idxUnpackNonVectorChannelsLen))
 
-            # check with columns
+            # check NonVectorChannels
             if idxUnpackNonVectorChannelsLen != columns:
                 logger.error("{:s}idxUnpackNonVectorChannelsLen: {:d} != NOfColumns (without Timestamp): {:d}?!".format(logStr,idxUnpackNonVectorChannelsLen,columns))               
 
             # unpack Idx of Vector Channels
             self.idxUnpackVectorChannels=[self.mx1Df['unpackIdx'].iloc[idx] for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if isVectorChannel]
-            logger.debug("{:s}idxUnpackVectorChannel: {:d}.".format(logStr,len(self.idxUnpackVectorChannels)))
+            idxUnpackVectorChannelsLen=len(self.idxUnpackVectorChannels)
+            logger.debug("{:s}idxUnpackVectorChannelsLen: {:d}.".format(logStr,idxUnpackVectorChannelsLen))
 
-            # check
+            # check AllValueChannels
             rows,cols=self.mx1Df.shape
-            if (idxUnpackNonVectorChannelsLen+len(self.idxUnpackVectorChannels)) != (rows-1):
-                logger.error("{:s}idxUnpackNonVectorChannelsLen: {:d} != NOfColumns (without Timestamp): {:d}?!".format(logStr,idxUnpackNonVectorChannelsLen,columns))               
+            valueChannels=idxUnpackVectorChannelsLen+idxUnpackNonVectorChannelsLen
+            if (valueChannels != rows-1):
+                logger.error("{:s}valueChannels: {:d} != mx1Df rows -1 {:d}?!".format(logStr,valueChannels,rows-1))               
+
+            # Idx of Non Vector Channels
+            self.idxOfNonVectorChannels=[idx for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if not isVectorChannel]
+            self.idxOfNonVectorChannels.remove(self.idxTIMESTAMP) 
+            logger.debug("{:s}idxOfNonVectorChannels: Len: {:d}.".format(logStr,len(self.idxOfNonVectorChannels)))
 
             # Idx of Vector Channels
             self.idxOfVectorChannels=[idx for idx,isVectorChannel in enumerate(self.mx1Df['isVectorChannel']) if isVectorChannel]
-            logger.debug("{:s}idxVectorChannel: {:d}.".format(logStr,len(self.idxOfVectorChannels)))
+            logger.debug("{:s}idxOfVectorChannels:    Len: {:d}.".format(logStr,len(self.idxOfVectorChannels)))
+
+            # check AllChannels
+            allChannels=len(self.idxOfNonVectorChannels)+len(self.idxOfVectorChannels)
+            if allChannels != rows-1:
+                logger.error("{:s}allChannels: {:d} != mx1Df rows-1 {:d}?!".format(logStr,allChannels,rows-1))      
                                                                               
         except MxError:
             raise            
@@ -719,9 +748,203 @@ class Mx():
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
+    def _readMxsFile(self,mxsFilePtr=None,mxsVecsH5StorePtr=None,firstTime=None,maxRecords=None):
+
+        """
+        Returns the File-Content (Non Vectordata Only) as df.  
+        ---
+        It is implied that the calculation results in the File originate from self.mx1File.  
+        ---
+        TIMESTAMP is used as index.
+        ---
+        df.index.is_unique 
+        might be False 
+        because of SIR 3S'
+        1st Time twice (SNAPSHOTTYPE: STAT+TIME) and Last Time triple (SNAPSHOTTYPE: TIME+TMIN/TMAX)  
+        ---        
+        Writes the Vectordata in mxsFilePtr with mxsVecsH5StorePtr: 
+            Key:   Nanoseconds from firstTime 
+            Value: dfVecs (df with Vectordata for one TIMESTAMP):
+                 TIMESTAMP is used as index.
+            ---
+            the Vectordata for a TIMESTAMP is only written
+                when the Key does _not exist 
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try:   
+            df = None 
+                                                       
+            mxTimes=[]
+            mxTimesVecs=[]
+            mxValues=[]      
+            mxValuesVecs=[]           
+            
+            MxRecordLength=struct.calcsize(self.mxRecordStructFmtString)    
+            if isinstance(maxRecords,int):
+                maxRecordsLimit=True
+            else:
+                maxRecordsLimit=False   
+                      
+            recsReadFromFile=0     
+            firstTime=None    
+            
+            if mxsVecsH5StorePtr != None:
+                keysAtStart=mxsVecsH5StorePtr.keys()
+                                                                     
+            with mxsFilePtr: 
+                try:                    
+                    while True:   # while f.tell() != os.fstat(f.fileno()).st_size does NOT work with Zip's file objects ...    
+                            
+                        # read record 
+                        try: 
+                            record=mxsFilePtr.read(MxRecordLength)
+                            recordData = struct.unpack(self.mxRecordStructFmtString,record)  
+                        except:
+                            logger.debug("{0:s}record=f.read(MxRecordLength) failed (EOF probably).".format(logStr))  
+                            raise EOFError
+                        else:
+                            timeISO8601=None
+
+                        # process record time
+                        try:
+                            timeISO8601 = recordData[self.unpackIdxTIMESTAMP] #b'2017-10-20 00:00:00.000000+01:00' for scenTime 2017-10-20 00:00:00
+                            time = pd.to_datetime(timeISO8601,utc=True) 
+                            time_read_after_to_datetime=time.strftime("%Y-%m-%d %H:%M:%S.%f%z") #%z: UTC offset in the form +HHMM or -HHMM (empty string if the object is naive)        
+                            time = time + pd.to_timedelta('1 hour')   
+                            time_read_finally=time.strftime("%Y-%m-%d %H:%M:%S.%f%z")       
+                            if recsReadFromFile==0 and firstTime==None:
+                                firstTime=time                                                                                                                                                                                                                                                                             
+                        except:
+                            logStrFinal="{0:s}process record time failed. Error.".format(logStr)
+                            logger.error(logStrFinal) 
+                            raise MxError(logStrFinal)                
+                        
+                        # process record
+                        try:                                                                                                                 
+                            # Filter NonVectorChannels and Skip Timestamp (index not value)     
+                            values=[recordData[idx] for idx in self.idxUnpackNonVectorChannels]
+                            #recordData[0:self.idxTIMESTAMP]
+                            #+recordData[self.idxTIMESTAMP+1:]    
+                            logger.debug("{0:s}Time read finally={1!s} Time read after to_datetime: {2!s} timeISO8601 read: {3!s} Values (without Timestamp): {4:d}.".format(logStr
+                                              ,time_read_finally
+                                              ,time_read_after_to_datetime
+                                              ,timeISO8601
+                                              ,len(values)))  
+                            
+                            # Vecs
+                            valuesVecs=[] # all Vectors For One Timestep
+                            for idxOf,idxUnpack in zip(self.idxOfVectorChannels,self.idxUnpackVectorChannels):                                                            
+                                valueVec=recordData[idxUnpack:idxUnpack+self.mx1Df['NOfItems'].iloc[idxOf]] # one Vector For One Timestep
+                                valuesVecs.append(valueVec)                            
+                                                                                       
+                        except:
+                            logStrFinal="{0:s}process record failed. Error.".format(logStr)
+                            logger.error(logStrFinal) 
+                            raise MxError(logStrFinal)                                                                                                          
+                                                  
+                        # store record in memory
+                        try:                            
+                            mxTimes.append(time)                         
+                            mxValues.append(values)                           
+                        except:
+                            logStrFinal="{0:s}store record in memory failed at Time={1!s}. Error.".format(logStr,time_read_finally)
+                            logger.error(logStrFinal) 
+                            raise MxError(logStrFinal)   
+                        
+                        if mxsVecsH5StorePtr != None:
+                            # store record as df in H5
+                            try:      
+                                
+                                 timeH5=time-firstTime
+                                 h5Key=int(str(timeH5.to_timedelta64()).replace('nanoseconds','').rstrip())       
+                                 
+                                 if '/'+str(h5Key) not in keysAtStart:                                                                                                      
+                                     keys=mxsVecsH5StorePtr.keys()
+                                 
+                                     if '/'+str(h5Key) not in keys:      
+                                        mxTimesVecs=[]            
+                                        mxValuesVecs=[]                                                            
+                                        mxTimesVecs.append(time)     
+                                        mxValuesVecs.append(valuesVecs)
+                                        dfVecs = pd.DataFrame.from_records(mxValuesVecs,index=mxTimesVecs,columns=self.mxColumnNamesVecs)                                                                                                      
+                                        logger.debug("{:s}Writing DataFrame {:s} with h5Key=/{!s:>20s}".format(logStr,'dfVecs',h5Key))     
+                                        #H5
+                                        #warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
+                                        #warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)                          
+                                        mxsVecsH5StorePtr.put(str(h5Key),dfVecs)                         
+                            except:
+                                logStrFinal="{0:s}store record as df in H5 failed at Time={1!s}. Error.".format(logStr,time_read_finally)
+                                logger.error(logStrFinal) 
+                                raise MxError(logStrFinal)                                                           
+
+                        # next record                            
+                        recsReadFromFile+=1                               
+                        if maxRecordsLimit:
+                            if recsReadFromFile == maxRecords:
+                                logger.debug("{0:s}maxRecords={1:d} read.".format(logStr,maxRecords))  
+                                raise EOFError   
+                                                   
+                except EOFError:                    
+                    logger.debug("{0:s}Last Time read={1!s}. File finished.".format(logStr,time_read_finally))                                                                                             
+                except:
+                    logStrFinal="{0:s}Last Time read={1!s}. Error.".format(logStr,time_read_finally)
+                    logger.error(logStrFinal) 
+                    raise MxError(logStrFinal)    
+                                  
+            logger.debug("{0:s}File finished: Records read={1:d}. Last Time read={2!s}. MB read={3:07.2f}. MB unpacked={4:07.2f} (making up {5:06.2f} %). ".format(logStr                                                                                                                                         
+                                                                                    ,recsReadFromFile
+                                                                                    ,time_read_finally
+                                                                                    ,recsReadFromFile*MxRecordLength/pow(10,6)
+                                                                                    ,recsReadFromFile*self.bytesUnpacked/pow(10,6)
+                                                                                    ,self.bytesUnpacked/MxRecordLength*100
+                                                                                                                                                 )
+                        )                                                                     
+
+            df = pd.DataFrame.from_records(mxValues,index=mxTimes,columns=self.mxColumnNames)                
+            logger.debug("{0:s}df.shape(): {1!s}.".format(logStr,df.shape))   
+                                                                                  
+        except MxError:
+            raise
+        except MemoryError as e:
+            logStrFinal="{0:s}MemoryError.".format(logStr)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)      
+        except:
+            logStrFinal="{0:s}Error.".format(logStr)
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)                                    
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+            return df
+
+    def _checkMxsVecsFile(self,mxsVecsH5StorePtr=None):
+        """
+        .
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try:                                                                                                                                            
+            keys=sorted([int(key.replace('/','')) for key in mxsVecsH5StorePtr.keys()])
+
+            for key in [ '/'+str(key) for key in keys]:                
+                dfVecs=mxsVecsH5StorePtr[key]  
+                time=dfVecs.index[0]
+                logger.debug("{:s}key {!s:>20s} TIMESTAMP {!s:s}.".format(logStr,key,time))         
+                                                                                                                
+        except MxError:
+            raise
+                               
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+            
     def setResultsToMxsFile(self,mxsFile=None,add=False,maxRecords=None):
         """
-        Sets or adds the MXS-Results to the set.          
+        Sets or adds the MXS-Results to self.df.          
         ---
         Implicit specified is a MXS-File .MXS in the same directory as the MX1-File .MX1.  
         ---
@@ -731,29 +954,56 @@ class Mx():
         ---
         self.df.index.is_unique 
         will be True 
-        because in SIR 3S'
-        1st Time twice (SNAPSHOTTYPE: STAT+TIME) and Last Time triple (SNAPSHOTTYPE: TIME+TMIN/TMAX)  
-        +TIME       is dropped                                
-        +TMIN/TMAX are dropped   
-        ---
-        and because resulting overlapping TIMESTAMPs due to intersections (add=True) are also dropped                                                                                        
+            because in SIR 3S'
+            1st Time twice (SNAPSHOTTYPE: STAT+TIME) and Last Time triple (SNAPSHOTTYPE: TIME+TMIN/TMAX)  
+            +TIME       is dropped                                
+            +TMIN/TMAX are dropped   
+            ---
+            and because resulting overlapping TIMESTAMPs due to intersections (add=True) are also dropped      
+        ---        
+        Note the following implicit Effect:
+            File .vec.h5 is deleted if existing _and older than mxsFile.                              
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
         try: 
-            # Mxs specification ...
+
+            # Mxs specification 
             if mxsFile == None:
-                logger.debug("{0:s}Mxs: Implicit specified ...".format(logStr))                                
+                logger.debug("{0:s}Mxs: Implicit specified.".format(logStr))                                
                 mxsFile=self.mxsFile
-                       
-            logger.debug("{0:s}Mxs: {1:s} ...".format(logStr,mxsFile))                
+        
+            # .vec.h5 Handling 
+            if os.path.exists(self.h5FileMxsVecs):      
+            
+                mxsFileTime=os.path.getmtime(mxsFile) 
+                mxsH5FileTime=os.path.getmtime(self.h5FileMxsVecs)
+
+                if mxsFileTime>mxsH5FileTime:
+                    # die zu lesende Mxs ist neuer als der Dump: Dump loeschen
+                    if not add:                    
+                        logger.debug("{:s}Delete Dump because Mxs {:s} To Read is newer than Dump {:s} ...".format(logStr,mxsFile,self.h5FileMxsVecs))     
+                    else:
+                        logger.warning("{:s}Delete Dump because Mxs {:s} To Read is newer than Dump {:s} ...".format(logStr,mxsFile,self.h5FileMxsVecs))     
+                    os.remove(self.h5FileMxsVecs)
+                
+            mxsVecH5Store=pd.HDFStore(self.h5FileMxsVecs) 
+            #self._checkMxsVecsFile(mxsVecsH5StorePtr=mxsVecH5Store)  
+                                                                                      
+            if isinstance(self.df,pd.core.frame.DataFrame):   
+                firstTime=self.df.index[0]
+            else:
+                firstTime=None
+            
+            #Mxs reading ...           
+            logger.debug("{0:s}Mxs: {1:s} opening ...".format(logStr,mxsFile))                
             with open(mxsFile,'rb') as f:
                  # Mxs exists ...
                 logger.debug("{0:s}Mxs: {1:s} reading ...".format(logStr,mxsFile))                
                 # Mxs reading ...
-                dfMxs=self._readMxsFile(f,maxRecords=maxRecords)     
+                dfMxs=self._readMxsFile(f,mxsVecsH5StorePtr=mxsVecH5Store,firstTime=firstTime,maxRecords=maxRecords)                                     
                            
             if isinstance(dfMxs,pd.core.frame.DataFrame):                                     
                 # Unique index ...
@@ -774,7 +1024,8 @@ class Mx():
                 # sort
                 if add:
                     self.df.sort_index(inplace=True)    
-                logger.debug("{0:s}RESULT after {1:s}: df Shape: {2!s} First Time: {3!s} Last Time: {4!s}.".format(logStr,mxsFile,self.df.shape,self.df.index[0],self.df.index[-1]))                                                
+                logger.debug("{0:s}RESULT after {1:s}: df Shape: {2!s} First Time: {3!s} Last Time: {4!s}.".format(logStr,mxsFile,self.df.shape,self.df.index[0],self.df.index[-1]))            
+                self._checkMxsVecsFile(mxsVecsH5StorePtr=mxsVecH5Store)                                    
             else:
                 logger.error("{0:s}Mxs: {1:s}: Reading failed.".format(logStr,mxsFile))    
                           
@@ -801,11 +1052,12 @@ class Mx():
             logger.error(logStrFinal) 
             raise MxError(logStrFinal)                                    
         else:
+            mxsVecH5Store.close()
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                 
 
     def setResultsToMxsZipFile(self,mxsZipFile=None,add=False,maxRecords=None):
         """
-        Sets or adds the MXS-Results in the Zip to the set.                 
+        Sets or adds the MXS-Results in the Zip to self.df.                 
         ---
         Implicit specified is a Zip-File .ZIP in the same directory as the MX1-File .MX1.  
         ---
@@ -817,12 +1069,15 @@ class Mx():
         ---
         self.df.index.is_unique 
         will be True 
-        because in SIR 3S' 
-        1st Time twice (SNAPSHOTTYPE: STAT+TIME) and Last Time triple (SNAPSHOTTYPE: TIME+TMIN/TMAX)  
-        +TIME       is  dropped                                
-        +TMIN/TMAX  are dropped 
-        ---
-        and because resulting overlapping TIMESTAMPs due to intersections between the Zip-MXS (or due to add=True) are also dropped
+            because in SIR 3S' 
+            1st Time twice (SNAPSHOTTYPE: STAT+TIME) and Last Time triple (SNAPSHOTTYPE: TIME+TMIN/TMAX)  
+            +TIME       is  dropped                                
+            +TMIN/TMAX  are dropped 
+            ---
+            and because resulting overlapping TIMESTAMPs due to intersections between the Zip-MXS (or due to add=True) are also dropped
+        ---        
+        Note the following implicit Effect:
+            File .vec.h5 is deleted if existing _and older than mxsZipFile.          
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -852,7 +1107,29 @@ class Mx():
                 maxRecordsLimit=True
             else:
                 maxRecordsLimit=False   
+
+            # .vec.h5 Handling 
+            if os.path.exists(self.h5FileMxsVecs):      
             
+                mxsZipFileTime=os.path.getmtime(mxsZipFile) 
+                mxsH5FileTime=os.path.getmtime(self.h5FileMxsVecs)
+
+                if mxsZipFileTime>mxsH5FileTime:
+                    # die zu lesende MxsZip ist neuer als der Dump: Dump loeschen
+                    if not add:                    
+                        logger.debug("{:s}Delete Dump because MxsZip {:s} To Read is newer than Dump {:s} ...".format(logStr,mxsZipFile,self.h5FileMxsVecs))     
+                    else:
+                        logger.warning("{:s}Delete Dump because MxsZip {:s} To Read is newer than Dump {:s} ...".format(logStr,mxsZipFile,self.h5FileMxsVecs))     
+                    os.remove(self.h5FileMxsVecs)
+                
+            mxsVecH5Store=pd.HDFStore(self.h5FileMxsVecs) 
+            #self._checkMxsVecsFile(mxsVecsH5StorePtr=mxsVecH5Store)  
+                                                                                      
+            if isinstance(self.df,pd.core.frame.DataFrame):   
+                firstTime=self.df.index[0]
+            else:
+                firstTime=None
+          
             # Zip reading ...              
             recsReadFromZip=0            
             dfZip=None
@@ -860,7 +1137,7 @@ class Mx():
                 # Mxs reading ...                        
                 with z.open(mxsFileName,'r') as f: 
                     logger.debug("{0:s}Zip: {1:s}: {2:s} reading ...".format(logStr,mxsZipFile,mxsFileName))       
-                    dfMxs=self._readMxsFile(f,maxRecords=maxRecords)
+                    dfMxs=self._readMxsFile(f,mxsVecsH5StorePtr=mxsVecH5Store,firstTime=firstTime,maxRecords=maxRecords)   
 
                 if isinstance(dfMxs,pd.core.frame.DataFrame):                                                                                      
                     # Unique index ...
@@ -909,6 +1186,7 @@ class Mx():
                 # sort
                 self.df.sort_index(inplace=True)  
                 logger.debug("{0:s}RESULT after {1:s}: df Shape: {2!s} First Time: {3!s} Last Time: {4!s}.".format(logStr,mxsZipFile,self.df.shape,self.df.index[0],self.df.index[-1]))         
+                self._checkMxsVecsFile(mxsVecsH5StorePtr=mxsVecH5Store)        
 
             else:
                 logger.error("{0:s}Zip: {1:s}: Reading failed.".format(logStr,mxsZipFile))                                          
@@ -936,140 +1214,8 @@ class Mx():
             logger.error(logStrFinal) 
             raise MxError(logStrFinal)                                    
         else:
+            mxsVecH5Store.close()
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                 
-
-    def _readMxsFile(self,mxsFilePtr=None,maxRecords=None):
-        """
-        Returns the File-Content as df.  
-        ---
-        It is implied that the calculation results in the File originate from self.mx1File.  
-        ---
-        TIMESTAMP is used as index.
-        ---
-        df.index.is_unique 
-        might be False 
-        because of SIR 3S'
-        1st Time twice (SNAPSHOTTYPE: STAT+TIME) and Last Time triple (SNAPSHOTTYPE: TIME+TMIN/TMAX)  
-        """
-
-        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-        try:   
-            df = None #Returns the File-Content as df.  
-                                                       
-            mxTimes=[]
-            mxValues=[]      
-            mxValuesVecs=[]           
-            
-            MxRecordLength=struct.calcsize(self.mxRecordStructFmtString)    
-            if isinstance(maxRecords,int):
-                maxRecordsLimit=True
-            else:
-                maxRecordsLimit=False   
-                      
-            recsReadFromFile=0                                                          
-            with mxsFilePtr: 
-                try:                    
-                    while True:   # while f.tell() != os.fstat(f.fileno()).st_size does NOT work with Zip's file objects ...    
-                            
-                        # read record 
-                        try: 
-                            record=mxsFilePtr.read(MxRecordLength)
-                            recordData = struct.unpack(self.mxRecordStructFmtString,record)  
-                        except:
-                            logger.debug("{0:s}record=f.read(MxRecordLength) failed (EOF probably).".format(logStr))  
-                            raise EOFError
-                        else:
-                            timeISO8601=None
-
-                        # process record time
-                        try:
-                            timeISO8601 = recordData[self.unpackIdxTIMESTAMP] #b'2017-10-20 00:00:00.000000+01:00' for scenTime 2017-10-20 00:00:00
-                            time = pd.to_datetime(timeISO8601,utc=True) 
-                            time_read_after_to_datetime=time.strftime("%Y-%m-%d %H:%M:%S.%f%z") #%z: UTC offset in the form +HHMM or -HHMM (empty string if the object is naive)        
-                            time = time + pd.to_timedelta('1 hour')   
-                            time_read_finally=time.strftime("%Y-%m-%d %H:%M:%S.%f%z")                                 
-                                                                                                                                                                                             
-                        except:
-                            logStrFinal="{0:s}process record time failed. Error.".format(logStr)
-                            logger.error(logStrFinal) 
-                            raise MxError(logStrFinal)                
-                        
-                        # process record
-                        try:                                                                                                                 
-                            # Filter NonVectorChannels and Skip Timestamp (index not value)     
-                            values=[recordData[idx] for idx in self.idxUnpackNonVectorChannels]
-                            #recordData[0:self.idxTIMESTAMP]
-                            #+recordData[self.idxTIMESTAMP+1:]    
-                            logger.debug("{0:s}Time read finally={1!s} Time read after to_datetime: {2!s} timeISO8601 read: {3!s} Values (without Timestamp): {4:d}.".format(logStr
-                                              ,time_read_finally
-                                              ,time_read_after_to_datetime
-                                              ,timeISO8601
-                                              ,len(values)))  
-                            
-                            #Vecs
-                            valuesVecs=[]
-                            for idx,idxOf,idxUnpack in enumerate(zip(self.idxOfVectorChannels,self.idxUnpackVectorChannels)):                                                            
-                                valueVec=recordData[idxUnpack:idxUnpack+self.mx1Df['NOfItems'].iloc[idxOf]]
-                                valuesVecs.append(valueVec)                            
-                                                                                       
-                        except:
-                            logStrFinal="{0:s}process record failed. Error.".format(logStr)
-                            logger.error(logStrFinal) 
-                            raise MxError(logStrFinal)                                                                                                          
-                                                  
-                        # store record
-                        try:
-                            mxTimes.append(time)                         
-                            mxValues.append(values)
-                            mxValuesVecs.append(valuesVecs)
-                        except:
-                            logStrFinal="{0:s}store record failed at Time={1!s}. Error.".format(logStr,timeISO8601)
-                            logger.error(logStrFinal) 
-                            raise MxError(logStrFinal)                                   
-
-                        # next record                            
-                        recsReadFromFile+=1                               
-                        if maxRecordsLimit:
-                            if recsReadFromFile == maxRecords:
-                                logger.debug("{0:s}maxRecords={1:d} read.".format(logStr,maxRecords))  
-                                raise EOFError   
-                                                   
-                except EOFError:                    
-                    logger.debug("{0:s}Last Time read={1!s}. File finished.".format(logStr,timeISO8601))                                                                                             
-                except:
-                    logStrFinal="{0:s}Last Time read={1!s}. Error.".format(logStr,timeISO8601)
-                    logger.error(logStrFinal) 
-                    raise MxError(logStrFinal)    
-                                  
-            logger.debug("{0:s}File finished: Records read={1:d}. Last Time read={2!s}. MB read={3:07.2f}. MB unpacked={4:07.2f} (making up {5:06.2f} %). ".format(logStr                                                                                                                                         
-                                                                                    ,recsReadFromFile
-                                                                                    ,timeISO8601
-                                                                                    ,recsReadFromFile*MxRecordLength/pow(10,6)
-                                                                                    ,recsReadFromFile*self.bytesUnpacked/pow(10,6)
-                                                                                    ,self.bytesUnpacked/MxRecordLength*100
-                                                                                                                                                 )
-                        )                                                                     
-
-            df = pd.DataFrame.from_records(mxValues,index=mxTimes,columns=self.mxColumnNames)                
-            logger.debug("{0:s}df.shape(): {1!s}.".format(logStr,df.shape))   
-            self.dfVecs = pd.DataFrame.from_records(mxValuesVecs,index=mxTimes,columns=self.mxColumnNamesVecs)                
-            logger.debug("{0:s}dfVecs.shape(): {1!s}.".format(logStr,self.dfVecs.shape))   
-                                                                        
-        except MxError:
-            raise
-        except MemoryError as e:
-            logStrFinal="{0:s}MemoryError.".format(logStr)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)      
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                                    
-        finally:
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
-            return df
 
     def ToH5(self,h5File=None):
         """
@@ -1104,8 +1250,8 @@ class Mx():
             h5KeyCharForMinus='_'
             relPath2Mx1FromCurDirH5BaseKey=re.sub('\.',h5KeyCharForDot,re.sub(r'\\',h5KeySep,re.sub('-',h5KeyCharForMinus,re.sub('.mx1','',relPath2Mx1FromCurDir,flags=re.IGNORECASE))))
                        
-            warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
-            warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)
+            #warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
+            #warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)
                                       
             logger.debug("{0:s}pd.HDFStore({1:s}) ...".format(logStr,h5File))                 
             with pd.HDFStore(h5File) as h5Store:  
@@ -1222,19 +1368,66 @@ class Mx():
 
             with open(mxsDumpFile,'wb') as f:
 
+                # ueber alle Zeiten ...
                 for idx,row in enumerate(self.df.itertuples(index=False)):
-                    values=list(row)
-                    scenTime=self.df.index[idx]                   
+                    
+                    # TIMESTAMP herrichten
+                    try:                        
+                        scenTime=self.df.index[idx]                                                                                               
+                        #timeISO8601 read:          b'2017-10-20 00:00:00.000000+01:00' - the original timeISO8601 read is marked as UTC +1 written as +01:00
+                        #Time read after to_datetime: 2017-10-19 23:00:00.000000+0000   - the result after pd.to_datetime(timeISO8601,utc=True) 
+                        #Time read finally            2017-10-20 00:00:00.000000+0000   - the time used - "corrected" manually +1 hour 
+                        #+01:00 instead of %z because %z will be +0000 ...  
+                        scenTimeStr=scenTime.strftime("%Y-%m-%d %H:%M:%S.%f+01:00") 
+                        scenTimeStrBytes=scenTimeStr.encode('utf-8')
+                    except:
+                        logStrFinal="{0:s}h5File: {1!s}: TIMESTAMP herrichten: Error.".format(logStr,mxsDumpFile)
+                        logger.error(logStrFinal) 
+                        raise MxError(logStrFinal)    
+
+                    # Values herrichten und Satz schreiben
+                    try:    
+                        valuesNonVec=list(row)
+                        # valuesVec
+                        # h5Key aus scenTime
+                        firstTime=self.df.index[0]
+                        timeH5=scenTime-firstTime
+                        h5Key=int(str(timeH5.to_timedelta64()).replace('nanoseconds','').rstrip())    
+                        h5Key='/'+str(h5Key)
+                        # dfVecs lesen
+                        with pd.HDFStore(self.h5FileMxsVecs) as mxsVecsH5Store: 
+                            dfVecs=mxsVecsH5Store[h5Key]  
+                        for row in dfVecs.itertuples(index=False):
+                            # one row
+                            valuesVec=list(row)
+                        # Gesamt anlegen
+                        rows,cols = self.mx1Df.shape
+                        values=[]
+                        for idx in range(rows):
+                            values.append(None)
+                        # Gesamt bestuecken
+                        for idx,idxOf in enumerate(self.idxOfVectorChannels):
+                            values[idxOf]=valuesVec[idx]
+                        for idx,idxOf in enumerate(self.idxOfNonVectorChannels):
+                            values[idxOf]=valuesNonVec[idx]                        
+                        # TIMESTAMP einpflegen
+                        values[self.idxTIMESTAMP]=scenTimeStrBytes      
+                        # Gesamt Einzelvalues
+                        valuesSingle=[]
+                        for idx,value in enumerate(values):
+                            if idx not in self.idxOfVectorChannels:
+                                valuesSingle.append(value)
+                            else:
+                                for vecItem in value:
+                                    valuesSingle.append(vecItem)                                                                                                                                  
+                        # Satz schreiben
+                        bytes=struct.pack(self.mxRecordStructFmtString,*valuesSingle)
+                        f.write(bytes)        
+                        logger.debug("{:s}mxsDumpFile: {:s}: TIMSTAMP: {:s}: geschrieben.".format(logStr,mxsDumpFile,scenTimeStr))                                                                     
+                    except:
+                        logger.debug("{:s}mxsDumpFile: {:s}: TIMSTAMP: {:s}: Exception. Continue.".format(logStr,mxsDumpFile,scenTimeStr))                                                     
+                        continue                      
                                                                             
-                    #timeISO8601 read:          b'2017-10-20 00:00:00.000000+01:00' - the original timeISO8601 read is marked as UTC +1 written as +01:00
-                    #Time read after to_datetime: 2017-10-19 23:00:00.000000+0000   - the result after pd.to_datetime(timeISO8601,utc=True) 
-                    #Time read finally            2017-10-20 00:00:00.000000+0000   - the time used - "corrected" manually +1 hour 
-                    #+01:00 instead of %z because %z will be +0000 ...  
-                    scenTimeStr=scenTime.strftime("%Y-%m-%d %H:%M:%S.%f+01:00") 
-                    values.insert(self.idxTIMESTAMP,scenTimeStr.encode('utf-8'))                   
-                    bytes=struct.pack(self.mxRecordStructFmtString,*values)
-                    f.write(bytes)      
-               
         except OSError as e:
             logStrFinal="{0:s}h5File: {1!s}: OSError.".format(logStr,mxsDumpFile)
             logger.error(logStrFinal) 
