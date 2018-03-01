@@ -56,16 +56,18 @@ For Pipevectorchannels the Number of interior Points per Pipe is defined in the 
 >>> mx.setResultsToMxsFile() # looks for M-1-0-1.MXS in same Dir 
 >>> type(mx.df) # MXS-Content
 <class 'pandas.core.frame.DataFrame'>
->>> mx._checkMxsVecsFile()
+>>> rowsDf,colsDf = mx.df.shape
+>>> (firstTime,lastTime,rows)=mx._checkMxsVecsFile()
+>>> rowsDf==rows
+True
+>>> mx.df.index[0]==firstTime
+True
 >>> # ---
 >>> # Write H5
 >>> # ---
 >>> if os.path.exists(mx.h5File):                        
 ...      os.remove(mx.h5File)
 >>> mx.ToH5() # M-1-0-1.h5 in same Dir 
->>> os.path.exists(mx.h5File)
-True
->>> mx.ToH5() # M-1-0-1.h5 in same Dir is deleted if exists before written again
 >>> os.path.exists(mx.h5File)
 True
 >>> # ---
@@ -183,6 +185,14 @@ True
 >>> rowsZip==rowsOld
 True
 >>> # ---
+>>> # Without MX1, MXS
+>>> # ---
+>>> os.rename(mx.mx1File,mx.mx1File+'.blind')
+>>> os.rename(mx.mxsFile,mx.mxsFile+'.blind')
+>>> mx=Mx(mx1File=mx1File)  
+>>> os.rename(mx.mx1File+'.blind',mx.mx1File)
+>>> os.rename(mx.mxsFile+'.blind',mx.mxsFile)
+>>> # ---
 >>> # Clean Up
 >>> # ---
 >>> if os.path.exists(mx.h5File):                        
@@ -221,9 +231,20 @@ import subprocess
 
 import warnings
 import tables
+import math
 
-
-#math.floor(tds.total_seconds())*1000+tds.microseconds
+def getMicrosecondsFromRefTime(refTime=None,time=None):
+    """
+    returns microseconds since refTime
+    """
+    pass
+    try:
+        timeH5=time-refTime
+        h5Key=int(math.floor(timeH5.total_seconds())*1000+timeH5.microseconds)
+    except:
+        pass
+    finally:
+        return h5Key
 
 class MxError(Exception):
     def __init__(self, value):
@@ -254,11 +275,11 @@ class Mx():
         (re-)initialize the Set with an MX1-File.
         ---
         NoH5Read False:
-        If a .h5-File exists _parallel _and is newer than .MX1-File _and newer than an (_existing) .MXS-File:
+        If a .h5-File exists _and is newer than an (existing) .MX1-File _and newer than an (existing) .MXS-File:
             The .h5-File is read _instead of the .MX1-File
         ---
         NoMxsRead False:
-        If a .MXS-File exists _parallel _and is newer than .MX1-File and .h5-File is not read:
+        If a .MXS-File exists _and is newer than .MX1-File and .h5-File is not read:
             The .MXS-File is read.           
         """
 
@@ -269,10 +290,6 @@ class Mx():
 
             if type(mx1File) == str:
                     self.mx1File=mx1File  
-                    #check if mx1File exists ...
-                    if not os.path.exists(self.mx1File): 
-                        logStrFinal="{0:s}{1:s}: Not existing!".format(logStr,mx1File)                                 
-                        raise MxError(logStrFinal)  
             else:
                     logStrFinal="{0:s}{1!s}: Not of type str!".format(logStr,mx1File)                                 
                     raise MxError(logStrFinal)     
@@ -292,24 +309,32 @@ class Mx():
             #Determine corresponding .MXS Zip-Filename
             self.mxsZipFile=wD+os.path.sep+base+'.'+'ZIP'   
 
-            #check if h5File exists parallel 
-            if os.path.exists(self.h5File):  
-                #check if h5File is newer
+            #check if mx1File exists ...
+            if os.path.exists(self.mx1File):
+                mx1FileThere=True
                 mx1FileTime=os.path.getmtime(self.mx1File) 
+            else:
+                mx1FileThere=False
+                mx1FileTime=0
+                logger.debug("{0:s}{1:s}: Not existing!".format(logStr,mx1File))     
+             
+            #check if h5File exists 
+            if os.path.exists(self.h5File):  
+                #check if h5File is newer               
                 h5FileTime=os.path.getmtime(self.h5File)
                 if(h5FileTime>mx1FileTime):
                     if os.path.exists(self.mxsFile):  
                         mxsFileTime=os.path.getmtime(self.mxsFile)
                         if(h5FileTime>mxsFileTime and not NoH5Read):
-                            logger.debug("{0:s}h5File {1:s} exists _parallel _and is newer than mx1File {2:s} _and is newer than existing mxsFile {3:s} _and NoH5Read False:".format(logStr,self.h5File,self.mx1File,self.mxsFile))     
-                            logger.debug("{0:s}The h5File is read _instead of the mx1File (mxsFile exists).".format(logStr))   
+                            logger.debug("{0:s}h5File {1:s} exists _and is newer than an (existing) mx1File {2:s} _and is newer than an (existing) mxsFile {3:s} _and NoH5Read False:".format(logStr,self.h5File,self.mx1File,self.mxsFile))     
+                            logger.debug("{0:s}The h5File is read _instead of an (existing) mx1File (mxsFile exists).".format(logStr))   
                             h5Read=True
                         else:                                                             
                             h5Read=False  
                     else:
                         if not NoH5Read:
-                            logger.debug("{0:s}h5File {1:s} exists _parallel _and is newer than mx1File {2:s} _and there is no mxsFile like {3:s} _and NoH5Read False:".format(logStr,self.h5File,self.mx1File,self.mxsFile))     
-                            logger.debug("{0:s}The h5File is read _instead of the mx1File.".format(logStr))   
+                            logger.debug("{0:s}h5File {1:s} exists _and is newer than an (existing) mx1File {2:s} _and there is no mxsFile like {3:s} _and NoH5Read False:".format(logStr,self.h5File,self.mx1File,self.mxsFile))     
+                            logger.debug("{0:s}The h5File is read _instead of an (existing) mx1File.".format(logStr))   
                             h5Read=True  
                         else:
                             h5Read=False  
@@ -321,7 +346,10 @@ class Mx():
             self.df=None   
             self.mx1Df=None
 
-            if not h5Read:               
+            if not h5Read:
+                if not mx1FileThere:
+                   logStrFinal="{0:s}{1:s}: Not existing! Error.".format(logStr,mx1File)                                 
+                   raise MxError(logStrFinal)                 
                 self.__initWithMx1(mx1File)                    
                 if os.path.exists(self.mxsFile):  
                     mx1FileTime=os.path.getmtime(self.mx1File) 
@@ -671,25 +699,12 @@ class Mx():
             self.unpackIdxTIMESTAMP=self.mx1Df['unpackIdx'][self.mx1Df['Sir3sID']=='ALLG~~~-1~TIMESTAMP'].iloc[0]    
             logger.debug("{:s}idxTIMESTAMP={:d} (idx in MX1) unpackIdxTIMESTAMP={:d} (idx in recordData).".format(logStr,self.idxTIMESTAMP,self.unpackIdxTIMESTAMP))                    
             
-            # list all Channels with their relevant attributes 
             # columnNames used in Pandas        
             self.mxColumnNames=[]  
             self.mxColumnNamesVecs=[]  
             for idxChannel,idxUnpack in [(idxChannel,idxUnpack)  for idxChannel,idxUnpack in enumerate(self.mx1Df['unpackIdx']) if idxUnpack >=0]:                 
-                sir3sID=self.mx1Df['Sir3sID'].iloc[idxChannel]
-                idxUnpack=self.mx1Df['unpackIdx'].iloc[idxChannel]
-                isVectorChannel=self.mx1Df['isVectorChannel'].iloc[idxChannel]
-                isVectorChannelMx2=self.mx1Df['isVectorChannelMx2'].iloc[idxChannel]             
-                isVectorChannelMx2Rvec=self.mx1Df['isVectorChannelMx2Rvec'].iloc[idxChannel]
-
-                logger.debug("{:s}Channel-Nr. {:>6d} Sir3sID {:>60s} idxUnpack {:>6d}  isVectorChannel {!s:>6s} isVectorChannelMx2 {!s:>6s} isVectorChannelMx2Rvec {!s:>6s}.".format(logStr
-                         ,idxChannel
-                         ,sir3sID
-                         ,idxUnpack
-                         ,isVectorChannel
-                         ,isVectorChannelMx2
-                         ,isVectorChannelMx2Rvec))  
-                
+                sir3sID=self.mx1Df['Sir3sID'].iloc[idxChannel]        
+                isVectorChannel=self.mx1Df['isVectorChannel'].iloc[idxChannel]        
                 if not isVectorChannel:                   
                     self.mxColumnNames.append(sir3sID)
                 else:
@@ -699,7 +714,7 @@ class Mx():
             idxTIMESTAMP=self.mxColumnNames.index('ALLG~~~-1~TIMESTAMP')
             del self.mxColumnNames[idxTIMESTAMP] 
             columns=len(self.mxColumnNames)
-            logger.debug("{0:s}NOfColumns (without Timestamp): {1:d}.".format(logStr,columns))                
+            logger.debug("{0:s}NOfColumns (without TIMESTAMP): {1:d}.".format(logStr,columns))                
             logger.debug("{0:s}NOfColumnsVecs: {1:d}.".format(logStr,len(self.mxColumnNamesVecs)))                  
 
             # unpack Idx of Non Vector Channels (without unpack Idx of TIMESTAMP)
@@ -735,8 +750,23 @@ class Mx():
             # check AllChannels
             allChannels=len(self.idxOfNonVectorChannels)+len(self.idxOfVectorChannels)
             if allChannels != rows-1:
-                logger.error("{:s}allChannels: {:d} != mx1Df rows-1 {:d}?!".format(logStr,allChannels,rows-1))      
-                                                                              
+                logger.error("{:s}allChannels: {:d} != mx1Df rows-1 {:d}?!".format(logStr,allChannels,rows-1))   
+                
+            # list all Channels with their relevant attributes         
+            for idxChannel,idxUnpack in [(idxChannel,idxUnpack)  for idxChannel,idxUnpack in enumerate(self.mx1Df['unpackIdx']) if idxUnpack >=0]:                 
+                sir3sID=self.mx1Df['Sir3sID'].iloc[idxChannel]
+                idxUnpack=self.mx1Df['unpackIdx'].iloc[idxChannel]
+                isVectorChannel=self.mx1Df['isVectorChannel'].iloc[idxChannel]
+                isVectorChannelMx2=self.mx1Df['isVectorChannelMx2'].iloc[idxChannel]             
+                isVectorChannelMx2Rvec=self.mx1Df['isVectorChannelMx2Rvec'].iloc[idxChannel]
+                logger.debug("{:s}Channel-Nr. {:>6d} Sir3sID {:>60s} idxUnpack {:>6d}  isVectorChannel {!s:>6s} isVectorChannelMx2 {!s:>6s} isVectorChannelMx2Rvec {!s:>6s}.".format(logStr
+                         ,idxChannel
+                         ,sir3sID
+                         ,idxUnpack
+                         ,isVectorChannel
+                         ,isVectorChannelMx2
+                         ,isVectorChannelMx2Rvec))  
+                                                                                     
         except MxError:
             raise            
         except:
@@ -761,7 +791,7 @@ class Mx():
         1st Time twice (SNAPSHOTTYPE: STAT+TIME) and Last Time triple (SNAPSHOTTYPE: TIME+TMIN/TMAX)  
         ---        
         Writes the Vectordata in mxsFilePtr with mxsVecsH5StorePtr: 
-            Key:   Nanoseconds from firstTime 
+            Key:   microseconds from firstTime 
             Value: dfVecs (df with Vectordata for one TIMESTAMP):
                  TIMESTAMP is used as index.
             ---
@@ -825,12 +855,7 @@ class Mx():
                             # Filter NonVectorChannels and Skip Timestamp (index not value)     
                             values=[recordData[idx] for idx in self.idxUnpackNonVectorChannels]
                             #recordData[0:self.idxTIMESTAMP]
-                            #+recordData[self.idxTIMESTAMP+1:]    
-                            logger.debug("{0:s}Time read finally={1!s} Time read after to_datetime: {2!s} timeISO8601 read: {3!s} Values (without Timestamp): {4:d}.".format(logStr
-                                              ,time_read_finally
-                                              ,time_read_after_to_datetime
-                                              ,timeISO8601
-                                              ,len(values)))  
+                            #+recordData[self.idxTIMESTAMP+1:]                              
                             
                             # Vecs
                             valuesVecs=[] # all Vectors For One Timestep
@@ -852,12 +877,12 @@ class Mx():
                             logger.error(logStrFinal) 
                             raise MxError(logStrFinal)   
                         
+                        h5DumpLog="{:s} NO (no Dumpfile).".format('H5Dump:')
                         if mxsVecsH5StorePtr != None:
                             # store record as df in H5
                             try:      
-                                
-                                 timeH5=time-firstTime
-                                 h5Key=int(str(timeH5.to_timedelta64()).replace('nanoseconds','').rstrip())       
+                                 h5DumpLog="{:s} NO.".format('H5Dump:')
+                                 h5Key=getMicrosecondsFromRefTime(refTime=firstTime,time=time)   
                                  
                                  if '/'+str(h5Key) not in keysAtStart:                                                                                                      
                                      keys=mxsVecsH5StorePtr.keys()
@@ -868,15 +893,25 @@ class Mx():
                                         mxTimesVecs.append(time)     
                                         mxValuesVecs.append(valuesVecs)
                                         dfVecs = pd.DataFrame.from_records(mxValuesVecs,index=mxTimesVecs,columns=self.mxColumnNamesVecs)                                                                                                      
-                                        logger.debug("{:s}Writing DataFrame {:s} with h5Key=/{!s:>20s}".format(logStr,'dfVecs',h5Key))     
                                         #H5
                                         warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
                                         warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)                          
-                                        mxsVecsH5StorePtr.put(str(h5Key),dfVecs)                         
+                                        mxsVecsH5StorePtr.put(str(h5Key),dfVecs)   
+                                        h5DumpLog="{:s} Writing DataFrame {:s} with h5Key=/{!s:>20s}".format('H5Dump:','dfVecs',h5Key) 
+                                                              
                             except:
                                 logStrFinal="{0:s}store record as df in H5 failed at Time={1!s}. Error.".format(logStr,time_read_finally)
                                 logger.error(logStrFinal) 
                                 raise MxError(logStrFinal)                                                           
+
+
+                        logger.debug("{:s}TimeNr. {:>6d} read and processed finally={!s:s} Time read after to_datetime: {!s:s} timeISO8601 read: {!s:s} Values (without TIMESTAMP): {:d} - {:s}.".format(logStr
+                                        ,recsReadFromFile+1
+                                        ,time_read_finally
+                                        ,time_read_after_to_datetime
+                                        ,timeISO8601
+                                        ,len(values)
+                                        ,h5DumpLog))  
 
                         # next record                            
                         recsReadFromFile+=1                               
@@ -920,7 +955,7 @@ class Mx():
 
     def _checkMxsVecsFile(self):
         """
-        .
+        returns (firstTime,lastTime,NOfTimes)
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -931,16 +966,20 @@ class Mx():
                                                                                                                                                
                 keys=sorted([int(key.replace('/','')) for key in mxsVecsH5Store.keys()])
 
-                for key in [ '/'+str(key) for key in keys]:                
+                for idx,key in enumerate([ '/'+str(key) for key in keys]):                
                     dfVecs=mxsVecsH5Store[key]  
                     time=dfVecs.index[0]
-                    logger.debug("{:s}key {!s:>20s} TIMESTAMP {!s:s}.".format(logStr,key,time))         
+                    if idx==0:
+                        firstTime=time
+                    logger.debug("{:s}TimeNr. {:>6d} with key {!s:>20s} and TIMESTAMP {!s:s}.".format(logStr,idx+1,key,time))         
+                lastTime=time
                                                                                                                 
         except MxError:
             raise
                                
         finally:
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
+            return (firstTime,lastTime,idx+1)     
             
     def setResultsToMxsFile(self,mxsFile=None,add=False,maxRecords=None):
         """
@@ -984,9 +1023,9 @@ class Mx():
                 if mxsFileTime>mxsH5FileTime:
                     # die zu lesende Mxs ist neuer als der Dump: Dump loeschen
                     if not add:                    
-                        logger.debug("{:s}Delete Dump because Mxs {:s} To Read is newer than Dump {:s} ...".format(logStr,mxsFile,self.h5FileMxsVecs))     
+                        logger.debug("{:s}Delete H5VecDump because Mxs {:s} To Read is newer than H5VecDump {:s} ...".format(logStr,mxsFile,self.h5FileMxsVecs))     
                     else:
-                        logger.warning("{:s}Delete Dump because Mxs {:s} To Read is newer than Dump {:s} ...".format(logStr,mxsFile,self.h5FileMxsVecs))     
+                        logger.warning("{:s}Delete H5VecDump because Mxs {:s} To Read is newer than the H5VecDump {:s} ...".format(logStr,mxsFile,self.h5FileMxsVecs))     
                     os.remove(self.h5FileMxsVecs)
                 
             mxsVecH5Store=pd.HDFStore(self.h5FileMxsVecs) 
@@ -1115,9 +1154,9 @@ class Mx():
                 if mxsZipFileTime>mxsH5FileTime:
                     # die zu lesende MxsZip ist neuer als der Dump: Dump loeschen
                     if not add:                    
-                        logger.debug("{:s}Delete Dump because MxsZip {:s} To Read is newer than Dump {:s} ...".format(logStr,mxsZipFile,self.h5FileMxsVecs))     
+                        logger.debug("{:s}Delete H5VecDump because MxsZip {:s} To Read is newer than H5VecDump {:s} ...".format(logStr,mxsZipFile,self.h5FileMxsVecs))     
                     else:
-                        logger.warning("{:s}Delete Dump because MxsZip {:s} To Read is newer than Dump {:s} ...".format(logStr,mxsZipFile,self.h5FileMxsVecs))     
+                        logger.warning("{:s}Delete H5VecDump because MxsZip {:s} To Read is newer than H5VecDump {:s} ...".format(logStr,mxsZipFile,self.h5FileMxsVecs))     
                     os.remove(self.h5FileMxsVecs)
                 
             mxsVecH5Store=pd.HDFStore(self.h5FileMxsVecs) 
@@ -1237,7 +1276,7 @@ class Mx():
                 h5File=self.h5File
 
             if os.path.exists(h5File):                        
-                logger.debug("{0:s}{1:s}: Delete ...".format(logStr,h5File))     
+                logger.debug("{0:s}{1:s}: Delete H5 ...".format(logStr,h5File))     
                 os.remove(h5File)
 
             relPath2Mx1FromCurDir=os.path.normpath(os.path.relpath(os.path.normpath(self.mx1File),start=os.path.normpath(os.path.curdir)))
@@ -1296,6 +1335,7 @@ class Mx():
         ---
         /MX1 in h5File:
         mxRecordStructUnpackFmtString and releated stuff is (re-)builded
+        /MX2 in h5File: Check if .vec.h5 corresponds
         """
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.'))  
@@ -1309,7 +1349,7 @@ class Mx():
   
             #Read
             with pd.HDFStore(h5File) as h5Store:
-                h5Keys=h5Store.keys()
+                h5Keys=sorted(h5Store.keys())
                 for h5Key in h5Keys:
                     h5KeySep='/'
                     match=re.search('('+h5KeySep+')(\w+$)',h5Key)
@@ -1324,6 +1364,14 @@ class Mx():
                     if key == 'MXS':                           
                         logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
                         self.df=h5Store[h5Key]
+                        # Check if .vec.h5 corresponds
+                        firstTime=self.df.index[0]
+                        lastTime=self.df.index[-1]
+                        rows,cols=self.df.shape
+                        tupleDf=(firstTime,lastTime,rows)
+                        tupleVecH5=self._checkMxsVecsFile()
+                        if tupleDf != tupleVecH5:                            
+                            logger.warning("{:s}{:s}: tupleDf {!s:s} != tupleVecH5 {!s:s}.".format(logStr,h5File,tupleDf,tupleVecH5))              
 
         except FileNotFoundError as e:
             logStrFinal="{0:s}h5File: {1!s}: FileNotFoundError.".format(logStr,h5File)
@@ -1364,7 +1412,8 @@ class Mx():
 
             with open(mxsDumpFile,'wb') as f:
 
-                # ueber alle Zeiten ...
+                # ueber alle Zeiten in self.df ...
+                idxDumped=0
                 for idx,row in enumerate(self.df.itertuples(index=False)):
                     
                     # TIMESTAMP herrichten
@@ -1387,8 +1436,8 @@ class Mx():
                         # valuesVec
                         # h5Key aus scenTime
                         firstTime=self.df.index[0]
-                        timeH5=scenTime-firstTime
-                        h5Key=int(str(timeH5.to_timedelta64()).replace('nanoseconds','').rstrip())    
+                        h5Key=getMicrosecondsFromRefTime(refTime=firstTime,time=scenTime)
+                        
                         h5Key='/'+str(h5Key)
                         # dfVecs lesen
                         with pd.HDFStore(self.h5FileMxsVecs) as mxsVecsH5Store: 
@@ -1419,9 +1468,10 @@ class Mx():
                         # Satz schreiben
                         bytes=struct.pack(self.mxRecordStructFmtString,*valuesSingle)
                         f.write(bytes)        
-                        logger.debug("{:s}mxsDumpFile: {:s}: TIMSTAMP: {:s}: geschrieben.".format(logStr,mxsDumpFile,scenTimeStr))                                                                     
+                        logger.debug("{:s}mxsDumpFile: {:s}: TimeNr. {:>6d} with TIMESTAMP: {:s}: Dumped.".format(logStr,mxsDumpFile,idxDumped,scenTimeStr))    
+                        idxDumped=idxDumped+1                                                                 
                     except:
-                        logger.debug("{:s}mxsDumpFile: {:s}: TIMSTAMP: {:s}: Exception. Continue.".format(logStr,mxsDumpFile,scenTimeStr))                                                     
+                        logger.debug("{:s}mxsDumpFile: {:s}: TIMESTAMP: {:s}: Exception. Continue.".format(logStr,mxsDumpFile,scenTimeStr))                                                     
                         continue                      
                                                                             
         except OSError as e:

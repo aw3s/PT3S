@@ -33,6 +33,7 @@
     <Content Include="README.md" />
     <Content Include="README.rst" />
     <Content Include="setup.cfg" />
+    <Content Include="testdata\OneLPipe.XML" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Lx.py">
@@ -52,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="nb\" />
+    <Folder Include="testdata\" />
   </ItemGroup>
   <Import Project="$(PtvsTargetsFile)" Condition="Exists($(PtvsTargetsFile))" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" Condition="!Exists($(PtvsTargetsFile))" />
