@@ -1,18 +1,26 @@
 """
 SIR 3S XML ModelFile To pandas DataFrames
-- Views (DataFrames)
-- plotFunctions (plots To matplotlibs gca()/gcf())
-- exportFuntions (TBD): 
-   - .xlsx
-   - .pptx
-   - ...
+        One DataFrame per SIR 3S Objecttype 
+Some Views As pandas DataFrames
+        The Views are designed to deal with tedious groundwork 
+        Views are aggregated somhwat arbitrary ...
+        ... however usage of SIR 3S Modeldata is more convenient and efficient with appropriate Views 
 ---------------------------
 DOCTEST
 ---------------------------
+# ---
+# Imports
+# ---
+>>> import os
+>>> # ---
+>>> # Clean Up
+>>> # ---
+>>> if os.path.exists(r'testdata\OneLPipe.h5'):                        
+...    os.remove(r'testdata\OneLPipe.h5')
 >>> # ---
 >>> # Init
 >>> # ---
->>> xmlFile=r'C:\\3S\Modelle\MVV_FW.XML'
+>>> xmlFile=r'testdata\OneLPipe.XML'
 >>> xm=Xm(xmlFile=xmlFile)
 >>> # ---
 >>> # a View
@@ -22,6 +30,23 @@ DOCTEST
 True
 >>> type(xm.dataFrames[v])
 <class 'pandas.core.frame.DataFrame'>
+>>> # ---
+>>> # ToH5
+>>> # ---
+>>> xm.ToH5()
+>>> os.path.exists(xm.h5File) 
+True
+>>> # ---
+>>> # Without Xml
+>>> # ---
+>>> os.rename(xm.xmlFile,xm.xmlFile+'.blind')
+>>> xm=Xm(xmlFile=xmlFile)
+>>> os.rename(xm.xmlFile+'.blind',xm.xmlFile)
+>>> # ---
+>>> # Clean Up
+>>> # ---
+>>> if os.path.exists(xm.h5File):                        
+...    os.remove(xm.h5File)
 """
 
 import os
@@ -33,27 +58,16 @@ import argparse
 import unittest
 import doctest
 
-#import nbformat
-#from nbconvert.preprocessors import ExecutePreprocessor
-#from nbconvert.preprocessors.execute import CellExecutionError
-
-#import timeit
-
 import xml.etree.ElementTree as ET
 import re
-#import struct
-#import collections
-#import zipfile
 import pandas as pd
 import numpy as np
 import warnings
+import tables
 
 import h5py
 
 import base64
-
-import matplotlib.pyplot as plt
-from matplotlib import colors
 
 class XmError(Exception):
     def __init__(self, value):
@@ -64,14 +78,13 @@ class XmError(Exception):
 class Xm():
     """
     SIR 3S XML ModelFile To pandas DataFrames
-    - Views (DataFrames)
-    - plotFunctions (plots To matplotlibs gca()/gcf())
-    - exportFuntions (TBD): 
-       - .xlsx
-       - .pptx
-       - ...
+            One DataFrame per SIR 3S Objecttype 
+    Some Views As pandas DataFrames
+            The Views are designed to deal with tedious groundwork 
+            Views are aggregated somhwat arbitrary ...
+            ... however usage of SIR 3S Modeldata is more convenient and efficient with appropriate Views     
     """
-    def __init__(self,xmlFile=None):
+    def __init__(self,xmlFile=None,NoH5Read=False):
         """
         Reads SIR 3S XML ModelFile xmlFile
         Stores all SIR 3S ModelData in DataFrames:
@@ -81,9 +94,9 @@ class Xm():
         Creates some Views as DataFrames:
             self.dataFrames[viewName]
             viewName example: vKNOT
-
-        If a h5File exists _parallel _and is newer than xmlFile:
-            The h5File is read _instead of the xmlFile
+        ---
+        If a h5File exists and is newer than an (existing) xmlFile:
+            The h5File is read (instead) of the xmlFile
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -93,7 +106,7 @@ class Xm():
             if type(xmlFile) == str:
                 self.xmlFile=xmlFile  
                 #check if xmlFile exists ...
-                if not os.path.exists(self.xmlFile): 
+                if not os.path.exists(self.xmlFile) and NoH5Read: 
                     logStrFinal="{0:s}{1:s}: Not existing!".format(logStr,xmlFile)                                 
                     raise XmError(logStrFinal)  
             else:
@@ -105,17 +118,21 @@ class Xm():
             (base,ext)=os.path.splitext(fileName)
             self.h5File=wD+os.path.sep+base+'.'+'h5'
 
-            #check if h5File exists parallel 
+            if os.path.exists(self.xmlFile):  
+                xmlFileTime=os.path.getmtime(self.xmlFile) 
+            else:
+                xmlFileTime=0
+
+            #check if h5File exists 
             if os.path.exists(self.h5File):  
                 #check if h5File is newer
-                xmlFileTime=os.path.getmtime(self.xmlFile) 
                 h5FileTime=os.path.getmtime(self.h5File)
                 if(h5FileTime>xmlFileTime):
-                    logger.debug("{0:s}h5File {1:s} exists _parallel _and is newer than xmlFile {2:s}:".format(logStr,self.h5File,self.xmlFile))     
-                    logger.debug("{0:s}The h5File is read _instead of the xmlFile.".format(logStr))   
+                    logger.debug("{0:s}h5File {1:s} exists and is newer than an (existing) xmlFile {2:s}:".format(logStr,self.h5File,self.xmlFile))     
+                    logger.debug("{0:s}The h5File is read (instead) of the xmlFile.".format(logStr))   
                     h5Read=True  
                 else:
-                    logger.debug("{0:s}h5File {1:s} exists _parallel but is NOT newer than xmlFile {2:s}.".format(logStr,self.h5File,self.xmlFile))     
+                    logger.debug("{0:s}h5File {1:s} exists parallel but is NOT newer than xmlFile {2:s}.".format(logStr,self.h5File,self.xmlFile))     
                     h5Read=False
             else:
                 h5Read=False
@@ -124,28 +141,12 @@ class Xm():
                 self.__xmlRead()
             else:
                 self.FromH5(h5File=self.h5File)
-          
-        except FileNotFoundError as e:
-            logStrFinal="{0:s}xmlFile: {1!s}: FileNotFoundError.".format(logStr,self.xmlFile)
+                          
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise XmError(logStrFinal)
-        except OSError as e:
-            logStrFinal="{0:s}xmlFile: {1!s}: OSError.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)
-        except TypeError as e:
-            logStrFinal="{0:s}xmlFile: {1!s}: TypeError.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)      
-        except MemoryError as e:
-            logStrFinal="{0:s}xmlFile: {1!s}: MemoryError. In Notebook: Try: Kernel/Restart.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)                                    
-        except:
-            logStrFinal="{0:s}mx1File: {1!s}: Error.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)               
-        else:
+            raise XmError(logStrFinal)              
+        finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def __xmlRead(self):
@@ -201,28 +202,12 @@ class Xm():
 
             #Views
             self.__vXXXX()
-          
-        except FileNotFoundError as e:
-            logStrFinal="{0:s}xmlFile: {1!s}: FileNotFoundError.".format(logStr,self.xmlFile)
+                                            
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise XmError(logStrFinal)
-        except OSError as e:
-            logStrFinal="{0:s}xmlFile: {1!s}: OSError.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)
-        except TypeError as e:
-            logStrFinal="{0:s}xmlFile: {1!s}: TypeError.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)      
-        except MemoryError as e:
-            logStrFinal="{0:s}xmlFile: {1!s}: MemoryError. In Notebook: Try: Kernel/Restart.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)                                    
-        except:
-            logStrFinal="{0:s}mx1File: {1!s}: Error.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)               
-        else:
+            raise XmError(logStrFinal)                
+        finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def FromH5(self,h5File=None):
@@ -254,27 +239,13 @@ class Xm():
                     logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to tableName {3:s}.".format(logStr,h5File,h5Key,key)) 
                     self.dataFrames[key]=h5Store[h5Key]
                 
-        except FileNotFoundError as e:
-            logStrFinal="{0:s}xmlFile: {1!s}: FileNotFoundError.".format(logStr,self.xmlFile)
+
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise XmError(logStrFinal)
-        except OSError as e:
-            logStrFinal="{0:s}xmlFile: {1!s}: OSError.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)
-        except TypeError as e:
-            logStrFinal="{0:s}xmlFile: {1!s}: TypeError.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)      
-        except MemoryError as e:
-            logStrFinal="{0:s}xmlFile: {1!s}: MemoryError. In Notebook: Try: Kernel/Restart.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)                                    
-        except:
-            logStrFinal="{0:s}mx1File: {1!s}: Error.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)               
-        else:
+            raise XmError(logStrFinal)                                            
+      
+        finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def ToH5(self,h5File=None):
@@ -305,47 +276,23 @@ class Xm():
             relPath2XmlromCurDirH5BaseKey=re.sub('\.',h5KeyCharForDot,re.sub(r'\\',h5KeySep,re.sub('-',h5KeyCharForMinus,re.sub('.xml','',relPath2XmlromCurDir,flags=re.IGNORECASE))))
             #__/__/__/__/__/3S/Modelle/MVV_FW
 
-            #NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though
-            #warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
-
+            warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
+            warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)
+                         
             #Write .h5 File
             logger.debug("{0:s}pd.HDFStore({1:s}) ...".format(logStr,h5File))                 
             with pd.HDFStore(h5File) as h5Store: 
                 for tableName,table in self.dataFrames.items():
                     h5Key=relPath2XmlromCurDirH5BaseKey+h5KeySep+tableName      
                     logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,tableName,h5Key))                                                
-                    h5Store.put(h5Key,table)#,format='table')
+                    h5Store.put(h5Key,table)#,format='table')                  
 
-                #for viewName,view in self.vXXXX.items():
-                #    h5Key=relPath2XmlromCurDirH5BaseKey+h5KeySep+viewName      
-                #    logger.debug("{0:s}{1:s}: write view-DataFrame {2:s} with key={3:s}".format(logStr,h5File,viewName,h5Key))                                                
-                #    h5Store.put(h5Key,view)#,format='table')
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)                                           
             
-                    #metadata=dict(absPath2XmlFile=os.path.abspath(self.xmlFile))
-                    #h5Store.get_storer(h5KeySep).attrs.metadata=metadata
-                    #logger.debug("{0:s}{1:s}: write metadata={2!s} done.".format(logStr,h5File,metadata))     
-          
-        except FileNotFoundError as e:
-            logStrFinal="{0:s}xmlFile: {1!s}: FileNotFoundError.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)
-        except OSError as e:
-            logStrFinal="{0:s}xmlFile: {1!s}: OSError.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)
-        except TypeError as e:
-            logStrFinal="{0:s}xmlFile: {1!s}: TypeError.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)      
-        except MemoryError as e:
-            logStrFinal="{0:s}xmlFile: {1!s}: MemoryError. In Notebook: Try: Kernel/Restart.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)                                    
-        except:
-            logStrFinal="{0:s}mx1File: {1!s}: Error.".format(logStr,self.xmlFile)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)               
-        else:
+        finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def __convertAndFix(self):
@@ -357,6 +304,7 @@ class Xm():
         - , > . (converted in: SWVT_ROWT, LFKT_ROWT, QVAR_ROWT)
         fixes:
         - 1st Time without Value?! (fixed in: SWVT_ROWT, LFKT_ROWT, QVAR_ROWT)       
+        - in new Models constructed from SIR 3S in Xml not all Attrubutes of an Object are written?!   
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -376,12 +324,36 @@ class Xm():
             self.dataFrames['SWVT_ROWT']=self.dataFrames['SWVT_ROWT'].fillna(0) # 1. Zeit ohne Wert fuer ZEIT?!
             self.dataFrames['LFKT_ROWT']=self.dataFrames['LFKT_ROWT'].fillna(0) # 1. Zeit ohne Wert fuer ZEIT?!
             self.dataFrames['QVAR_ROWT']=self.dataFrames['QVAR_ROWT'].fillna(0) # 1. Zeit ohne Wert fuer ZEIT?!
-                      
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
+            
+            
+            # TE only in Waermemodels ? ...
+            try:
+                isinstance(self.dataFrames['KNOT']['TE'],pd.core.series.Series)
+            except:
+                self.dataFrames['KNOT']['TE']=pd.Series()     
+
+            # Models with only one Standard LTGR ...
+            try:
+                isinstance(self.dataFrames['LTGR']['BESCHREIBUNG'],pd.core.series.Series)
+            except:
+                self.dataFrames['LTGR']['BESCHREIBUNG']=pd.Series()    
+
+            # Models with no CONTs ...
+            try:
+                isinstance(self.dataFrames['CONT']['LFDNR'],pd.core.series.Series)
+            except:
+                self.dataFrames['CONT']['LFDNR']=pd.Series()    
+
+            try:
+                isinstance(self.dataFrames['CONT']['GRAF'],pd.core.series.Series)
+            except:
+                self.dataFrames['CONT']['GRAF']=pd.Series()    
+                        
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise XmError(logStrFinal)               
-        else:
+            raise XmError(logStrFinal)             
+        finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def __vXXXX(self):
@@ -392,7 +364,7 @@ class Xm():
 
         The Views are designed to deal with tedious groundwork 
         Views are aggregated somhwat arbitrary ...
-        ... however plot and export functions build on them 
+        ... however usage of SIR 3S Modeldata is more convenient and efficient with appropriate Views 
 
         View-Data:
         Most Colummn-Names will be unchanged
@@ -457,11 +429,11 @@ class Xm():
             self.dataFrames['vFWVB']=self.__vFWVB(vKNOT=self.dataFrames['vKNOT']
                                             ,vLFKT=self.dataFrames['vLFKT']
                                             )                                             
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise XmError(logStrFinal)               
-        else:
+            raise XmError(logStrFinal)              
+        finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def __vLAYR(self):
@@ -520,10 +492,13 @@ class Xm():
             ,'pk','tk'
             ]]
           
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)               
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            if isinstance(vLAYR,pd.core.frame.DataFrame):
+                logger.error(logStrFinal) 
+            else:
+                logger.debug(logStrFinal) 
+                vLAYR=pd.DataFrame()                   
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             return vLAYR
@@ -574,10 +549,10 @@ class Xm():
                 ,'pk'
                 ]]
                                  
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise XmError(logStrFinal)               
+            raise XmError(logStrFinal)                
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vLFKT  
@@ -619,10 +594,10 @@ class Xm():
             #
             vSWVT.rename(columns={'pk_x':'pk'},inplace=True)
                                  
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise XmError(logStrFinal)               
+            raise XmError(logStrFinal)              
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
             return vSWVT   
@@ -711,10 +686,13 @@ class Xm():
             ,'pk','tk'
                  ]]          
             
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)               
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            if isinstance(vRSLW,pd.core.frame.DataFrame):
+                logger.error(logStrFinal) 
+            else:
+                logger.debug(logStrFinal) 
+                vRSLW=pd.DataFrame()              
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vRSLW
@@ -753,8 +731,8 @@ class Xm():
             #
             vQVAR.rename(columns={'pk_x':'pk'},inplace=True)
                                  
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
             raise XmError(logStrFinal)               
         finally:
@@ -792,10 +770,17 @@ class Xm():
                ,'fkCONT'
             ]]
                                
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)               
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            if isinstance(vVKNO,pd.core.frame.DataFrame):
+                logger.error(logStrFinal) 
+            else:
+                logger.debug(logStrFinal) 
+                vVKNO=pd.DataFrame()       
+                vVKNO['NAME']=pd.Series()     
+                vVKNO['CONT']=pd.Series()     
+                vVKNO['fkKNOT']=pd.Series()     
+                vVKNO['fkCONT']=pd.Series()                
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vVKNO
@@ -833,7 +818,8 @@ class Xm():
             vKNOT=pd.merge(self.dataFrames['KNOT'],self.dataFrames['KNOT_BZ'],left_on='pk',right_on='fk')
             vKNOT=pd.merge(vKNOT,self.dataFrames['CONT'],left_on='fkCONT',right_on='pk')
             vKNOT=pd.merge(vKNOT,vVKNO,left_on='pk_x',right_on='fkKNOT',how='left')
-
+            
+          
             vKNOT=vKNOT[[
                     'NAME_x'
                    ,'BESCHREIBUNG','IDREFERENZ'
@@ -848,6 +834,7 @@ class Xm():
                    ,'XKOR','YKOR','ZKOR'
                    ,'pk_x','tk_x'
                 ]]
+
             vKNOT.rename(columns={'NAME_x':'NAME'
                                        ,'NAME_y':'CONT'
                                        ,'ID':'CONT_ID'
@@ -912,8 +899,8 @@ class Xm():
                              )
                 ] 
 
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
             raise XmError(logStrFinal)               
         finally:
@@ -1325,10 +1312,10 @@ class Xm():
                    ,'pXCors','pYCors' # matplotlibs's .plot(pXCors,pYCors,...)
                             ]]
 
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise XmError(logStrFinal)               
+            raise XmError(logStrFinal)           
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
             return vROHR 
@@ -1566,10 +1553,13 @@ class Xm():
             #vFWVB.groupby('W0Cat').describe()
             #vFWVB.groupby('W0Cat').W0.sum()
 
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
-            logger.error(logStrFinal) 
-            raise XmError(logStrFinal)               
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            if isinstance(vFWVB,pd.core.frame.DataFrame):
+                logger.error(logStrFinal) 
+            else:
+                logger.debug(logStrFinal) 
+                vFWVB=pd.DataFrame()                 
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
             return vFWVB             
@@ -1732,10 +1722,10 @@ class Xm():
             legend=plt.legend([lineW0catSumPercent,lineW0catAnzPercent],['MW kum. in %','Anz kum. in %'],loc='upper left')
             plt.grid()
 
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise XmError(logStrFinal)               
+            raise XmError(logStrFinal)                
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
                                   
