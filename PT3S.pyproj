@@ -29,6 +29,7 @@
   <ItemGroup>
     <Content Include=".pypirc" />
     <Content Include="LICENSE" />
+    <Content Include="PT3S.ipynb" />
     <Content Include="README.md" />
     <Content Include="README.rst" />
     <Content Include="setup.cfg" />
