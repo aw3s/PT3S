@@ -8,10 +8,11 @@ Some Views As pandas DataFrames
 ---------------------------
 DOCTEST
 ---------------------------
-# ---
-# Imports
-# ---
+>>> # ---
+>>> # Imports
+>>> # ---
 >>> import os
+>>> import pandas
 >>> # ---
 >>> # Clean Up
 >>> # ---
@@ -28,8 +29,8 @@ DOCTEST
 >>> v='vKNOT'
 >>> v in xm.dataFrames
 True
->>> type(xm.dataFrames[v])
-<class 'pandas.core.frame.DataFrame'>
+>>> isinstance(xm.dataFrames[v],pandas.core.frame.DataFrame)
+True
 >>> # ---
 >>> # ToH5
 >>> # ---
@@ -37,11 +38,24 @@ True
 >>> os.path.exists(xm.h5File) 
 True
 >>> # ---
->>> # Without Xml
+>>> # force Read H5 instead of Xml
 >>> # ---
 >>> os.rename(xm.xmlFile,xm.xmlFile+'.blind')
 >>> xm=Xm(xmlFile=xmlFile)
 >>> os.rename(xm.xmlFile+'.blind',xm.xmlFile)
+>>> # ---
+>>> vKNOT=xm.dataFrames['vKNOT']
+>>> vKNOT[(vKNOT.KTYP.isin(['QKON','PKON'])) & (vKNOT.BESCHREIBUNG.fillna('').str.contains('^Template')==False)].shape
+(2, 24)
+>>> vROHR=xm.dataFrames['vROHR']
+>>> vROHR.shape
+(1, 72)
+>>> isinstance(vROHR['pXCors'],pandas.core.series.Series)
+True
+>>> vROHR['pXCors'][0]
+[0.0, 500.0]
+>>> vROHR.pYCors[0]
+[0.0, 0.0]
 >>> # ---
 >>> # Clean Up
 >>> # ---
@@ -98,7 +112,7 @@ class Xm():
         If a h5File exists and is newer than an (existing) xmlFile:
             The h5File is read (instead) of the xmlFile
         """
-
+        logger = logging.getLogger('PT3S.Xm')   
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
@@ -232,7 +246,7 @@ class Xm():
         try:
             self.dataFrames={}   
             with pd.HDFStore(h5File) as h5Store:
-                h5Keys=h5Store.keys()
+                h5Keys=sorted(h5Store.keys())
                 for h5Key in h5Keys:
                     match=re.search('(/)(\w+$)',h5Key)
                     key=match.group(2)
@@ -282,7 +296,9 @@ class Xm():
             #Write .h5 File
             logger.debug("{0:s}pd.HDFStore({1:s}) ...".format(logStr,h5File))                 
             with pd.HDFStore(h5File) as h5Store: 
-                for tableName,table in self.dataFrames.items():
+                #for tableName,table in self.dataFrames.items():
+                for tableName in sorted(self.dataFrames.keys()):
+                    table=self.dataFrames[tableName]
                     h5Key=relPath2XmlromCurDirH5BaseKey+h5KeySep+tableName      
                     logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,tableName,h5Key))                                                
                     h5Store.put(h5Key,table)#,format='table')                  

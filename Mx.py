@@ -22,21 +22,25 @@ Vector: Sequence of calculation results of the same AType
 For Vectorchannels and Pipevectorchannels the sequence of Objects is defined in the .MX2-File. 
 For Pipevectorchannels the Number of interior Points per Pipe is defined in the .MX2-File. 
 ---------------------------
+DOCTEST
+---------------------------
 >>> # ---
 >>> # Imports
 >>> # ---
->>> import os
->>> import zipfile 
 >>> import logging
+>>> logger = logging.getLogger('PT3S.Mx')  
+>>> import os
+>>> import zipfile
+>>> import pandas
 >>> # ---
 >>> # Init
 >>> # ---
 >>> mx1File=r'testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX1'
 >>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
->>> type(mx.mx1Df) # MX1-Content
-<class 'pandas.core.frame.DataFrame'>
->>> type(mx.df) # MXS-Content
-<class 'NoneType'>
+>>> isinstance(mx.mx1Df,pandas.core.frame.DataFrame) # MX1-Content
+True
+>>> isinstance(mx.df,type(None)) # MXS-Content
+True
 >>> # ---
 >>> # Clean Up
 >>> # ---
@@ -54,8 +58,8 @@ For Pipevectorchannels the Number of interior Points per Pipe is defined in the 
 >>> # ---
 >>> logger.debug("{0:s}: 1st Read MXS".format('DOCTEST')) 
 >>> mx.setResultsToMxsFile() # looks for M-1-0-1.MXS in same Dir 
->>> type(mx.df) # MXS-Content
-<class 'pandas.core.frame.DataFrame'>
+>>> isinstance(mx.df,pandas.core.frame.DataFrame) # MXS-Content
+True
 >>> rowsDf,colsDf = mx.df.shape
 >>> (firstTime,lastTime,rows)=mx._checkMxsVecsFile()
 >>> rowsDf==rows
@@ -75,10 +79,10 @@ True
 >>> # ---
 >>> mx=Mx(mx1File=mx1File) # looks for M-1-0-1.h5 in same Dir 
 >>> # and reads the .h5 if newer than .MX1 and newer than an existing .MXS 
->>> type(mx.mx1Df) # MX1-Content
-<class 'pandas.core.frame.DataFrame'>
->>> type(mx.df) # MXS-Content
-<class 'pandas.core.frame.DataFrame'>
+>>> isinstance(mx.mx1Df,pandas.core.frame.DataFrame) # MX1-Content
+True
+>>> isinstance(mx.df,pandas.core.frame.DataFrame) # MXS-Content
+True
 >>> # ---
 >>> # 1st Read MXS Zip
 >>> # ---
@@ -87,8 +91,8 @@ True
 ...     myzip.write(mx.mxsFile)  
 >>> logger.debug("{0:s}: 1st Read MXS Zip".format('DOCTEST')) 
 >>> mx.setResultsToMxsZipFile() # looks for M-1-0-1.ZIP in same Dir
->>> type(mx.df) # MXS-Content
-<class 'pandas.core.frame.DataFrame'>
+>>> isinstance(mx.df,pandas.core.frame.DataFrame) # MXS-Content
+True
 >>> rowsMxs,colsMxs = mx.df.shape
 >>> mx.df.index.is_unique # all setResultsTo... will ensure this uniqueness under all circumstances
 True
@@ -193,6 +197,22 @@ True
 >>> os.rename(mx.mx1File+'.blind',mx.mx1File)
 >>> os.rename(mx.mxsFile+'.blind',mx.mxsFile)
 >>> # ---
+>>> mx.mx1Df['Sir3sID'][mx.mx1Df['Sir3sID']=='ALLG~~~-1~TIMESTAMP'].index[0]   
+0
+>>> mx.mx1Df['unpackIdx'][mx.mx1Df['Sir3sID']=='ALLG~~~-1~TIMESTAMP'].iloc[0]
+0
+>>> mx.df.shape
+(4, 41)
+>>> isinstance(mx.df.index[0],pandas.tslib.Timestamp)
+True
+>>> str(mx.df.index[0])
+'2018-03-03 00:00:00+00:00'
+>>> ts=mx.df['KNOT~I~~5642914844465475844~QM']
+>>> isinstance(ts,pandas.core.series.Series)
+True
+>>> "{:06.2f}".format(round(ts.iloc[0],2))
+'176.71'
+>>> # ---
 >>> # Clean Up
 >>> # ---
 >>> if os.path.exists(mx.h5File):                        
@@ -282,7 +302,7 @@ class Mx():
         If a .MXS-File exists _and is newer than .MX1-File and .h5-File is not read:
             The .MXS-File is read.           
         """
-
+        logger = logging.getLogger('PT3S.Mx')  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
