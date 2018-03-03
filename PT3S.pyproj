@@ -38,9 +38,6 @@
     <Content Include="testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MXS" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Lx.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Mx.py" />
     <Compile Include="test.py">
       <SubType>Code</SubType>
