@@ -13,15 +13,17 @@ DOCTEST
 >>> # ---
 >>> import os
 >>> import pandas
+>>> path = os.path.dirname(__file__)
 >>> # ---
 >>> # Clean Up
 >>> # ---
->>> if os.path.exists(r'testdata\OneLPipe.h5'):                        
-...    os.remove(r'testdata\OneLPipe.h5')
+>>> h5File=os.path.join(path,'testdata\OneLPipe.h5')
+>>> if os.path.exists(h5File):                        
+...    os.remove(h5File)
 >>> # ---
 >>> # Init
 >>> # ---
->>> xmlFile=r'testdata\OneLPipe.XML'
+>>> xmlFile=os.path.join(path,'testdata\OneLPipe.XML')
 >>> xm=Xm(xmlFile=xmlFile)
 >>> # ---
 >>> # a View
@@ -112,7 +114,6 @@ class Xm():
         If a h5File exists and is newer than an (existing) xmlFile:
             The h5File is read (instead) of the xmlFile
         """
-        logger = logging.getLogger('PT3S.Xm')   
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         

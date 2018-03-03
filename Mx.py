@@ -32,10 +32,12 @@ DOCTEST
 >>> import os
 >>> import zipfile
 >>> import pandas
+>>> path = os.path.dirname(__file__)
 >>> # ---
 >>> # Init
 >>> # ---
->>> mx1File=r'testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX1'
+>>> h5File=os.path.join(path,'testdata\OneLPipe.h5')
+>>> mx1File=os.path.join(path,'testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX1')
 >>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
 >>> isinstance(mx.mx1Df,pandas.core.frame.DataFrame) # MX1-Content
 True
@@ -302,7 +304,6 @@ class Mx():
         If a .MXS-File exists _and is newer than .MX1-File and .h5-File is not read:
             The .MXS-File is read.           
         """
-        logger = logging.getLogger('PT3S.Mx')  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
