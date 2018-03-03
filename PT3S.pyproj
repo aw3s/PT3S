@@ -29,11 +29,13 @@
   <ItemGroup>
     <Content Include=".pypirc" />
     <Content Include="LICENSE" />
-    <Content Include="nb\PT3S.tplx" />
     <Content Include="README.md" />
     <Content Include="README.rst" />
     <Content Include="setup.cfg" />
     <Content Include="testdata\OneLPipe.XML" />
+    <Content Include="testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX1" />
+    <Content Include="testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX2" />
+    <Content Include="testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MXS" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Lx.py">
@@ -54,6 +56,10 @@
   <ItemGroup>
     <Folder Include="nb\" />
     <Folder Include="testdata\" />
+    <Folder Include="testdata\WDOneLPipe\" />
+    <Folder Include="testdata\WDOneLPipe\B1\" />
+    <Folder Include="testdata\WDOneLPipe\B1\V0\" />
+    <Folder Include="testdata\WDOneLPipe\B1\V0\BZ1\" />
   </ItemGroup>
   <Import Project="$(PtvsTargetsFile)" Condition="Exists($(PtvsTargetsFile))" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" Condition="!Exists($(PtvsTargetsFile))" />
