@@ -890,8 +890,8 @@ class Xm():
            ,'XKOR','YKOR','ZKOR'
            ,'pk','tk'
            #plotCors
-           ,'pXCor' # x-self.pXCorZero 
-           ,'pYCor' # x-self.pYCorZero 
+           ,'pXCor' 
+           ,'pYCor' 
           
         """
 
@@ -953,13 +953,13 @@ class Xm():
                    ,'pk','tk'
                 ]]
           
-            self.pXCorZero=vKNOT[
+            pXCorZero=vKNOT[
                 (vKNOT['CONT_ID'].astype(int)==1001) 
                 & 
                 (vKNOT['BESCHREIBUNG'].fillna('').str.startswith('Template Element') == False)]['XKOR'].astype(float).min()
 
             vKNOT['pXCor'] = [
-                 x-self.pXCorZero 
+                 x-pXCorZero 
                  if 
                  y==1001 and not z
                  else
@@ -970,12 +970,12 @@ class Xm():
                              )
                 ] 
 
-            self.pYCorZero=vKNOT[
+            pYCorZero=vKNOT[
                 (vKNOT['CONT_ID'].astype(int)==1001) 
                 & (vKNOT['BESCHREIBUNG'].fillna('').str.startswith('Template Element') == False)]['YKOR'].astype(float).min()
 
             vKNOT['pYCor'] = [
-                 x-self.pYCorZero 
+                 x-pYCorZero 
                  if 
                  y==1001 and not z
                  else
