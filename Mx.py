@@ -219,6 +219,37 @@ True
 (Timestamp('2018-03-03 00:00:00+0000', tz='UTC'), Timestamp('2018-03-03 00:00:03+0000', tz='UTC'), 4)
 >>> mx._checkMxsVecsFile(fullCheck=True)
 (Timestamp('2018-03-03 00:00:00+0000', tz='UTC'), Timestamp('2018-03-03 00:00:03+0000', tz='UTC'), 4)
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',1,'Change','setResultsToMxsFile: finally: h5.close()')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',2,'Change','setResultsToMxsZipFile: finally: h5.close()')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',3,'Change','ToH5: finally: h5.close()')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',4,'Change','FromH5: finally: h5.close()')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',5,'Change','*: except Exception as e')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',6,'Change','setResultsToMxsFile: finally: NewH5Vec=False')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',7,'Change','__init__(...,NoH5Read=True,...)')) 
+>>> if os.path.exists(mx.h5FileMxsVecs):                        
+...    os.remove(mx.h5FileMxsVecs)
+>>> mx=Mx(mx1File=mx1File,NoH5Read=True)
+>>> os.path.exists(mx.h5FileMxsVecs) # exists due to previous test
+True
+>>> h5VecsFileTime=os.path.getmtime(mx.h5FileMxsVecs) 
+>>> mx=Mx(mx1File=mx1File,NoH5Read=True)
+>>> h5VecsFileTime<os.path.getmtime(mx.h5FileMxsVecs) 
+True
+>>> h5VecsFileTime=os.path.getmtime(mx.h5FileMxsVecs) 
+>>> mx=Mx(mx1File=mx1File)
+>>> h5VecsFileTime==os.path.getmtime(mx.h5FileMxsVecs) 
+True
+>>> mx.setResultsToMxsFile()
+>>> h5VecsFileTime==os.path.getmtime(mx.h5FileMxsVecs) 
+True
+>>> mx.setResultsToMxsFile(NewH5Vec=True)
+>>> h5VecsFileTime<os.path.getmtime(mx.h5FileMxsVecs) 
+True
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',8,'Change','setResultsToMxsZipFile: finally: NewH5Vec=False')) 
+>>> mx.ToH5()
+>>> mx=Mx(mx1File=mx1File,NoH5Read=True)
+>>> os.path.exists(mx.h5File)
+False
 >>> # ---
 >>> # Clean Up
 >>> # ---
@@ -295,7 +326,7 @@ class Mx():
     ---
     Note the following implicit Effect:
         Calls To setResultsTo... 
-        will dump Vectorchannel Data to .MXS.vec.h5    
+        will dump Vectorchannel Data to .vec.h5    
     """
     def __init__(self,mx1File=None,NoH5Read=False,NoMxsRead=False): 
         """
@@ -304,10 +335,14 @@ class Mx():
         NoH5Read False:
         If a .h5-File exists _and is newer than an (existing) .MX1-File _and newer than an (existing) .MXS-File:
             The .h5-File is read _instead of the .MX1-File
+        NoH5Read True:
+            A .h5-File is not read.        
+            An existing .h5-File is deleted.    
         ---
         NoMxsRead False:
         If a .MXS-File exists _and is newer than .MX1-File and .h5-File is not read:
-            The .MXS-File is read.           
+            The .MXS-File is read.  
+            The .vec.h5-File is newly created.         
         """
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -343,6 +378,11 @@ class Mx():
                 mx1FileThere=False
                 mx1FileTime=0
                 logger.debug("{0:s}{1:s}: Not existing!".format(logStr,mx1File))     
+
+            if NoH5Read: 
+                if os.path.exists(self.h5File):  
+                    logger.debug("{0:s}{1:s}: Delete ...".format(logStr,self.h5File))     
+                    os.remove(self.h5File)
              
             #check if h5File exists 
             if os.path.exists(self.h5File):  
@@ -376,27 +416,27 @@ class Mx():
                 if not mx1FileThere:
                    logStrFinal="{0:s}{1:s}: Not existing! Error.".format(logStr,mx1File)                                 
                    raise MxError(logStrFinal)                 
-                self.__initWithMx1(mx1File)                    
+                self.__initWithMx1()                    
                 if os.path.exists(self.mxsFile):  
                     mx1FileTime=os.path.getmtime(self.mx1File) 
                     mxsFileTime=os.path.getmtime(self.mxsFile)
                     if(mxsFileTime>mx1FileTime) and not NoMxsRead:
                         logger.debug("{:s}mxsFile {:s} exists _and is newer than mx1File {:s} _and NoMxsRead False:".format(logStr,self.mxsFile,self.mx1File))     
                         logger.debug("{:s}The mxsFile is read.".format(logStr))   
-                        self.setResultsToMxsFile()                     
+                        self.setResultsToMxsFile(NewH5Vec = NoH5Read)  # wenn kein H5 gelesen werden soll, dann soll auch das H5Vec neu angelegt werden
             else:                
                 self.FromH5(h5File=self.h5File)
                              
         except MxError:
             raise            
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise MxError(logStrFinal)               
-        else:
+            raise MxError(logStrFinal)                       
+        finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
-    def __initWithMx1(self,mx1File):
+    def __initWithMx1(self):
         """
         (re-)initialize the set with an existing MX1-File:
             self.mx1Df = MX1-File Content           
@@ -460,25 +500,13 @@ class Mx():
             self.__parseMx2()     
             self.__buildMxRecordStructUnpackFmtString()      
                             
-        except FileNotFoundError as e:
-            logStrFinal="{0:s}mx1File: {1!s}: FileNotFoundError.".format(logStr,mx1File)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)
-        except OSError as e:
-            logStrFinal="{0:s}mx1File: {1!s}: OSError.".format(logStr,mx1File)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)
-        except TypeError as e:
-            logStrFinal="{0:s}mx1File: {1!s}: TypeError.".format(logStr,mx1File)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)    
         except MxError:
             raise            
-        except:
-            logStrFinal="{0:s}mx1File: {1!s}: Error.".format(logStr,mx1File)
+        except Exception as e:
+            logStrFinal="{:s}mx1File: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,self.mx1File,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise MxError(logStrFinal)               
-        else:
+            raise MxError(logStrFinal)                    
+        finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def __parseMx2(self):
@@ -560,25 +588,14 @@ class Mx():
                            )
                                  )    
                                                             
-        except FileNotFoundError as e:
-            logStrFinal="{0:s}mx2File: {1!s}: FileNotFoundError.".format(logStr,self.mx2File)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)
-        except OSError as e:
-            logStrFinal="{0:s}mx2File: {1!s}: OSError.".format(logStr,self.mx2File)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)
-        except TypeError as e:
-            logStrFinal="{0:s}mx2File: {1!s}: TypeError.".format(logStr,self.mx2File)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)    
+  
         except MxError:
             raise            
-        except:
-            logStrFinal="{0:s}mx2File: {1!s}: Error.".format(logStr,self.mx2File)
+        except Exception as e:
+            logStrFinal="{:s}mx2File: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,self.mx2File,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise MxError(logStrFinal)               
-        else:
+            raise MxError(logStrFinal)             
+        finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def __buildMxRecordStructUnpackFmtString(self):
@@ -795,11 +812,11 @@ class Mx():
                                                                                      
         except MxError:
             raise            
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise MxError(logStrFinal)               
-        else:
+            raise MxError(logStrFinal)            
+        finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def _readMxsFile(self,mxsFilePtr=None,mxsVecsH5StorePtr=None,firstTime=None,maxRecords=None):
@@ -816,13 +833,13 @@ class Mx():
         because of SIR 3S'
         1st Time twice (SNAPSHOTTYPE: STAT+TIME) and Last Time triple (SNAPSHOTTYPE: TIME+TMIN/TMAX)  
         ---        
-        Writes the Vectordata in mxsFilePtr with mxsVecsH5StorePtr: 
+        mxsVecsH5StorePtr is used to update the Vector-Data with mxsFilePtr-Data (MXS-Data): 
             Key:   microseconds from firstTime 
             Value: dfVecs (df with Vectordata for one TIMESTAMP):
                  TIMESTAMP is used as index.
             ---
             the Vectordata for a TIMESTAMP is only written
-                when the Key does _not exist 
+                when the Key does _not already exist 
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -967,14 +984,10 @@ class Mx():
                                                                                   
         except MxError:
             raise
-        except MemoryError as e:
-            logStrFinal="{0:s}MemoryError.".format(logStr)
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise MxError(logStrFinal)      
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                                    
+            raise MxError(logStrFinal)                            
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
             return df
@@ -1012,12 +1025,54 @@ class Mx():
                                                                                                                 
         except MxError:
             raise
-                               
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)                                      
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
-            return (firstTime,lastTime,len(keysH5))     
+            return (firstTime,lastTime,len(keysH5))   
+        
+    def __handleMxsVecFileDeletion(self,mxsFile=None,NewH5Vec=False):
+        """
+        File .vec.h5 is deleted if 
+            existing _and older than mxsFile
+            or NewH5Vec                               
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try: 
+        
+            # .vec.h5 Handling 
+            if os.path.exists(self.h5FileMxsVecs):      
+
+                if NewH5Vec:
+                    logger.debug("{:s}Delete H5VecDump because NewH5Vec ...".format(logStr,self.h5FileMxsVecs)) 
+                    os.remove(self.h5FileMxsVecs)   
+                else:
+                    if os.path.exists(mxsFile):                         
+                        mxsFileTime=os.path.getmtime(mxsFile) 
+                    else:
+                        mxsFileTime=0
+                    mxsH5FileTime=os.path.getmtime(self.h5FileMxsVecs)
+
+                    if mxsFileTime>mxsH5FileTime:
+                        # die zu lesende Mxs ist neuer als der Dump: Dump loeschen              
+                        logger.debug("{:s}Delete H5VecDump because Mxs {:s} To Read is newer than H5VecDump {:s} ...".format(logStr,mxsFile,self.h5FileMxsVecs))                             
+                        os.remove(self.h5FileMxsVecs)      
+                        
+        except MxError:
+            raise
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)                                      
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                                       
             
-    def setResultsToMxsFile(self,mxsFile=None,add=False,maxRecords=None):
+    def setResultsToMxsFile(self,mxsFile=None,add=False,NewH5Vec=False,maxRecords=None):
         """
         Sets or adds the MXS-Results to self.df.          
         ---
@@ -1037,7 +1092,8 @@ class Mx():
             and because resulting overlapping TIMESTAMPs due to intersections (add=True) are also dropped      
         ---        
         Note the following implicit Effect:
-            File .vec.h5 is deleted if existing _and older than mxsFile.                              
+            File .vec.h5 is updated with mxsFile-Data
+            see also __handleMxsVecFileDeletion                                
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1049,21 +1105,10 @@ class Mx():
             if mxsFile == None:
                 logger.debug("{0:s}Mxs: Implicit specified.".format(logStr))                                
                 mxsFile=self.mxsFile
-        
-            # .vec.h5 Handling 
-            if os.path.exists(self.h5FileMxsVecs):      
             
-                mxsFileTime=os.path.getmtime(mxsFile) 
-                mxsH5FileTime=os.path.getmtime(self.h5FileMxsVecs)
-
-                if mxsFileTime>mxsH5FileTime:
-                    # die zu lesende Mxs ist neuer als der Dump: Dump loeschen
-                    if not add:                    
-                        logger.debug("{:s}Delete H5VecDump because Mxs {:s} To Read is newer than H5VecDump {:s} ...".format(logStr,mxsFile,self.h5FileMxsVecs))     
-                    else:
-                        logger.warning("{:s}Delete H5VecDump because Mxs {:s} To Read is newer than the H5VecDump {:s} ...".format(logStr,mxsFile,self.h5FileMxsVecs))     
-                    os.remove(self.h5FileMxsVecs)
-                
+            # .vec.h5 Handling 
+            self.__handleMxsVecFileDeletion(mxsFile=mxsFile,NewH5Vec=NewH5Vec)
+              
             mxsVecH5Store=pd.HDFStore(self.h5FileMxsVecs) 
                                                                                       
             if isinstance(self.df,pd.core.frame.DataFrame):   
@@ -1101,34 +1146,18 @@ class Mx():
                 logger.debug("{0:s}RESULT after {1:s}: df Shape: {2!s} First Time: {3!s} Last Time: {4!s}.".format(logStr,mxsFile,self.df.shape,self.df.index[0],self.df.index[-1]))                                             
             else:
                 logger.error("{0:s}Mxs: {1:s}: Reading failed.".format(logStr,mxsFile))    
-                          
-        except FileNotFoundError as e:
-            logStrFinal="{0:s}mxsFile: {1!s}: FileNotFoundError.".format(logStr,mxsFile)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                                
-        except OSError as e:
-            logStrFinal="{0:s}mxsFile: {1!s}: OSError.".format(logStr,mxsFile)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)
-        except TypeError as e:
-            logStrFinal="{0:s}mxsFile: {1!s}: TypeError.".format(logStr,mxsFile)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)        
-        except MemoryError as e:
-            logStrFinal="{0:s}mxsFile: {1!s}: MemoryError.".format(logStr,mxsFile)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                             
+                                           
         except MxError:
             raise
-        except:
-            logStrFinal="{0:s}mxsFile: {1!s}: Error.".format(logStr,mxsFile)
+        except Exception as e:
+            logStrFinal="{:s}mxsFile: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,mxsFile,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                                    
-        else:
+            raise MxError(logStrFinal)                                       
+        finally:
             mxsVecH5Store.close()
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                 
 
-    def setResultsToMxsZipFile(self,mxsZipFile=None,add=False,maxRecords=None):
+    def setResultsToMxsZipFile(self,mxsZipFile=None,add=False,NewH5Vec=False,maxRecords=None):
         """
         Sets or adds the MXS-Results in the Zip to self.df.                 
         ---
@@ -1150,7 +1179,8 @@ class Mx():
             and because resulting overlapping TIMESTAMPs due to intersections between the Zip-MXS (or due to add=True) are also dropped
         ---        
         Note the following implicit Effect:
-            File .vec.h5 is deleted if existing _and older than mxsZipFile.          
+            File .vec.h5 is updated with mxsZipFile-Data
+            see also __handleMxsVecFileDeletion       
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1182,18 +1212,7 @@ class Mx():
                 maxRecordsLimit=False   
 
             # .vec.h5 Handling 
-            if os.path.exists(self.h5FileMxsVecs):      
-            
-                mxsZipFileTime=os.path.getmtime(mxsZipFile) 
-                mxsH5FileTime=os.path.getmtime(self.h5FileMxsVecs)
-
-                if mxsZipFileTime>mxsH5FileTime:
-                    # die zu lesende MxsZip ist neuer als der Dump: Dump loeschen
-                    if not add:                    
-                        logger.debug("{:s}Delete H5VecDump because MxsZip {:s} To Read is newer than H5VecDump {:s} ...".format(logStr,mxsZipFile,self.h5FileMxsVecs))     
-                    else:
-                        logger.warning("{:s}Delete H5VecDump because MxsZip {:s} To Read is newer than H5VecDump {:s} ...".format(logStr,mxsZipFile,self.h5FileMxsVecs))     
-                    os.remove(self.h5FileMxsVecs)
+            self.__handleMxsVecFileDeletion(mxsFile=mxsZipFile,NewH5Vec=NewH5Vec)
                 
             mxsVecH5Store=pd.HDFStore(self.h5FileMxsVecs) 
                                                                                       
@@ -1262,29 +1281,14 @@ class Mx():
             else:
                 logger.error("{0:s}Zip: {1:s}: Reading failed.".format(logStr,mxsZipFile))                                          
                                                                     
-        except FileNotFoundError as e:
-            logStrFinal="{0:s}mxsZipFile: {1!s}: FileNotFoundError.".format(logStr,mxsZipFile)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                                
-        except OSError as e:
-            logStrFinal="{0:s}mxsZipFile: {1!s}: OSError.".format(logStr,mxsZipFile)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)
-        except TypeError as e:
-            logStrFinal="{0:s}mxsZipFile: {1!s}: TypeError.".format(logStr,mxsZipFile)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)        
-        except MemoryError as e:
-            logStrFinal="{0:s}mxsZipFile: {1!s}: MemoryError.".format(logStr,mxsZipFile)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                             
+                       
         except MxError:
             raise
-        except:
-            logStrFinal="{0:s}mxsZipFile: {1!s}: Error.".format(logStr,mxsZipFile)
+        except Exception as e:
+            logStrFinal="{:s}mxsZipFile: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,mxsZipFile,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                                    
-        else:
+            raise MxError(logStrFinal)                                  
+        finally:
             mxsVecH5Store.close()
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                 
 
@@ -1338,26 +1342,15 @@ class Mx():
                     h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MXS'  
                     logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'df',h5Key))         
                     h5Store.put(h5Key,self.df)
-
-        except OSError as e:
-            logStrFinal="{0:s}h5File: {1!s}: OSError.".format(logStr,h5File)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)
-        except TypeError as e:
-            logStrFinal="{0:s}h5File: {1!s}: TypeError.".format(logStr,h5File)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)        
-        except PermissionError as e:
-            logStrFinal="{0:s}h5File: {1!s}: PermissionError.".format(logStr,h5File)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)               
+             
         except MxError:
             raise
-        except:
-            logStrFinal="{0:s}h5File: {1!s}: Error.".format(logStr,h5File)
+        except Exception as e:
+            logStrFinal="{:s}h5File: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,h5File,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                                    
-        else:
+            raise MxError(logStrFinal)                                      
+        finally:
+            h5Store.close()
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                 
 
     def FromH5(self,h5File=None):
@@ -1409,29 +1402,15 @@ class Mx():
                         if tupleDf != tupleVecH5:                            
                             logger.warning("{:s}{:s}: tupleDf {!s:s} != tupleVecH5 {!s:s}.".format(logStr,h5File,tupleDf,tupleVecH5))              
 
-        except FileNotFoundError as e:
-            logStrFinal="{0:s}h5File: {1!s}: FileNotFoundError.".format(logStr,h5File)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                                
-        except OSError as e:
-            logStrFinal="{0:s}h5File: {1!s}: OSError.".format(logStr,h5File)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)
-        except TypeError as e:
-            logStrFinal="{0:s}h5File: {1!s}: TypeError.".format(logStr,h5File)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)        
-        except MemoryError as e:
-            logStrFinal="{0:s}h5File: {1!s}: MemoryError.".format(logStr,h5File)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                             
+                     
         except MxError:
             raise
-        except:
-            logStrFinal="{0:s}h5File: {1!s}: Error.".format(logStr,h5File)
+        except Exception as e:
+            logStrFinal="{:s}h5File: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,h5File,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                                    
-        else:             
+            raise MxError(logStrFinal)                           
+        finally: 
+            h5Store.close()            
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                
 
     def dumpInMxsFormat(self,mxsDumpFile=None):
@@ -1509,25 +1488,13 @@ class Mx():
                     except:
                         logger.debug("{:s}mxsDumpFile: {:s}: TIMESTAMP: {:s}: Exception. Continue.".format(logStr,mxsDumpFile,scenTimeStr))                                                     
                         continue                      
-                                                                            
-        except OSError as e:
-            logStrFinal="{0:s}h5File: {1!s}: OSError.".format(logStr,mxsDumpFile)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)
-        except TypeError as e:
-            logStrFinal="{0:s}h5File: {1!s}: TypeError.".format(logStr,mxsDumpFile)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)        
-        except PermissionError as e:
-            logStrFinal="{0:s}h5File: {1!s}: PermissionError.".format(logStr,mxsDumpFile)
-            logger.error(logStrFinal) 
-            raise MxError(logStrFinal)               
+                                                                                    
         except MxError:
             raise
-        except:
-            logStrFinal="{0:s}h5File: {1!s}: Error.".format(logStr,mxsDumpFile)
+        except Exception as e:
+            logStrFinal="{:s}mxsDumpFile: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,mxsDumpFile,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                                    
+            raise MxError(logStrFinal)                                  
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))               
 

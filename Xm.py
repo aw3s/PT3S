@@ -69,6 +69,18 @@ True
 >>> (wDir,modelDir,modelName)=xm.getWDirModelDirModelName()
 >>> modelName
 'M-1-0-1'
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',1,'Change','ToH5: finally: h5.close()')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',2,'Change','FromH5: finally: h5.close()')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',3,'Bugfix','__init__: NoH5Read=True')) 
+>>> if os.path.exists(xm.h5File):                        
+...    os.remove(xm.h5File)
+>>> xm=Xm(xmlFile=xmlFile)
+>>> xm.ToH5()
+>>> os.path.exists(xm.h5File)
+True
+>>> xm=Xm(xmlFile=xmlFile,NoH5Read=True)
+>>> os.path.exists(xm.h5File)
+False
 >>> # ---
 >>> # Clean Up
 >>> # ---
@@ -122,8 +134,11 @@ class Xm():
             self.dataFrames[viewName]
             viewName example: vKNOT
         ---
-        If a h5File exists and is newer than an (existing) xmlFile:
-            The h5File is read (instead) of the xmlFile
+        If a .h5-File exists and is newer than an (existing) xmlFile:
+            The .h5-File is read (instead) of the xmlFile
+        NoH5Read True:
+            A .h5-File is not read.        
+            An existing .h5-File is deleted.    
         """
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -144,6 +159,11 @@ class Xm():
             (base,ext)=os.path.splitext(fileName)
             self.h5File=wD+os.path.sep+base+'.'+'h5'
 
+            if NoH5Read: 
+                if os.path.exists(self.h5File):  
+                    logger.debug("{0:s}{1:s}: Delete ...".format(logStr,self.h5File))     
+                    os.remove(self.h5File)
+
             if os.path.exists(self.xmlFile):  
                 xmlFileTime=os.path.getmtime(self.xmlFile) 
             else:
@@ -161,9 +181,9 @@ class Xm():
                     logger.debug("{0:s}h5File {1:s} exists parallel but is NOT newer than xmlFile {2:s}.".format(logStr,self.h5File,self.xmlFile))     
                     h5Read=False
             else:
-                h5Read=False
+                h5Read=False               
             
-            if not h5Read:
+            if not h5Read:                
                 self.__xmlRead()
             else:
                 self.FromH5(h5File=self.h5File)
@@ -272,6 +292,7 @@ class Xm():
             raise XmError(logStrFinal)                                            
       
         finally:
+            h5Store.close()
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def ToH5(self,h5File=None):
@@ -321,6 +342,7 @@ class Xm():
             raise XmError(logStrFinal)                                           
             
         finally:
+            h5Store.close()
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def __convertAndFix(self):
