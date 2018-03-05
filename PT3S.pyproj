@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{a4114edb-830b-4f14-adf1-5f2313ac1fea}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>Mx.py</StartupFile>
+    <StartupFile>Xm.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -28,6 +28,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="LICENSE" />
+    <Content Include="PT3S.html" />
     <Content Include="PT3S.ipynb" />
     <Content Include="README.md" />
     <Content Include="README.rst" />
@@ -48,7 +49,6 @@
     <Compile Include="setup.py" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="nb\" />
     <Folder Include="testdata\" />
     <Folder Include="testdata\WDOneLPipe\" />
     <Folder Include="testdata\WDOneLPipe\B1\" />

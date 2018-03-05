@@ -214,6 +214,11 @@ True
 True
 >>> "{:06.2f}".format(round(ts.iloc[0],2))
 '176.71'
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.31',1,'New','_checkMxsVecsFile: (...,fullCheck=False,...)')) 
+>>> mx._checkMxsVecsFile()
+(Timestamp('2018-03-03 00:00:00+0000', tz='UTC'), Timestamp('2018-03-03 00:00:03+0000', tz='UTC'), 4)
+>>> mx._checkMxsVecsFile(fullCheck=True)
+(Timestamp('2018-03-03 00:00:00+0000', tz='UTC'), Timestamp('2018-03-03 00:00:03+0000', tz='UTC'), 4)
 >>> # ---
 >>> # Clean Up
 >>> # ---
@@ -974,7 +979,7 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
             return df
 
-    def _checkMxsVecsFile(self):
+    def _checkMxsVecsFile(self,fullCheck=False):
         """
         returns (firstTime,lastTime,NOfTimes)
         """
@@ -986,21 +991,31 @@ class Mx():
             with pd.HDFStore(self.h5FileMxsVecs) as mxsVecsH5Store: 
                                                                                                                                                
                 keys=sorted([int(key.replace('/','')) for key in mxsVecsH5Store.keys()])
-
-                for idx,key in enumerate([ '/'+str(key) for key in keys]):                
-                    dfVecs=mxsVecsH5Store[key]  
-                    time=dfVecs.index[0]
-                    if idx==0:
-                        firstTime=time
-                    logger.debug("{:s}TimeNr. {:>6d} with key {!s:>20s} and TIMESTAMP {!s:s}.".format(logStr,idx+1,key,time))         
-                lastTime=time
+                keysH5=['/'+str(key) for key in keys]
+                if fullCheck:
+                    for idx,key in enumerate(keysH5):                
+                        dfVecs=mxsVecsH5Store[key]  
+                        time=dfVecs.index[0]
+                        if idx==0:
+                            firstTime=time
+                        logger.debug("{:s}TimeNr. {:>6d} with key {!s:>20s} and TIMESTAMP {!s:s}.".format(logStr,idx+1,key,time))         
+                    lastTime=time
+                else:
+                    #1st Time
+                    key=keysH5[0]
+                    dfVecs=mxsVecsH5Store[key] 
+                    firstTime=dfVecs.index[0]
+                    #last Time
+                    key=keysH5[-1]
+                    dfVecs=mxsVecsH5Store[key] 
+                    lastTime=dfVecs.index[0]
                                                                                                                 
         except MxError:
             raise
                                
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
-            return (firstTime,lastTime,idx+1)     
+            return (firstTime,lastTime,len(keysH5))     
             
     def setResultsToMxsFile(self,mxsFile=None,add=False,maxRecords=None):
         """
