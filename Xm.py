@@ -49,7 +49,7 @@ True
 >>> os.rename(xm.xmlFile+'.blind',xm.xmlFile)
 >>> # ---
 >>> vKNOT=xm.dataFrames['vKNOT']
->>> vKNOT[(vKNOT.KTYP.isin(['QKON','PKON'])) & (vKNOT.BESCHREIBUNG.fillna('').str.contains('^Template')==False)].shape
+>>> vKNOT[(vKNOT.KTYP.isin(['QKON','PKON'])) & (vKNOT.BESCHREIBUNG.fillna('').str.startswith('Template Element')==False)].shape
 (2, 24)
 >>> vROHR=xm.dataFrames['vROHR']
 >>> vROHR.shape
@@ -81,6 +81,7 @@ True
 >>> xm=Xm(xmlFile=xmlFile,NoH5Read=True)
 >>> os.path.exists(xm.h5File)
 False
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.33',1,'Change','__vKNOT: pX/YCorZero')) 
 >>> # ---
 >>> # Clean Up
 >>> # ---
