@@ -12,7 +12,10 @@ import tables
 
 try:              
     # Logfile
-    logFileName = 'PT3S.log' 
+    root,ext = os.path.splitext(os.path.dirname(__file__))
+    logFileName = root+'.log'
+    logFileName = 'PT3S.log'
+
         
     loglevel = logging.DEBUG
     logging.basicConfig(filename=logFileName
@@ -31,6 +34,7 @@ try:
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
 
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    logger.debug("{:s}Logfile: {:s}".format(logStr,logFileName)) 
 
     #H5
     warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 

@@ -24,7 +24,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.0.33.dev1',
+    version='0.0.34.dev1',
 
     description='Python Tools 3S',
     long_description=long_description,
@@ -85,6 +85,10 @@ setup(
            ,'testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX1'
            ,'testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX2'
            ,'testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MXS'
+           ,'testdata\LocalHeatingNetwork.XML'
+           ,'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1'
+           ,'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX2'
+           ,'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MXS'
             ],
     },
 

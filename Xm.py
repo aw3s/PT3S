@@ -12,7 +12,7 @@ DOCTEST
 >>> # Imports
 >>> # ---
 >>> import os
->>> import pandas
+>>> import pandas as pd
 >>> import logging
 >>> logger = logging.getLogger('PT3S.Xm')  
 >>> path = os.path.dirname(__file__)
@@ -33,7 +33,7 @@ DOCTEST
 >>> v='vKNOT'
 >>> v in xm.dataFrames
 True
->>> isinstance(xm.dataFrames[v],pandas.core.frame.DataFrame)
+>>> isinstance(xm.dataFrames[v],pd.core.frame.DataFrame)
 True
 >>> # ---
 >>> # ToH5
@@ -54,7 +54,7 @@ True
 >>> vROHR=xm.dataFrames['vROHR']
 >>> vROHR.shape
 (1, 72)
->>> isinstance(vROHR['pXCors'],pandas.core.series.Series)
+>>> isinstance(vROHR['pXCors'],pd.core.series.Series)
 True
 >>> vROHR['pXCors'][0]
 [0.0, 500.0]
@@ -82,11 +82,131 @@ True
 >>> os.path.exists(xm.h5File)
 False
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.33',1,'Change','__vKNOT: pX/YCorZero')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',1,'New','__vWBLZ')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',2,'New',"vFWVB['WBLZ']")) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',3,'New',"vFWVB ... vLFKT ... how='left'")) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',4,'New',"vNODE ... without Template Element ...")) 
+>>> pd.set_option('display.max_columns',None)
+>>> pd.set_option('display.width',6666)
+>>> xm.dataFrames['vKNOT']
+  NAME BESCHREIBUNG             IDREFERENZ      CONT CONT_ID  CONT_LFDNR  CONT_VKNO  KTYP LFAKT    QM_EIN QVAR_NAME  QM  QM_min  QM_max KVR  TE  TM XKOR YKOR ZKOR                   pk                   tk  pXCor  pYCor
+0    I          NaN  3S5642914844465475844  OneLPipe    1001         NaN        NaN  QKON     1  176.7146       NaN NaN     NaN     NaN   0 NaN  10  300  600   10  5642914844465475844  5642914844465475844    0.0    0.0
+1    K          NaN  3S5289899964753656852  OneLPipe    1001         NaN        NaN  PKON     1         0       NaN NaN     NaN     NaN   0 NaN  10  800  600   10  5289899964753656852  5289899964753656852  500.0    0.0
+>>> xm.dataFrames['vROHR']
+  BESCHREIBUNG             IDREFERENZ BAUJAHR HAL IPLANUNG KENNUNG      L LZU   RAU ZAUS ZEIN ZUML JLAMBS LAMBDA0 ASOLL INDSCHALL fk2LROHR KVR AUSFALLZEIT DA   DI   DN KT PN REHABILITATION REPARATUR  S WSTEIG WTIEFE LTGR_NAME  LTGR_BESCHREIBUNG SICHTBARKEIT VERLEGEART DTRO_NAME                           DTRO_BESCHREIBUNG        E fkSTRASSE fkSRAT                   pk                   tk                                             GEOM_x                                             GRAF_x IRTRENN LECKSTART LECKEND LECKMENGE LECKORT LECKSTATUS QSVB ZVLIMPTNZ KANTENZV      CONT CONT_ID  CONT_LFDNR NAME_i KVR_i TM_i XKOR_i YKOR_i ZKOR_i NAME_k KVR_k TM_k XKOR_k YKOR_k ZKOR_k  pXCor_i  pYCor_i  pXCor_k  pYCor_k        pXCors      pYCors
+0          NaN  3S4737064599036143765    2017   0        1       0  10000   0  0.25    0    0    0      1   0.025  1000         0       -1   0           0  0  250  250  0  0              0         0  0      0      0   STDROHR                NaN            1     999999   STDROHR  Standard-Druckrohre mit di = DN (DIN 2402)  2.1E+11        -1     -1  4737064599036143765  4737064599036143765  AQIAAAACAAAAAAAAAADAckAAAAAAAMCCQAAAAAAAAIlAAA...  AACAPwAAAAABAAAA/Knx0k1iQD8EAAAA////AAEAAAAAAA...       0         0       0         0       0          0    0         0        0  OneLPipe    1001         NaN      I     0   10    300    600     10      K     0   10    800    600     10      0.0      0.0    500.0      0.0  [0.0, 500.0]  [0.0, 0.0]
 >>> # ---
 >>> # Clean Up
 >>> # ---
 >>> if os.path.exists(xm.h5File):                        
 ...    os.remove(xm.h5File)
+>>> # ---
+>>> # LocalHeatingNetwork
+>>> # ---
+>>> xmlFile=os.path.join(path,'testdata\LocalHeatingNetwork.XML')
+>>> xm=Xm(xmlFile=xmlFile)
+>>> xm.dataFrames['vKNOT']
+           NAME                    BESCHREIBUNG IDREFERENZ                                      CONT CONT_ID CONT_LFDNR CONT_VKNO  KTYP LFAKT QM_EIN QVAR_NAME  QM  QM_min  QM_max KVR  TE  TM     XKOR     YKOR ZKOR                   pk                   tk   pXCor  pYCor
+0        R-K004                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541539  5706361   20  4638663808856251977  4638663808856251977   799.0  152.0
+1        V-K002                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541059  5706265   20  4731792362611615619  4731792362611615619   319.0   56.0
+2        V-K001                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2540867  5706228   20  4756962427318766791  4756962427318766791   127.0   19.0
+3        V-K000                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2540793  5706209   20  4766681917240867943  4766681917240867943    53.0    0.0
+4        R-K001                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2540867  5706228   20  4807712987325933680  4807712987325933680   127.0   19.0
+5        R-K003                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541457  5706345   20  4891048046264179170  4891048046264179170   717.0  136.0
+6        R-K000                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2540793  5706209   20  4979785838440534851  4979785838440534851    53.0    0.0
+7        R-K005                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541627  5706363   20  5183147862966701025  5183147862966701025   887.0  154.0
+8           R-L                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1      BHKW  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2540740  5706225   20  5356267303828212700  5356267303828212700     0.0   16.0
+9        R-K002                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541059  5706265   20  5364712333175450942  5364712333175450942   319.0   56.0
+10       V-K004                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541539  5706361   20  5370423799772591808  5370423799772591808   799.0  152.0
+11       V-K005                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541627  5706363   20  5444644492819213978  5444644492819213978   887.0  154.0
+12       R-K007                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541899  5706325   20  5508992300317633799  5508992300317633799  1159.0  116.0
+13       V-K006                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541790  5706338   20  5515313800585145571  5515313800585145571  1050.0  129.0
+14       R-K006                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541790  5706338   20  5543326527366090679  5543326527366090679  1050.0  129.0
+15       V-K003                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541457  5706345   20  5646671866542823796  5646671866542823796   717.0  136.0
+16          V-L                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1      BHKW  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2540740  5706240   20  5736262931552588702  5736262931552588702     0.0   31.0
+17       V-K007                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541899  5706325   20  5741235692335544560  5741235692335544560  1159.0  116.0
+18           R2                            None         -1                                      BHKW    1002         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60      170       20   20  5002109894154139899  5002109894154139899   170.0   20.0
+19          V-1                            None         -1                                      BHKW    1002         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90      140      160   20  5049461676240771430  5049461676240771430   140.0  160.0
+20           R3                            None         -1                                      BHKW    1002         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60      140       20   20  5219230031772497417  5219230031772497417   140.0   20.0
+21  PKON-Knoten  Druckhaltung - 2 bar Ruhedruck         -1                                      BHKW    1002         -1       NaN  PKON     1      0       NaN NaN     NaN     NaN   2  60  60      200       40   20  5397990465339071638  5397990465339071638   200.0   40.0
+22          R-1          Anbindung Druckhaltung         -1                                      BHKW    1002         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60      195       20   20  5557222628687032084  5557222628687032084   195.0   20.0
+>>> xm.dataFrames['vROHR']
+   BESCHREIBUNG IDREFERENZ BAUJAHR HAL IPLANUNG KENNUNG       L LZU  RAU ZAUS ZEIN ZUML JLAMBS LAMBDA0 ASOLL INDSCHALL             fk2LROHR KVR  AUSFALLZEIT     DA     DI   DN     KT  PN  REHABILITATION  REPARATUR    S WSTEIG WTIEFE LTGR_NAME            LTGR_BESCHREIBUNG SICHTBARKEIT VERLEGEART DTRO_NAME                        DTRO_BESCHREIBUNG        E fkSTRASSE fkSRAT                   pk                   tk                                             GEOM_x                                             GRAF_x IRTRENN LECKSTART LECKEND LECKMENGE LECKORT LECKSTATUS QSVB ZVLIMPTNZ KANTENZV                                      CONT CONT_ID CONT_LFDNR  NAME_i KVR_i TM_i   XKOR_i   YKOR_i ZKOR_i  NAME_k KVR_k TM_k   XKOR_k   YKOR_k ZKOR_k  pXCor_i  pYCor_i  pXCor_k  pYCor_k            pXCors          pYCors
+0          None         -1    None   0        1       0   88.02   0  0.1    0    0    0      1   0.025  1000         0  4713733238627697042   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4613782368750024999  4613782368750024999  AAMAAAACAAAAMzMz8/VjQ0FmZmZGm8RVQZqZmfkhZENBMz...  AACAPwAAAAABAAAAAAAA4E1iQD8EAAAAAAAAAAEAAAAAAP...       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K004     2   60  2541539  5706361     20  R-K005     2   60  2541627  5706363     20    799.0    152.0    887.0    154.0    [799.0, 887.0]  [152.0, 154.0]
+1          None         -1    None   0        1       0  405.96   0  0.1    0    0    0      1   0.025  1000         0  5379365049009065623   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4614949065966596185  4614949065966596185  AAMAAAACAAAAAAAAgAFjQ0EzMzNDhsRVQZqZmXnIY0NBAA...  AACAPwAAAAABAAAAAAAA4E1iQD8EAAAAAAAAAAEAAAD/AA...       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K002     1   90  2541059  5706265     20  V-K003     1   90  2541457  5706345     20    319.0     56.0    717.0    136.0    [319.0, 717.0]   [56.0, 136.0]
+2          None         -1    None   0        1       0   83.55   0  0.1    0    0    0      1   0.025  1000         0  5037777106796980248   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4637102239750163477  4637102239750163477  AAMAAAACAAAAzczM7MxjQ0EzMzNDl8RVQTMzM/P1Y0NBZm...  AACAPwAAAAABAAAAAAAA4E1iQD8EAAAAAAAAAAEAAAAAAP...       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K003     2   60  2541457  5706345     20  R-K004     2   60  2541539  5706361     20    717.0    136.0    799.0    152.0    [717.0, 799.0]  [136.0, 152.0]
+3          None         -1    None   0        1       0   88.02   0  0.1    0    0    0      1   0.025  1000         0  4613782368750024999   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4713733238627697042  4713733238627697042  AAMAAAACAAAAAAAAgPFjQ0EAAABAnsRVQWZmZoYdZENBAA...  AACAPwAAAAABAAAAAAAA4E1iQD8EAAAAAAAAAAEAAAD/AA...       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K004     1   90  2541539  5706361     20  V-K005     1   90  2541627  5706363     20    799.0    152.0    887.0    154.0    [799.0, 887.0]  [152.0, 154.0]
+4          None         -1    None   0        1       0  195.53   0  0.1    0    0    0      1   0.025  1000         0  5266224553324203132   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4789218195240364437  4789218195240364437  AAMAAAACAAAAAAAAgKFiQ0EAAAAAfcRVQQAAAIABY0NBMz...  AACAPwAAAAABAAAAAAAA4E1iQD8EAAAAAAAAAAEAAAD/AA...       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K001     1   90  2540867  5706228     20  V-K002     1   90  2541059  5706265     20    127.0     19.0    319.0     56.0    [127.0, 319.0]    [19.0, 56.0]
+5          None         -1    None   0        1       0  109.77   0  0.1    0    0    0      1   0.025  1000         0  5620197984230756681   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4945727430885351042  4945727430885351042  AAMAAAACAAAAzczMbHNkQ0EAAACAlcRVQTMzM/OpZENBZm...  AACAPwAAAAABAAAAAAAA4E1iQD8EAAAAAAAAAAEAAAAAAP...       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K006     2   60  2541790  5706338     20  R-K007     2   60  2541899  5706325     20   1050.0    129.0   1159.0    116.0  [1050.0, 1159.0]  [129.0, 116.0]
+6          None         -1    None   0        1       0    76.4   0  0.1    0    0    0      1   0.025  1000         0  5647213228462830353   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4984202422877610920  4984202422877610920  AAMAAAACAAAAZmZmhnxiQ0HNzMw8eMRVQQAAAIChYkNBAA...  AACAPwAAAAABAAAAAAAA4E1iQD8EAAAAAAAAAAEAAAD/AA...       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K000     1   90  2540793  5706209     20  V-K001     1   90  2540867  5706228     20     53.0      0.0    127.0     19.0     [53.0, 127.0]     [0.0, 19.0]
+7          None         -1    None   0        1       0   83.55   0  0.1    0    0    0      1   0.025  1000         0  4637102239750163477   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5037777106796980248  5037777106796980248  AAMAAAACAAAAmpmZechjQ0EAAABAmsRVQQAAAIDxY0NBAA...  AACAPwAAAAABAAAAAAAA4E1iQD8EAAAAAAAAAAEAAAD/AA...       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K003     1   90  2541457  5706345     20  V-K004     1   90  2541539  5706361     20    717.0    136.0    799.0    152.0    [717.0, 799.0]  [136.0, 152.0]
+8          None         -1    None   0        1       0  164.91   0  0.1    0    0    0      1   0.025  1000         0  5611703699850694889   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5123819811204259837  5123819811204259837  AAMAAAACAAAAZmZmhh1kQ0EAAADAnsRVQZqZmfluZENBzc...  AACAPwAAAAABAAAAAAAA4E1iQD8EAAAAAAAAAAEAAAD/AA...       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K005     1   90  2541627  5706363     20  V-K006     1   90  2541790  5706338     20    887.0    154.0   1050.0    129.0   [887.0, 1050.0]  [154.0, 129.0]
+9          None         -1    None   0        1       0  195.53   0  0.1    0    0    0      1   0.025  1000         0  4789218195240364437   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5266224553324203132  5266224553324203132  AAMAAAACAAAAMzMz86ViQ0EzMzMDesRVQTMzM/MFY0NBZm...  AACAPwAAAAABAAAAAAAA4E1iQD8EAAAAAAAAAAEAAAAAAP...       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K001     2   60  2540867  5706228     20  R-K002     2   60  2541059  5706265     20    127.0     19.0    319.0     56.0    [127.0, 319.0]    [19.0, 56.0]
+10         None         -1    None   0        1       0  405.96   0  0.1    0    0    0      1   0.025  1000         0  4614949065966596185   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5379365049009065623  5379365049009065623  AAMAAAACAAAAMzMz8wVjQ0FmZmZGg8RVQc3MzOzMY0NBMz...  AACAPwAAAAABAAAAAAAA4E1iQD8EAAAAAAAAAAEAAAAAAP...       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K002     2   60  2541059  5706265     20  R-K003     2   60  2541457  5706345     20    319.0     56.0    717.0    136.0    [319.0, 717.0]   [56.0, 136.0]
+11         None         -1    None   0        1       0  164.91   0  0.1    0    0    0      1   0.025  1000         0  5123819811204259837   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5611703699850694889  5611703699850694889  AAMAAAACAAAAmpmZ+SFkQ0EzMzPDm8RVQc3MzGxzZENBAA...  AACAPwAAAAABAAAAAAAA4E1iQD8EAAAAAAAAAAEAAAAAAP...       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K005     2   60  2541627  5706363     20  R-K006     2   60  2541790  5706338     20    887.0    154.0   1050.0    129.0   [887.0, 1050.0]  [154.0, 129.0]
+12         None         -1    None   0        1       0  109.77   0  0.1    0    0    0      1   0.025  1000         0  4945727430885351042   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5620197984230756681  5620197984230756681  AAMAAAACAAAAmpmZ+W5kQ0HNzMx8mMRVQQAAAIClZENBMz...  AACAPwAAAAABAAAAAAAA4E1iQD8EAAAAAAAAAAEAAAD/AA...       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K006     1   90  2541790  5706338     20  V-K007     1   90  2541899  5706325     20   1050.0    129.0   1159.0    116.0  [1050.0, 1159.0]  [129.0, 116.0]
+13         None         -1    None   0        1       0    76.4   0  0.1    0    0    0      1   0.025  1000         0  4984202422877610920   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5647213228462830353  5647213228462830353  AAMAAAACAAAAmpmZ+YBiQ0EAAABAdcRVQTMzM/OlYkNBMz...  AACAPwAAAAABAAAAAAAA4E1iQD8EAAAAAAAAAAEAAAAAAP...       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K000     2   60  2540793  5706209     20  R-K001     2   60  2540867  5706228     20     53.0      0.0    127.0     19.0     [53.0, 127.0]     [0.0, 19.0]
+14         None         -1    None   0        1       0   73.42   0  0.1    0    0    0      1   0.025  1000         0  4939422678063487923   2          NaN  168.3  160.3  150   0.45 NaN             NaN        NaN    4    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4769996343148550485  4769996343148550485  AAMAAAAEAAAAAAAAAGJiQ0EAAABAfMRVQQAAAABuYkNBAA...  AACAPwAAAAABAAAAAAAA4E1iQD8EAAAAAAAAAEEAAAAAAP...       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1     R-L     2   60  2540740  5706225     20  R-K000     2   60  2540793  5706209     20      0.0     16.0     53.0      0.0       [0.0, 53.0]     [16.0, 0.0]
+15         None         -1    None   0        1       0    68.6   0  0.1    0    0    0      1   0.025  1000         0  4769996343148550485   1          NaN  168.3  160.3  150   0.45 NaN             NaN        NaN    4    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4939422678063487923  4939422678063487923  AAMAAAADAAAAAAAAAGJiQ0EAAAAAgMRVQQAAAABxYkNBAA...  AACAPwAAAAABAAAAAAAA4E1iQD8EAAAAAAAAAEEAAAD/AA...       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1     V-L     1   90  2540740  5706240     20  V-K000     1   90  2540793  5706209     20      0.0     31.0     53.0      0.0       [0.0, 53.0]     [31.0, 0.0]
+>>> xm.dataFrames['vWBLZ']
+   AKTIV BESCHREIBUNG IDIM       NAME                OBJID OBJTYPE                   pk
+0      1  Wärmebilanz    0      BLNZ1  4731792362611615619    KNOT  5579937562601803472
+1      1  Wärmebilanz    0      BLNZ1  5364712333175450942    KNOT  5579937562601803472
+2      1  Wärmebilanz    0      BLNZ5  5183147862966701025    KNOT  5581152085151655438
+3      1  Wärmebilanz    0      BLNZ5  5444644492819213978    KNOT  5581152085151655438
+4      1  Wärmebilanz    0    BLNZ1u5  5183147862966701025    KNOT  5187647097142898375
+5      1  Wärmebilanz    0    BLNZ1u5  5444644492819213978    KNOT  5187647097142898375
+6      1  Wärmebilanz    0    BLNZ1u5  4731792362611615619    KNOT  5187647097142898375
+7      1  Wärmebilanz    0    BLNZ1u5  5364712333175450942    KNOT  5187647097142898375
+8      1  Wärmebilanz    0  BLNZ1u5u7  5183147862966701025    KNOT  4694700216019268978
+9      1  Wärmebilanz    0  BLNZ1u5u7  5444644492819213978    KNOT  4694700216019268978
+10     1  Wärmebilanz    0  BLNZ1u5u7  4731792362611615619    KNOT  4694700216019268978
+11     1  Wärmebilanz    0  BLNZ1u5u7  5364712333175450942    KNOT  4694700216019268978
+12     1  Wärmebilanz    0  BLNZ1u5u7  5508992300317633799    KNOT  4694700216019268978
+13     1  Wärmebilanz    0  BLNZ1u5u7  5741235692335544560    KNOT  4694700216019268978
+>>> xm.dataFrames['vFWVB']
+  BESCHREIBUNG IDREFERENZ   W0  LFK  TVL0  TRS0 LFKT   W  W_min  W_max  INDTR  TRSK  VTYP  IMBG  IRFV                   pk                   tk  NAME_i KVR_i TM_i   XKOR_i   YKOR_i ZKOR_i  pXCor_i  pYCor_i  NAME_k KVR_k TM_k   XKOR_k   YKOR_k ZKOR_k  pXCor_k  pYCor_k                                      CONT CONT_ID CONT_LFDNR                         WBLZ
+0            1         -1  200  0.8    90    50  NaN NaN    NaN    NaN      1    55     1     0   0.0  4643800032883366034  4643800032883366034  V-K002     1   90  2541059  5706265     20    319.0     56.0  R-K002     2   60  2541059  5706265     20    319.0     56.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  [BLNZ1, BLNZ1u5, BLNZ1u5u7]
+1            3         -1  200  1.0    90    65  NaN NaN    NaN    NaN      1    65     1     0   0.0  4704603947372595298  4704603947372595298  V-K004     1   90  2541539  5706361     20    799.0    152.0  R-K004     2   60  2541539  5706361     20    799.0    152.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           []
+2            4         -1  200  0.8    90    60  NaN NaN    NaN    NaN      1    60     1     0   0.0  5121101823283893406  5121101823283893406  V-K005     1   90  2541627  5706363     20    887.0    154.0  R-K005     2   60  2541627  5706363     20    887.0    154.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  [BLNZ1u5, BLNZ1u5u7, BLNZ5]
+3            5         -1  200  0.8    90    55  NaN NaN    NaN    NaN      1    55     1     0   0.0  5400405917816384862  5400405917816384862  V-K007     1   90  2541899  5706325     20   1159.0    116.0  R-K007     2   60  2541899  5706325     20   1159.0    116.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                  [BLNZ1u5u7]
+4            2         -1  200  0.6    90    60  NaN NaN    NaN    NaN      1    62     1     0   0.0  5695730293103267172  5695730293103267172  V-K003     1   90  2541457  5706345     20    717.0    136.0  R-K003     2   60  2541457  5706345     20    717.0    136.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           []
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',5,'New',"vNRCV")) 
+>>> xm.dataFrames['vNRCV'].sort_values(['OBJTYPE','ATTRTYPE','fkOBJTYPE','cRefLfdNr'],ascending=True)
+    cRefLfdNr                                      CONT CONT_ID CONT_LFDNR         DPGR OBJTYPE            fkOBJTYPE ATTRTYPE              pk_ROWS              tk_ROWS                   pk                   tk
+1           1                                      BHKW    1002         -1  UserDefined    FWES  5638756766880678918        W  5762106696740202356  5762106696740202356  4857294696992797631  4857294696992797631
+12          1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5741235692335544560       DP  4949183695502554728  4949183695502554728  4914949875368816179  4914949875368816179
+3           1                                      BHKW    1002         -1  UserDefined    KNOT  5356267303828212700       PH  5000989080893535213  5000989080893535213  4968703141722117357  4968703141722117357
+0           1                                      BHKW    1002         -1  UserDefined    KNOT  5736262931552588702       PH  4754881272083464445  4754881272083464445  4681213816714574464  4681213816714574464
+14          1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5397990465339071638       QM  5134531789044068877  5134531789044068877  5410059595276504750  5410059595276504750
+11          2                                      BHKW    1002         -1  UserDefined    KNOT  5397990465339071638       QM  5134531789044068877  5134531789044068877  5357021981944933535  5357021981944933535
+5           1                                      BHKW    1002         -1  UserDefined    KNOT  5049461676240771430        T  4723443975311885965  4723443975311885965  5097127385155151127  5097127385155151127
+10          1                                      BHKW    1002         -1  UserDefined    KNOT  5219230031772497417        T  5602301870151014230  5602301870151014230  5557806245003742769  5557806245003742769
+4           1                                      BHKW    1002         -1  UserDefined    PUMP  5481331875203087055        N  5563842594211689762  5563842594211689762  5091374651838464239  5091374651838464239
+8           1                                      BHKW    1002         -1  UserDefined    VENT  4678923650983295610       QM  5126307362398248950  5126307362398248950  5410904806390050339  5410904806390050339
+6           1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WES  5690691957596882133  5690691957596882133  5179988968597313889  5179988968597313889
+2           1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WSPEI  5153847813311339683  5153847813311339683  4946584950744559030  4946584950744559030
+13          1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    WBLZ  4694700216019268978      WVB  4778244458749966216  4778244458749966216  4991097791264453745  4991097791264453745
+7           1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WVB  5214984699859365639  5214984699859365639  5281885868749421521  5281885868749421521
+9           1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WVERL  4722863010266870887  4722863010266870887  5476262878682325254  5476262878682325254
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',6,'New',"vNRCV_Mx1")) 
+>>> xm._Xm__Mx1()
+>>> xm.dataFrames['vNRCV_Mx1'].sort_values(['Sir3sID'],ascending=True)
+                                         Sir3sID cRefLfdNr                                      CONT CONT_ID CONT_LFDNR         DPGR OBJTYPE            fkOBJTYPE ATTRTYPE              pk_ROWS              tk_ROWS                   pk                   tk
+1              FWES~R3~V-1~5638756766880678918~W         1                                      BHKW    1002         -1  UserDefined    FWES  5638756766880678918        W  5762106696740202356  5762106696740202356  4857294696992797631  4857294696992797631
+11      KNOT~PKON-Knoten~~5397990465339071638~QM         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5397990465339071638       QM  5134531789044068877  5134531789044068877  5410059595276504750  5410059595276504750
+6               KNOT~R-L~~5356267303828212700~PH         1                                      BHKW    1002         -1  UserDefined    KNOT  5356267303828212700       PH  5000989080893535213  5000989080893535213  4968703141722117357  4968703141722117357
+10                KNOT~R3~~5219230031772497417~T         1                                      BHKW    1002         -1  UserDefined    KNOT  5219230031772497417        T  5602301870151014230  5602301870151014230  5557806245003742769  5557806245003742769
+8                KNOT~V-1~~5049461676240771430~T         1                                      BHKW    1002         -1  UserDefined    KNOT  5049461676240771430        T  4723443975311885965  4723443975311885965  5097127385155151127  5097127385155151127
+12           KNOT~V-K007~~5741235692335544560~DP         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5741235692335544560       DP  4949183695502554728  4949183695502554728  4914949875368816179  4914949875368816179
+0               KNOT~V-L~~5736262931552588702~PH         1                                      BHKW    1002         -1  UserDefined    KNOT  5736262931552588702       PH  4754881272083464445  4754881272083464445  4681213816714574464  4681213816714574464
+7              PUMP~R-1~R2~5481331875203087055~N         1                                      BHKW    1002         -1  UserDefined    PUMP  5481331875203087055        N  5563842594211689762  5563842594211689762  5091374651838464239  5091374651838464239
+9            VENT~V-1~V-L~4678923650983295610~QM         1                                      BHKW    1002         -1  UserDefined    VENT  4678923650983295610       QM  5126307362398248950  5126307362398248950  5410904806390050339  5410904806390050339
+13       WBLZ~BLNZ1u5u7~~4694700216019268978~WVB         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    WBLZ  4694700216019268978      WVB  4778244458749966216  4778244458749966216  4991097791264453745  4991097791264453745
+3     WBLZ~WärmeblnzGes~~5262603207038486299~WES         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WES  5690691957596882133  5690691957596882133  5179988968597313889  5179988968597313889
+2   WBLZ~WärmeblnzGes~~5262603207038486299~WSPEI         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WSPEI  5153847813311339683  5153847813311339683  4946584950744559030  4946584950744559030
+4     WBLZ~WärmeblnzGes~~5262603207038486299~WVB         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WVB  5214984699859365639  5214984699859365639  5281885868749421521  5281885868749421521
+5   WBLZ~WärmeblnzGes~~5262603207038486299~WVERL         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WVERL  4722863010266870887  4722863010266870887  5476262878682325254  5476262878682325254
 """
 
 import os
@@ -376,6 +496,8 @@ class Xm():
             self.dataFrames['LFKT_ROWT']=self.dataFrames['LFKT_ROWT'].fillna(0) # 1. Zeit ohne Wert fuer ZEIT?!
             self.dataFrames['QVAR_ROWT']=self.dataFrames['QVAR_ROWT'].fillna(0) # 1. Zeit ohne Wert fuer ZEIT?!
             
+            # Template Node
+            self.dataFrames['KNOT']=self.dataFrames['KNOT'][self.dataFrames['KNOT'].NAME.fillna('').astype(str).isin(['TemplateNode','TemplNode-VL','TemplNode-RL'])==False]            
             
             # TE only in Heatingmodels ? ...
             try:
@@ -395,12 +517,33 @@ class Xm():
                 isinstance(self.dataFrames['CONT']['LFDNR'],pd.core.series.Series)
             except:
                 self.dataFrames['CONT']['LFDNR']=pd.Series()    
-
             try:
                 isinstance(self.dataFrames['CONT']['GRAF'],pd.core.series.Series)
             except:
                 self.dataFrames['CONT']['GRAF']=pd.Series()    
-                        
+
+            # Models with old DTRO_ROWD
+            # ['AUSFALLZEIT' 'PN' 'REHABILITATION' 'REPARATUR']
+
+            try:
+                isinstance(self.dataFrames['DTRO_ROWD']['AUSFALLZEIT'],pd.core.series.Series)
+            except:
+                self.dataFrames['DTRO_ROWD']['AUSFALLZEIT']=pd.Series()    
+            try:
+                isinstance(self.dataFrames['DTRO_ROWD']['PN'],pd.core.series.Series)
+            except:
+                self.dataFrames['DTRO_ROWD']['PN']=pd.Series()    
+            try:
+                isinstance(self.dataFrames['DTRO_ROWD']['REHABILITATION'],pd.core.series.Series)
+            except:
+                self.dataFrames['DTRO_ROWD']['REHABILITATION']=pd.Series()    
+            try:
+                isinstance(self.dataFrames['DTRO_ROWD']['REPARATUR'],pd.core.series.Series)
+            except:
+                self.dataFrames['DTRO_ROWD']['REPARATUR']=pd.Series()    
+
+
+
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
@@ -466,6 +609,9 @@ class Xm():
             #Ansichtsgruppen
             vLAYR
 
+            #Wblz
+            vWBLZ
+
             #time-Tables
             vLFKT
             vQVAR
@@ -473,6 +619,8 @@ class Xm():
 
             #Signal-Model
             vRSLW
+
+            vNRCV
             
             #Block-Nodes    
             vVKNO
@@ -495,14 +643,21 @@ class Xm():
             #Layr
             self.dataFrames['vLAYR']=self.__vLAYR()
 
+            #Wblz
+            self.dataFrames['vWBLZ']=self.__vWBLZ()
+
             #time-Tables
-            self.dataFrames['vLFKT']=self.__vLFKT()          
+            self.dataFrames['vLFKT']=self.__vLFKT()   
+            self.dataFrames['vQVAR']=self.__vQVAR()                   
             self.dataFrames['vSWVT']=self.__vSWVT()
+
+
             self.dataFrames['vRSLW']=self.__vRSLW(vSWVT=self.dataFrames['vSWVT']
                                              ) #SWVT-Usage
 
-            #time-Tables
-            self.dataFrames['vQVAR']=self.__vQVAR()
+
+            # NRCV
+            self.dataFrames['vNRCV']=self.__vNRCV()
             
             #nodes    
             self.dataFrames['vVKNO']=self.__vVKNO()
@@ -515,6 +670,7 @@ class Xm():
             self.dataFrames['vROHR']=self.__vROHR(vKNOT=self.dataFrames['vKNOT'])
             self.dataFrames['vFWVB']=self.__vFWVB(vKNOT=self.dataFrames['vKNOT']
                                             ,vLFKT=self.dataFrames['vLFKT']
+                                            ,vWBLZ=self.dataFrames['vWBLZ']
                                             )                                             
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -590,6 +746,86 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             return vLAYR
 
+    def __vWBLZ(self):
+        """
+            vWBLZ:
+                One row per WBLZ and OBJ:
+            #WBLZ_DATA (vWBLZ_DATA)
+                'AKTIV'            
+               ,'BESCHREIBUNG'
+               ,'IDIM'
+               ,'NAME'
+            #from WBLZ's OBJS: 
+               ,'OBJID' #pk (or tk?!) of a WBLZ OBJ
+               ,'OBJTYPE' #type (i.e. KNOT) of a WBLZ OBJ
+            #IDs (of the WBLZ)
+               ,'pk'                          
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            vWBLZ=None
+
+            vWBLZ_DATA=self.dataFrames['WBLZ'][pd.notnull(self.dataFrames['WBLZ']['OBJS'])][['AKTIV','BESCHREIBUNG','IDIM','NAME','OBJS','pk']]
+            vWBLZ_DATA['OBJS']=vWBLZ_DATA['OBJS'].apply(lambda x: base64.b64decode(x)).str.decode('utf-8')
+
+            sList=[pd.Series(row['pk'],index=row['OBJS'].split('\t'),name='pk_Echo')  for index,row in vWBLZ_DATA.iterrows()]
+
+            # sList[0]:
+            # KNOT~4668229590574507160    5403356857783326643
+            # KNOT~4698059932328245370    5403356857783326643
+
+            vWBLZ_OBJS=pd.concat(sList).reset_index() # When we reset the index, the old index is added as a column named 'index', and a new sequential index is used
+            vWBLZ_OBJS.rename(columns={'index':'ETYPEEID'},inplace=True)
+            # vWBLZ_OBJS:
+            #	ETYPEEID	                pk_Echo
+            # 0	KNOT~4668229590574507160	5403356857783326643
+            # 1	KNOT~4698059932328245370	5403356857783326643
+
+            vWBLZ_DATA.drop(['OBJS'],axis=1,inplace=True)
+            
+            vWBLZ_OBJS=vWBLZ_OBJS[vWBLZ_OBJS['ETYPEEID'].notnull()]
+            vWBLZ_OBJS=vWBLZ_OBJS[vWBLZ_OBJS['ETYPEEID'].str.len()>5]
+            vWBLZ_OBJS['OBJID']=vWBLZ_OBJS['ETYPEEID'].str[5:]
+            vWBLZ_OBJS['OBJTYPE']=vWBLZ_OBJS['ETYPEEID'].str[:4]
+            vWBLZ_OBJS.drop(['ETYPEEID'],axis=1,inplace=True)
+
+            vWBLZ=pd.merge(vWBLZ_DATA,vWBLZ_OBJS,left_on='pk',right_on='pk_Echo')
+
+            vWBLZ=vWBLZ[[
+             'AKTIV'            
+            ,'BESCHREIBUNG'
+            ,'IDIM'
+            ,'NAME'
+            #from WBLZ's OBJS: 
+            ,'OBJID' #pk (or tk?!) of a WBLZ OBJ
+            ,'OBJTYPE' #type (i.e. KNOT) of a WBLZ OBJ
+            #IDs (of the WBLZ)
+            ,'pk'
+            ]]
+          
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            if isinstance(vWBLZ,pd.core.frame.DataFrame):
+                logger.error(logStrFinal) 
+            else:
+                logger.debug(logStrFinal) 
+                vWBLZ=pd.DataFrame()   
+                vWBLZ['AKTIV']=pd.Series()  
+                vWBLZ['BESCHREIBUNG']=pd.Series()  
+                vWBLZ['IDIM']=pd.Series()  
+                vWBLZ['NAME']=pd.Series()  
+                vWBLZ['OBJID']=pd.Series()  
+                vWBLZ['OBJTYPE']=pd.Series()  
+                vWBLZ['pk']=pd.Series()     
+               
+                                                
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+            return vWBLZ
+
     def __vLFKT(self):
         """
         vLFKT:
@@ -643,6 +879,99 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vLFKT  
+
+    def __vNRCV(self):
+        """
+        vNRCV:
+            One row per NRCV:           
+               'cRefLfdNr' 
+              # CONT
+              ,'CONT'
+              ,'CONT_ID'
+              ,'CONT_LFDNR'
+              # DPGR
+              ,'DPGR'
+               # Data (of the DPGR_ROW)
+              ,'OBJTYPE'
+              ,'fkOBJTYPE'
+              ,'ATTRTYPE'
+              # IDs (of the DPGR_ROW)
+              ,'pk_ROWS'
+              ,'tk_ROWS'       
+              # IDs (of the NRCV)
+              ,'pk'
+              ,'tk'          
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            vNRCV=None
+            vNRCV=self.dataFrames['NRCV']
+            vNRCV=vNRCV.merge(self.dataFrames['DPGR_ROWS'],left_on='fkDPGR_ROWS',right_on='pk',suffixes=['_NR','_DR'])
+            vNRCV=vNRCV.merge(self.dataFrames['DPGR'],left_on='fk',right_on='pk',suffixes=['_DR2','_DG'])
+            vNRCV=vNRCV.merge(self.dataFrames['CONT'],left_on='fkCONT',right_on='pk',suffixes=['_DR3','_CONT'])
+
+            vNRCV=vNRCV[[
+               'NAME_CONT'
+              ,'ID'
+              ,'LFDNR'
+              # DPGR
+              ,'NAME_DR3'
+               # Data (of the DPGR_ROW)
+              ,'OBJTYPE'
+              ,'fkOBJTYPE'
+              ,'ATTRTYPE'
+              # IDs (of the DPGR_ROW)
+              ,'pk_DR'
+              ,'tk_DR'       
+              # IDs (of the NRCV)
+              ,'pk_NR'
+              ,'tk_NR'
+            ]]
+
+            vNRCV.rename(columns={'NAME_CONT':'CONT','ID':'CONT_ID','LFDNR':'CONT_LFDNR'
+                      ,'NAME_DR3':'DPGR'
+                     ,'pk_NR':'pk'
+                     ,'tk_NR':'tk'
+                     ,'pk_DR':'pk_ROWS'
+                     ,'tk_DR':'tk_ROWS'},inplace=True)  
+
+            vNRCV=vNRCV.assign(cRefLfdNr=vNRCV.sort_values(['CONT_ID','pk'], ascending=True)
+                   .groupby(['OBJTYPE','ATTRTYPE','fkOBJTYPE']).cumcount()+1)
+
+            vNRCV=vNRCV[[
+               'cRefLfdNr' 
+              # CONT
+              ,'CONT'
+              ,'CONT_ID'
+              ,'CONT_LFDNR'
+              # DPGR
+              ,'DPGR'
+               # Data (of the DPGR_ROW)
+              ,'OBJTYPE'
+              ,'fkOBJTYPE'
+              ,'ATTRTYPE'
+              # IDs (of the DPGR_ROW)
+              ,'pk_ROWS'
+              ,'tk_ROWS'       
+              # IDs (of the NRCV)
+              ,'pk'
+              ,'tk'
+            ]]
+                                            
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            if isinstance(vNRCV,pd.core.frame.DataFrame):
+                logger.error(logStrFinal) 
+            else:
+                logger.debug(logStrFinal) 
+                vNRCV=pd.DataFrame()                 
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            return vNRCV
 
     def __vSWVT(self):
         """
@@ -986,7 +1315,7 @@ class Xm():
                              ,vKNOT['BESCHREIBUNG'].fillna('').str.startswith('Template Element')
                              )
                 ] 
-
+            
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
@@ -1277,7 +1606,9 @@ class Xm():
                             ]]
             vROHR.rename(columns={'pk_x':'pk','tk_x':'tk','NAME':'DTRO_NAME','BESCHREIBUNG_y':'DTRO_BESCHREIBUNG','BESCHREIBUNG_x':'BESCHREIBUNG'},inplace=True)
             
+            #logger.debug("{:s} vor fkKI: {!s:s}".format(logStr,(vROHR)))   
             vROHR=pd.merge(vROHR,vKNOT,left_on='fkKI',right_on='pk')   
+            #logger.debug("{:s} nach fkKI: {!s:s}".format(logStr,(vROHR)))   
             vROHR.rename(columns={'BESCHREIBUNG_x':'BESCHREIBUNG','IDREFERENZ_x':'IDREFERENZ'
                                        ,'pk_x':'pk','tk_x':'tk'
                                        ,'CONT_ID_x':'CONT_ID','CONT_LFDNR_x':'CONT_LFDNR'
@@ -1408,7 +1739,7 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
             return vROHR 
 
-    def __vFWVB(self,vKNOT=None,vLFKT=None):
+    def __vFWVB(self,vKNOT=None,vLFKT=None,vWBLZ=None):
         """
         vFWVB:
              'BESCHREIBUNG'
@@ -1437,8 +1768,10 @@ class Xm():
             ,'CONT' 
             ,'CONT_ID'
             ,'CONT_LFDNR' 
-            #Categories
-            ,'W0cat'       
+            #WBLZ
+            ,['BLZ1','BLZ2',...]] 
+                # list of the WBLZ-Names of the FWVB in alphabetical Order  
+                # empty, if FWVB is not a WBLZ-Member      
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1446,8 +1779,12 @@ class Xm():
         
         try:         
             vFWVB=None
+
+            #logger.debug("{:s} vor _BZ: {!s:s}".format(logStr,(vFWVB)))
                             
             vFWVB=pd.merge(self.dataFrames['FWVB'],self.dataFrames['FWVB_BZ'],left_on='pk',right_on='fk')
+
+            #logger.debug("{:s} nach _BZ: {!s:s}".format(logStr,(vFWVB)))
             #
             vFWVB=vFWVB[vFWVB['W0'].notnull()]
             vFWVB['W0']=vFWVB['W0'].str.replace(',', '.')
@@ -1463,7 +1800,8 @@ class Xm():
             vFWVB['IRFV']=pd.to_numeric(vFWVB['IRFV']) 
             
             #
-            vFWVB=pd.merge(vFWVB,vLFKT,left_on='fkLFKT',right_on='pk')
+            vFWVB=pd.merge(vFWVB,vLFKT,left_on='fkLFKT',right_on='pk',how='left')
+            #logger.debug("{:s} nach vLFKT: {!s:s}".format(logStr,(vFWVB)))
             #
             vFWVB['W']      = vFWVB.apply(lambda row: row.LF     * row.W0, axis=1)
             vFWVB['W_min']  = vFWVB.apply(lambda row: row.LF_min * row.W0, axis=1)
@@ -1497,7 +1835,10 @@ class Xm():
                    ,'fkCONT'            
                  ]]    
 
+            #logger.debug("{:s} vor fkKI: {!s:s}".format(logStr,(vFWVB)))
+
             vFWVB=pd.merge(vFWVB,vKNOT,left_on='fkKI',right_on='pk')   
+            #logger.debug("{:s} nach fkKI: {!s:s}".format(logStr,(vFWVB)))
             vFWVB.rename(columns={'BESCHREIBUNG_x':'BESCHREIBUNG','IDREFERENZ_x':'IDREFERENZ','pk_x':'pk','tk_x':'tk'},inplace=True)  
             vFWVB=vFWVB[[
                     #FWVB
@@ -1585,61 +1926,168 @@ class Xm():
                     ,'CONT_LFDNR' 
                      ]]
 
-            # Last Kategorien (Load Categories); kategorisieren der FWVB nach Anschlusswert
-            Load=vFWVB.W0
+            
+            #logger.debug("{:s} vor WBLZ: {!s:s}".format(logStr,(vFWVB)))
 
-            bins=[]
-            binlabels=[]
+            # Waermebilanzenzugehoerigkeit            
+            blzKnoten=vWBLZ.merge(vKNOT,left_on='OBJID',right_on='tk')
+            rowsTk,cols=blzKnoten.shape
+            blzKnotenPk=vWBLZ.merge(vKNOT,left_on='OBJID',right_on='pk')
+            rowsPk,cols=blzKnotenPk.shape
+            # pks oder tks in OBJID?
+            if rowsTk>=rowsPk:
+                pass    
+            else:
+                # warning
+                logger.warning("{:s}pk select: {:d} > tk select {:d}?!".format(logStr,rowsPk,rowsTk))
 
-            bins.append(0)
-            binlabels.append('=0')
+            blzKnoten=blzKnoten[[
+             'AKTIV'            
+            ,'BESCHREIBUNG_x'
+            ,'IDIM'
+            ,'NAME_x'
+            #IDs (of the WBLZ)
+            ,'pk_x'
+            #
+            ,'pk_y'
+            ,'tk'
+            ,'NAME_y'
+            #
+            ]]
+            
+            blzKnoten.rename(columns={'BESCHREIBUNG_x':'BESCHREIBUNG'},inplace=True)
+            blzKnoten.rename(columns={'NAME_x':'NAME'},inplace=True)
+            blzKnoten.rename(columns={'pk_x':'pk'},inplace=True)
+            blzKnoten.rename(columns={'pk_y':'pk_NODE'},inplace=True)
+            blzKnoten.rename(columns={'NAME_y':'NAME_NODE'},inplace=True)
 
-            epsZero=0.001 #to distinguish FWVB Cat. with W0=0 from those with W0>0
-            bins.append(epsZero)
-            binlabels.append('>0')
+            #VL --------------
+            blzKnotenFwvbVL=blzKnoten.merge(vFWVB,left_on='NAME_NODE',right_on='NAME_i') 
 
-            bins.append(Load.quantile(.25))
-            binlabels.append('>=25%-Quart.')
+            blzKnotenFwvbVL.rename(columns={'BESCHREIBUNG_x':'BESCHREIBUNG'},inplace=True)
+            blzKnotenFwvbVL.rename(columns={'pk_x':'pk'},inplace=True)
+            blzKnotenFwvbVL.rename(columns={'tk_x':'tk_NODE'},inplace=True)
+            blzKnotenFwvbVL.rename(columns={'pk_y':'pk_FWVB'},inplace=True)
+            blzKnotenFwvbVL.rename(columns={'tk_y':'tk_FWVB'},inplace=True)
 
-            if Load.median() < Load.mean(): #50%-Quartil < Mittelwert
-                bins.append(Load.median()) 
-                binlabels.append('>=Median')
+            blzKnotenFwvbVL=blzKnotenFwvbVL[[
+             'AKTIV'            
+            ,'BESCHREIBUNG'
+            ,'IDIM'
+            ,'NAME'
+            #IDs (of the WBLZ)
+            ,'pk'
+            #
+            ,'pk_NODE'
+            ,'tk_NODE'
+            ,'NAME_NODE'
+            #
+            ,'pk_FWVB'
+            ,'tk_FWVB'
+            #
+            ]]
 
-            bins.append(Load.mean())
-            binlabels.append('>=Mittelwert')
+            #RL ----------------
+            blzKnotenFwvbRL=blzKnoten.merge(vFWVB,left_on='NAME_NODE',right_on='NAME_k') 
 
-            bins.append(bins[-1]*2)
-            binlabels.append('>=2xMittelw.')
+            blzKnotenFwvbRL.rename(columns={'BESCHREIBUNG_x':'BESCHREIBUNG'},inplace=True)
+            blzKnotenFwvbRL.rename(columns={'pk_x':'pk'},inplace=True)
+            blzKnotenFwvbRL.rename(columns={'tk_x':'tk_NODE'},inplace=True)
+            blzKnotenFwvbRL.rename(columns={'pk_y':'pk_FWVB'},inplace=True)
+            blzKnotenFwvbRL.rename(columns={'tk_y':'tk_FWVB'},inplace=True)
 
-            if bins[-1] < Load.std():
-                bins.append(Load.std())
-                binlabels.append('>=Standardabw.')
+            blzKnotenFwvbRL=blzKnotenFwvbRL[[
+             'AKTIV'            
+            ,'BESCHREIBUNG'
+            ,'IDIM'
+            ,'NAME'
+            #IDs (of the WBLZ)
+            ,'pk'
+            #
+            ,'pk_NODE'
+            ,'tk_NODE'
+            ,'NAME_NODE'
+            #
+            ,'pk_FWVB'
+            ,'tk_FWVB'
+            #
+            ]]
 
-            if bins[-1] < 2*Load.std():
-                bins.append(2*Load.std())
-                binlabels.append('>=2*Standardabw.')
+            VLOk=vFWVB.merge(blzKnotenFwvbVL,left_on='NAME_i',right_on='NAME_NODE',suffixes=['_1','_2'])
+            RLOk=vFWVB.merge(blzKnotenFwvbRL,left_on='NAME_k',right_on='NAME_NODE',suffixes=['_1','_2'])
 
-            if bins[-1] < Load.quantile(.90):
-                bins.append(Load.quantile(.90))
-                binlabels.append('>=90%-Quartil')
-            else: 
-                if bins[-1] < Load.quantile(.95):
-                    bins.append(Load.quantile(.95))
-                    binlabels.append('>=95%-Quartil')
+            VLRLOk=VLOk.merge(RLOk,left_on='pk_FWVB',right_on='pk_FWVB',suffixes=['_VL','_RL'])
+            #logger.debug("{:s}{!s:s}".format(logStr,(VLRLOk)))
+            VLRLOk=VLRLOk[VLRLOk['NAME_VL']==VLRLOk['NAME_RL']][['pk_FWVB','NAME_VL']]
+            VLRLOk.rename(columns={'NAME_VL':'NAME'},inplace=True)
+            
+            VLRLOk=VLRLOk.assign(wblzLfdNr=VLRLOk.sort_values(['NAME'], ascending=True)
+                          .groupby(['pk_FWVB'])
+                          .cumcount() + 1)
 
-            bins.append(Load.max())
-            binlabels.append('Max.')
+            vFWVB['WBLZ']=[list() for dummy in vFWVB['pk']]
+            for index, row in vFWVB.merge(VLRLOk,left_on='pk',right_on='pk_FWVB',how='left').sort_values(by=['pk','NAME'],na_position='first').iterrows():                
+                if pd.isnull(row.NAME):
+                    continue
+                row.WBLZ.append(row.NAME)
 
-            W0cat=pd.cut(Load,bins,include_lowest=True,right=True,precision=1)
+            #vFWVB[vFWVB['WBLZ'].apply(lambda x: 'BLNZ1' in x)]
+            
+            ## Last Kategorien (Load Categories); kategorisieren der FWVB nach Anschlusswert
+            #Load=vFWVB.W0
 
-            W0catLabels=[x + '-: ' +  re.sub('\]$','[',re.sub('\(' ,'[', y))  for x,y in zip(binlabels[:-1],W0cat.cat.categories)]
-            W0catLabels[-1]=re.sub('\[$',']',W0catLabels[-1])
+            #bins=[]
+            #binlabels=[]
 
-            W0cat.cat.rename_categories(W0catLabels,inplace=True)
+            #bins.append(0)
+            #binlabels.append('=0')
 
-            #vFWVB['W0cat']=W0cat
-            #vFWVB.groupby('W0Cat').describe()
-            #vFWVB.groupby('W0Cat').W0.sum()
+            #epsZero=0.001 #to distinguish FWVB Cat. with W0=0 from those with W0>0
+            #bins.append(epsZero)
+            #binlabels.append('>0')
+
+            #bins.append(Load.quantile(.25))
+            #binlabels.append('>=25%-Quart.')
+
+            #if Load.median() < Load.mean(): #50%-Quartil < Mittelwert
+            #    bins.append(Load.median()) 
+            #    binlabels.append('>=Median')
+
+            #bins.append(Load.mean())
+            #binlabels.append('>=Mittelwert')
+
+            #bins.append(bins[-1]*2)
+            #binlabels.append('>=2xMittelw.')
+
+            #if bins[-1] < Load.std():
+            #    bins.append(Load.std())
+            #    binlabels.append('>=Standardabw.')
+
+            #if bins[-1] < 2*Load.std():
+            #    bins.append(2*Load.std())
+            #    binlabels.append('>=2*Standardabw.')
+
+            #if bins[-1] < Load.quantile(.90):
+            #    bins.append(Load.quantile(.90))
+            #    binlabels.append('>=90%-Quartil')
+            #else: 
+            #    if bins[-1] < Load.quantile(.95):
+            #        bins.append(Load.quantile(.95))
+            #        binlabels.append('>=95%-Quartil')
+
+            #bins.append(Load.max())
+            #binlabels.append('Max.')
+
+            #W0cat=pd.cut(Load,bins,include_lowest=True,right=True,precision=1)
+
+            #W0catLabels=[x + '-: ' +  re.sub('\]$','[',re.sub('\(' ,'[', y))  for x,y in zip(binlabels[:-1],W0cat.cat.categories)]
+            #W0catLabels[-1]=re.sub('\[$',']',W0catLabels[-1])
+
+            #W0cat.cat.rename_categories(W0catLabels,inplace=True)
+
+            ##vFWVB['W0cat']=W0cat
+            ##vFWVB.groupby('W0Cat').describe()
+            ##vFWVB.groupby('W0Cat').W0.sum()
 
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -1816,7 +2264,91 @@ class Xm():
     #        raise XmError(logStrFinal)                
     #    else:
     #        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
-                                  
+
+    def __Mx1(self):
+        """
+        vNRCV_Mx1:
+            One row per NRCV-referenced Sir3sID in mx1Df:
+               'Sir3sID'
+              ,'cRefLfdNr' 
+              # CONT
+              ,'CONT'
+              ,'CONT_ID'
+              ,'CONT_LFDNR'
+              # DPGR
+              ,'DPGR'
+               # Data (of the DPGR_ROW)
+              ,'OBJTYPE'
+              ,'fkOBJTYPE'
+              ,'ATTRTYPE'
+              # IDs (of the DPGR_ROW)
+              ,'pk_ROWS'
+              ,'tk_ROWS'       
+              # IDs (of the NRCV)
+              ,'pk'
+              ,'tk'                    
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+
+            (wDir,modelDir,modelName)=self.getWDirModelDirModelName()
+            mx1File=os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1' 
+
+            from Mx import Mx
+            mx=Mx(mx1File=mx1File,NoMxsRead=True)
+
+            vNRCV_Mx1=None
+            vNRCV=self.dataFrames['vNRCV']
+            
+            vNRCV_Mx1=vNRCV.merge(mx.mx1Df,left_on='fkOBJTYPE',right_on='OBJTYPE_PK',suffixes=['_NR','_MX1'])
+
+            vNRCV_Mx1=vNRCV_Mx1[(vNRCV_Mx1['cRefLfdNr']==1)
+                  &
+                  (vNRCV_Mx1['OBJTYPE_NR']==vNRCV_Mx1['OBJTYPE_MX1'])
+                  &
+                  (vNRCV_Mx1['ATTRTYPE_NR']==vNRCV_Mx1['ATTRTYPE_MX1'])
+                 ]
+
+            # reindex:
+            vNRCV_Mx1=pd.DataFrame(vNRCV_Mx1.values,columns=vNRCV_Mx1.columns)
+            
+            vNRCV_Mx1=vNRCV_Mx1[[  'Sir3sID'
+              ,'cRefLfdNr' 
+              # CONT
+              ,'CONT'
+              ,'CONT_ID'
+              ,'CONT_LFDNR'
+              # DPGR
+              ,'DPGR'
+               # Data (of the DPGR_ROW)
+              ,'OBJTYPE_NR'
+              ,'fkOBJTYPE'
+              ,'ATTRTYPE_NR'
+              # IDs (of the DPGR_ROW)
+              ,'pk_ROWS'
+              ,'tk_ROWS'       
+              # IDs (of the NRCV)
+              ,'pk'
+              ,'tk'
+            ]]
+
+            vNRCV_Mx1.rename(columns={'OBJTYPE_NR':'OBJTYPE','ATTRTYPE_NR':'ATTRTYPE'},inplace=True)  
+                                            
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            if isinstance(vNRCV,pd.core.frame.DataFrame):
+                logger.error(logStrFinal) 
+            else:
+                logger.debug(logStrFinal) 
+                vNRCV_Mx1=pd.DataFrame()                 
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            self.dataFrames['vNRCV_Mx1']=vNRCV_Mx1
+                     
 if __name__ == "__main__":
     """
     Run the Stuff or/and perform Unittests.
