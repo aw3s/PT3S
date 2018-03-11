@@ -11763,7 +11763,7 @@ div#notebook {
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Install">Install<a class="anchor-link" href="#Install">&#182;</a></h1><p>Python 3.5.2 (Anaconda 4.2.0 (64-bit))</p>
+<h2 id="Install">Install<a class="anchor-link" href="#Install">&#182;</a></h2><p>Python 3.5.2 (Anaconda 4.2.0 (64-bit))</p>
 
 </div>
 </div>
@@ -11800,14 +11800,16 @@ div#notebook {
 <span class="c1"># currentWorkingDirectory should be after Kernel (Re-)Start the notebookDir </span>
 <span class="c1"># in this case PT3SSourcecodeDir (the Dir with PT3S&#39; __init__.py and PT3S.ipynb (this notebook))</span>
 
+<span class="c1"># PT3S....-Imports:</span>
 <span class="c1"># only if</span>
-<span class="c1"># the PT3SSourcecodeDir-Files under Development _shall be used ...</span>
-<span class="c1"># ... and _not the PT3S-Installation</span>
+<span class="c1"># !pip install -e .</span>
+<span class="c1"># is active </span>
 <span class="c1"># then _before the PT3S Imports the currentWorkingDirectory _has to be changed to .. PT3SSourcecodeDir  </span>
 <span class="o">%</span><span class="k">cd</span> -q ..
-<span class="kn">from</span> <span class="nn">PT3S.Xm</span> <span class="k">import</span> <span class="n">Xm</span>
-<span class="kn">from</span> <span class="nn">PT3S.Mx</span> <span class="k">import</span> <span class="n">Mx</span>
+<span class="kn">import</span> <span class="nn">PT3S.Xm</span> <span class="k">as</span> <span class="nn">Xm</span> <span class="c1">#from PT3S.Xm import Xm</span>
+<span class="kn">import</span> <span class="nn">PT3S.Mx</span> <span class="k">as</span> <span class="nn">Mx</span> <span class="c1">#from PT3S.Mx import Mx</span>
 <span class="o">%</span><span class="k">cd</span> -q PT3S 
+<span class="c1"># if !pip install -e . is active the cd-Change has no effect  </span>
 </pre></div>
 
 </div>
@@ -11820,7 +11822,7 @@ div#notebook {
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Doctest-mode">Doctest mode<a class="anchor-link" href="#Doctest-mode">&#182;</a></h2>
+<h1 id="Imports">Imports<a class="anchor-link" href="#Imports">&#182;</a></h1>
 </div>
 </div>
 </div>
@@ -11829,8 +11831,55 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[2]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># switch 2 Doctest mode</span>
-<span class="o">%</span><span class="k">doctest_mode</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">doctest</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Doctest-mode">Doctest mode<a class="anchor-link" href="#Doctest-mode">&#182;</a></h1>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[3]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># switch to Doctest mode if working with copy/paste docTestStrings in the notebook</span>
+<span class="c1">#%doctest_mode</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Test-Mx">Test Mx<a class="anchor-link" href="#Test-Mx">&#182;</a></h1>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[4]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># run the tests ...</span>
+<span class="n">suite</span> <span class="o">=</span> <span class="n">doctest</span><span class="o">.</span><span class="n">DocTestSuite</span><span class="p">(</span><span class="n">Mx</span><span class="p">)</span>  
+<span class="n">unittest</span><span class="o">.</span><span class="n">TextTestRunner</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">suite</span><span class="p">)</span>  
 </pre></div>
 
 </div>
@@ -11842,13 +11891,25 @@ div#notebook {
 
 
 <div class="output_area"><div class="prompt"></div>
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>Exception reporting mode: Plain
-Doctest mode is: ON
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>.
+----------------------------------------------------------------------
+Ran 1 test in 4.079s
+
+OK
 </pre>
 </div>
 </div>
 
+<div class="output_area"><div class="prompt output_prompt">Out[4]:</div>
+
+
+<div class="output_text output_subarea output_execute_result">
+<pre>&lt;unittest.runner.TextTestResult run=1 errors=0 failures=0&gt;</pre>
+</div>
+
+</div>
+
 </div>
 </div>
 
@@ -11858,373 +11919,48 @@ Doctest mode is: ON
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Mx">Mx<a class="anchor-link" href="#Mx">&#182;</a></h1>
+<h1 id="Test-Xm">Test Xm<a class="anchor-link" href="#Test-Xm">&#182;</a></h1>
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[9]:</div>
+<div class="prompt input_prompt">In&nbsp;[5]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># Imports</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">logging</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;PT3S.Mx&#39;</span><span class="p">)</span>  
-<span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">os</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">zipfile</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># Init</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">h5File</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;testdata\OneLPipe.h5&#39;</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx1File</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX1&#39;</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">=</span><span class="n">Mx</span><span class="p">(</span><span class="n">mx1File</span><span class="o">=</span><span class="n">mx1File</span><span class="p">,</span><span class="n">NoH5Read</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">NoMxsRead</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mx1Df</span><span class="p">,</span><span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="c1"># MX1-Content</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span> <span class="c1"># MXS-Content</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># Clean Up</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5File</span><span class="p">):</span>                        
-<span class="o">...</span>    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5File</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsZipFile</span><span class="p">):</span>                        
-<span class="o">...</span>    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsZipFile</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mxsDumpFile</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsFile</span><span class="o">+</span><span class="s1">&#39;.dump&#39;</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mxsDumpFile</span><span class="p">):</span>                        
-<span class="o">...</span>    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">mxsDumpFile</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5FileMxsVecs</span><span class="p">):</span>                        
-<span class="o">...</span>    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5FileMxsVecs</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># 1st Read MXS</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0:s}</span><span class="s2">: 1st Read MXS&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">setResultsToMxsFile</span><span class="p">()</span> <span class="c1"># looks for M-1-0-1.MXS in same Dir </span>
-<span class="o">&gt;&gt;&gt;</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="p">,</span><span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="c1"># MXS-Content</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">rowsDf</span><span class="p">,</span><span class="n">colsDf</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="p">(</span><span class="n">firstTime</span><span class="p">,</span><span class="n">lastTime</span><span class="p">,</span><span class="n">rows</span><span class="p">)</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">_checkMxsVecsFile</span><span class="p">()</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">rowsDf</span><span class="o">==</span><span class="n">rows</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="n">firstTime</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># Write H5</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5File</span><span class="p">):</span>                        
-<span class="o">...</span>      <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5File</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">ToH5</span><span class="p">()</span> <span class="c1"># M-1-0-1.h5 in same Dir </span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5File</span><span class="p">)</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># Init with H5</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">=</span><span class="n">Mx</span><span class="p">(</span><span class="n">mx1File</span><span class="o">=</span><span class="n">mx1File</span><span class="p">)</span> <span class="c1"># looks for M-1-0-1.h5 in same Dir </span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># and reads the .h5 if newer than .MX1 and newer than an existing .MXS </span>
-<span class="o">&gt;&gt;&gt;</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mx1Df</span><span class="p">,</span><span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="c1"># MX1-Content</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="p">,</span><span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="c1"># MXS-Content</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># 1st Read MXS Zip</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># create the Zip first</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsZipFile</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">myzip</span><span class="p">:</span>
-<span class="o">...</span>     <span class="n">myzip</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsFile</span><span class="p">)</span>  
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0:s}</span><span class="s2">: 1st Read MXS Zip&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">setResultsToMxsZipFile</span><span class="p">()</span> <span class="c1"># looks for M-1-0-1.ZIP in same Dir</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="p">,</span><span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="c1"># MXS-Content</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">rowsMxs</span><span class="p">,</span><span class="n">colsMxs</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">is_unique</span> <span class="c1"># all setResultsTo... will ensure this uniqueness under all circumstances</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># uniqueness under all circumstances: also when add=True (setResultsTo... shall add the MXS-Content) is used</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># 1st Add same MXS (for testing ensuring uniqueness) </span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">oldShape</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0:s}</span><span class="s2">: 1st Add same MXS (for testing ensuring uniqueness)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">setResultsToMxsFile</span><span class="p">(</span><span class="n">add</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1"># looks for M-1-0-1.MXS in same Dir </span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">newShape</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">newShape</span><span class="o">==</span><span class="n">oldShape</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># 1st Add same Zip (for testing ensuring uniqueness) </span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0:s}</span><span class="s2">: 1st Add same Zip (for testing ensuring uniqueness)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">setResultsToMxsZipFile</span><span class="p">(</span><span class="n">add</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1"># looks for M-1-0-1.ZIP in same Dir </span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">newShape</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">newShape</span><span class="o">==</span><span class="n">oldShape</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># 1st Read MXS Zip with overlapping Timestamps (for testing ensuring uniqueness) </span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsZipFile</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">myzip</span><span class="p">:</span>
-<span class="o">...</span>      <span class="n">myzip</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsFile</span><span class="p">)</span>  
-<span class="o">...</span>      <span class="n">myzip</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsFile</span><span class="p">,</span><span class="n">arcname</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsFile</span><span class="o">+</span><span class="s1">&#39;.2&#39;</span><span class="p">)</span>  
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0:s}</span><span class="s2">: 1st Read MXS Zip with overlapping Timestamps (for testing ensuring uniqueness)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">setResultsToMxsZipFile</span><span class="p">()</span> <span class="c1"># looks for M-1-0-1.ZIP in same Dir </span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">newShape</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">newShape</span><span class="o">==</span><span class="n">oldShape</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># shift to younger Timestamps (for testing purposes) </span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">lastTimestamp</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">firstTimestamp</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">timeSpan</span><span class="o">=</span><span class="n">lastTimestamp</span><span class="o">-</span><span class="n">firstTimestamp</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
-<span class="o">...</span>      <span class="n">timeStep</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
-<span class="o">...</span> <span class="k">else</span><span class="p">:</span>
-<span class="o">...</span>      <span class="n">timeStep</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">to_timedelta</span><span class="p">(</span><span class="s1">&#39;1 second&#39;</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="o">-</span><span class="p">(</span><span class="n">timeSpan</span><span class="o">+</span><span class="n">timeStep</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># 1st Read MXS (with the original Timestamps)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0:s}</span><span class="s2">: 1st Read MXS (with the original Timestamps)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">setResultsToMxsFile</span><span class="p">(</span><span class="n">add</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1"># looks for M-1-0-1.MXS in same Dir </span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">rowsNew</span><span class="p">,</span><span class="n">colsNew</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">rowsOld</span><span class="p">,</span><span class="n">colsOld</span><span class="o">=</span><span class="n">oldShape</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">rowsNew</span><span class="o">==</span><span class="mi">2</span><span class="o">*</span><span class="n">rowsOld</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">colsNew</span><span class="o">==</span><span class="n">colsOld</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># shift to older Timestamps (for testing purposes) </span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">lastTimestamp</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">firstTimestamp</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">timeSpan</span><span class="o">=</span><span class="n">lastTimestamp</span><span class="o">-</span><span class="n">firstTimestamp</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
-<span class="o">...</span>      <span class="n">timeStep</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
-<span class="o">...</span> <span class="k">else</span><span class="p">:</span>
-<span class="o">...</span>      <span class="n">timeStep</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">to_timedelta</span><span class="p">(</span><span class="s1">&#39;1 second&#39;</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="o">+</span><span class="p">(</span><span class="n">timeSpan</span><span class="o">+</span><span class="n">timeStep</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># 2nd Read MXS (with the original Timestamps)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0:s}</span><span class="s2">: 2nd Read MXS (with the original Timestamps)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">setResultsToMxsFile</span><span class="p">(</span><span class="n">add</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1"># looks for M-1-0-1.MXS in same Dir </span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">rowsNew</span><span class="p">,</span><span class="n">colsNew</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">rowsNew</span><span class="o">==</span><span class="mi">3</span><span class="o">*</span><span class="n">rowsOld</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">colsNew</span><span class="o">==</span><span class="n">colsOld</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># Write Dump</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">dumpInMxsFormat</span><span class="p">()</span> <span class="c1"># dumps to .MXS.dump-File in same Dir</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># Read Dump</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0:s}</span><span class="s2">: Read Dump&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">setResultsToMxsFile</span><span class="p">(</span><span class="n">mxsFile</span><span class="o">=</span><span class="n">mxsDumpFile</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsZipFile</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">myzip</span><span class="p">:</span>
-<span class="o">...</span>     <span class="n">myzip</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsFile</span><span class="p">)</span>  
-<span class="o">...</span>     <span class="n">myzip</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">mxsDumpFile</span><span class="p">)</span>  
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># Read Zip with Orig and Dump</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0:s}</span><span class="s2">: Read Zip with Orig and Dump&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">setResultsToMxsZipFile</span><span class="p">()</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">rowsZip</span><span class="p">,</span><span class="n">colsZip</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">rowsZip</span><span class="o">==</span><span class="n">rowsOld</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># Without MX1, MXS</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mx1File</span><span class="p">,</span><span class="n">mx</span><span class="o">.</span><span class="n">mx1File</span><span class="o">+</span><span class="s1">&#39;.blind&#39;</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsFile</span><span class="p">,</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsFile</span><span class="o">+</span><span class="s1">&#39;.blind&#39;</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">=</span><span class="n">Mx</span><span class="p">(</span><span class="n">mx1File</span><span class="o">=</span><span class="n">mx1File</span><span class="p">)</span>  
-<span class="o">&gt;&gt;&gt;</span> <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mx1File</span><span class="o">+</span><span class="s1">&#39;.blind&#39;</span><span class="p">,</span><span class="n">mx</span><span class="o">.</span><span class="n">mx1File</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsFile</span><span class="o">+</span><span class="s1">&#39;.blind&#39;</span><span class="p">,</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsFile</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">mx1Df</span><span class="p">[</span><span class="s1">&#39;Sir3sID&#39;</span><span class="p">][</span><span class="n">mx</span><span class="o">.</span><span class="n">mx1Df</span><span class="p">[</span><span class="s1">&#39;Sir3sID&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;ALLG~~~-1~TIMESTAMP&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>   
-<span class="mi">0</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">mx1Df</span><span class="p">[</span><span class="s1">&#39;unpackIdx&#39;</span><span class="p">][</span><span class="n">mx</span><span class="o">.</span><span class="n">mx1Df</span><span class="p">[</span><span class="s1">&#39;Sir3sID&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;ALLG~~~-1~TIMESTAMP&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<span class="mi">0</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span>
-<span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">41</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">pd</span><span class="o">.</span><span class="n">tslib</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="nb">str</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="s1">&#39;2018-03-03 00:00:00+00:00&#39;</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">ts</span><span class="o">=</span><span class="n">mx</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;KNOT~I~~5642914844465475844~QM&#39;</span><span class="p">]</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span><span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">series</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="s2">&quot;</span><span class="si">{:06.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">ts</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">2</span><span class="p">))</span>
-<span class="s1">&#39;176.71&#39;</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.31&#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;New&#39;</span><span class="p">,</span><span class="s1">&#39;_checkMxsVecsFile: (...,fullCheck=False,...)&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.32&#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;Change&#39;</span><span class="p">,</span><span class="s1">&#39;setResultsToMxsFile: finally: h5.close()&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.32&#39;</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="s1">&#39;Change&#39;</span><span class="p">,</span><span class="s1">&#39;setResultsToMxsZipFile: finally: h5.close()&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.32&#39;</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="s1">&#39;Change&#39;</span><span class="p">,</span><span class="s1">&#39;ToH5: finally: h5.close()&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.32&#39;</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="s1">&#39;Change&#39;</span><span class="p">,</span><span class="s1">&#39;FromH5: finally: h5.close()&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.32&#39;</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="s1">&#39;Change&#39;</span><span class="p">,</span><span class="s1">&#39;*: except Exception as e&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.32&#39;</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="s1">&#39;Change&#39;</span><span class="p">,</span><span class="s1">&#39;setResultsToMxsFile: finally: NewH5Vec=False&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.32&#39;</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="s1">&#39;Change&#39;</span><span class="p">,</span><span class="s1">&#39;__init__(...,NoH5Read=True,...)&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5FileMxsVecs</span><span class="p">):</span>                        
-<span class="o">...</span>    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5FileMxsVecs</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">=</span><span class="n">Mx</span><span class="p">(</span><span class="n">mx1File</span><span class="o">=</span><span class="n">mx1File</span><span class="p">,</span><span class="n">NoH5Read</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5FileMxsVecs</span><span class="p">)</span> <span class="c1"># exists due to previous test</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">h5VecsFileTime</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5FileMxsVecs</span><span class="p">)</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">=</span><span class="n">Mx</span><span class="p">(</span><span class="n">mx1File</span><span class="o">=</span><span class="n">mx1File</span><span class="p">,</span><span class="n">NoH5Read</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">h5VecsFileTime</span><span class="o">&lt;</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5FileMxsVecs</span><span class="p">)</span> 
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">h5VecsFileTime</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5FileMxsVecs</span><span class="p">)</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">=</span><span class="n">Mx</span><span class="p">(</span><span class="n">mx1File</span><span class="o">=</span><span class="n">mx1File</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">h5VecsFileTime</span><span class="o">==</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5FileMxsVecs</span><span class="p">)</span> 
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">setResultsToMxsFile</span><span class="p">()</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">h5VecsFileTime</span><span class="o">==</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5FileMxsVecs</span><span class="p">)</span> 
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">setResultsToMxsFile</span><span class="p">(</span><span class="n">NewH5Vec</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">h5VecsFileTime</span><span class="o">&lt;</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5FileMxsVecs</span><span class="p">)</span> 
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.32&#39;</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="s1">&#39;Change&#39;</span><span class="p">,</span><span class="s1">&#39;setResultsToMxsZipFile: finally: NewH5Vec=False&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">ToH5</span><span class="p">()</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">=</span><span class="n">Mx</span><span class="p">(</span><span class="n">mx1File</span><span class="o">=</span><span class="n">mx1File</span><span class="p">,</span><span class="n">NoH5Read</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5File</span><span class="p">)</span>
-<span class="kc">False</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s1">&#39;display.max_columns&#39;</span><span class="p">,</span><span class="kc">None</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s1">&#39;display.width&#39;</span><span class="p">,</span><span class="mi">6666</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">mx1Df</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">mx2Df</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">df</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># Clean Up</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5File</span><span class="p">):</span>                        
-<span class="o">...</span>     <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5File</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsZipFile</span><span class="p">):</span>                        
-<span class="o">...</span>     <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">mxsZipFile</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mxsDumpFile</span><span class="p">):</span>                        
-<span class="o">...</span>    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">mxsDumpFile</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5FileMxsVecs</span><span class="p">):</span>                        
-<span class="o">...</span>    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">h5FileMxsVecs</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># LocalHeatingNetwork</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx1File</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1&#39;</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">mx</span><span class="o">=</span><span class="n">Mx</span><span class="p">(</span><span class="n">mx1File</span><span class="o">=</span><span class="n">mx1File</span><span class="p">,</span><span class="n">NoH5Read</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">NoMxsRead</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># run the tests ...</span>
+<span class="n">suite</span> <span class="o">=</span> <span class="n">doctest</span><span class="o">.</span><span class="n">DocTestSuite</span><span class="p">(</span><span class="n">Xm</span><span class="p">)</span>  
+<span class="n">unittest</span><span class="o">.</span><span class="n">TextTestRunner</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">suite</span><span class="p">)</span>  
 </pre></div>
 
 </div>
 </div>
 </div>
 
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>.
+----------------------------------------------------------------------
+Ran 1 test in 9.095s
+
+OK
+</pre>
 </div>
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
 </div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Xm">Xm<a class="anchor-link" href="#Xm">&#182;</a></h1>
+
+<div class="output_area"><div class="prompt output_prompt">Out[5]:</div>
+
+
+<div class="output_text output_subarea output_execute_result">
+<pre>&lt;unittest.runner.TextTestResult run=1 errors=0 failures=0&gt;</pre>
 </div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[8]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># Imports</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">os</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">logging</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;PT3S.Xm&#39;</span><span class="p">)</span>  
-<span class="o">&gt;&gt;&gt;</span> <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># Clean Up</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">h5File</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;testdata\OneLPipe.h5&#39;</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">h5File</span><span class="p">):</span>                        
-<span class="o">...</span>    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">h5File</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># Init</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">xmlFile</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;testdata\OneLPipe.XML&#39;</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">xm</span><span class="o">=</span><span class="n">Xm</span><span class="p">(</span><span class="n">xmlFile</span><span class="o">=</span><span class="n">xmlFile</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># a View</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">v</span><span class="o">=</span><span class="s1">&#39;vKNOT&#39;</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">xm</span><span class="o">.</span><span class="n">dataFrames</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xm</span><span class="o">.</span><span class="n">dataFrames</span><span class="p">[</span><span class="n">v</span><span class="p">],</span><span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ToH5</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">xm</span><span class="o">.</span><span class="n">ToH5</span><span class="p">()</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">xm</span><span class="o">.</span><span class="n">h5File</span><span class="p">)</span> 
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># force Read H5 instead of Xml</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">xm</span><span class="o">.</span><span class="n">xmlFile</span><span class="p">,</span><span class="n">xm</span><span class="o">.</span><span class="n">xmlFile</span><span class="o">+</span><span class="s1">&#39;.blind&#39;</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">xm</span><span class="o">=</span><span class="n">Xm</span><span class="p">(</span><span class="n">xmlFile</span><span class="o">=</span><span class="n">xmlFile</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">xm</span><span class="o">.</span><span class="n">xmlFile</span><span class="o">+</span><span class="s1">&#39;.blind&#39;</span><span class="p">,</span><span class="n">xm</span><span class="o">.</span><span class="n">xmlFile</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">vKNOT</span><span class="o">=</span><span class="n">xm</span><span class="o">.</span><span class="n">dataFrames</span><span class="p">[</span><span class="s1">&#39;vKNOT&#39;</span><span class="p">]</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">vKNOT</span><span class="p">[(</span><span class="n">vKNOT</span><span class="o">.</span><span class="n">KTYP</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="s1">&#39;QKON&#39;</span><span class="p">,</span><span class="s1">&#39;PKON&#39;</span><span class="p">]))</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">vKNOT</span><span class="o">.</span><span class="n">BESCHREIBUNG</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;Template Element&#39;</span><span class="p">)</span><span class="o">==</span><span class="kc">False</span><span class="p">)]</span><span class="o">.</span><span class="n">shape</span>
-<span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">24</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">vROHR</span><span class="o">=</span><span class="n">xm</span><span class="o">.</span><span class="n">dataFrames</span><span class="p">[</span><span class="s1">&#39;vROHR&#39;</span><span class="p">]</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">vROHR</span><span class="o">.</span><span class="n">shape</span>
-<span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">72</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vROHR</span><span class="p">[</span><span class="s1">&#39;pXCors&#39;</span><span class="p">],</span><span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">series</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">vROHR</span><span class="p">[</span><span class="s1">&#39;pXCors&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-<span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">500.0</span><span class="p">]</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">vROHR</span><span class="o">.</span><span class="n">pYCors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.31&#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;Bugfix&#39;</span><span class="p">,</span><span class="s2">&quot;__convertAndFix: self.dataFrames[&#39;KNOT_BZ&#39;][&#39;TE&#39;]=pd.Series() if missing&quot;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="s1">&#39;TE&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xm</span><span class="o">.</span><span class="n">dataFrames</span><span class="p">[</span><span class="s1">&#39;KNOT&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="s1">&#39;TE&#39;</span> <span class="ow">in</span> <span class="n">xm</span><span class="o">.</span><span class="n">dataFrames</span><span class="p">[</span><span class="s1">&#39;KNOT_BZ&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.31&#39;</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="s1">&#39;New&#39;</span><span class="p">,</span><span class="s2">&quot;getWDirModelDirModelName()&quot;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="p">(</span><span class="n">wDir</span><span class="p">,</span><span class="n">modelDir</span><span class="p">,</span><span class="n">modelName</span><span class="p">)</span><span class="o">=</span><span class="n">xm</span><span class="o">.</span><span class="n">getWDirModelDirModelName</span><span class="p">()</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">modelName</span>
-<span class="s1">&#39;M-1-0-1&#39;</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.32&#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;Change&#39;</span><span class="p">,</span><span class="s1">&#39;ToH5: finally: h5.close()&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.32&#39;</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="s1">&#39;Change&#39;</span><span class="p">,</span><span class="s1">&#39;FromH5: finally: h5.close()&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.32&#39;</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="s1">&#39;Bugfix&#39;</span><span class="p">,</span><span class="s1">&#39;__init__: NoH5Read=True&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">xm</span><span class="o">.</span><span class="n">h5File</span><span class="p">):</span>                        
-<span class="o">...</span>    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">xm</span><span class="o">.</span><span class="n">h5File</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">xm</span><span class="o">=</span><span class="n">Xm</span><span class="p">(</span><span class="n">xmlFile</span><span class="o">=</span><span class="n">xmlFile</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">xm</span><span class="o">.</span><span class="n">ToH5</span><span class="p">()</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">xm</span><span class="o">.</span><span class="n">h5File</span><span class="p">)</span>
-<span class="kc">True</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">xm</span><span class="o">=</span><span class="n">Xm</span><span class="p">(</span><span class="n">xmlFile</span><span class="o">=</span><span class="n">xmlFile</span><span class="p">,</span><span class="n">NoH5Read</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">xm</span><span class="o">.</span><span class="n">h5File</span><span class="p">)</span>
-<span class="kc">False</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.33&#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;Change&#39;</span><span class="p">,</span><span class="s1">&#39;__vKNOT: pX/YCorZero&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.34&#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;New&#39;</span><span class="p">,</span><span class="s1">&#39;__vWBLZ&#39;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.34&#39;</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="s1">&#39;New&#39;</span><span class="p">,</span><span class="s2">&quot;vFWVB[&#39;WBLZ&#39;]&quot;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.34&#39;</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="s1">&#39;New&#39;</span><span class="p">,</span><span class="s2">&quot;vFWVB ... vLFKT ... how=&#39;left&#39;&quot;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.34&#39;</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="s1">&#39;New&#39;</span><span class="p">,</span><span class="s2">&quot;vNODE ... without Template Element ...&quot;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># Clean Up</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">xm</span><span class="o">.</span><span class="n">h5File</span><span class="p">):</span>                        
-<span class="o">...</span>    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">xm</span><span class="o">.</span><span class="n">h5File</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># LocalHeatingNetwork</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="c1"># ---</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">xmlFile</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;testdata\LocalHeatingNetwork.XML&#39;</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">xm</span><span class="o">=</span><span class="n">Xm</span><span class="p">(</span><span class="n">xmlFile</span><span class="o">=</span><span class="n">xmlFile</span><span class="p">)</span>
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.34&#39;</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="s1">&#39;New&#39;</span><span class="p">,</span><span class="s2">&quot;vNRCV&quot;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: CHANGEHISTORY: </span><span class="si">{:&gt;10s}</span><span class="s2">: </span><span class="si">{:&gt;3d}</span><span class="s2">: </span><span class="si">{:&gt;6s}</span><span class="s2">: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;DOCTEST&#39;</span><span class="p">,</span><span class="s1">&#39;0.0.34&#39;</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="s1">&#39;New&#39;</span><span class="p">,</span><span class="s2">&quot;vNRCV_Mx1&quot;</span><span class="p">))</span> 
-<span class="o">&gt;&gt;&gt;</span> <span class="n">xm</span><span class="o">.</span><span class="n">_Xm__Mx1</span><span class="p">()</span>
-</pre></div>
 
 </div>
+
 </div>
 </div>
 

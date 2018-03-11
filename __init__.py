@@ -12,10 +12,7 @@ import tables
 
 try:              
     # Logfile
-    root,ext = os.path.splitext(os.path.dirname(__file__))
-    logFileName = root+'.log'
-    logFileName = 'PT3S.log'
-
+    logFileName = os.path.join(os.path.dirname(__file__),'PT3S.log')
         
     loglevel = logging.DEBUG
     logging.basicConfig(filename=logFileName
