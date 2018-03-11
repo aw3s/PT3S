@@ -11805,10 +11805,10 @@ div#notebook {
 <span class="c1"># !pip install -e .</span>
 <span class="c1"># is active </span>
 <span class="c1"># then _before the PT3S Imports the currentWorkingDirectory _has to be changed to .. PT3SSourcecodeDir  </span>
-<span class="o">%</span><span class="k">cd</span> -q ..
+<span class="c1">#%cd -q ..</span>
 <span class="kn">import</span> <span class="nn">PT3S.Xm</span> <span class="k">as</span> <span class="nn">Xm</span> <span class="c1">#from PT3S.Xm import Xm</span>
 <span class="kn">import</span> <span class="nn">PT3S.Mx</span> <span class="k">as</span> <span class="nn">Mx</span> <span class="c1">#from PT3S.Mx import Mx</span>
-<span class="o">%</span><span class="k">cd</span> -q PT3S 
+<span class="c1">#%cd -q PT3S </span>
 <span class="c1"># if !pip install -e . is active the cd-Change has no effect  </span>
 </pre></div>
 
@@ -11851,7 +11851,7 @@ div#notebook {
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[3]:</div>
+<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># switch to Doctest mode if working with copy/paste docTestStrings in the notebook</span>
@@ -11874,12 +11874,11 @@ div#notebook {
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[4]:</div>
+<div class="prompt input_prompt">In&nbsp;[3]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># run the tests ...</span>
-<span class="n">suite</span> <span class="o">=</span> <span class="n">doctest</span><span class="o">.</span><span class="n">DocTestSuite</span><span class="p">(</span><span class="n">Mx</span><span class="p">)</span>  
-<span class="n">unittest</span><span class="o">.</span><span class="n">TextTestRunner</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">suite</span><span class="p">)</span>  
+<span class="n">unittest</span><span class="o">.</span><span class="n">TextTestRunner</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">doctest</span><span class="o">.</span><span class="n">DocTestSuite</span><span class="p">(</span><span class="n">Mx</span><span class="p">))</span>  
 </pre></div>
 
 </div>
@@ -11894,14 +11893,14 @@ div#notebook {
 <div class="output_subarea output_stream output_stderr output_text">
 <pre>.
 ----------------------------------------------------------------------
-Ran 1 test in 4.079s
+Ran 1 test in 2.170s
 
 OK
 </pre>
 </div>
 </div>
 
-<div class="output_area"><div class="prompt output_prompt">Out[4]:</div>
+<div class="output_area"><div class="prompt output_prompt">Out[3]:</div>
 
 
 <div class="output_text output_subarea output_execute_result">
@@ -11925,12 +11924,11 @@ OK
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[5]:</div>
+<div class="prompt input_prompt">In&nbsp;[4]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># run the tests ...</span>
-<span class="n">suite</span> <span class="o">=</span> <span class="n">doctest</span><span class="o">.</span><span class="n">DocTestSuite</span><span class="p">(</span><span class="n">Xm</span><span class="p">)</span>  
-<span class="n">unittest</span><span class="o">.</span><span class="n">TextTestRunner</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">suite</span><span class="p">)</span>  
+<span class="n">unittest</span><span class="o">.</span><span class="n">TextTestRunner</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">doctest</span><span class="o">.</span><span class="n">DocTestSuite</span><span class="p">(</span><span class="n">Xm</span><span class="p">))</span>  
 </pre></div>
 
 </div>
@@ -11945,14 +11943,14 @@ OK
 <div class="output_subarea output_stream output_stderr output_text">
 <pre>.
 ----------------------------------------------------------------------
-Ran 1 test in 9.095s
+Ran 1 test in 11.683s
 
 OK
 </pre>
 </div>
 </div>
 
-<div class="output_area"><div class="prompt output_prompt">Out[5]:</div>
+<div class="output_area"><div class="prompt output_prompt">Out[4]:</div>
 
 
 <div class="output_text output_subarea output_execute_result">

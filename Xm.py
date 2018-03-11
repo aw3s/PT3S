@@ -1500,10 +1500,9 @@ class Xm():
                     #plotCors
                     ,'pXCor_i','pYCor_i'
                     ,'pXCor_k','pYCor_k'
-                    ,'pXCors','pYCors' # matplotlibs's .plot(pXCors,pYCors,...)
-                    #WAYP
-                    ,'WAYP' #List of Tuples: [(x1,y1),...,(xN,yN)] 
-       
+                    # matplotlibs's .plot(pXCors,pYCors,...)
+                    ,'pXCors','pYCors' # nur die Endpunkte
+                    ,'pWAYPXCors','pWAYPYCors' # alle Wegpunkte                         
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1897,9 +1896,9 @@ class Xm():
                    #plotCors
                    ,'pXCor_i','pYCor_i'
                    ,'pXCor_k','pYCor_k'
-                   ## matplotlibs's .plot(pXCors,pYCors,...)
-                   ,'pXCors','pYCors' 
-                   ,'pWAYPXCors','pWAYPYCors' 
+                   # matplotlibs's .plot(pXCors,pYCors,...)
+                   ,'pXCors','pYCors' # nur die Endpunkte
+                   ,'pWAYPXCors','pWAYPYCors' # alle Wegpunkte
                    #WAYP
                    ,'WAYP' #List of Tuples: [(x1,y1),...,(xN,yN)] 
                             ]]
