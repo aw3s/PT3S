@@ -433,7 +433,7 @@ class Mx():
             An existing .h5-File is deleted.    
         ---
         NoMxsRead False:
-        If a .MXS-File exists _and is newer than .MX1-File and .h5-File is not read:
+        If a .MXS-File exists _and is newer (>=) than .MX1-File and .h5-File is not read:
             The .MXS-File is read.  
             The .vec.h5-File is newly created.         
         """
@@ -513,7 +513,7 @@ class Mx():
                 if os.path.exists(self.mxsFile):  
                     mx1FileTime=os.path.getmtime(self.mx1File) 
                     mxsFileTime=os.path.getmtime(self.mxsFile)
-                    if(mxsFileTime>mx1FileTime) and not NoMxsRead:
+                    if(mxsFileTime>=mx1FileTime) and not NoMxsRead: # inplace nach pip install tragen die Dateien denselben Zeitstempel; deswegen >= statt nur >
                         logger.debug("{:s}mxsFile {:s} exists _and is newer than mx1File {:s} _and NoMxsRead False:".format(logStr,self.mxsFile,self.mx1File))     
                         logger.debug("{:s}The mxsFile is read.".format(logStr))   
                         self.setResultsToMxsFile(NewH5Vec = NoH5Read)  # wenn kein H5 gelesen werden soll, dann soll auch das H5Vec neu angelegt werden

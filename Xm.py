@@ -730,7 +730,7 @@ class Xm():
             modelName=t['BEZEICHNER'].iloc[0]          
             
             mx1Filename=os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'                              
-            logger.debug("{:s}mx1FileName: mx1Filename".format(logStr,mx1Filename))
+            logger.debug("{:s}mx1FileName: {:s}".format(logStr,mx1Filename))
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))            
             logger.error(logStrFinal)       
