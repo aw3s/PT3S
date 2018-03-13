@@ -4,10 +4,6 @@
 
 /.vs/config/applicationhost.config
 /nb/.ipynb_checkpoints/MxWithPandas-checkpoint.ipynb
-/testdata/M-1-0-1.MX1
-/testdata/M-1-0-1.MX2
-/testdata/M-1-0-1.MX3
-/testdata/M-1-0-1.XML
 /testdata/M-1-0-1.ZIP
 /build/lib/PT3S
 /dist
@@ -39,7 +35,6 @@
 /nb/nbctest.ipynb
 /testdata/WDOneLPipe/B1/V0/BZ1
 /__pycache__
-/testdata
 /nb/20171103__000001.log
 /nb/20171103__000001.xlsx
 /nb/20171103__000001_TABL.xlsx
@@ -57,3 +52,7 @@
 /test.py
 /PNR 17.265 MVV FW (n-1) Berechnungen - Kopie.ipynb
 /PT3S_files
+/testdata/WDLocalHeatingNetwork/Maps
+/testdata/WDLocalHeatingNetwork/B1/V0/BZ1/M-1-0-1.log
+/testdata/WDLocalHeatingNetwork/B1/V0/BZ1/M-1-0-1.XML
+/testdata/WDLocalHeatingNetwork/B1/V0/BZ1/M-1-0-1.MX3
