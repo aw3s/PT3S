@@ -341,7 +341,18 @@ False
 >>> # LocalHeatingNetwork
 >>> # ---
 >>> mx1File=os.path.join(path,'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1')
->>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
+>>> mx=Mx(mx1File=mx1File,NoH5Read=True)
+>>> # ---
+>>> # Clean Up
+>>> # ---
+>>> if os.path.exists(mx.h5File):                        
+...    os.remove(mx.h5File)
+>>> if os.path.exists(mx.mxsZipFile):                        
+...    os.remove(mx.mxsZipFile)
+>>> if os.path.exists(mxsDumpFile):                        
+...    os.remove(mxsDumpFile)
+>>> if os.path.exists(mx.h5FileMxsVecs):                        
+...    os.remove(mx.h5FileMxsVecs)
 """
 
 import os
