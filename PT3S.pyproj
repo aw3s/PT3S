@@ -33,7 +33,11 @@
     <Content Include="README.md" />
     <Content Include="README.rst" />
     <Content Include="setup.cfg" />
+    <Content Include="testdata\LocalHeatingNetwork.XML" />
     <Content Include="testdata\OneLPipe.XML" />
+    <Content Include="testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1" />
+    <Content Include="testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX2" />
+    <Content Include="testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MXS" />
     <Content Include="testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX1" />
     <Content Include="testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX2" />
     <Content Include="testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MXS" />
@@ -50,6 +54,10 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="testdata\" />
+    <Folder Include="testdata\WDLocalHeatingNetwork\" />
+    <Folder Include="testdata\WDLocalHeatingNetwork\B1\" />
+    <Folder Include="testdata\WDLocalHeatingNetwork\B1\V0\" />
+    <Folder Include="testdata\WDLocalHeatingNetwork\B1\V0\BZ1\" />
     <Folder Include="testdata\WDOneLPipe\" />
     <Folder Include="testdata\WDOneLPipe\B1\" />
     <Folder Include="testdata\WDOneLPipe\B1\V0\" />
