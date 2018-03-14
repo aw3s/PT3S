@@ -172,23 +172,6 @@ False
    3            5         -1  200  0.8    90    55  NaN NaN    NaN    NaN      1    55     1     0   0.0  5400405917816384862  5400405917816384862  V-K007     1   90  2541899  5706325     20   1159.0    116.0  R-K007     2   60  2541899  5706325     20   1159.0    116.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                  [BLNZ1u5u7]
    4            2         -1  200  0.6    90    60  NaN NaN    NaN    NaN      1    62     1     0   0.0  5695730293103267172  5695730293103267172  V-K003     1   90  2541457  5706345     20    717.0    136.0  R-K003     2   60  2541457  5706345     20    717.0    136.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           []'''
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',5,'New',"vNRCV")) 
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vNRCV'].sort_values(['OBJTYPE','fkOBJTYPE','ATTRTYPE','cRefLfdNr'],ascending=True)).replace('\\n','\\n   ')))
-'''   cRefLfdNr                                      CONT CONT_ID CONT_LFDNR         DPGR OBJTYPE            fkOBJTYPE ATTRTYPE              pk_ROWS              tk_ROWS                   pk                   tk
-   0          1                                      BHKW    1002         -1  UserDefined    FWES  5638756766880678918        W  5762106696740202356  5762106696740202356  4857294696992797631  4857294696992797631
-   1          1                                      BHKW    1002         -1  UserDefined    KNOT  5049461676240771430        T  4723443975311885965  4723443975311885965  5097127385155151127  5097127385155151127
-   2          1                                      BHKW    1002         -1  UserDefined    KNOT  5219230031772497417        T  5602301870151014230  5602301870151014230  5557806245003742769  5557806245003742769
-   3          1                                      BHKW    1002         -1  UserDefined    KNOT  5356267303828212700       PH  5000989080893535213  5000989080893535213  4968703141722117357  4968703141722117357
-   4          1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5397990465339071638       QM  5134531789044068877  5134531789044068877  5410059595276504750  5410059595276504750
-   5          2                                      BHKW    1002         -1  UserDefined    KNOT  5397990465339071638       QM  5134531789044068877  5134531789044068877  5357021981944933535  5357021981944933535
-   6          1                                      BHKW    1002         -1  UserDefined    KNOT  5736262931552588702       PH  4754881272083464445  4754881272083464445  4681213816714574464  4681213816714574464
-   7          1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5741235692335544560       DP  4949183695502554728  4949183695502554728  4914949875368816179  4914949875368816179
-   8          1                                      BHKW    1002         -1  UserDefined    PUMP  5481331875203087055        N  5563842594211689762  5563842594211689762  5091374651838464239  5091374651838464239
-   9          1                                      BHKW    1002         -1  UserDefined    VENT  4678923650983295610       QM  5126307362398248950  5126307362398248950  5410904806390050339  5410904806390050339
-   10         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    WBLZ  4694700216019268978      WVB  4778244458749966216  4778244458749966216  4991097791264453745  4991097791264453745
-   11         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WES  5690691957596882133  5690691957596882133  5179988968597313889  5179988968597313889
-   12         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WSPEI  5153847813311339683  5153847813311339683  4946584950744559030  4946584950744559030
-   13         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WVB  5214984699859365639  5214984699859365639  5281885868749421521  5281885868749421521
-   14         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WVERL  4722863010266870887  4722863010266870887  5476262878682325254  5476262878682325254'''
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',6,'New',"vNRCV_Mx1")) 
 >>> pd.set_option('display.max_rows',None)
 >>> print("'''{:s}'''".format(repr(xm.dataFrames['vLAYR'].sort_values(['LFDNR','NAME','OBJTYPE','OBJID'],ascending=True)).replace('\\n','\\n   ')))
@@ -291,6 +274,24 @@ False
    95     5          Texte    TEXT  5646820849868629537  5394410243594912680  5394410243594912680            43                25
    96     5          Texte    TEXT  5696590398594231893  5394410243594912680  5394410243594912680            44                26
    97     5          Texte    TEXT  5697088036451277538  5394410243594912680  5394410243594912680            45                27'''
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.39',1,'New',"vNRCV: pXYLB")) 
+>>> print("'''{:s}'''".format(repr(xm.dataFrames['vNRCV'].sort_values(['OBJTYPE','fkOBJTYPE','ATTRTYPE','cRefLfdNr'],ascending=True)).replace('\\n','\\n   ')))
+'''   cRefLfdNr                                      CONT CONT_ID CONT_LFDNR         DPGR OBJTYPE            fkOBJTYPE ATTRTYPE              pk_ROWS              tk_ROWS                   pk                   tk                                  pXYLB
+   0          1                                      BHKW    1002         -1  UserDefined    FWES  5638756766880678918        W  5762106696740202356  5762106696740202356  4857294696992797631  4857294696992797631                           (90.0, 65.0)
+   1          1                                      BHKW    1002         -1  UserDefined    KNOT  5049461676240771430        T  4723443975311885965  4723443975311885965  5097127385155151127  5097127385155151127                           (90.0, 95.0)
+   2          1                                      BHKW    1002         -1  UserDefined    KNOT  5219230031772497417        T  5602301870151014230  5602301870151014230  5557806245003742769  5557806245003742769                           (90.0, 35.0)
+   3          1                                      BHKW    1002         -1  UserDefined    KNOT  5356267303828212700       PH  5000989080893535213  5000989080893535213  4968703141722117357  4968703141722117357                          (220.0, 25.0)
+   4          1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5397990465339071638       QM  5134531789044068877  5134531789044068877  5410059595276504750  5410059595276504750                          (91.0, -94.0)
+   5          2                                      BHKW    1002         -1  UserDefined    KNOT  5397990465339071638       QM  5134531789044068877  5134531789044068877  5357021981944933535  5357021981944933535  (184.999999464624, 57.99999953107601)
+   6          1                                      BHKW    1002         -1  UserDefined    KNOT  5736262931552588702       PH  4754881272083464445  4754881272083464445  4681213816714574464  4681213816714574464                          (220.0, 85.0)
+   7          1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5741235692335544560       DP  4949183695502554728  4949183695502554728  4914949875368816179  4914949875368816179                         (1234.0, 83.0)
+   8          1                                      BHKW    1002         -1  UserDefined    PUMP  5481331875203087055        N  5563842594211689762  5563842594211689762  5091374651838464239  5091374651838464239                          (170.0, 45.0)
+   9          1                                      BHKW    1002         -1  UserDefined    VENT  4678923650983295610       QM  5126307362398248950  5126307362398248950  5410904806390050339  5410904806390050339                         (200.0, 110.0)
+   10         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    WBLZ  4694700216019268978      WVB  4778244458749966216  4778244458749966216  4991097791264453745  4991097791264453745                        (354.0, -225.0)
+   11         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WES  5690691957596882133  5690691957596882133  5179988968597313889  5179988968597313889                          (90.0, 155.0)
+   12         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WSPEI  5153847813311339683  5153847813311339683  4946584950744559030  4946584950744559030                          (90.0, 140.0)
+   13         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WVB  5214984699859365639  5214984699859365639  5281885868749421521  5281885868749421521                          (90.0, 150.0)
+   14         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WVERL  4722863010266870887  4722863010266870887  5476262878682325254  5476262878682325254                          (90.0, 145.0)'''
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.37',1,'New',"Mx(),__Mx2() and ReOrg __Mx1()")) 
 >>> vROHR=xm.dataFrames['vROHR']
 >>> vROHR.shape
@@ -349,6 +350,41 @@ False
 (16, 75)
 >>> 'vNRCV_Mx1' in xm.dataFrames
 True
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.39',2,'New',"vGTXT")) 
+>>> print("'''{:s}'''".format(repr(xm.dataFrames['vGTXT']).replace('\\n','\\n   ')))
+'''                                        CONT CONT_ID CONT_LFDNR                                     GRAFTEXT                   pk                   tk               pXYLB
+   0   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           Georeferenzpunkt 2  4628671704393700430  4628671704393700430   (1115.95, -323.0)
+   1   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                                        Block  4666644549022031339  4666644549022031339      (-58.0, -77.0)
+   2   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           numerische Anzeige  4693143208412077585  4693143208412077585      (1211.0, -9.0)
+   3   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                             Knoten und Rohre  4995961504641886710  4995961504641886710      (570.0, -49.0)
+   4   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                                Vorlaufstrang  5017907661719368413  5017907661719368413  (358.207, 220.395)
+   5   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                          LocalHeatingNetwork  5028052147238787802  5028052147238787802     (1163.0, 536.0)
+   6   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1   Tel. 05131 - 4980-0 ; Fax. 05131 - 4980-15  5054433315422452796  5054433315422452796   (-230.0, -1143.0)
+   7   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  eMail. info@3SConsult.de ; www.3SConsult.de  5370727463979416592  5370727463979416592   (-230.0, -1204.0)
+   8   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                Differenzdruck VL-/ RL-Knoten  5502619581048467908  5502619581048467908     (1211.0, -49.0)
+   9   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                                 Kundenanlage  5540395812045688781  5540395812045688781   (1131.95, 283.95)
+   10  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                         Fernwärmeverbraucher  5550982489075668484  5550982489075668484     (1050.0, 239.0)
+   11  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                               Rücklaufstrang  5610916400841895317  5610916400841895317       (570.0, -9.0)
+   12  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                             Knoten und Rohre  5646820849868629537  5646820849868629537  (358.207, 174.395)
+   13  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                          numerische Anzeige:  4614148870174765680  4614148870174765680     (219.0, -278.0)
+   14  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                        Wärmebilanz: 3 Kunden  5150752151066924202  5150752151066924202     (219.0, -318.0)
+   15  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                    Kontrolle: DH-Massenstrom  5100960407865990868  5100960407865990868     (-60.0, -160.0)
+   16                                      BHKW    1002         -1                          Fernwärmeeinspeiser  4654104397990769217  4654104397990769217       (115.0, 80.0)
+   17                                      BHKW    1002         -1                                        Pumpe  4768731522550494423  4768731522550494423       (175.0, 25.0)
+   18                                      BHKW    1002         -1                            Wärmebilanz Netz:  4770844990228490264  4770844990228490264       (90.0, 160.0)
+   19                                      BHKW    1002         -1                                  Speicherung  4782197969172967134  4782197969172967134      (110.0, 140.0)
+   20                                      BHKW    1002         -1                               Richtungspfeil  4855692488683645764  4855692488683645764      (220.0, 105.0)
+   21                                      BHKW    1002         -1                                     Verluste  4965628942555351751  4965628942555351751      (110.0, 145.0)
+   22                                      BHKW    1002         -1                          (Element verbinden)  5036153631350515544  5036153631350515544       (150.0, 90.0)
+   23                                      BHKW    1002         -1                    BHKW Modul 1000 kW therm.  5056836766824229789  5056836766824229789        (35.0, 55.0)
+   24                                      BHKW    1002         -1                                       Ventil  5108336975548011049  5108336975548011049       (205.0, 25.0)
+   25                                      BHKW    1002         -1                                    Verbrauch  5262441422409836340  5262441422409836340      (110.0, 150.0)
+   26                                      BHKW    1002         -1                                  Einspeisung  5297832234834839298  5297832234834839298      (110.0, 155.0)
+   27                                      BHKW    1002         -1                           Druckhaltung 2 bar  5329748935118523443  5329748935118523443       (180.0, 65.0)
+   28                                      BHKW    1002         -1                           Numerische Anzeige  5421223289472778073  5421223289472778073      (190.0, 115.0)
+   29                                      BHKW    1002         -1                             Verbindungslinie  5501963349880613918  5501963349880613918       (150.0, 95.0)
+   30                                      BHKW    1002         -1                                       (Text)  5696590398594231893  5696590398594231893        (35.0, 50.0)
+   31                                      BHKW    1002         -1                                       Klappe  5697088036451277538  5697088036451277538       (145.0, 25.0)'''
 """
 
 
@@ -516,6 +552,7 @@ class Xm():
                     all_records.append(record)
                 self.dataFrames[tableName]=pd.DataFrame(all_records) 
             logger.debug("{0:s}xmlFile: {1:s} done.".format(logStr,self.xmlFile)) 
+            logger.debug("{:s}xmlFile: {:s}: tableNames: {!s:s}.".format(logStr,self.xmlFile,sorted(self.dataFrames.keys()))) 
 
             #fixes and conversions
             self.__convertAndFix()
@@ -772,14 +809,15 @@ class Xm():
 
             #Signal-Model
             vRSLW
-
-            vNRCV
-            
+           
             #Block-Nodes    
             vVKNO
             
             #Nodes
             vKNOT
+
+            vNRCV
+            vGTXT
             
             #Pipes
             vROHR
@@ -807,10 +845,6 @@ class Xm():
 
             self.dataFrames['vRSLW']=self.__vRSLW(vSWVT=self.dataFrames['vSWVT']
                                              ) #SWVT-Usage
-
-
-            # NRCV
-            self.dataFrames['vNRCV']=self.__vNRCV()
             
             #nodes    
             self.dataFrames['vVKNO']=self.__vVKNO()
@@ -818,6 +852,21 @@ class Xm():
                  vVKNO=self.dataFrames['vVKNO']
                 ,vQVAR=self.dataFrames['vQVAR']
                 )
+
+            vKNOT=self.dataFrames['vKNOT']
+            self.pXCorZero=vKNOT[
+                (vKNOT['CONT_ID'].astype(int)==1001) 
+                & 
+                (vKNOT['BESCHREIBUNG'].fillna('').str.startswith('Template Element') == False)]['XKOR'].astype(np.double).min()
+
+            self.pYCorZero=vKNOT[
+                (vKNOT['CONT_ID'].astype(int)==1001) 
+                & (vKNOT['BESCHREIBUNG'].fillna('').str.startswith('Template Element') == False)]['YKOR'].astype(np.double).min()
+
+            # NRCV
+            self.dataFrames['vNRCV']=self.__vNRCV()
+            # GTXT
+            self.dataFrames['vGTXT']=self.__vGTXT()
 
             #elements
             self.dataFrames['vROHR']=self.__vROHR(vKNOT=self.dataFrames['vKNOT'])
@@ -1067,6 +1116,8 @@ class Xm():
               # IDs (of the NRCV)
               ,'pk'
               ,'tk'          
+              # PLot Coordinates XY LeftBottom
+              ,'pXYLB'
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1079,10 +1130,34 @@ class Xm():
             vNRCV=vNRCV.merge(self.dataFrames['DPGR'],left_on='fk',right_on='pk',suffixes=['_DR2','_DG'])
             vNRCV=vNRCV.merge(self.dataFrames['CONT'],left_on='fkCONT',right_on='pk',suffixes=['_DR3','_CONT'])
 
+
+            # GRAF ###
+            xyLeftBottom=[]
+            for index,row in vNRCV.iterrows():
+                if pd.isnull(row.GRAF_DR3):                 
+                    xyLeftBottom.append(())
+                    continue
+                geomBytes=base64.b64decode(row.GRAF_DR3)               
+                XYLeftBottom=struct.unpack('2d',geomBytes[8:24]) 
+                xyLeftBottom.append(XYLeftBottom)
+
+         
+            pXyLeftBottom=[]
+            for index,row in vNRCV.iterrows():
+                 xyLB=xyLeftBottom[index]
+                 if int(row.ID)!=1001:
+                    pXyLeftBottom.append(xyLB)
+                 else:
+                    x,y=xyLB
+                    x=x-self.pXCorZero
+                    y=y-self.pYCorZero
+                    pXyLeftBottom.append((x,y))
+            vNRCV['pXYLB']=pd.Series(pXyLeftBottom)
+
             vNRCV=vNRCV[[
                'NAME_CONT'
               ,'ID'
-              ,'LFDNR'
+              ,'LFDNR'              
               # DPGR
               ,'NAME_DR3'
                # Data (of the DPGR_ROW)
@@ -1095,6 +1170,7 @@ class Xm():
               # IDs (of the NRCV)
               ,'pk_NR'
               ,'tk_NR'
+              ,'pXYLB'
             ]]
 
             vNRCV.rename(columns={'NAME_CONT':'CONT','ID':'CONT_ID','LFDNR':'CONT_LFDNR'
@@ -1125,14 +1201,12 @@ class Xm():
               # IDs (of the NRCV)
               ,'pk'
               ,'tk'
+              ,'pXYLB'
             ]]
 
             vNRCV.sort_values(['OBJTYPE','fkOBJTYPE','ATTRTYPE','cRefLfdNr'],ascending=True,inplace=True)
             vNRCV=pd.DataFrame(vNRCV.values,columns=vNRCV.columns)
-
-
-            #print("'''{:s}'''".format(repr(xm.dataFrames['vNRCV'].sort_values(['OBJTYPE','ATTRTYPE','fkOBJTYPE','cRefLfdNr'],ascending=True)).replace('\\n','\\n   ')))
-                                            
+                                                        
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -1144,6 +1218,94 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vNRCV
+
+    def __vGTXT(self):
+        """
+        vGTXT:
+            One row per GTXT:                          
+              # CONT
+               'CONT'
+              ,'CONT_ID'
+              ,'CONT_LFDNR'
+              #
+              ,'GRAFTEXT'
+              # IDs (of the GTXT)
+              ,'pk'
+              ,'tk'          
+              # PLot Coordinates XY LeftBottom
+              ,'pXYLB'
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            vGTXT=None
+            vGTXT=self.dataFrames['GTXT']            
+            vGTXT=vGTXT.merge(self.dataFrames['CONT'],left_on='fkCONT',right_on='pk',suffixes=['_DR3','_CONT'])
+
+            # GRAF ###
+            xyLeftBottom=[]
+            for index,row in vGTXT.iterrows():
+                if pd.isnull(row.GRAF_DR3):                 
+                    xyLeftBottom.append(())
+                    continue
+                geomBytes=base64.b64decode(row.GRAF_DR3)               
+                XYLeftBottom=struct.unpack('2d',geomBytes[4:20]) 
+                xyLeftBottom.append(XYLeftBottom)
+           
+            pXyLeftBottom=[]
+            for index,row in vGTXT.iterrows():
+                 xyLB=xyLeftBottom[index]
+                 if int(row.ID)!=1001:
+                    pXyLeftBottom.append(xyLB)
+                 else:
+                    x,y=xyLB
+                    x=x-self.pXCorZero
+                    y=y-self.pYCorZero
+                    pXyLeftBottom.append((x,y))
+            vGTXT['pXYLB']=pd.Series(pXyLeftBottom)
+
+            vGTXT=vGTXT[[
+               'NAME'
+              ,'ID'
+              ,'LFDNR'   
+              ,'GRAFTEXT'                     
+              # IDs (of the NRCV)
+              ,'pk_DR3'
+              ,'tk_DR3'
+              ,'pXYLB'
+            ]]
+
+            vGTXT.rename(columns={'NAME':'CONT','ID':'CONT_ID','LFDNR':'CONT_LFDNR'                    
+                     ,'pk_DR3':'pk'
+                     ,'tk_DR3':'tk'
+                     ,'pk_DR':'pk_ROWS'
+                     ,'tk_DR':'tk_ROWS'},inplace=True)             
+
+            vGTXT=vGTXT[[
+             
+              # CONT
+               'CONT'
+              ,'CONT_ID'
+              ,'CONT_LFDNR'
+              ,'GRAFTEXT'
+              # IDs (of the NRCV)
+              ,'pk'
+              ,'tk'
+              ,'pXYLB'
+            ]]
+                                                   
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            if isinstance(vGTXT,pd.core.frame.DataFrame):
+                logger.error(logStrFinal) 
+            else:
+                logger.debug(logStrFinal) 
+                vGTXT=pd.DataFrame()                 
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            return vGTXT
 
     def __vSWVT(self):
         """
@@ -1872,27 +2034,18 @@ class Xm():
                     end=offset+16                  
                     waypXY=struct.unpack('2d',geomBytes[offset:end])                    
                     row.WAYP.append(waypXY)
-
-            pXCorZero=vKNOT[
-                (vKNOT['CONT_ID'].astype(int)==1001) 
-                & (vKNOT['BESCHREIBUNG'].fillna('').str.startswith('Template Element') == False)]['XKOR'].astype(np.double).min()
-
-            pYCorZero=vKNOT[
-                (vKNOT['CONT_ID'].astype(int)==1001) 
-                & (vKNOT['BESCHREIBUNG'].fillna('').str.startswith('Template Element') == False)]['YKOR'].astype(np.double).min()
-
+          
             vROHR['pWAYPXCors']=[list() for dummy in vROHR['pk']] # leere Liste von pWegpunkten X
             vROHR['pWAYPYCors']=[list() for dummy in vROHR['pk']] # leere Liste von pWegpunkten Y
             for index,row in vROHR.iterrows():
                 for waypXY in row.WAYP:
                     X,Y=waypXY
                     if int(row.CONT_ID)==1001:
-                        row.pWAYPXCors.append(X-pXCorZero)
-                        row.pWAYPYCors.append(Y-pYCorZero)
+                        row.pWAYPXCors.append(X-self.pXCorZero)
+                        row.pWAYPYCors.append(Y-self.pYCorZero)
                     else:
                         row.pWAYPXCors.append(X)
                         row.pWAYPYCors.append(Y)
-
 
             vROHR=vROHR[[
                      'BESCHREIBUNG'
