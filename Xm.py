@@ -388,16 +388,18 @@ True
    11  WBLZ~WärmeblnzGes~~5262603207038486299~WSPEI         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WSPEI  5153847813311339683  5153847813311339683  4946584950744559030  4946584950744559030    (90.0, 140.0)
    12    WBLZ~WärmeblnzGes~~5262603207038486299~WVB         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WVB  5214984699859365639  5214984699859365639  5281885868749421521  5281885868749421521    (90.0, 150.0)
    13  WBLZ~WärmeblnzGes~~5262603207038486299~WVERL         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WVERL  4722863010266870887  4722863010266870887  5476262878682325254  5476262878682325254    (90.0, 145.0)'''
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.41',1,'Change',"Mx Import")) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.42',1,'Change',"mx not Xm-Attribute: (Mx(), __Mx1(), __Mx2() changed")) 
 """
-
 
 # ---
 # --- PT3S Imports
 # ---
-if __name__ == "__main__":
-    from Mx import Mx
-else:
-    from PT3S.Mx import Mx
+#if __name__ == "__main__":
+#    from Mx import Mx
+#else:
+#    from PT3S.Mx import Mx
+from Mx import Mx
 
 import os
 import sys
@@ -2652,14 +2654,14 @@ class Xm():
         try: 
 
             if isinstance(mx,Mx):
-                self.mx=mx
+                pass
             else:
                 (wDir,modelDir,modelName)=self.getWDirModelDirModelName()
                 mx1File=os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'            
-                self.mx=Mx(mx1File=mx1File,NoMxsRead=True)
+                mx=Mx(mx1File=mx1File,NoMxsRead=True)
 
-            self.__Mx1()
-            self.__Mx2()
+            self.__Mx1(mx)
+            self.__Mx2(mx)
                                                        
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
@@ -2668,7 +2670,7 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
-    def __Mx1(self):
+    def __Mx1(self,mx):
         """
         vNRCV_Mx1:
             One row per NRCV-referenced Sir3sID in mx1Df:
@@ -2701,7 +2703,7 @@ class Xm():
             vNRCV_Mx1=None
             vNRCV=self.dataFrames['vNRCV']
             
-            vNRCV_Mx1=vNRCV.merge(self.mx.mx1Df,left_on='fkOBJTYPE',right_on='OBJTYPE_PK',suffixes=['_NR','_MX1'])
+            vNRCV_Mx1=vNRCV.merge(mx.mx1Df,left_on='fkOBJTYPE',right_on='OBJTYPE_PK',suffixes=['_NR','_MX1'])
 
             vNRCV_Mx1=vNRCV_Mx1[(vNRCV_Mx1['cRefLfdNr']==1)
                   &
@@ -2751,7 +2753,7 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             self.dataFrames['vNRCV_Mx1']=vNRCV_Mx1
 
-    def __Mx2(self):
+    def __Mx2(self,mx):
         """
         mx2Idx    for Pipes (vROHR)
         mx2NofPts for Pipes (vROHR)
@@ -2761,10 +2763,10 @@ class Xm():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try: 
-            tksROHRMx=self.mx.mx2Df[
-            (self.mx.mx2Df['ObjType'].str.contains('ROHR'))
+            tksROHRMx=mx.mx2Df[
+            (mx.mx2Df['ObjType'].str.contains('ROHR'))
             &
-            ~(self.mx.mx2Df['AttrType'].str.contains('N_OF_POINTS'))
+            ~(mx.mx2Df['AttrType'].str.contains('N_OF_POINTS'))
             ]['Data'].iloc[0]
 
             vROHR=self.dataFrames['vROHR']
@@ -2774,10 +2776,10 @@ class Xm():
 
             vROHR['mx2Idx']=pd.Series(mxTkRohrIdx)
             
-            nOfPtsROHRMx=self.mx.mx2Df[
-            (self.mx.mx2Df['ObjType'].str.contains('ROHR'))
+            nOfPtsROHRMx=mx.mx2Df[
+            (mx.mx2Df['ObjType'].str.contains('ROHR'))
             &
-            (self.mx.mx2Df['AttrType'].str.contains('N_OF_POINTS'))
+            (mx.mx2Df['AttrType'].str.contains('N_OF_POINTS'))
             ]['Data'].iloc[0]
 
             vROHR['mx2NofPts']=pd.Series(nOfPtsROHRMx)
@@ -2793,7 +2795,7 @@ if __name__ == "__main__":
     """
     Run the Stuff or/and perform Unittests.
     """
-
+    
     try:              
         # Logfile
         logFileName = 'PT3S.log' 
