@@ -402,6 +402,10 @@ import warnings
 import tables
 import math
 
+#Sir3sID
+reSir3sID='(\S+)~([\S ]+)~(\S*)~(\S+)~(\S+)'
+reSir3sIDcompiled=re.compile(reSir3sID) 
+  
 def getMicrosecondsFromRefTime(refTime=None,time=None):
     """
     returns microseconds since refTime

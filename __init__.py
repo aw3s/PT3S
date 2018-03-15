@@ -1,5 +1,5 @@
 """
-Configures PT3S' Logging
+Configures PT3S' Logging, Warning
 """
 
 import os
@@ -9,6 +9,7 @@ logger = logging.getLogger('PT3S')
 import pandas as pd
 import warnings
 import tables
+import re
 
 try:              
     # Logfile
@@ -36,7 +37,7 @@ try:
     #H5
     warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
     warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)
-                                                                                   
+                                                                                 
 except Exception as e:
     logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
     logger.error(logStrFinal)

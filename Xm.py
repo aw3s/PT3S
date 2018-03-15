@@ -326,7 +326,7 @@ True
 >>> vROHR=xm.dataFrames['vROHR']
 >>> (wDir,modelDir,modelName)=xm.getWDirModelDirModelName()
 >>> mx1File=os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'    
->>> mx=Mx(mx1File=mx1File)
+>>> mx=Mx.Mx(mx1File=mx1File)
 >>> vROHR.shape
 (16, 73)
 >>> 'vNRCV_Mx1' in xm.dataFrames
@@ -399,7 +399,7 @@ True
 #    from Mx import Mx
 #else:
 #    from PT3S.Mx import Mx
-from Mx import Mx
+import Mx
 
 import os
 import sys
@@ -2653,12 +2653,12 @@ class Xm():
         
         try: 
 
-            if isinstance(mx,Mx):
+            if isinstance(mx,Mx.Mx):
                 pass
             else:
                 (wDir,modelDir,modelName)=self.getWDirModelDirModelName()
                 mx1File=os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'            
-                mx=Mx(mx1File=mx1File,NoMxsRead=True)
+                mx=Mx.Mx(mx1File=mx1File,NoMxsRead=True)
 
             self.__Mx1(mx)
             self.__Mx2(mx)
