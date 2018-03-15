@@ -1063,12 +1063,12 @@ class Mx():
                                         mxsVecsH5StorePtr.put(str(h5Key),dfVecs)   
                                         h5DumpLog="{:s} Writing DataFrame {:s} with h5Key=/{!s:>20s}".format('H5Dump:','dfVecs',h5Key) 
                                                               
-                            except:
-                                logStrFinal="{0:s}store record as df in H5 failed at Time={1!s}. Error.".format(logStr,time_read_finally)
+                            except Exception as e:
+                                logger.error("{0:s}store record as df in H5 failed at Time={1!s}. Error.".format(logStr,time_read_finally))
+                                logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
                                 logger.error(logStrFinal) 
-                                raise MxError(logStrFinal)                                                           
-
-
+                                raise MxError(logStrFinal)   
+                                                     
                         logger.debug("{:s}TimeNr. {:>6d} read and processed finally={!s:s} Time read after to_datetime: {!s:s} timeISO8601 read: {!s:s} Values (without TIMESTAMP): {:d} - {:s}.".format(logStr
                                         ,recsReadFromFile+1
                                         ,time_read_finally
@@ -1086,11 +1086,13 @@ class Mx():
                                                    
                 except EOFError:                    
                     logger.debug("{0:s}Last Time read={1!s}. File finished.".format(logStr,time_read_finally))                                                                                             
-                except:
-                    logStrFinal="{0:s}Last Time read={1!s}. Error.".format(logStr,time_read_finally)
+                
+                except Exception as e:
+                    logger.error("{0:s}Last Time read={1!s}. Error.".format(logStr,time_read_finally))
+                    logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
                     logger.error(logStrFinal) 
-                    raise MxError(logStrFinal)    
-                                  
+                    raise MxError(logStrFinal) 
+                                     
             logger.debug("{0:s}File finished: Records read={1:d}. Last Time read={2!s}. MB read={3:07.2f}. MB unpacked={4:07.2f} (making up {5:06.2f} %). ".format(logStr                                                                                                                                         
                                                                                     ,recsReadFromFile
                                                                                     ,time_read_finally
