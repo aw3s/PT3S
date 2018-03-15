@@ -14,9 +14,12 @@ DOCTEST
 >>> # ---
 >>> # LocalHeatingNetwork
 >>> # ---
+>>> xmlFile=os.path.join(path,'testdata\LocalHeatingNetwork.XML')
+>>> xm=Xm(xmlFile=xmlFile)
 >>> mx1File=os.path.join(path,'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1')
 >>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
 >>> mx.setResultsToMxsFile(NewH5Vec=True)
+>>> plot=Plt(Xm=xm,Mx=Mx)
 >>> # ---
 >>> # Clean Up
 >>> # ---
@@ -102,9 +105,9 @@ class Plt():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def pltNetDhUs(self
-                   ,timeDelteToRef=pd.to_timedelta('0 seconds')
-                   ,timeDelteToT1=None
-                   ,timeDelteToT2=None
+                   ,timeDelteToRef=pd.to_timedelta('0 seconds') # Referenzzeit als TIMEDELTA zu Szenariumbeginn 
+                   ,timeDelteToT1=None # 1. Zeit als TIMEDELTA zu Szenariumbeginn  
+                   ,timeDelteToT2=None # 2. Zeit als TIMEDELTA zu Szenariumbeginn 
                    
                    ): 
         """
@@ -114,6 +117,7 @@ class Plt():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try: 
+            # 3 Szenrariumzeiten ermitteln 
             firstTime=self.mx.df.index[0]
             if isinstance(timeDelteToRef,pd.Timedelta):
                 timeRef=firstTime+timeDelteToRef
@@ -134,20 +138,25 @@ class Plt():
                 logger.error(logStrFinal) 
                 raise PltError(logStrFinal)  
 
-            plotTimesUsed=[]
-            plotTimesUsed.append(Mx.getMicrosecondsFromRefTime(refTime=firstTime,time=timeRef))
-            plotTimesUsed.append(Mx.getMicrosecondsFromRefTime(refTime=firstTime,time=timeT1))
-            plotTimesUsed.append(Mx.getMicrosecondsFromRefTime(refTime=firstTime,time=timeT2))
+            # Vektorergebnisse zu den 3 Zeiten holen
+            timesReq=[]
+            timesReq.append(timeRef)
+            timesReq.append(timeT1)
+            timesReq.append(timeT2)
+            plotTimeDfs=self.mx.getMxsVecsFileData(timesReq=timesReq)
 
-            plotTimesUsedH5Keys=['/'+str(key) for key in plotTimesUsed]
-
-            plotTimeDfs=[]
-            with pd.HDFStore(self.mx.h5FileMxsVecs) as h5Store:  
-                for h5Key in plotTimesUsedH5Keys:
-                    plotTimeDfs.append(h5Store[h5Key])
+            # Sachdatenbasis
+            vROHR=self.xm.dataFrames['vROHR'] # d.h. Sachdaten bereits annotiert mit MX2-Wissen
             
-            
-                                           
+            vKNOT=self.xm.dataFrames['vKNOT']
+            vFWVB=self.xm.dataFrames['vFWVB']
+            try:
+                vNRCV_Mx1=self.xm.dataFrames['vNRCV_Mx1'] # d.h. Sachdaten bereits annotiert mit MX1-Wissen
+            except:
+                logStrFinal="{:s}{:s] not in {:s}.".format(logStr,'vNRCV_Mx1','dataFrames')
+                logger.error(logStrFinal) 
+                raise PltError(logStrFinal) 
+                                                                                             
         except PltError:
             raise            
         except Exception as e:
