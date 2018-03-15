@@ -1,5 +1,4 @@
 """
-
 ---------------------------
 DOCTEST
 ---------------------------
@@ -48,38 +47,39 @@ True
 ...   os.remove(mx.h5FileMxsVecs)
 >>> if os.path.exists(plotFileName):                        
 ...   os.remove(plotFileName)
->>> # ---
->>> # Test
->>> # ---
->>> rootDir=r'C:\\3S\Modelle'
->>> xmlFile=os.path.join(rootDir,'MVV_FWv12(Bericht Version 1.2)_TLN2_Szenarium.XML')
->>> xm=Xm.Xm(xmlFile=xmlFile)
->>> (wDir,modelDir,modelName)=xm.getWDirModelDirModelName()
->>> mx1File=os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'            
->>> mx=Mx.Mx(mx1File=mx1File)
->>> mx=Mx.Mx(mx1File=mx1File)
->>> rm=Rm(xm=xm,mx=mx)
->>> plt.close('all')
->>> fig=plt.figure(
-...   frameon=True
-...  ,linewidth=1.
-...  ,edgecolor='k') # black
->>> timeDeltaToT=pd.to_timedelta('8 minutes 5 seconds')
->>> rm.pltNetDHUS(timeDeltaToT=timeDeltaToT)
->>> (wD,fileName)=os.path.split(xm.xmlFile)
->>> (base,ext)=os.path.splitext(fileName)
->>> plotFileName=wD+os.path.sep+base+'.'+'pdf'
->>> if os.path.exists(plotFileName):                        
-...    os.remove(plotFileName)
->>> plt.savefig(plotFileName,dpi=300)
->>> os.path.exists(plotFileName)
-True
+"""
+"""
+#>>> # ---
+#>>> # Test
+#>>> # ---
+#>>> rootDir=r'C:\\3S\Modelle'
+#>>> xmlFile=os.path.join(rootDir,'MVV_FWv12(Bericht Version 1.2)_TLN2_Szenarium.XML')
+#>>> xm=Xm.Xm(xmlFile=xmlFile)
+#>>> (wDir,modelDir,modelName)=xm.getWDirModelDirModelName()
+#>>> mx1File=os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'            
+#>>> mx=Mx.Mx(mx1File=mx1File)
+#>>> mx=Mx.Mx(mx1File=mx1File)
+#>>> rm=Rm(xm=xm,mx=mx)
+#>>> plt.close('all')
+#>>> fig=plt.figure(
+#...   frameon=True
+#...  ,linewidth=1.
+#...  ,edgecolor='k') # black
+#>>> timeDeltaToT=pd.to_timedelta('8 minutes 5 seconds')
+#>>> rm.pltNetDHUS(timeDeltaToT=timeDeltaToT)
+#>>> (wD,fileName)=os.path.split(xm.xmlFile)
+#>>> (base,ext)=os.path.splitext(fileName)
+#>>> plotFileName=wD+os.path.sep+base+'.'+'pdf'
+#>>> if os.path.exists(plotFileName):                        
+#...    os.remove(plotFileName)
+#>>> plt.savefig(plotFileName,dpi=300)
+#>>> os.path.exists(plotFileName)
+#True
 """
 
 import os
 import sys
 import logging
-logger = logging.getLogger('PT3S.Rm')  
 import argparse
 import unittest
 import doctest
@@ -111,9 +111,11 @@ from matplotlib.colorbar import make_axes
 # ---
 # --- PT3S Imports
 # ---
-
+import PT3S
 import Xm
 import Mx
+
+logger = logging.getLogger('PT3S.Rm')  
 
 DINA4_x=8.2677165354
 DINA4_y=11.6929133858

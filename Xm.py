@@ -392,19 +392,9 @@ True
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.42',1,'Change',"mx not Xm-Attribute: (Mx(), __Mx1(), __Mx2() changed")) 
 """
 
-# ---
-# --- PT3S Imports
-# ---
-#if __name__ == "__main__":
-#    from Mx import Mx
-#else:
-#    from PT3S.Mx import Mx
-import Mx
-
 import os
 import sys
 import logging
-logger = logging.getLogger('PT3S.Xm')     
 import argparse
 
 import unittest
@@ -422,6 +412,16 @@ import h5py
 import base64
 import struct
 
+# ---
+# --- PT3S Imports
+# ---
+#if __name__ == "__main__":
+#    from Mx import Mx
+#else:
+#    from PT3S.Mx import Mx
+import Mx
+
+logger = logging.getLogger('PT3S.Xm')     
 
 class XmError(Exception):
     def __init__(self, value):

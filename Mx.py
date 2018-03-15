@@ -377,7 +377,6 @@ True
 import os
 import sys
 import logging
-logger = logging.getLogger('PT3S.Mx')  
 import argparse
 import unittest
 import doctest
@@ -401,6 +400,13 @@ import subprocess
 import warnings
 import tables
 import math
+
+# ---
+# --- PT3S Imports
+# ---
+# keine
+
+logger = logging.getLogger('PT3S.Mx')  
 
 #Sir3sID
 reSir3sID='(\S+)~([\S ]+)~(\S*)~(\S+)~(\S+)'
