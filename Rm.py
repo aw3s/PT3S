@@ -46,7 +46,7 @@ True
 >>> if os.path.exists(mx.h5FileMxsVecs):                        
 ...   os.remove(mx.h5FileMxsVecs)
 >>> if os.path.exists(plotFileName):                        
-...   os.remove(plotFileName)
+...   pass #os.remove(plotFileName)
 """
 """
 #>>> # ---
@@ -66,7 +66,7 @@ True
 #...  ,linewidth=1.
 #...  ,edgecolor='k') # black
 #>>> timeDeltaToT=pd.to_timedelta('8 minutes 5 seconds')
-#>>> rm.pltNetDHUS(timeDeltaToT=timeDeltaToT)
+#>>> rm.pltNetDHUS(timeDeltaToT=timeDeltaToT,pROHRAttributeRefSize=100.)
 #>>> (wD,fileName)=os.path.split(xm.xmlFile)
 #>>> (base,ext)=os.path.splitext(fileName)
 #>>> plotFileName=wD+os.path.sep+base+'.'+'pdf'
@@ -138,16 +138,16 @@ class Rm():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try: 
-            if isinstance(xm,Xm.Xm):
+            if isinstance(xm,Xm.Xm) or isinstance(xm,PT3S.Xm.Xm):
                 self.xm=xm
             else:
-                logStrFinal="{:s}{:s} not {:s}.".format(logStr,'xm','Xm-Type')
+                logStrFinal="{:s}{:s} not {:s}. Type: {!s:s}".format(logStr,'xm','Xm-Type',type(xm))
                 logger.error(logStrFinal) 
                 raise RmError(logStrFinal)  
-            if isinstance(mx,Mx.Mx):
+            if isinstance(mx,Mx.Mx) or isinstance(mx,PT3S.Mx.Mx):
                 self.mx=mx
             else:
-                logStrFinal="{:s}{:s} not {:s}.".format(logStr,'xm','Xm-Type')
+                logStrFinal="{:s}{:s} not {:s} Type: {!s:s}.".format(logStr,'xm','Xm-Type',type(mx))
                 logger.error(logStrFinal) 
                 raise RmError(logStrFinal)    
             
@@ -200,8 +200,8 @@ class Rm():
                    # wirkt auf Attribute
                    ,quantil_pROHRAttributeHigh=1. # die 25% gößten hier 'DI' also
                    ,quantil_pROHRAttributeLow=.75 
-                   ,quantil_pFWVBAttributeHigh=0. # alle 'W0' also
-                   ,quantil_pFWVBAttributeLow=1. 
+                   ,quantil_pFWVBAttributeHigh=1. # alle 'W0' also
+                   ,quantil_pFWVBAttributeLow=0. 
                    
                    # reine Darstellungsparametrierung (keine Filterung/Selektion mehr)
                    # -------------------------------------------------------------------------
@@ -319,6 +319,8 @@ class Rm():
             # ROHR
             pltROHR=pltROHR[(pltROHR['CONT_ID'].astype(int).isin(CONT_IDisIn))]
             pltROHR=pltROHR[(pltROHR['KVR'].astype(int).isin(KVRisIn))]
+            row,col=pltROHR.shape
+            logger.debug("{:s}pltROHR nach filtern: {:d}".format(logStr,row))     
 
             # FWVB
             pltFWVB=pltFWVB[(pltFWVB['CONT_ID'].astype(int).isin(CONT_IDisIn))]
@@ -326,6 +328,8 @@ class Rm():
             # Ausdehnung des Plots ===============================================
             dx=max(pltFWVB['pXCor_i'].max(),max(pltROHR[(pltROHR['CONT_ID'].astype(int).isin([1001]))]['pXCor_i'].max(),pltROHR[(pltROHR['CONT_ID'].astype(int).isin([1001]))]['pXCor_k'].max()))
             dy=max(pltFWVB['pYCor_i'].max(),max(pltROHR[(pltROHR['CONT_ID'].astype(int).isin([1001]))]['pYCor_i'].max(),pltROHR[(pltROHR['CONT_ID'].astype(int).isin([1001]))]['pYCor_k'].max()))
+
+            logger.debug("{:s}dx={:10.2f} dy={:10.2f}".format(logStr,dx,dy))     
 
             # erf. Verhältnis bei verzerrungsfreier Darstellung
             dydx=dy/dx 
@@ -341,6 +345,8 @@ class Rm():
             factor=1-(cBfraction+CBpad)
             # verzerrungsfreie Darstellung sicherstellen
             figheight=figwidth*dydx*factor
+
+            logger.debug("{:s}figwidth={:10.2f} figheight={:10.2f}".format(logStr,figwidth,figheight))   
 
             # Weltkoordinatenbereich
             xlimLeft=0
@@ -365,6 +371,9 @@ class Rm():
                             &
                             (pltROHR[pROHRAttribute]>=pltROHR[pROHRAttribute].quantile(quantil_pROHRAttributeLow))
                            ]
+
+            row,col=pltROHR.shape
+            logger.debug("{:s}pltROHR nach selektieren: {:d}".format(logStr,row))     
 
             # Grundsortierung z-Order
             pltFWVB=pltFWVB.sort_values(by=[pFWVBAttribute],ascending=pFWVBAttributeAsc) 
@@ -437,6 +446,8 @@ class Rm():
             # ROHR
             minLine=pltROHR[pROHRAttribute].min()
             maxLine=pltROHR[pROHRAttribute].max()
+            logger.debug("{:s}minLine (Attribute): {:6.2f}".format(logStr,minLine))
+            logger.debug("{:s}maxLine (Attribute): {:6.2f}".format(logStr,maxLine))
             normLine=colors.Normalize(minLine,maxLine)
 
             minMarker=pltROHR['Measure'].min()
@@ -457,7 +468,8 @@ class Rm():
                                 ,markevery=[0,len(xs)-1]
                                 ,aa=True
                                 ,clip_on=pROHRClip
-                               )               
+                               )            
+                logger.debug("{:s}pcLines: {!s:s}".format(logStr,pcLines))
 
             # Colormap
             # ============================================================                

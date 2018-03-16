@@ -404,7 +404,7 @@ import math
 # ---
 # --- PT3S Imports
 # ---
-# keine
+import PT3S
 
 logger = logging.getLogger('PT3S.Mx')  
 
@@ -620,6 +620,7 @@ class Mx():
 
             self.__parseMx2()     
             self.__buildMxRecordStructUnpackFmtString()      
+            self.__buildMxRecordStuffAfterUnpackIdx()      
                             
         except MxError:
             raise            
@@ -722,17 +723,8 @@ class Mx():
     def __buildMxRecordStructUnpackFmtString(self):
         """    
         (re-)builds mxRecordStructFmtString and releated stuff:      
-            >self.mxRecordStructFmtString: recordData = struct.unpack(self.mxRecordStructFmtString,record)              
-            >self.bytesUnpacked
-            >self.mx1Df['unpackIdx']
-            >self.idxTIMESTAMP (idx of TIMESTAMP in MX1)
-            >self.unpackIdxTIMESTAMP (idx of TIMESTAMP in recordData)
-            >self.mxColumnNames=[] (of Non Vector Channels without TIMESTAMP in MX1-Sequence)
-            >self.mxColumnNamesVecs=[] (of Vector Channels without TIMESTAMP in MX1-Sequence)
-            >self.idxUnpackNonVectorChannels[] (idx in recordData)
-            >self.idxUnpackVectorChannels[] (idx in recordData of the 1st ([0]) Element of the Vector)
-            >self.idxOfNonVectorChannels[] (idx in MX1 without TIMESTAMP)
-            >self.idxVectorChannels[] (idx in MX1)
+            >self.mxRecordStructFmtString: recordData = struct.unpack(self.mxRecordStructFmtString,record)                         
+            >self.mx1Df['unpackIdx']        
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -850,12 +842,39 @@ class Mx():
                 logStrFinal="{0:s}Bytes per MX-Record from MX-Channels={1:d} <> Bytes from struct fmt-String for MX-Records={2:d}?! Error.".format(logStr,MxRecordLengthMx1,MxRecordLengthFmt)
                 raise MxError(logStrFinal)    
 
-            self.bytesUnpacked = MxRecordLengthFmt - bytesSkipped
-            logger.debug("{0:s}Bytes per MX-Record={1:d}. Bytes Unpacked={2:d} (making up {3:06.2f} Bytes-%).".format(logStr,MxRecordLengthMx1,self.bytesUnpacked,self.bytesUnpacked/MxRecordLengthFmt*100))                                                  
+            bytesUnpacked = MxRecordLengthFmt - bytesSkipped
+            logger.debug("{0:s}Bytes per MX-Record={1:d}. Bytes Unpacked={2:d} (making up {3:06.2f} Bytes-%).".format(logStr,MxRecordLengthMx1,bytesUnpacked,bytesUnpacked/MxRecordLengthFmt*100))                                                  
 
             self.mx1Df['unpackIdx']=pd.Series(unpackIdx)
             self.mx1Df['unpackIdx']=self.mx1Df['unpackIdx'].astype('int64')      
             logger.debug("{0:s}mx1Df after generated Column: Shape: {1!s}.".format(logStr,self.mx1Df.shape))        
+                                                                                                 
+        except MxError:
+            raise            
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)            
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def __buildMxRecordStuffAfterUnpackIdx(self):
+        """    
+        (re-)builds mxRecordStructFmtString and releated stuff:                 
+            >self.idxTIMESTAMP (idx of TIMESTAMP in MX1)
+            >self.unpackIdxTIMESTAMP (idx of TIMESTAMP in recordData)
+            >self.mxColumnNames=[] (of Non Vector Channels without TIMESTAMP in MX1-Sequence)
+            >self.mxColumnNamesVecs=[] (of Vector Channels without TIMESTAMP in MX1-Sequence)
+            >self.idxUnpackNonVectorChannels[] (idx in recordData)
+            >self.idxUnpackVectorChannels[] (idx in recordData of the 1st ([0]) Element of the Vector)
+            >self.idxOfNonVectorChannels[] (idx in MX1 without TIMESTAMP)
+            >self.idxVectorChannels[] (idx in MX1)
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try:
             
             # idxTIMESTAMP
             self.idxTIMESTAMP=self.mx1Df['Sir3sID'][self.mx1Df['Sir3sID']=='ALLG~~~-1~TIMESTAMP'].index[0]
@@ -916,20 +935,20 @@ class Mx():
             if allChannels != rows-1:
                 logger.error("{:s}allChannels: {:d} != mx1Df rows-1 {:d}?!".format(logStr,allChannels,rows-1))   
                 
-            # list all Channels with their relevant attributes         
-            for idxChannel,idxUnpack in [(idxChannel,idxUnpack)  for idxChannel,idxUnpack in enumerate(self.mx1Df['unpackIdx']) if idxUnpack >=0]:                 
-                sir3sID=self.mx1Df['Sir3sID'].iloc[idxChannel]
-                idxUnpack=self.mx1Df['unpackIdx'].iloc[idxChannel]
-                isVectorChannel=self.mx1Df['isVectorChannel'].iloc[idxChannel]
-                isVectorChannelMx2=self.mx1Df['isVectorChannelMx2'].iloc[idxChannel]             
-                isVectorChannelMx2Rvec=self.mx1Df['isVectorChannelMx2Rvec'].iloc[idxChannel]
-                logger.debug("{:s}Channel-Nr. {:>6d} Sir3sID {:>60s} idxUnpack {:>6d}  isVectorChannel {!s:>6s} isVectorChannelMx2 {!s:>6s} isVectorChannelMx2Rvec {!s:>6s}.".format(logStr
-                         ,idxChannel
-                         ,sir3sID
-                         ,idxUnpack
-                         ,isVectorChannel
-                         ,isVectorChannelMx2
-                         ,isVectorChannelMx2Rvec))  
+            ## list all Channels with their relevant attributes         
+            #for idxChannel,idxUnpack in [(idxChannel,idxUnpack)  for idxChannel,idxUnpack in enumerate(self.mx1Df['unpackIdx']) if idxUnpack >=0]:                 
+            #    sir3sID=self.mx1Df['Sir3sID'].iloc[idxChannel]
+            #    idxUnpack=self.mx1Df['unpackIdx'].iloc[idxChannel]
+            #    isVectorChannel=self.mx1Df['isVectorChannel'].iloc[idxChannel]
+            #    isVectorChannelMx2=self.mx1Df['isVectorChannelMx2'].iloc[idxChannel]             
+            #    isVectorChannelMx2Rvec=self.mx1Df['isVectorChannelMx2Rvec'].iloc[idxChannel]
+            #    logger.debug("{:s}Channel-Nr. {:>6d} Sir3sID {:>60s} idxUnpack {:>6d}  isVectorChannel {!s:>6s} isVectorChannelMx2 {!s:>6s} isVectorChannelMx2Rvec {!s:>6s}.".format(logStr
+            #             ,idxChannel
+            #             ,sir3sID
+            #             ,idxUnpack
+            #             ,isVectorChannel
+            #             ,isVectorChannelMx2
+            #             ,isVectorChannelMx2Rvec))  
                                                                                      
         except MxError:
             raise            
@@ -1093,12 +1112,10 @@ class Mx():
                     logger.error(logStrFinal) 
                     raise MxError(logStrFinal) 
                                      
-            logger.debug("{0:s}File finished: Records read={1:d}. Last Time read={2!s}. MB read={3:07.2f}. MB unpacked={4:07.2f} (making up {5:06.2f} %). ".format(logStr                                                                                                                                         
+            logger.debug("{0:s}File finished: Records read={1:d}. Last Time read={2!s}. MB read={3:07.2f}.".format(logStr                                                                                                                                         
                                                                                     ,recsReadFromFile
                                                                                     ,time_read_finally
-                                                                                    ,recsReadFromFile*MxRecordLength/pow(10,6)
-                                                                                    ,recsReadFromFile*self.bytesUnpacked/pow(10,6)
-                                                                                    ,self.bytesUnpacked/MxRecordLength*100
+                                                                                    ,recsReadFromFile*MxRecordLength/pow(10,6)                                                                                                                                                               
                                                                                                                                                  )
                         )                                                                     
 
@@ -1460,6 +1477,14 @@ class Mx():
                     h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MX1' 
                     logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'mx1Df',h5Key))           
                     h5Store.put(h5Key,self.mx1Df)
+
+                    recordStructFmtStringKey='recordStructFmtStringKey'
+                    metadata=dict(recordStructFmtStringKey=self.mxRecordStructFmtString)
+                    h5Store.get_storer(h5Key).attrs.metadata=metadata
+                    logger.debug("{:s}{:s}: Writing metadata for h5Key={:s} with key={:s}: {:s}".format(
+                        logStr,h5File,h5Key,recordStructFmtStringKey,self.mxRecordStructFmtString)
+                                 )  
+     
                 if isinstance(self.mx2Df,pd.core.frame.DataFrame):      
                     h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MX2' 
                     logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'mx2Df',h5Key))           
@@ -1512,7 +1537,18 @@ class Mx():
                     if key == 'MX1':                            
                         logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
                         self.mx1Df=h5Store[h5Key]
-                        self.__buildMxRecordStructUnpackFmtString()      
+
+                        metadata=h5Store.get_storer(h5Key).attrs.metadata
+                        recordStructFmtStringKey='recordStructFmtStringKey'
+                        if recordStructFmtStringKey in metadata:
+                             mxRecordStructFmtString=metadata[recordStructFmtStringKey]
+                             logger.debug("{:s}{:s}: Read metadata for h5Key={:s}. key={:s}: {:s}".format(
+                                  logStr,h5File,h5Key,recordStructFmtStringKey,mxRecordStructFmtString)
+                                 )                              
+                             self.mxRecordStructFmtString=mxRecordStructFmtString
+                        else:                            
+                            self.__buildMxRecordStructUnpackFmtString()    
+                        self.__buildMxRecordStuffAfterUnpackIdx()      
                     if key == 'MX2':                            
                         logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
                         self.mx2Df=h5Store[h5Key]                         

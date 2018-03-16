@@ -415,10 +415,7 @@ import struct
 # ---
 # --- PT3S Imports
 # ---
-#if __name__ == "__main__":
-#    from Mx import Mx
-#else:
-#    from PT3S.Mx import Mx
+import PT3S
 import Mx
 
 logger = logging.getLogger('PT3S.Xm')     
