@@ -206,6 +206,9 @@ class Rm():
                    # reine Darstellungsparametrierung (keine Filterung/Selektion mehr)
                    # -------------------------------------------------------------------------
 
+                   # Plot
+                   ,title='pltNetDHUS'
+
                    # Darstellung FWVB
                    # Größe basierend auf pFWVBAttribute
                    ,pFWVBrefSize=10 # Groesse der FWVB-Symbole bei Attribute-Referenzwert; je größer desto größer
@@ -246,12 +249,13 @@ class Rm():
                    ,pROHRMeasureMarker='.'                 
                 
                    # Colorbar
-                   ,cBfraction=0.05  # fraction of original axes to use for colorbar
+                   ,CBfraction=0.05  # fraction of original axes to use for colorbar
                    ,CBpad=0.05 # fraction of original axes between colorbar and new image axes
-                   ,cBanchorVertical=0.15 # vertikaler Fußpunkt der colorbar
+                   ,CBanchorVertical=0.15 # vertikaler Fußpunkt der colorbar
                    ,CBaspect=10. # ratio of long to short dimension
                    ,CBshrink=0.25 # fraction by which to shrink the colorbar
-                   ,CBlabelpad=-1
+                   ,CBlabelPad=-1
+                   ,CB3ClassesLabelText='% (n-1)/(n-0)'
                    ): 
         """
           
@@ -342,7 +346,7 @@ class Rm():
             figwidth=dxInch
 
             #verzerrungsfrei: Blattkoordinatenverhaeltnis = Weltkoordinatenverhaeltnis
-            factor=1-(cBfraction+CBpad)
+            factor=1-(CBfraction+CBpad)
             # verzerrungsfreie Darstellung sicherstellen
             figheight=figwidth*dydx*factor
        
@@ -401,6 +405,8 @@ class Rm():
             xTicks=ax.get_xticks()
             dxTick = xTicks[1]-xTicks[0]
             yTicks=ax.set_yticks([idx*dxTick for idx in range(math.floor(dy/dxTick)+1)])
+
+            plt.title(title)            
 
             if pFWVBMeasure3Classes:
                 pcFWVB_top=ax.scatter(    
@@ -480,9 +486,9 @@ class Rm():
             # ============================================================                
             cax,kw=make_axes(ax
                              ,location='right'
-                             ,fraction=cBfraction # fraction of original axes to use for colorbar
+                             ,fraction=CBfraction # fraction of original axes to use for colorbar
                              ,pad=CBpad # fraction of original axes between colorbar and new image axes
-                             ,anchor=(0.,cBanchorVertical) # the anchor point of the colorbar axes
+                             ,anchor=(0.,CBanchorVertical) # the anchor point of the colorbar axes
                              ,aspect=CBaspect # ratio of long to short dimension
                              ,shrink=CBshrink # fraction by which to shrink the colorbar
                             )         
@@ -494,7 +500,7 @@ class Rm():
                            )
                 colorBar.set_ticks([limitBottom,limitTop])
                 colorBar.set_ticklabels([">{:3.0f}%".format(limitBottom*100),"<{:3.0f}%".format(limitTop*100)])
-                colorBar.set_label('Measure in % T/TRef',labelpad=CBlabelpad)
+                colorBar.set_label(CB3ClassesLabelText,labelpad=CBlabelPad)
             else:                
                 colorBar=fig.colorbar(pcFWVB
                             ,cax=cax
@@ -503,7 +509,7 @@ class Rm():
                 m=re.match(Mx.reSir3sIDcompiled,pFWVBMeasure)
                 colorBar.set_ticks([pltFWVB['Measure'].min(),pltFWVB['Measure'].max()])
                 colorBar.set_ticklabels(["{:6.2f} {:s}".format(pltFWVB['Measure'].min(),m.group(5)),"{:6.2f} {:s}".format(pltFWVB['Measure'].max(),m.group(5))])
-                colorBar.set_label("{:s}".format(m.group(5)),labelpad=CBlabelpad)
+                colorBar.set_label("{:s}".format(m.group(5)),labelpad=CBlabelPad)
                          
                                                                          
         except RmError:
