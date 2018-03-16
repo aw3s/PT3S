@@ -345,9 +345,7 @@ class Rm():
             factor=1-(cBfraction+CBpad)
             # verzerrungsfreie Darstellung sicherstellen
             figheight=figwidth*dydx*factor
-
-            logger.debug("{:s}figwidth={:10.2f} figheight={:10.2f}".format(logStr,figwidth,figheight))   
-
+       
             # Weltkoordinatenbereich
             xlimLeft=0
             ylimBottom=0
@@ -391,11 +389,18 @@ class Rm():
             fig.set_figwidth(figwidth)
             fig.set_figheight(figheight)
 
+            logger.debug("{:s}dx={:10.2f} dy={:10.2f}".format(logStr,dx,dy))     
+            logger.debug("{:s}figwidth={:10.2f} figheight={:10.2f}".format(logStr,figwidth,figheight))   
+
             ax=plt.subplot()
             ax.set_xlim(left=xlimLeft)
             ax.set_ylim(bottom=ylimBottom)
             ax.set_xlim(right=xlimRight)
             ax.set_ylim(top=ylimTop)
+
+            xTicks=ax.get_xticks()
+            dxTick = xTicks[1]-xTicks[0]
+            yTicks=ax.set_yticks([idx*dxTick for idx in range(math.floor(dy/dxTick)+1)])
 
             if pFWVBMeasure3Classes:
                 pcFWVB_top=ax.scatter(    
