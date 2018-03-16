@@ -48,6 +48,9 @@ True
 >>> # ---
 >>> if os.path.exists(mx.h5File):                        
 ...    os.remove(mx.h5File)
+>>> metadataFile=mx.h5File+'.metadata'
+>>> if os.path.exists(metadataFile):                        
+...    os.remove(metadataFile)
 >>> if os.path.exists(mx.mxsZipFile):                        
 ...    os.remove(mx.mxsZipFile)
 >>> mxsDumpFile=mx.mxsFile+'.dump'
@@ -1478,11 +1481,21 @@ class Mx():
                     logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'mx1Df',h5Key))           
                     h5Store.put(h5Key,self.mx1Df)
 
-                    recordStructFmtStringKey='recordStructFmtStringKey'
-                    metadata=dict(recordStructFmtStringKey=self.mxRecordStructFmtString)
+                    recordStructFmtStringFile=self.h5File+'.metadata'
+                    recordStructFmtStringFileKey='recordStructFmtStringFileKey'
+                    metadata=dict(recordStructFmtStringFileKey=recordStructFmtStringFile)
+                    with open(recordStructFmtStringFile,'w') as f:
+                        f.write(self.mxRecordStructFmtString)
+                    #recordStructFmtStringKey='recordStructFmtStringKey'
+                    #metadata=dict(recordStructFmtStringKey=self.mxRecordStructFmtString)
+                        #File "C:\aroot\work\hdf5-1.8.15-patch1\src\H5Oalloc.c", line 1142, in H5O_alloc object header message is too large
+                    
                     h5Store.get_storer(h5Key).attrs.metadata=metadata
+                    #logger.debug("{:s}{:s}: Writing metadata for h5Key={:s} with key={:s}: {:s}".format(
+                    #    logStr,h5File,h5Key,recordStructFmtStringKey,self.mxRecordStructFmtString)
+                    #             )  
                     logger.debug("{:s}{:s}: Writing metadata for h5Key={:s} with key={:s}: {:s}".format(
-                        logStr,h5File,h5Key,recordStructFmtStringKey,self.mxRecordStructFmtString)
+                        logStr,h5File,h5Key,recordStructFmtStringFileKey,recordStructFmtStringFile)
                                  )  
      
                 if isinstance(self.mx2Df,pd.core.frame.DataFrame):      
@@ -1538,17 +1551,32 @@ class Mx():
                         logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
                         self.mx1Df=h5Store[h5Key]
 
-                        metadata=h5Store.get_storer(h5Key).attrs.metadata
-                        recordStructFmtStringKey='recordStructFmtStringKey'
-                        if recordStructFmtStringKey in metadata:
-                             mxRecordStructFmtString=metadata[recordStructFmtStringKey]
-                             logger.debug("{:s}{:s}: Read metadata for h5Key={:s}. key={:s}: {:s}".format(
-                                  logStr,h5File,h5Key,recordStructFmtStringKey,mxRecordStructFmtString)
-                                 )                              
-                             self.mxRecordStructFmtString=mxRecordStructFmtString
-                        else:                            
-                            self.__buildMxRecordStructUnpackFmtString()    
+                        metadataAvailable=False
+                        try:
+                            metadata=h5Store.get_storer(h5Key).attrs.metadata  
+                            #recordStructFmtStringKey='recordStructFmtStringKey'
+                            recordStructFmtStringFileKey='recordStructFmtStringFileKey'
+                            #if recordStructFmtStringKey in metadata:
+                            if recordStructFmtStringFileKey in metadata:
+                                #mxRecordStructFmtString=metadata[recordStructFmtStringKey]
+                                recordStructFmtStringFile=metadata[recordStructFmtStringFileKey]
+                                #logger.debug("{:s}{:s}: Read metadata for h5Key={:s}. key={:s}: {:s}".format(logStr,h5File,h5Key,recordStructFmtStringKey,mxRecordStructFmtString))    
+                                logger.debug("{:s}{:s}: Read metadata for h5Key={:s}. key={:s}: {:s}".format(logStr,h5File,h5Key,recordStructFmtStringFileKey,recordStructFmtStringFile))    
+                                
+                                with open(recordStructFmtStringFile) as f:
+                                    mxRecordStructFmtString=f.readline()
+                                
+                                metadataAvailable=True                      
+                        except Exception as e:
+                            logger.debug("{:s}h5File: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,h5File,sys.exc_info()[-1].tb_lineno,type(e),str(e)))    
+                            logger.debug("{:s}{:s}: metadata for h5Key={:s} not existing.".format(logStr,h5File,h5Key))
+                        
+                        if metadataAvailable:
+                            self.mxRecordStructFmtString=mxRecordStructFmtString
+                        else:
+                            self.__buildMxRecordStructUnpackFmtString()                                                                                                                           
                         self.__buildMxRecordStuffAfterUnpackIdx()      
+
                     if key == 'MX2':                            
                         logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
                         self.mx2Df=h5Store[h5Key]                         
@@ -1563,8 +1591,6 @@ class Mx():
                         tupleVecH5=self._checkMxsVecsFile()
                         if tupleDf != tupleVecH5:                            
                             logger.warning("{:s}{:s}: tupleDf {!s:s} != tupleVecH5 {!s:s}.".format(logStr,h5File,tupleDf,tupleVecH5))              
-
-                     
         except MxError:
             raise
         except Exception as e:
