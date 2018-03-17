@@ -178,6 +178,7 @@ class Rm():
                    ,pFWVBMeasure='FWVB~*~*~*~W' # float()  muss möglich sein
                    ,pFWVBMeasureInRefPerc=True # Measure wird verarbeitet in Prozent T zu Ref 
                    ,pFWVBMeasure3Classes=True # Measure wird dargestellt in 3 Klassen
+                   ,pFWVBVICsDf=None # df with VICs; Kundenname, Knotenname (NAME_I)
                    
                    # Attribute (Sachdatum) & Measure (Ergebnis)
                    # ROHR
@@ -263,7 +264,7 @@ class Rm():
                 
                    # Colorbar
                    ,CBfraction=0.05  # fraction of original axes to use for colorbar
-                   ,CBpad=0.05 # fraction of original axes between colorbar and new image axes              
+                   ,CBHpad=0.05 # fraction of original axes between colorbar and new image axes              
                    ,CBlabelPad=-50
                
 
@@ -327,6 +328,10 @@ class Rm():
             vKNOT=self.xm.dataFrames['vKNOT']
             vFWVB=self.xm.dataFrames['vFWVB']
             vNRCV_Mx1=self.xm.dataFrames['vNRCV_Mx1']
+
+            if isinstance(pFWVBVICsDf,pd.core.frame.DataFrame):
+                df=vFWVB.merge(pFWVBVICsDf,left_on='NAME_i',right_on='Knotenname')
+                vFWVB=vFWVB.assign(VIC=df['Kundenname'])
            
             # Einheit der Measures ermitteln (fuer Annotationen)
             pFWVBMeasureCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(pFWVBMeasure)]
@@ -390,7 +395,7 @@ class Rm():
             figwidth=dxInch
 
             #verzerrungsfrei: Blattkoordinatenverhaeltnis = Weltkoordinatenverhaeltnis
-            factor=1-(CBfraction+CBpad)
+            factor=1-(CBfraction+CBHpad)
             # verzerrungsfreie Darstellung sicherstellen
             figheight=figwidth*dydx*factor
        
@@ -545,7 +550,7 @@ class Rm():
             cax,kw=make_axes(ax
                              ,location='right'
                              ,fraction=CBfraction # fraction of original axes to use for colorbar
-                             ,pad=CBpad # fraction of original axes between colorbar and new image axes
+                             ,pad=CBHpad # fraction of original axes between colorbar and new image axes
                              ,anchor=(0.,CBanchorVertical) # the anchor point of the colorbar axes
                              ,aspect=CBaspect # ratio of long to short dimension
                              ,shrink=CBshrink # fraction by which to shrink the colorbar
@@ -599,84 +604,209 @@ class Rm():
                     CBLabelText="{:s} in {:s}".format(pFWVBMeasureATTRTYPE,pFWVBMeasureUNIT)
          
             colorBar.set_label(CBLabelText,labelpad=CBlabelPad)
-                                                                                  
-            # CB Legend 3Classes -----------------------------------------------         
+                           
+            if pFWVBMeasure3Classes:                                                        
+                # CB Legend 3Classes -----------------------------------------------         
+                fig.sca(cax)
+                if pltFWVB_bot_Anz > 0:
+                    po=cax.scatter( CBHpad,CBLe3cBottomVpad                            
+                                    ,s=pFWVBrefSize*pltFWVB[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                                                                                                                      
+                                    ,c=limitBottomColor
+                                    ,alpha=0.9
+                                    ,edgecolors='face'             
+                                    ,clip_on=False
+                                   )
+                    # Text dazu
+                    o=po.findobj(match=None) 
+                    p=o[0]           
+                    bb=p.get_datalim(cax.transAxes)                               
+                    a=plt.annotate(limitBottomText
+                                  #"{:6.1f} MW".format(pltFWVB_bot[pFWVBAttribute].max()/1000.)       
+                                 ,xy=(CBHpad+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cBottomVpad)
+                                 ,xycoords=cax.transAxes 
+                                 ,rotation='vertical' #90
+                                 ,va='center'
+                                 ,ha='center'  
+                                 ,color=limitBottomColor 
+                                 )
+
+                if pltFWVB_top_Anz > 0:
+                    po=cax.scatter( CBHpad,CBLe3cTopVpad                        
+                                    ,s=pFWVBrefSize*pltFWVB[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                
+                                    ,c=limitTopColor
+                                    ,alpha=0.9
+                                    ,edgecolors='face'             
+                                    ,clip_on=False                                 
+                                   )
+                    # Text dazu
+                    o=po.findobj(match=None) 
+                    p=o[0]           
+                    bb=p.get_datalim(cax.transAxes)     
+                    bbTop=bb      
+                    a=plt.annotate(limitTopText
+                                 #"{:6.1f} MW".format(pltFWVB_top[pFWVBAttribute].max()/1000.)
+                                 ,xy=(CBHpad+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cTopVpad)
+                                 ,xycoords=cax.transAxes 
+                                 ,rotation='vertical' #90
+                                 ,va='center'
+                                 ,ha='center'    
+                                 ,color=limitTopColor                            
+                                 )
+
+
+                if pltFWVB_mid_Anz > 0:
+                    # Farbe 
+                    limitMiddleColorMapNorm=colors.Normalize(limitBottom,limitTop)
+                    #value=pltFWVB_mid['Measure'].loc[pltFWVB_mid[pFWVBAttribute].idxmax()]
+                    value=limitBottom+.5*(limitTop-limitBottom)
+                    limitMiddleColor=limitMiddleColorMap(limitMiddleColorMapNorm(value))               
+                    # Symbol              
+                    po=cax.scatter( CBHpad,CBLe3cMiddleVpad                            
+                                    ,s=pFWVBrefSize*pltFWVB[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                  
+                                    ,c=limitMiddleColor
+                                    ,alpha=0.9
+                                    ,edgecolors='face'             
+                                    ,clip_on=False
+                                    ,visible=False # es erden nur die Koordinaten benoetigt
+                                  )
+                    # Text dazu
+                    o=po.findobj(match=None) 
+                    p=o[0]
+                    bb=p.get_datalim(cax.transAxes)
+                    a=plt.annotate(limitMiddleText
+                                    #"{:6.1f} MW".format(pltFWVB_mid[pFWVBAttribute].max()/1000.)
+                                   ,xy=(CBHpad+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cMiddleVpad)                                                                                 
+                                   ,xycoords=cax.transAxes 
+                                   ,rotation='vertical' #90
+                                   ,va='center'
+                                   ,ha='center'
+                                   ,color=limitMiddleColor   
+                                 #  ,visible=False
+                    )
+
+
+                                                  
+            # Legende Modellschriftfeld ---------------------------------------------------------------------
             fig.sca(cax)
-            if pltFWVB_bot_Anz > 0:
-                po=cax.scatter( CBpad,CBLe3cBottomVpad                            
-                                ,s=pFWVBrefSize*pltFWVB[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                                                                                                                      
-                                ,c=limitBottomColor
-                                ,alpha=0.9
-                                ,edgecolors='face'             
+
+            if bbTop != None:
+                vModelTitleBlock=bbTop.y1+0.1
+            else:
+                vModelTitleBlock=1+0.1
+            modelTitelBlockHSpace=0.5
+
+            Projekt=self.xm.dataFrames['MODELL']['PROJEKT'].iloc[0]
+            Planer=self.xm.dataFrames['MODELL']['PLANER'].iloc[0]
+            Inst=self.xm.dataFrames['MODELL']['INST'].iloc[0]
+            
+            a=plt.annotate(Projekt, xy=(0,vModelTitleBlock), xycoords=cax.transAxes 
+                         ,rotation='vertical'
+                         ,va='bottom'
+                         ,ha='left'
+            )
+
+            a=plt.annotate(Planer, xy=(0+1*modelTitelBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
+                         ,rotation='vertical'
+                         ,va='bottom'
+                         ,ha='left'   
+            )
+
+            a=plt.annotate(Inst, xy=(0+2*modelTitelBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
+                         ,rotation='vertical'
+                         ,va='bottom'
+                         ,ha='left'   
+            )
+
+            xmFileName,ext = os.path.splitext(os.path.basename(self.xm.xmlFile))
+            a=plt.annotate("Modelldatei: {:s}".format(xmFileName), xy=(0+3*modelTitelBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
+            ,rotation='vertical'
+            ,va='bottom'
+            ,ha='left'   
+            )
+            (wDir,modelDir,modelName)=self.xm.getWDirModelDirModelName()
+            a=plt.annotate("Ergebnisse: {:s}".format(os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1(S)'), xy=(0+4*modelTitelBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
+            ,rotation='vertical'
+            ,va='bottom'
+            ,ha='left'   
+            )
+
+            # ---------------------------------------------------------------------
+            # NumAnz 
+            fig.sca(ax)
+
+            patWBLZ='WBLZ~[\S ]+~\S*~\S+~\S+'
+            patDH='KNOT~K0001~\S*~\S+~QM'
+            for index, row in vNRCV_Mx1[
+             (
+               (vNRCV_Mx1['Sir3sID'].str.contains(patWBLZ)) 
+                 |
+               (vNRCV_Mx1['Sir3sID'].str.contains(patDH)) 
+              )  
+            &
+             (vNRCV_Mx1['CONT_ID'].astype(int) == 1001)  
+            ].iterrows():
+                s=self.mx.df[row.Sir3sID]
+                sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(row.Sir3sID)]
+
+                v=s[timeT]                
+                
+                if sCh.iloc[0].ATTRTYPE=='WVB':
+                    v0=s[timeRef]
+                    vp=v/v0*100               
+                                
+                x,y = row.pXYLB                
+                if x<0:
+                    x=0
+                if y<0:
+                    continue
+               
+                #if row.Sir3sIDstr.contains(patDH)  
+                if sCh.iloc[0].ATTRTYPE=='WVB':
+                    a=plt.annotate("{:s}: {:6.1f} {:s} {:6.1f}%".format(sCh.iloc[0].NAME1,v,sCh.iloc[0].UNIT,vp), xy=(round(x,0),round(y,0)), xycoords='data'                        
+                             ,va='bottom'
+                             ,ha='center' 
+                            ,clip_on=False
+                    )
+                else:
+                    a=plt.annotate("{:s}: {:6.1f} {:s}".format('Kontrollwert DH',v,sCh.iloc[0].UNIT), xy=(round(x,0),round(y,0)), xycoords='data'                        
+                             ,va='bottom'
+                             ,ha='center' 
+                            ,clip_on=False
+                    )
+
+            # ---------------------------------------------------------------------
+            # VICs
+            if isinstance(pFWVBVICsDf,pd.core.frame.DataFrame):
+                fig.sca(ax)
+                xStart=9000.
+                yStart=1000.
+                fontsize=8
+                distance=50
+                idx=0
+                for index, row in pFWVB[pd.isnull(pFWVB['VIC'])==False].sort_values(['VIC'],ascending=False).iterrows():      
+                        kunde=row.VIC                         
+                        a=plt.annotate("{:s}".format(kunde), xy=(xStart,yStart+fontsize*distance*idx), xycoords='data'                              
+                                    ,fontsize=fontsize    
+                                    ,va='bottom'
+                                    ,ha='left' 
                                 ,clip_on=False
-                               )
-                # Text dazu
-                o=po.findobj(match=None) 
-                p=o[0]           
-                bb=p.get_datalim(cax.transAxes)           
-                a=plt.annotate(limitBottomText
-                              #"{:6.1f} MW".format(pltFWVB_bot[pFWVBAttribute].max()/1000.)       
-                             ,xy=(CBpad+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cBottomVpad)
-                             ,xycoords=cax.transAxes 
-                             ,rotation=90
-                             ,va='center'
-                             ,ha='left'  
-                             ,color=limitBottomColor 
-                             )
+                                    )
+                        idx=idx+1
 
-            if pltFWVB_top_Anz > 0:
-                po=cax.scatter( CBpad,CBLe3cTopVpad                        
-                                ,s=pFWVBrefSize*pltFWVB[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                
-                                ,c=limitTopColor
-                                ,alpha=0.9
-                                ,edgecolors='face'             
-                                ,clip_on=False                                 
-                               )
-                # Text dazu
-                o=po.findobj(match=None) 
-                p=o[0]           
-                bb=p.get_datalim(cax.transAxes)           
-                a=plt.annotate(limitTopText
-                             #"{:6.1f} MW".format(pltFWVB_top[pFWVBAttribute].max()/1000.)
-                             ,xy=(CBpad+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cTopVpad)
-                             ,xycoords=cax.transAxes 
-                             ,rotation=90
-                             ,va='center'
-                             ,ha='left'    
-                             ,color=limitTopColor                            
-                             )
-
-
-            if pltFWVB_mid_Anz > 0:
-                # Farbe 
-                limitMiddleColorMapNorm=colors.Normalize(limitBottom,limitTop)
-                #value=pltFWVB_mid['Measure'].loc[pltFWVB_mid[pFWVBAttribute].idxmax()]
-                value=limitBottom+.5*(limitTop-limitBottom)
-                limitMiddleColor=limitMiddleColorMap(limitMiddleColorMapNorm(value))               
-                # Symbol
-                thisSizeValue=pltFWVB_mid[pFWVBAttribute].max()
-                po=cax.scatter( CBpad,CBLe3cMiddleVpad                            
-                                ,s=pFWVBrefSize*pltFWVB[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                  
-                                ,c=limitMiddleColor
-                                ,alpha=0.9
-                                ,edgecolors='face'             
+                idx=0
+                if pFWVBMeasureInRefPerc:
+                    unit='%'
+                else:
+                    unit=pFWVBMeasureUNIT
+                for index, row in pFWVB[pd.isnull(pFWVB['VIC'])==False].sort_values(['VIC'],ascending=False).iterrows():
+                        v=pFWVB['Measure'].loc[index]
+                        a=plt.annotate("{:6.2f} {:s}".format(v*100,unit), xy=(xStart+6000,yStart+fontsize*distance*idx), xycoords='data'                             
+                                    ,fontsize=fontsize    
+                                    ,va='bottom'
+                                    ,ha='left' 
                                 ,clip_on=False
-                                ,visible=False # es erden nur die Koordinaten benoetigt
-                              )
-                # Text dazu
-                o=po.findobj(match=None) 
-                p=o[0]
-                bb=p.get_datalim(cax.transAxes)
-                a=plt.annotate(limitMiddleText
-                                #"{:6.1f} MW".format(pltFWVB_mid[pFWVBAttribute].max()/1000.)
-                               ,xy=(CBpad+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cMiddleVpad)                                                                                 
-                               ,xycoords=cax.transAxes 
-                               ,rotation=90
-                               ,va='center'
-                               ,ha='center'
-                               ,color=limitMiddleColor   
-                             #  ,visible=False
-                )
+                                        )
+                        idx=idx+1  
                                                               
         except RmError:
             raise            
