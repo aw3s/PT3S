@@ -230,11 +230,13 @@ class Rm():
                    # # Farbe basierend auf pFWVBMeasure - pFWVBMeasure3Classes=True                  
                    ,limitTopColor='palegreen'
                    ,limitTopAlpha=0.9 
-                   ,limitTopClip=False             
+                   ,limitTopClip=False            
+                   ,limitTopText='OK' 
                                                     
                    ,limitBottomColor='violet' # 'orchid'
                    ,limitBottomAlpha=0.9 
                    ,limitBottomClip=False    
+                   ,limitBottomText='NOK' 
 
                    ,limitMiddleColorMap=plt.cm.autumn 
                    ,limitMiddleAlpha=0.9 
@@ -259,7 +261,7 @@ class Rm():
                    ,CBfraction=0.05  # fraction of original axes to use for colorbar
                    ,CBpad=0.05 # fraction of original axes between colorbar and new image axes              
                    ,CBlabelPad=-50
-                   #,CB3ClassesLabelText='% (n-1)/(n-0)'
+                   ,CBlabelTextFix=None # Text wird ermittelt
 
                    ,CBaspect=10. # ratio of long to short dimension
                    ,CBshrink=0.3 # fraction by which to shrink the colorbar
@@ -591,13 +593,16 @@ class Rm():
                     CBLabelText="{:s} in % von Referenzzustand".format(pFWVBMeasureUNIT)                                                                
             else:
                     CBLabelText="{:s} in {:s}".format(pFWVBMeasureATTRTYPE,pFWVBMeasureUNIT)
-            colorBar.set_label(CBLabelText,labelpad=CBlabelPad)
+            if isinstance(CBlabelTextFix,str):
+                colorBar.set_label(CBlabelTextFix,labelpad=CBlabelPad)
+            else:
+                colorBar.set_label(CBLabelText,labelpad=CBlabelPad)
                                                                                   
             # ColorbarLegend (3Classes)            
             fig.sca(cax)
             if pltFWVB_bot_Anz > 0:
                 po=cax.scatter( CBpad,CBLe3cBottomVpad                            
-                                ,s=pFWVBrefSize*pltFWVB_bot[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                
+                                ,s=pFWVBrefSize#*pltFWVB_bot[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                
                                 ,c=limitBottomColor
                                 ,alpha=0.9
                                 ,edgecolors='face'             
@@ -607,7 +612,8 @@ class Rm():
                 o=po.findobj(match=None) 
                 p=o[0]           
                 bb=p.get_datalim(cax.transAxes)           
-                a=plt.annotate("{:6.1f} MW".format(pltFWVB_bot[pFWVBAttribute].max()/1000.)
+                a=plt.annotate(limitBottomText
+                              #"{:6.1f} MW".format(pltFWVB_bot[pFWVBAttribute].max()/1000.)       
                              ,xy=(CBpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cBottomVpad)
                              ,xycoords=cax.transAxes 
                              ,va='center'
@@ -616,7 +622,7 @@ class Rm():
 
             if pltFWVB_top_Anz > 0:
                 po=cax.scatter( CBpad,CBLe3cTopVpad                        
-                                ,s=pFWVBrefSize*pltFWVB_top[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                
+                                ,s=pFWVBrefSize#*pltFWVB_top[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                
                                 ,c=limitTopColor
                                 ,alpha=0.9
                                 ,edgecolors='face'             
@@ -626,7 +632,8 @@ class Rm():
                 o=po.findobj(match=None) 
                 p=o[0]           
                 bb=p.get_datalim(cax.transAxes)           
-                a=plt.annotate("{:6.1f} MW".format(pltFWVB_top[pFWVBAttribute].max()/1000.)
+                a=plt.annotate(limitTopText
+                             #"{:6.1f} MW".format(pltFWVB_top[pFWVBAttribute].max()/1000.)
                              ,xy=(CBpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cTopVpad)
                              ,xycoords=cax.transAxes 
                              ,va='center'
@@ -641,7 +648,7 @@ class Rm():
                 # Symbol
                 thisSizeValue=pltFWVB_mid[pFWVBAttribute].max()
                 po=cax.scatter( CBpad,CBLe3cMiddleVpad                            
-                                ,s=pFWVBrefSize*pltFWVB_mid[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                  
+                                ,s=pFWVBrefSize#*pltFWVB_mid[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                  
                                 ,c=limitMiddleColor
                                 ,alpha=0.9
                                 ,edgecolors='face'             
@@ -652,13 +659,15 @@ class Rm():
                 o=po.findobj(match=None) 
                 p=o[0]
                 bb=p.get_datalim(cax.transAxes)
-                a=plt.annotate("{:6.1f} MW".format(pltFWVB_mid[pFWVBAttribute].max()/1000.)
+                a=plt.annotate(''
+                                #"{:6.1f} MW".format(pltFWVB_mid[pFWVBAttribute].max()/1000.)
                                ,xy=(CBpad+CBLe3cMiddlepad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cMiddleVpad)                                                                                 
                                ,xycoords=cax.transAxes 
                                ,rotation=CBLe3cMiddleRotation
                                ,va='center'
                                ,ha='center'
                                ,color=limitMiddleColor   
+                               ,visible=False
                 )
                                                               
         except RmError:
