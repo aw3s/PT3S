@@ -264,7 +264,7 @@ class Rm():
                 
                    # Colorbar
                    ,CBfraction=0.05  # fraction of original axes to use for colorbar
-                   ,CBHpad=0.05 # fraction of original axes between colorbar and new image axes              
+                   ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
                    ,CBlabelPad=-50
                
 
@@ -286,12 +286,12 @@ class Rm():
                    # "1" ist alsp die colorbar-Länge; die Länge von "1" im Plot wird von CBaspect und CBshrink beeinflusst                       
                    ,CBLe3cTopVpad=1+1*1/4
                    # "1"
-                   ,CBLe3cMiddleVpad=.5          
-                  # ,CBLe3cMiddleRotation=90       
-                   ,CBLe3cHpad=1.5                                 
+                   ,CBLe3cMiddleVpad=.5                                                                         
                    ,CBLe3cBottomVpad=0-1*1/4  
-               
-                   ,CBLe3cTextSpaceFactor=0.5 # Abstandsfaktor Repräsentantentext zu Repräsentantensymbol
+                 
+                   ,CBLe3cHpadSymbol=0.1  
+                   ,CBLe3cHpad=1.4 # fixer Abstand Repräsentantentext zu Repräsentantensymbol      
+                   ,CBLe3cTextSpaceFactor=0.5 # plus Abstandsfaktor Repräsentantentext zu Repräsentantensymbol
                    ): 
         """
           
@@ -596,7 +596,7 @@ class Rm():
                     minCBtickLabel="{:6.2f} {:s}".format(minCBtickValue,pFWVBMeasureUNIT)
                     maxCBtickLabel="{:6.2f} {:s}".format(maxCBtickValue,pFWVBMeasureUNIT)    
             colorBar.set_ticklabels([minCBtickLabel,maxCBtickLabel])
-                   
+                              
             # Label text
             if pFWVBMeasureInRefPerc:
                     CBLabelText="{:s} in % von Referenzzustand".format(pFWVBMeasureUNIT)                                                                
@@ -609,7 +609,7 @@ class Rm():
                 # CB Legend 3Classes -----------------------------------------------         
                 fig.sca(cax)
                 if pltFWVB_bot_Anz > 0:
-                    po=cax.scatter( CBHpad,CBLe3cBottomVpad                            
+                    po=cax.scatter( CBHpad+CBLe3cHpadSymbol,CBLe3cBottomVpad                            
                                     ,s=pFWVBrefSize*pltFWVB[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                                                                                                                      
                                     ,c=limitBottomColor
                                     ,alpha=0.9
@@ -620,9 +620,17 @@ class Rm():
                     o=po.findobj(match=None) 
                     p=o[0]           
                     bb=p.get_datalim(cax.transAxes)                               
-                    a=plt.annotate(limitBottomText
-                                  #"{:6.1f} MW".format(pltFWVB_bot[pFWVBAttribute].max()/1000.)       
-                                 ,xy=(CBHpad+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cBottomVpad)
+                    a=plt.annotate(limitBottomText                                     
+                                 ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cBottomVpad)
+                                 ,xycoords=cax.transAxes 
+                                 ,rotation='vertical' #90
+                                 ,va='center'
+                                 ,ha='center'  
+                                 ,color=limitBottomColor 
+                                 )
+                    # weiterer Text dazu
+                    a=plt.annotate("Anz HA: {:6d}".format(pltFWVB_bot_Anz)                                
+                                 ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0)+.5,CBLe3cBottomVpad)
                                  ,xycoords=cax.transAxes 
                                  ,rotation='vertical' #90
                                  ,va='center'
@@ -630,8 +638,10 @@ class Rm():
                                  ,color=limitBottomColor 
                                  )
 
+
+
                 if pltFWVB_top_Anz > 0:
-                    po=cax.scatter( CBHpad,CBLe3cTopVpad                        
+                    po=cax.scatter( CBHpad+CBLe3cHpadSymbol,CBLe3cTopVpad                        
                                     ,s=pFWVBrefSize*pltFWVB[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                
                                     ,c=limitTopColor
                                     ,alpha=0.9
@@ -643,9 +653,18 @@ class Rm():
                     p=o[0]           
                     bb=p.get_datalim(cax.transAxes)     
                     bbTop=bb      
-                    a=plt.annotate(limitTopText
-                                 #"{:6.1f} MW".format(pltFWVB_top[pFWVBAttribute].max()/1000.)
-                                 ,xy=(CBHpad+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cTopVpad)
+                    a=plt.annotate(limitTopText                                
+                                 ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cTopVpad)
+                                 ,xycoords=cax.transAxes 
+                                 ,rotation='vertical' #90
+                                 ,va='center'
+                                 ,ha='center'    
+                                 ,color=limitTopColor                            
+                                 )
+
+                    # weiterer Text dazu                  
+                    a=plt.annotate("Anz HA: {:6d}".format(pltFWVB_top_Anz)                                       
+                                 ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad++CBLe3cTextSpaceFactor*(bb.x1-bb.x0)+.5,CBLe3cTopVpad)
                                  ,xycoords=cax.transAxes 
                                  ,rotation='vertical' #90
                                  ,va='center'
@@ -661,7 +680,7 @@ class Rm():
                     value=limitBottom+.5*(limitTop-limitBottom)
                     limitMiddleColor=limitMiddleColorMap(limitMiddleColorMapNorm(value))               
                     # Symbol              
-                    po=cax.scatter( CBHpad,CBLe3cMiddleVpad                            
+                    po=cax.scatter( CBHpad+CBLe3cHpadSymbol,CBLe3cMiddleVpad                            
                                     ,s=pFWVBrefSize*pltFWVB[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                  
                                     ,c=limitMiddleColor
                                     ,alpha=0.9
@@ -673,9 +692,8 @@ class Rm():
                     o=po.findobj(match=None) 
                     p=o[0]
                     bb=p.get_datalim(cax.transAxes)
-                    a=plt.annotate(limitMiddleText
-                                    #"{:6.1f} MW".format(pltFWVB_mid[pFWVBAttribute].max()/1000.)
-                                   ,xy=(CBHpad+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cMiddleVpad)                                                                                 
+                    a=plt.annotate(limitMiddleText                                    
+                                   ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cMiddleVpad)                                                                                 
                                    ,xycoords=cax.transAxes 
                                    ,rotation='vertical' #90
                                    ,va='center'
@@ -683,8 +701,16 @@ class Rm():
                                    ,color=limitMiddleColor   
                                  #  ,visible=False
                     )
-
-
+                    # weiterer Text dazu                
+                    a=plt.annotate("Anz HA: {:6d}".format(pltFWVB_mid_Anz)                                              
+                                   ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0)+.5,CBLe3cMiddleVpad)                                                                                 
+                                   ,xycoords=cax.transAxes 
+                                   ,rotation='vertical' #90
+                                   ,va='center'
+                                   ,ha='center'
+                                   ,color=limitMiddleColor   
+                                 #  ,visible=False
+                    )
                                                   
             # Legende Modellschriftfeld ---------------------------------------------------------------------
             fig.sca(cax)
@@ -693,38 +719,41 @@ class Rm():
                 vModelTitleBlock=bbTop.y1+0.1
             else:
                 vModelTitleBlock=1+0.1
+            
+            modelTitelBlockHStart=-.15
             modelTitelBlockHSpace=0.5
+
 
             Projekt=self.xm.dataFrames['MODELL']['PROJEKT'].iloc[0]
             Planer=self.xm.dataFrames['MODELL']['PLANER'].iloc[0]
             Inst=self.xm.dataFrames['MODELL']['INST'].iloc[0]
             
-            a=plt.annotate(Projekt, xy=(0,vModelTitleBlock), xycoords=cax.transAxes 
+            a=plt.annotate(Projekt, xy=(modelTitelBlockHStart,vModelTitleBlock), xycoords=cax.transAxes 
                          ,rotation='vertical'
                          ,va='bottom'
                          ,ha='left'
             )
 
-            a=plt.annotate(Planer, xy=(0+1*modelTitelBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
+            a=plt.annotate(Planer, xy=(modelTitelBlockHStart+1*modelTitelBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
                          ,rotation='vertical'
                          ,va='bottom'
                          ,ha='left'   
             )
 
-            a=plt.annotate(Inst, xy=(0+2*modelTitelBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
+            a=plt.annotate(Inst, xy=(modelTitelBlockHStart+2*modelTitelBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
                          ,rotation='vertical'
                          ,va='bottom'
                          ,ha='left'   
             )
 
             xmFileName,ext = os.path.splitext(os.path.basename(self.xm.xmlFile))
-            a=plt.annotate("Modelldatei: {:s}".format(xmFileName), xy=(0+3*modelTitelBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
+            a=plt.annotate("Modelldatei: {:s}".format(xmFileName), xy=(modelTitelBlockHStart+3*modelTitelBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
             ,rotation='vertical'
             ,va='bottom'
             ,ha='left'   
             )
             (wDir,modelDir,modelName)=self.xm.getWDirModelDirModelName()
-            a=plt.annotate("Ergebnisse: {:s}".format(os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1(S)'), xy=(0+4*modelTitelBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
+            a=plt.annotate("Ergebnisse: {:s}".format(os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1(S)'), xy=(modelTitelBlockHStart+4*modelTitelBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
             ,rotation='vertical'
             ,va='bottom'
             ,ha='left'   
