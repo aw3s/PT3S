@@ -583,39 +583,29 @@ class Rm():
                              )
 
 
-
-            #normUV = colors.Normalize(limitNOk,limitOk)
-
-
-            #colorUV = cmapNOK_OK(normUV(pFWVBI[plotColName].loc[pFWVBI[refColName].idxmax()]))
-
-            #thisSizeValue=pFWVBI[refColName].max()
-            #po=cax.scatter(     pad
-            #                ,vPadUV 
-            #                # Skalierung Symbolgroesse
-            #                ,s=refSize*thisSizeValue/(factorRef*pFWVB[refColName].std())                  
-            #                ,c=colorUV
-            #                ,alpha=0.9
-            #                ,edgecolors='face'             
-            #                ,clip_on=False
-            #               )
-
-            #o=po.findobj(match=None) 
-            #px=o[0]
-
-            #bb=px.get_datalim(cax.transAxes)
-
-
-
-
-            #a=plt.annotate("{:6.1f} MW".format(thisSizeValue/1000.), xy=(pad+faktorSchriftabstandZuKuller*(bb.x1-bb.x0)                                                                     
-            #                                                             ,vPadUV), xycoords=cax.transAxes 
-            #             ,va='center'
-            #             ,ha='left'   
-            #)
-
-
-                
+            if pltFWVB_mid_Anz > 0:
+                # Farbe des Symbols
+                limitMiddleColorMapNorm=colors.Normalize(limitBottom,limitTop)
+                limitMiddleColor=limitMiddleColorMap(limitMiddleColorMapNorm(pltFWVB_mid['Measure'].loc[pltFWVB_mid[pFWVBAttribute].idxmax()]))
+                # Symbol
+                thisSizeValue=pltFWVB_mid[pFWVBAttribute].max()
+                po=cax.scatter( CBpad,CBLe3cMiddleVpad                            
+                                ,s=pFWVBrefSize*pltFWVB_mid[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                  
+                                ,c=limitMiddleColor
+                                ,alpha=0.9
+                                ,edgecolors='face'             
+                                ,clip_on=False
+                              )
+                # Text dazu
+                o=po.findobj(match=None) 
+                p=o[0]
+                bb=p.get_datalim(cax.transAxes)
+                a=plt.annotate("{:6.1f} MW".format(pltFWVB_mid[pFWVBAttribute].max()/1000.)
+                               ,xy=(CBpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cMiddleVpad)                                                                                 
+                               ,xycoords=cax.transAxes 
+                              ,va='center'
+                              ,ha='left'   
+                )
                                                               
         except RmError:
             raise            
