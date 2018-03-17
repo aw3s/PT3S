@@ -171,7 +171,7 @@ class Rm():
                    ,timeDeltaToRef=pd.to_timedelta('0 seconds') # Referenzzeit als TIMEDELTA zu Szenariumbeginn 
                    ,timeDeltaToT=None # Zeit als TIMEDELTA zu Szenariumbeginn                    
                   
-                   # Attribute & Measure
+                   # Attribute (Sachdatum) & Measure (Ergebnis)
                    # FWVB
                    ,pFWVBAttribute='W0' # nur Objekte mit >0 werden dargestellt - astype(float) muss möglich sein
                    ,pFWVBAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")
@@ -179,7 +179,7 @@ class Rm():
                    ,pFWVBMeasureInRefPerc=True # Measure wird verarbeitet in Prozent T zu Ref 
                    ,pFWVBMeasure3Classes=True # Measure wird dargestellt in 3 Klassen
                    
-                   # Attribute & Measure
+                   # Attribute (Sachdatum) & Measure (Ergebnis)
                    # ROHR
                    ,pROHRAttribute='DI' # nur Objekte mit >0 werden dargestellt - astype(float) muss möglich sein
                    ,pROHRAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")
@@ -194,6 +194,7 @@ class Rm():
                    # 3-Klassen Darstellung FWVB; die Kriterien beziehen sich auf pFWVBMeasure (ggf. verarbeitet in Prozent T/Ref)
                    ,limitTop=0.95 # >= in Top
                    ,limitBottom=0.10 # <= in Bottom
+                   # bei pFWVBMeasureInRefPerc=False muss für die Limits der pFWVBMeasure-Wertebereich angegeben werden 
 
                    # Selektionskriterien (haben KEINEN Einfluss auf die Abmessungen der Darstellung)
                    # sondern auf die Objekte, die dargestellt werden
@@ -256,19 +257,34 @@ class Rm():
                 
                    # Colorbar
                    ,CBfraction=0.05  # fraction of original axes to use for colorbar
-                   ,CBpad=0.05 # fraction of original axes between colorbar and new image axes
-                   ,CBanchorVertical=0.15 # vertikaler Fußpunkt der colorbar
+                   ,CBpad=0.05 # fraction of original axes between colorbar and new image axes              
+                   ,CBlabelPad=-50
+                   #,CB3ClassesLabelText='% (n-1)/(n-0)'
+
                    ,CBaspect=10. # ratio of long to short dimension
-                   ,CBshrink=0.25 # fraction by which to shrink the colorbar
-                   ,CBlabelPad=-1
-                   ,CB3ClassesLabelText='% (n-1)/(n-0)'
+                   ,CBshrink=0.3 # fraction by which to shrink the colorbar
+
+                   ,CBanchorVertical=0.2 # vertikaler Fußpunkt der colorbar in Plot-%
+
+                   # nicht relevant bei 3Classes...; limitTop und limitBottom gelten bei 3Classes... 
+                   ,CBFixedMinMax=False 
+                   ,CBFixedMin=None
+                   ,CBFixedMax=None
 
                    # ColorbarLegend (3Classes)
                    # Position der Repräsentantensymbole 
-                  ,CBLe3cBottomVpad=-0.3 
-                  ,CBLe3cMiddleVpad=-0.15 
-                  ,CBLe3cTopVpad=1.15 
-                  ,CBLe3cTextSpaceFactor=0.75 # Abstandsfaktor Repräsentantentext zu Repräsentantensymbol
+                   # dabei sind:
+                   # 0 = colorbar unten
+                   # 1 = colorbar oben
+                   # "1" ist alsp die colorbar-Länge; die Länge von "1" im Plot wird von CBaspect und CBshrink beeinflusst                       
+                   ,CBLe3cTopVpad=1+1*1/4
+                   # "1"
+                   ,CBLe3cMiddleVpad=.5          
+                   ,CBLe3cMiddleRotation=90       
+                   ,CBLe3cMiddlepad=1.5                                 
+                   ,CBLe3cBottomVpad=0-1*1/4  
+               
+                   ,CBLe3cTextSpaceFactor=0.5 # Abstandsfaktor Repräsentantentext zu Repräsentantensymbol
                    ): 
         """
           
@@ -305,12 +321,21 @@ class Rm():
             vKNOT=self.xm.dataFrames['vKNOT']
             vFWVB=self.xm.dataFrames['vFWVB']
             vNRCV_Mx1=self.xm.dataFrames['vNRCV_Mx1']
+           
+            # Einheit der Measures ermitteln (fuer Annotationen)
+            pFWVBMeasureCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(pFWVBMeasure)]
+            pFWVBMeasureUNIT=pFWVBMeasureCh.iloc[0].UNIT
+            pFWVBMeasureATTRTYPE=pFWVBMeasureCh.iloc[0].ATTRTYPE
+
+            pROHRMeasureCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(pROHRMeasure)]
+            pROHRMeasureUNIT=pROHRMeasureCh.iloc[0].UNIT
+            pROHRMeasureATTRTYPE=pROHRMeasureCh.iloc[0].ATTRTYPE
 
             # Sachdaten annotieren mit Spalte Measure >pXXXX ===============================================
 
             # FWVB            
             pFWVBMeasureValue=plotTimeDfs[timeTIdx][pFWVBMeasure].iloc[0] 
-            if pFWVBMeasureInRefPerc:                
+            if pFWVBMeasureInRefPerc:  # auch in diesem Fall trägt die Spalte Measure das Ergebnis               
                 pFWVBMeasureValueRef=plotTimeDfs[timeRefIdx][pFWVBMeasure].iloc[0] 
                 pFWVBMeasureValue=[float(m)/float(mRef) if float(mRef) >0 else 1 for m,mRef in zip(pFWVBMeasureValue,pFWVBMeasureValueRef)]
             pFWVB=vFWVB.assign(Measure=pd.Series(pFWVBMeasureValue)) #!
@@ -519,31 +544,57 @@ class Rm():
                              ,aspect=CBaspect # ratio of long to short dimension
                              ,shrink=CBshrink # fraction by which to shrink the colorbar
                             )         
-           
+
+            # CB
             if pFWVBMeasure3Classes:
                 colorBar=fig.colorbar(pcFWVB_mid
                             ,cax=cax
                             ,**kw
-                           )
-                colorBar.set_ticks([limitBottom,limitTop])
-                colorBar.set_ticklabels([">{:3.0f}%".format(limitBottom*100),"<{:3.0f}%".format(limitTop*100)])
-                colorBar.set_label(CB3ClassesLabelText,labelpad=CBlabelPad)
+                           )                             
             else:                
                 colorBar=fig.colorbar(pcFWVB
                             ,cax=cax
                             ,**kw
-                           )
-                m=re.match(Mx.reSir3sIDcompiled,pFWVBMeasure)
-                colorBar.set_ticks([pltFWVB['Measure'].min(),pltFWVB['Measure'].max()])
-                colorBar.set_ticklabels(["{:6.2f} {:s}".format(pltFWVB['Measure'].min(),m.group(5)),"{:6.2f} {:s}".format(pltFWVB['Measure'].max(),m.group(5))])
-                colorBar.set_label("{:s}".format(m.group(5)),labelpad=CBlabelPad)
-                         
-            fig.sca(cax)
+                           )        
+            # ticks Value  
+            if pFWVBMeasure3Classes:
+                minCBtickValue=limitBottom
+                maxCBtickValue=limitTop                
+            else:
+                if CBFixedMinMax and isinstance(CBFixedMin,float) and isinstance(CBFixedMax,float):
+                    minCBtickValue=CBFixedMin
+                    maxCBtickValue=CBFixedMax                       
+                else:
+                    minCBtickValue=pltFWVB['Measure'].min()
+                    maxCBtickValue=pltFWVB['Measure'].max()           
+            colorBar.set_ticks([minCBtickValue,maxCBtickValue])  
 
+            # ticks Label
+            if pFWVBMeasureInRefPerc:
+                if pFWVBMeasure3Classes:
+                    minCBtickLabel=">{:3.0f}%".format(minCBtickValue*100)
+                    maxCBtickLabel="<{:3.0f}%".format(maxCBtickValue*100)                             
+                else:
+                    minCBtickLabel="{:3.0f}%".format(minCBtickValue*100)
+                    maxCBtickLabel="{:3.0f}%".format(maxCBtickValue*100) 
+            else:
+                if pFWVBMeasure3Classes:
+                    minCBtickLabel=">{:6.2f} {:s}".format(minCBtickValue,pFWVBMeasureUNIT)
+                    maxCBtickLabel="<{:6.2f} {:s}".format(maxCBtickValue,pFWVBMeasureUNIT)    
+                else:
+                    minCBtickLabel="{:6.2f} {:s}".format(minCBtickValue,pFWVBMeasureUNIT)
+                    maxCBtickLabel="{:6.2f} {:s}".format(maxCBtickValue,pFWVBMeasureUNIT)    
+            colorBar.set_ticklabels([minCBtickLabel,maxCBtickLabel])
+                   
+            # Label text
+            if pFWVBMeasureInRefPerc:
+                    CBLabelText="{:s} in % von Referenzzustand".format(pFWVBMeasureUNIT)                                                                
+            else:
+                    CBLabelText="{:s} in {:s}".format(pFWVBMeasureATTRTYPE,pFWVBMeasureUNIT)
+            colorBar.set_label(CBLabelText,labelpad=CBlabelPad)
+                                                                                  
             # ColorbarLegend (3Classes)            
-            # Bottom
-            # Symbol
-            
+            fig.sca(cax)
             if pltFWVB_bot_Anz > 0:
                 po=cax.scatter( CBpad,CBLe3cBottomVpad                            
                                 ,s=pFWVBrefSize*pltFWVB_bot[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                
@@ -569,7 +620,7 @@ class Rm():
                                 ,c=limitTopColor
                                 ,alpha=0.9
                                 ,edgecolors='face'             
-                                ,clip_on=False
+                                ,clip_on=False                                 
                                )
                 # Text dazu
                 o=po.findobj(match=None) 
@@ -579,12 +630,12 @@ class Rm():
                              ,xy=(CBpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cTopVpad)
                              ,xycoords=cax.transAxes 
                              ,va='center'
-                             ,ha='left'   
+                             ,ha='left'                                
                              )
 
 
             if pltFWVB_mid_Anz > 0:
-                # Farbe des Symbols
+                # Farbe 
                 limitMiddleColorMapNorm=colors.Normalize(limitBottom,limitTop)
                 limitMiddleColor=limitMiddleColorMap(limitMiddleColorMapNorm(pltFWVB_mid['Measure'].loc[pltFWVB_mid[pFWVBAttribute].idxmax()]))
                 # Symbol
@@ -595,16 +646,19 @@ class Rm():
                                 ,alpha=0.9
                                 ,edgecolors='face'             
                                 ,clip_on=False
+                                ,visible=False # es erden nur die Koordinaten benoetigt
                               )
                 # Text dazu
                 o=po.findobj(match=None) 
                 p=o[0]
                 bb=p.get_datalim(cax.transAxes)
                 a=plt.annotate("{:6.1f} MW".format(pltFWVB_mid[pFWVBAttribute].max()/1000.)
-                               ,xy=(CBpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cMiddleVpad)                                                                                 
+                               ,xy=(CBpad+CBLe3cMiddlepad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cMiddleVpad)                                                                                 
                                ,xycoords=cax.transAxes 
-                              ,va='center'
-                              ,ha='left'   
+                               ,rotation=CBLe3cMiddleRotation
+                               ,va='center'
+                               ,ha='center'
+                               ,color=limitMiddleColor   
                 )
                                                               
         except RmError:
