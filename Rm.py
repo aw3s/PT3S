@@ -207,13 +207,19 @@ class Rm():
                    # -------------------------------------------------------------------------
 
                    # Plot
-                   ,title='pltNetDHUS'
+                   ,pltTitle='pltNetDHUS' # plt.title not f.suptitle
+
+                   # Figure
+                   ,figFrameon=True # set whether the figure frame (background) is displayed or invisible
+                   #,figLinewidth=1.
+                   ,figEdgecolor='black' # set the edge color of the Figure rectangle
+                   ,figFacecolor='white' # set the face color of the Figure rectangle
 
                    # Darstellung FWVB
                    # Größe basierend auf pFWVBAttribute
                    ,pFWVBrefSize=10 # Groesse der FWVB-Symbole bei Attribute-Referenzwert; je größer desto größer
                    ,pFWVBrefScale=2 # Skalierung Groesse der FWVB-Symbole bei Attribute-Referenzwert; je größer desto kleiner
-                   # Attribute-Referenzwert ist die Standardabweichung
+                   # Attribute-Referenzwert ist die Standardabweichung; wenn diese <1 ist der Mittelwert
                    
                    # Farbe basierend auf pFWVBMeasure
                    ,pFWVBMeasureColorMap=plt.cm.autumn 
@@ -256,6 +262,13 @@ class Rm():
                    ,CBshrink=0.25 # fraction by which to shrink the colorbar
                    ,CBlabelPad=-1
                    ,CB3ClassesLabelText='% (n-1)/(n-0)'
+
+                   # ColorbarLegend (3Classes)
+                   # Position der Repräsentantensymbole 
+                  ,CBLe3cBottomVpad=-0.3 
+                  ,CBLe3cMiddleVpad=-0.15 
+                  ,CBLe3cTopVpad=1.15 
+                  ,CBLe3cTextSpaceFactor=0.75 # Abstandsfaktor Repräsentantentext zu Repräsentantensymbol
                    ): 
         """
           
@@ -386,6 +399,10 @@ class Rm():
             pltFWVB_mid=pltFWVB[(pltFWVB['Measure']<limitTop) & (pltFWVB['Measure']>limitBottom)]     
             pltFWVB_bot=pltFWVB[(pltFWVB['Measure']<=limitBottom)] 
 
+            pltFWVB_top_Anz,col=pltFWVB_top.shape
+            pltFWVB_mid_Anz,col=pltFWVB_mid.shape
+            pltFWVB_bot_Anz,col=pltFWVB_bot.shape
+
             # ============================================================
             # Plotten
             # ============================================================
@@ -406,12 +423,22 @@ class Rm():
             dxTick = xTicks[1]-xTicks[0]
             yTicks=ax.set_yticks([idx*dxTick for idx in range(math.floor(dy/dxTick)+1)])
 
-            plt.title(title)            
+            plt.title(pltTitle)              
+            fig.set_frameon(figFrameon) 
+            fig.set_edgecolor(figEdgecolor)
+            fig.set_facecolor(figFacecolor)
+            #plt.setp(fig,linewidth=figLinewidth)
 
+            pFWVBrefSizeValue=pltFWVB[pFWVBAttribute].std()
+            if pFWVBrefSizeValue < 1:
+                pFWVBrefSizeValue=pltFWVB[pFWVBAttribute].mean()
+
+            logger.debug("{:s}pFWVBrefSizeValue (Attributwert): {:6.2f}".format(logStr,pFWVBrefSizeValue)) 
+                     
             if pFWVBMeasure3Classes:
                 pcFWVB_top=ax.scatter(    
                      pltFWVB_top['pXCor_i'],pltFWVB_top['pYCor_i']                 
-                    ,s=pFWVBrefSize*pltFWVB_top[pFWVBAttribute]/(pFWVBrefScale*pltFWVB[pFWVBAttribute].std())   
+                    ,s=pFWVBrefSize*pltFWVB_top[pFWVBAttribute]/(pFWVBrefScale*pFWVBrefSizeValue)   
                     ,color=limitTopColor
                     ,alpha=limitTopAlpha
                     ,edgecolors='face'             
@@ -419,7 +446,7 @@ class Rm():
 
                 pcFWVB_mid=ax.scatter(    
                      pltFWVB_mid['pXCor_i'],pltFWVB_mid['pYCor_i']       
-                    ,s=pFWVBrefSize*pltFWVB_mid[pFWVBAttribute]/(pFWVBrefScale*pltFWVB[pFWVBAttribute].std())   
+                    ,s=pFWVBrefSize*pltFWVB_mid[pFWVBAttribute]/(pFWVBrefScale*pFWVBrefSizeValue)   
                     # Farbskala
                     ,cmap=limitMiddleColorMap
                     # Normierung Farbe
@@ -433,7 +460,7 @@ class Rm():
                    )
                 pcFWVB_bot=ax.scatter(    
                      pltFWVB_bot['pXCor_i'],pltFWVB_bot['pYCor_i']                 
-                    ,s=pFWVBrefSize*pltFWVB_bot[pFWVBAttribute]/(pFWVBrefScale*pltFWVB[pFWVBAttribute].std())   
+                    ,s=pFWVBrefSize*pltFWVB_bot[pFWVBAttribute]/(pFWVBrefScale*pFWVBrefSizeValue)   
                     ,color=limitBottomColor
                     ,alpha=limitBottomAlpha
                     ,edgecolors='face'             
@@ -441,7 +468,7 @@ class Rm():
             else:                
                 pcFWVB=ax.scatter(    
                      pltFWVB['pXCor_i'],pltFWVB['pYCor_i']       
-                    ,s=pFWVBrefSize*pltFWVB[pFWVBAttribute]/(pFWVBrefScale*pltFWVB[pFWVBAttribute].std())   
+                    ,s=pFWVBrefSize*pltFWVB[pFWVBAttribute]/(pFWVBrefScale*pFWVBrefSizeValue)   
                     # Farbskala
                     ,cmap=pFWVBMeasureColorMap
                     # Normierung Farbe
@@ -511,7 +538,85 @@ class Rm():
                 colorBar.set_ticklabels(["{:6.2f} {:s}".format(pltFWVB['Measure'].min(),m.group(5)),"{:6.2f} {:s}".format(pltFWVB['Measure'].max(),m.group(5))])
                 colorBar.set_label("{:s}".format(m.group(5)),labelpad=CBlabelPad)
                          
-                                                                         
+            fig.sca(cax)
+
+            # ColorbarLegend (3Classes)            
+            # Bottom
+            # Symbol
+            
+            if pltFWVB_bot_Anz > 0:
+                po=cax.scatter( CBpad,CBLe3cBottomVpad                            
+                                ,s=pFWVBrefSize*pltFWVB_bot[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                
+                                ,c=limitBottomColor
+                                ,alpha=0.9
+                                ,edgecolors='face'             
+                                ,clip_on=False
+                               )
+                # Text dazu
+                o=po.findobj(match=None) 
+                p=o[0]           
+                bb=p.get_datalim(cax.transAxes)           
+                a=plt.annotate("{:6.1f} MW".format(pltFWVB_bot[pFWVBAttribute].max()/1000.)
+                             ,xy=(CBpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cBottomVpad)
+                             ,xycoords=cax.transAxes 
+                             ,va='center'
+                             ,ha='left'   
+                             )
+
+            if pltFWVB_top_Anz > 0:
+                po=cax.scatter( CBpad,CBLe3cTopVpad                        
+                                ,s=pFWVBrefSize*pltFWVB_top[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                
+                                ,c=limitTopColor
+                                ,alpha=0.9
+                                ,edgecolors='face'             
+                                ,clip_on=False
+                               )
+                # Text dazu
+                o=po.findobj(match=None) 
+                p=o[0]           
+                bb=p.get_datalim(cax.transAxes)           
+                a=plt.annotate("{:6.1f} MW".format(pltFWVB_top[pFWVBAttribute].max()/1000.)
+                             ,xy=(CBpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cTopVpad)
+                             ,xycoords=cax.transAxes 
+                             ,va='center'
+                             ,ha='left'   
+                             )
+
+
+
+            #normUV = colors.Normalize(limitNOk,limitOk)
+
+
+            #colorUV = cmapNOK_OK(normUV(pFWVBI[plotColName].loc[pFWVBI[refColName].idxmax()]))
+
+            #thisSizeValue=pFWVBI[refColName].max()
+            #po=cax.scatter(     pad
+            #                ,vPadUV 
+            #                # Skalierung Symbolgroesse
+            #                ,s=refSize*thisSizeValue/(factorRef*pFWVB[refColName].std())                  
+            #                ,c=colorUV
+            #                ,alpha=0.9
+            #                ,edgecolors='face'             
+            #                ,clip_on=False
+            #               )
+
+            #o=po.findobj(match=None) 
+            #px=o[0]
+
+            #bb=px.get_datalim(cax.transAxes)
+
+
+
+
+            #a=plt.annotate("{:6.1f} MW".format(thisSizeValue/1000.), xy=(pad+faktorSchriftabstandZuKuller*(bb.x1-bb.x0)                                                                     
+            #                                                             ,vPadUV), xycoords=cax.transAxes 
+            #             ,va='center'
+            #             ,ha='left'   
+            #)
+
+
+                
+                                                              
         except RmError:
             raise            
         except Exception as e:
