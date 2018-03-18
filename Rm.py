@@ -27,7 +27,16 @@ DOCTEST
 ... ,linewidth=1.
 ... ,edgecolor='k') # black
 >>> timeDeltaToT=mx.df.index[1]-mx.df.index[0]
->>> rm.pltNetDHUS(timeDeltaToT=timeDeltaToT)
+>>> pd.set_option('display.max_columns',None)
+>>> pd.set_option('display.width',666666)
+>>> pFWVB=rm.pltNetDHUS(timeDeltaToT=timeDeltaToT)
+>>> print("'''{:s}'''".format(repr(pFWVB).replace('\\n','\\n   ')))
+'''  BESCHREIBUNG IDREFERENZ   W0  LFK  TVL0  TRS0 LFKT   W  W_min  W_max  INDTR  TRSK  VTYP  IMBG  IRFV                   pk                   tk  NAME_i KVR_i TM_i   XKOR_i   YKOR_i ZKOR_i  pXCor_i  pYCor_i  NAME_k KVR_k TM_k   XKOR_k   YKOR_k ZKOR_k  pXCor_k  pYCor_k                                      CONT CONT_ID CONT_LFDNR                         WBLZ   Measure MCategory GCategory
+   0            1         -1  200  0.8    90    50  NaN NaN    NaN    NaN      1    55     1     0   0.0  4643800032883366034  4643800032883366034  V-K002     1   90  2541059  5706265     20    319.0     56.0  R-K002     2   60  2541059  5706265     20    319.0     56.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  [BLNZ1, BLNZ1u5, BLNZ1u5u7]  1.000002       Top     BLNZ1
+   1            3         -1  200  1.0    90    65  NaN NaN    NaN    NaN      1    65     1     0   0.0  4704603947372595298  4704603947372595298  V-K004     1   90  2541539  5706361     20    799.0    152.0  R-K004     2   60  2541539  5706361     20    799.0    152.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           []  1.000008       Top          
+   2            4         -1  200  0.8    90    60  NaN NaN    NaN    NaN      1    60     1     0   0.0  5121101823283893406  5121101823283893406  V-K005     1   90  2541627  5706363     20    887.0    154.0  R-K005     2   60  2541627  5706363     20    887.0    154.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  [BLNZ1u5, BLNZ1u5u7, BLNZ5]  1.000010       Top     BLNZ5
+   3            5         -1  200  0.8    90    55  NaN NaN    NaN    NaN      1    55     1     0   0.0  5400405917816384862  5400405917816384862  V-K007     1   90  2541899  5706325     20   1159.0    116.0  R-K007     2   60  2541899  5706325     20   1159.0    116.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                  [BLNZ1u5u7]  1.000029       Top          
+   4            2         -1  200  0.6    90    60  NaN NaN    NaN    NaN      1    62     1     0   0.0  5695730293103267172  5695730293103267172  V-K003     1   90  2541457  5706345     20    717.0    136.0  R-K003     2   60  2541457  5706345     20    717.0    136.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           []  1.000006       Top          '''
 >>> (wD,fileName)=os.path.split(xm.xmlFile)
 >>> (base,ext)=os.path.splitext(fileName)
 >>> plotFileName=wD+os.path.sep+base+'.'+'pdf'
@@ -179,6 +188,7 @@ class Rm():
                    ,pFWVBMeasureInRefPerc=True # Measure wird verarbeitet in Prozent T zu Ref 
                    ,pFWVBMeasure3Classes=True # Measure wird dargestellt in 3 Klassen
                    ,pFWVBVICsDf=None # df with VICs; Kundenname, Knotenname (NAME_I)
+                   ,pFWVBGCategory=['BLNZ1','BLNZ5'] # ['Süd','Innenstadt','Nord Rest','Nord PWS','NordOst BHW','Ost PWF/PSE','Ost HWV']
                    
                    # Attribute (Sachdatum) & Measure (Ergebnis)
                    # ROHR
@@ -214,7 +224,7 @@ class Rm():
                    # Figure
                    ,figFrameon=True # set whether the figure frame (background) is displayed or invisible
                    #,figLinewidth=1.
-                   ,figEdgecolor='black' # set the edge color of the Figure rectangle
+                   ,figEdgecolor='white' # set the edge color of the Figure rectangle
                    ,figFacecolor='white' # set the face color of the Figure rectangle
 
                    # Darstellung FWVB
@@ -267,10 +277,9 @@ class Rm():
                    ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
                    ,CBlabelPad=-50
                
-
                    ,CBaspect=10. # ratio of long to short dimension
                    ,CBshrink=0.3 # fraction by which to shrink the colorbar
-
+                   ,CBanchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-%
                    ,CBanchorVertical=0.2 # vertikaler Fußpunkt der colorbar in Plot-%
 
                    # nicht relevant bei 3Classes...; limitTop und limitBottom gelten bei 3Classes... 
@@ -289,9 +298,14 @@ class Rm():
                    ,CBLe3cMiddleVpad=.5                                                                         
                    ,CBLe3cBottomVpad=0-1*1/4  
                  
-                   ,CBLe3cHpadSymbol=0.1  
-                   ,CBLe3cHpad=1.4 # fixer Abstand Repräsentantentext zu Repräsentantensymbol      
+                   ,CBLe3cHpadSymbol=0.2 # 0.1  
+                   ,CBLe3cHpad=1.2 # 1.4 # fixer Abstand Repräsentantentext zu Repräsentantensymbol      
                    ,CBLe3cTextSpaceFactor=0.5 # plus Abstandsfaktor Repräsentantentext zu Repräsentantensymbol
+
+                   #Schriftfeld
+                   ,titleBlockHStart=-0.18
+                   ,titleBlockHSpace=0.45
+                   ,titleBlockVSpace=0.2 # von Top(ggf. Symbol) der Colorbar
                    ): 
         """
           
@@ -305,13 +319,13 @@ class Rm():
             if isinstance(timeDeltaToRef,pd.Timedelta):
                 timeRef=firstTime+timeDeltaToRef
             else:
-                logStrFinal="{:s}{:s] not {:s}.".format(logStr,'xm','Xm-Type')
+                logStrFinal="{:s}{:s} not {:s}.".format(logStr,'xm','Xm-Type')
                 logger.error(logStrFinal) 
                 raise RmError(logStrFinal)  
             if isinstance(timeDeltaToT,pd.Timedelta):
                 timeT=firstTime+timeDeltaToT
             else:
-                logStrFinal="{:s}{:s] not {:s}.".format(logStr,'xm','Xm-Type')
+                logStrFinal="{:s}{:s} not {:s}.".format(logStr,'xm','Xm-Type')
                 logger.error(logStrFinal) 
                 raise RmError(logStrFinal)  
            
@@ -350,6 +364,32 @@ class Rm():
                 pFWVBMeasureValueRef=plotTimeDfs[timeRefIdx][pFWVBMeasure].iloc[0] 
                 pFWVBMeasureValue=[float(m)/float(mRef) if float(mRef) >0 else 1 for m,mRef in zip(pFWVBMeasureValue,pFWVBMeasureValueRef)]
             pFWVB=vFWVB.assign(Measure=pd.Series(pFWVBMeasureValue)) #!
+
+            # Sachdaten annotieren mit Spalte MCategory            
+            pFWVBCat=[]
+            for index, row in pFWVB.iterrows():
+                if row.Measure >= limitTop:
+                    pFWVBCat.append('Top')
+                elif row.Measure <= limitBottom:
+                    pFWVBCat.append('Bottom')
+                else:
+                    pFWVBCat.append('Middle')
+            pFWVB=pFWVB.assign(MCategory=pd.Series(pFWVBCat)) 
+
+            # Sachdaten annotieren mit Spalte GCategory               
+            sCatReq=set(pFWVBGCategory)       
+            pFWVBCat=[]
+            for index, row in pFWVB.iterrows():
+                gCat=row.WBLZ
+                sCat=set(gCat)
+                s=sCat.intersection(sCatReq)
+                if len(s) == 0:
+                    pFWVBCat.append('')
+                elif len(s) > 1:
+                    pFWVBCat.append("{!s:s}".format(s)) 
+                else:
+                    pFWVBCat.append(s.pop())
+            pFWVB=pFWVB.assign(GCategory=pd.Series(pFWVBCat)) 
 
             # ROHR
             pROHRMeasureValueRaw=plotTimeDfs[timeTIdx][pROHRMeasure].iloc[0]   
@@ -430,10 +470,13 @@ class Rm():
             pltFWVB=pltFWVB.sort_values(by=[pFWVBAttribute],ascending=pFWVBAttributeAsc) 
             pltROHR=pltROHR.sort_values(by=[pROHRAttribute],ascending=pROHRAttributeAsc) 
            
-            # FWVB Kategorien
-            pltFWVB_top=pltFWVB[(pltFWVB['Measure']>=limitTop)] 
-            pltFWVB_mid=pltFWVB[(pltFWVB['Measure']<limitTop) & (pltFWVB['Measure']>limitBottom)]     
-            pltFWVB_bot=pltFWVB[(pltFWVB['Measure']<=limitBottom)] 
+            pltFWVB_top=pltFWVB[(pltFWVB['MCategory']=='Top')] 
+            pltFWVB_mid=pltFWVB[(pltFWVB['MCategory']=='Middle')]     
+            pltFWVB_bot=pltFWVB[(pltFWVB['MCategory']=='Bottom')] 
+
+            #pltFWVB_top=pltFWVB[(pltFWVB['Measure']>=limitTop)] 
+            #pltFWVB_mid=pltFWVB[(pltFWVB['Measure']<limitTop) & (pltFWVB['Measure']>limitBottom)]     
+            #pltFWVB_bot=pltFWVB[(pltFWVB['Measure']<=limitBottom)] 
 
             pltFWVB_top_Anz,col=pltFWVB_top.shape
             pltFWVB_mid_Anz,col=pltFWVB_mid.shape
@@ -551,7 +594,7 @@ class Rm():
                              ,location='right'
                              ,fraction=CBfraction # fraction of original axes to use for colorbar
                              ,pad=CBHpad # fraction of original axes between colorbar and new image axes
-                             ,anchor=(0.,CBanchorVertical) # the anchor point of the colorbar axes
+                             ,anchor=(CBanchorHorizontal,CBanchorVertical) # the anchor point of the colorbar axes
                              ,aspect=CBaspect # ratio of long to short dimension
                              ,shrink=CBshrink # fraction by which to shrink the colorbar
                             )         
@@ -638,8 +681,6 @@ class Rm():
                                  ,color=limitBottomColor 
                                  )
 
-
-
                 if pltFWVB_top_Anz > 0:
                     po=cax.scatter( CBHpad+CBLe3cHpadSymbol,CBLe3cTopVpad                        
                                     ,s=pFWVBrefSize*pltFWVB[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                
@@ -716,47 +757,57 @@ class Rm():
             fig.sca(cax)
 
             if bbTop != None:
-                vModelTitleBlock=bbTop.y1+0.1
+                vModelTitleBlock=bbTop.y1+titleBlockVSpace
             else:
-                vModelTitleBlock=1+0.1
+                vModelTitleBlock=1+titleBlockVSpace
             
-            modelTitelBlockHStart=-.15
-            modelTitelBlockHSpace=0.5
-
-
             Projekt=self.xm.dataFrames['MODELL']['PROJEKT'].iloc[0]
             Planer=self.xm.dataFrames['MODELL']['PLANER'].iloc[0]
             Inst=self.xm.dataFrames['MODELL']['INST'].iloc[0]
             
-            a=plt.annotate(Projekt, xy=(modelTitelBlockHStart,vModelTitleBlock), xycoords=cax.transAxes 
+            a=plt.annotate(Projekt, xy=(titleBlockHStart,vModelTitleBlock)
+                         ,xycoords=cax.transAxes 
                          ,rotation='vertical'
                          ,va='bottom'
                          ,ha='left'
             )
 
-            a=plt.annotate(Planer, xy=(modelTitelBlockHStart+1*modelTitelBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
+            a=plt.annotate(Planer, xy=(titleBlockHStart+1*titleBlockHSpace,vModelTitleBlock)
+                         ,xycoords=cax.transAxes 
                          ,rotation='vertical'
                          ,va='bottom'
                          ,ha='left'   
             )
 
-            a=plt.annotate(Inst, xy=(modelTitelBlockHStart+2*modelTitelBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
+            a=plt.annotate(Inst, xy=(titleBlockHStart+2*titleBlockHSpace,vModelTitleBlock)
+                         ,xycoords=cax.transAxes 
                          ,rotation='vertical'
                          ,va='bottom'
                          ,ha='left'   
             )
 
             xmFileName,ext = os.path.splitext(os.path.basename(self.xm.xmlFile))
-            a=plt.annotate("Modelldatei: {:s}".format(xmFileName), xy=(modelTitelBlockHStart+3*modelTitelBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
-            ,rotation='vertical'
-            ,va='bottom'
-            ,ha='left'   
+            a=plt.annotate("M: {:s}".format(xmFileName), xy=(titleBlockHStart+3*titleBlockHSpace,vModelTitleBlock)
+                           ,xycoords=cax.transAxes 
+                           ,rotation='vertical'
+                           ,va='bottom'
+                           ,ha='left'   
             )
             (wDir,modelDir,modelName)=self.xm.getWDirModelDirModelName()
-            a=plt.annotate("Ergebnisse: {:s}".format(os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1(S)'), xy=(modelTitelBlockHStart+4*modelTitelBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
-            ,rotation='vertical'
-            ,va='bottom'
-            ,ha='left'   
+            a=plt.annotate("E: {:s}".format(os.path.join(os.path.basename(wDir),os.path.join(modelDir,modelName))+'.MX1')
+                           ,xy=(titleBlockHStart+4*titleBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
+                           ,rotation='vertical'
+                           ,va='bottom'
+                           ,ha='left'   
+            )
+
+            txt="TRef: {!s:s} T: {!s:s}".format(timeDeltaToRef,timeDeltaToT).replace('days','Tage')
+            a=plt.annotate(txt
+                           ,xy=(titleBlockHStart+5*titleBlockHSpace,vModelTitleBlock)
+                           ,xycoords=cax.transAxes 
+                           ,rotation='vertical'
+                           ,va='bottom'
+                           ,ha='left'   
             )
 
             # ---------------------------------------------------------------------
@@ -789,11 +840,20 @@ class Rm():
                 if y<0:
                     continue
                
-                #if row.Sir3sIDstr.contains(patDH)  
                 if sCh.iloc[0].ATTRTYPE=='WVB':
+                    if sCh.iloc[0].NAME1=='InnenNo': # or sCh.iloc[0].NAME1=='WärmeblnzGes':
+                        rotation='vertical'
+                        va='center'
+                        ha='right'
+                    else:
+                        rotation='horizontal'
+                        va='bottom'
+                        ha='center' 
+
                     a=plt.annotate("{:s}: {:6.1f} {:s} {:6.1f}%".format(sCh.iloc[0].NAME1,v,sCh.iloc[0].UNIT,vp), xy=(round(x,0),round(y,0)), xycoords='data'                        
-                             ,va='bottom'
-                             ,ha='center' 
+                             ,va=va
+                             ,ha=ha
+                             ,rotation=rotation
                             ,clip_on=False
                     )
                 else:
@@ -844,7 +904,8 @@ class Rm():
             logger.error(logStrFinal) 
             raise RmError(logStrFinal)                       
         finally:
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+            return pFWVB 
 
 if __name__ == "__main__":
     """
