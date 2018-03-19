@@ -474,10 +474,6 @@ class Rm():
             pltFWVB_mid=pltFWVB[(pltFWVB['MCategory']=='Middle')]     
             pltFWVB_bot=pltFWVB[(pltFWVB['MCategory']=='Bottom')] 
 
-            #pltFWVB_top=pltFWVB[(pltFWVB['Measure']>=limitTop)] 
-            #pltFWVB_mid=pltFWVB[(pltFWVB['Measure']<limitTop) & (pltFWVB['Measure']>limitBottom)]     
-            #pltFWVB_bot=pltFWVB[(pltFWVB['Measure']<=limitBottom)] 
-
             pltFWVB_top_Anz,col=pltFWVB_top.shape
             pltFWVB_mid_Anz,col=pltFWVB_mid.shape
             pltFWVB_bot_Anz,col=pltFWVB_bot.shape
@@ -756,7 +752,7 @@ class Rm():
             # Legende Modellschriftfeld ---------------------------------------------------------------------
             fig.sca(cax)
 
-            if bbTop != None:
+            if pFWVBMeasure3Classes:
                 vModelTitleBlock=bbTop.y1+titleBlockVSpace
             else:
                 vModelTitleBlock=1+titleBlockVSpace
