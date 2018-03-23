@@ -174,6 +174,8 @@ def pltNetNodes(
                 ,limitMiddleColorMap=plt.cm.autumn 
                 ,limitMiddleAlpha=0.9 
                 ,limitMiddleClip=False    
+
+
                            
                 ):
     """
@@ -188,6 +190,7 @@ def pltNetNodes(
         ax=plt.gca()
                      
         if pMeasure3Classes:
+
 
             pN_top=pDf[(pDf[pMCategory]==pMCatTopTxt)] 
             pN_mid=pDf[(pDf[pMCategory]==pMCatMidTxt)]     
@@ -263,23 +266,73 @@ def pltNetNodes(
         return (pcN, vmin, vmax)
 
 def pltNetCB( 
-                    pc # die einzufaerbenden Objekte                  
-                   ,CBfraction=0.05  # fraction of original axes to use for colorbar
-                   ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
-                   ,CBlabelPad=-50
+                 pc # die einzufaerbenden Objekte                  
+                ,pDf=None # df                                                                                                       
+                ,pMeasure='Measure'  # colName   
+                ,pMeasureInPerc=True # Measure wird interpretiert in Prozent [0-1] 
+                ,pMeasureUNIT='[]'
+                ,pMeasureTYPE=''
+                ,pAttribute='Attrib' # colName 
+                # Größe - pAttribute                
+                ,pSizeFactor=1.      # pRefSize/(pRefScale*pRefSizeValue)
+
+                ,CBLSymbolSize=1. #r*pDf[pAttribute].max()
+
+           
+                ,CBFraction=0.05  # fraction of original axes to use for colorbar
+                ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
+                ,CBlabelPad=-50
                
-                   ,CBaspect=10. # ratio of long to short dimension
-                   ,CBshrink=0.3 # fraction by which to shrink the colorbar
-                   ,CBanchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-%
-                   ,CBanchorVertical=0.2 # vertikaler Fußpunkt der colorbar in Plot-%
+                ,CBAspect=10. # ratio of long to short dimension
+                ,CBShrink=0.3 # fraction by which to shrink the colorbar
+                ,CBanchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-%
+                ,CBanchorVertical=0.2 # vertikaler Fußpunkt der colorbar in Plot-%
 
-                   ,pMeasure3Classes=True #pFWVBMeasure3Classes # True:
+                ,fixedCoLimits=True
+                ,fixedColHigh=1 # Farb-Maxwert
+                ,fixedColLow=0 # Farb-Minwert
 
-                   ,fixedCoLimits=True
-                   ,fixedColHigh=1 # Farb-Maxwert
-                   ,fixedColLow=0 # Farb-Minwert
+                ,pMeasure3Classes=True #pFWVBMeasure3Classes # True:
+                ,pMCategory='MCategory' # colName 
+
+                ,pMCatTopTxt='Top'     
+                ,pMCatBotTxt='Bottom'    
+                ,pMCatMidTxt='Middle'             
+                # ------------------------
+
+                # Farbe - pMeasure                 
+                ,limitTopColor='palegreen'
+                ,limitTopAlpha=0.9 
+                ,limitTopClip=False            
+                                                                        
+                ,limitBottomColor='violet' 
+                ,limitBottomAlpha=0.9 
+                ,limitBottomClip=False    
+                  
+                ,limitMiddleColorMap=plt.cm.autumn 
+                ,limitMiddleAlpha=0.9 
+                ,limitMiddleClip=False    
+
+                ,limitTopText='OK' 
                 
-                           
+                ,limitBottomText='NOK' 
+                 
+                ,limitMiddleText='dazwischen'
+
+                # ColorbarLegend (3Classes)
+                # Position der Repräsentantensymbole 
+                # dabei sind:
+                # 0 = colorbar unten
+                # 1 = colorbar oben
+                # "1" ist alsp die colorbar-Länge; die Länge von "1" im Plot wird von CBaspect und CBshrink beeinflusst                       
+                ,CBLe3cTopVpad=1+1*1/4
+                # "1"
+                ,CBLe3cMiddleVpad=.5                                                                         
+                ,CBLe3cBottomVpad=0-1*1/4  
+                 
+                ,CBLe3cHpadSymbol=0.2 # 0.1  
+                ,CBLe3cHpad=1.2 # 1.4 # fixer Abstand Repräsentantentext zu Repräsentantensymbol      
+                ,CBLe3cTextSpaceFactor=0.5 # plus Abstandsfaktor Repräsentantentext zu Repräsentantensymbol                                                        
                 ):
     """
           
@@ -291,15 +344,16 @@ def pltNetCB(
     try: 
           
         ax=plt.gca()
+        fig=plt.gcf()   
 
         # Axes              
         cax,kw=make_axes(ax
-                            ,location='right'
-                            ,fraction=CBfraction # fraction of original axes to use for colorbar
-                            ,pad=CBHpad # fraction of original axes between colorbar and new image axes
-                            ,anchor=(CBanchorHorizontal,CBanchorVertical) # the anchor point of the colorbar axes
-                            ,aspect=CBaspect # ratio of long to short dimension
-                            ,shrink=CBshrink # fraction by which to shrink the colorbar
+                        ,location='right'
+                        ,fraction=CBFraction # fraction of original axes to use for colorbar
+                        ,pad=CBHpad # fraction of original axes between colorbar and new image axes
+                        ,anchor=(CBanchorHorizontal,CBanchorVertical) # the anchor point of the colorbar axes
+                        ,aspect=CBAspect # ratio of long to short dimension
+                        ,shrink=CBShrink # fraction by which to shrink the colorbar
                         )         
 
         # CB
@@ -310,19 +364,19 @@ def pltNetCB(
 
         # ticks Value  
         if pMeasure3Classes:
-            minCBtickValue=limitBottom
-            maxCBtickValue=limitTop                
+            minCBtickValue=fixedColLow
+            maxCBtickValue=fixedColHigh             
         else:
-            if CBFixedMinMax and isinstance(CBFixedMin,float) and isinstance(CBFixedMax,float):
+            if fixedCoLimits and isinstance(fixedColLow,float) and isinstance(fixedColHigh,float):
                 minCBtickValue=CBFixedMin
                 maxCBtickValue=CBFixedMax                       
             else:
-                minCBtickValue=pltFWVB['Measure'].min()
-                maxCBtickValue=pltFWVB['Measure'].max()           
+                minCBtickValue=pDf[pMeasure].min()
+                maxCBtickValue=pDf[pMeasure].max()           
         colorBar.set_ticks([minCBtickValue,maxCBtickValue])  
 
          #ticks Label
-        if pFWVBMeasureInRefPerc:
+        if pMeasureInPerc:
             if pMeasure3Classes:
                 minCBtickLabel=">{:3.0f}%".format(minCBtickValue*100)
                 maxCBtickLabel="<{:3.0f}%".format(maxCBtickValue*100)                             
@@ -331,27 +385,37 @@ def pltNetCB(
                 maxCBtickLabel="{:3.0f}%".format(maxCBtickValue*100) 
         else:
             if pMeasure3Classes:
-                minCBtickLabel=">{:6.2f} {:s}".format(minCBtickValue,pFWVBMeasureUNIT)
-                maxCBtickLabel="<{:6.2f} {:s}".format(maxCBtickValue,pFWVBMeasureUNIT)    
+                minCBtickLabel=">{:6.2f} {:s}".format(minCBtickValue,pMeasureUNIT)
+                maxCBtickLabel="<{:6.2f} {:s}".format(maxCBtickValue,pMeasureUNIT)    
             else:
-                minCBtickLabel="{:6.2f} {:s}".format(minCBtickValue,pFWVBMeasureUNIT)
-                maxCBtickLabel="{:6.2f} {:s}".format(maxCBtickValue,pFWVBMeasureUNIT)    
+                minCBtickLabel="{:6.2f} {:s}".format(minCBtickValue,pMeasureUNIT)
+                maxCBtickLabel="{:6.2f} {:s}".format(maxCBtickValue,pMeasureUNIT)    
         colorBar.set_ticklabels([minCBtickLabel,maxCBtickLabel])
                               
          #Label text
-        if pFWVBMeasureInRefPerc:
-                CBLabelText="{:s} in % von Referenzzustand".format(pFWVBMeasureUNIT)                                                                
+        if pMeasureInPerc:
+                CBLabelText="{:s} in %".format(pMeasureUNIT)                                                                
         else:
-                CBLabelText="{:s} in {:s}".format(pFWVBMeasureATTRTYPE,pFWVBMeasureUNIT)
+                CBLabelText="{:s} in {:s}".format(pMeasureTYPE,pMeasureUNIT)
          
         colorBar.set_label(CBLabelText,labelpad=CBlabelPad)
                            
         if pMeasure3Classes:                                                        
-             #CB Legend 3Classes -----------------------------------------------         
+
+            pDf_top=pDf[(pDf[pMCategory]==pMCatTopTxt)] 
+            pDf_mid=pDf[(pDf[pMCategory]==pMCatMidTxt)]     
+            pDf_bot=pDf[(pDf[pMCategory]==pMCatBotTxt)] 
+
+            pDf_top_Anz,col=pDf_top.shape
+            pDf_mid_Anz,col=pDf_mid.shape
+            pDf_bot_Anz,col=pDf_bot.shape
+
+            # CB Legend 3Classes -----------------------------------------------      
+
             fig.sca(cax)
-            if pltFWVB_bot_Anz > 0:
+            if pDf_bot_Anz > 0:
                 po=cax.scatter( CBHpad+CBLe3cHpadSymbol,CBLe3cBottomVpad                            
-                                ,s=pFWVBrefSize*pltFWVB[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                                                                                                                      
+                                ,s=CBLSymbolSize
                                 ,c=limitBottomColor
                                 ,alpha=0.9
                                 ,edgecolors='face'             
@@ -370,7 +434,7 @@ def pltNetCB(
                                 ,color=limitBottomColor 
                                 )
                 # weiterer Text dazu
-                a=plt.annotate("Anz HA: {:6d}".format(pltFWVB_bot_Anz)                                
+                a=plt.annotate("Anz HA: {:6d}".format(pDf_bot_Anz)                                
                                 ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0)+.5,CBLe3cBottomVpad)
                                 ,xycoords=cax.transAxes 
                                 ,rotation='vertical' #90
@@ -379,9 +443,9 @@ def pltNetCB(
                                 ,color=limitBottomColor 
                                 )
 
-            if pltFWVB_top_Anz > 0:
+            if pDf_top_Anz > 0:
                 po=cax.scatter( CBHpad+CBLe3cHpadSymbol,CBLe3cTopVpad                        
-                                ,s=pFWVBrefSize*pltFWVB[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                
+                                ,s=CBLSymbolSize
                                 ,c=limitTopColor
                                 ,alpha=0.9
                                 ,edgecolors='face'             
@@ -402,7 +466,7 @@ def pltNetCB(
                                 )
 
                  #weiterer Text dazu                  
-                a=plt.annotate("Anz HA: {:6d}".format(pltFWVB_top_Anz)                                       
+                a=plt.annotate("Anz HA: {:6d}".format(pDf_top_Anz)                                       
                                 ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad++CBLe3cTextSpaceFactor*(bb.x1-bb.x0)+.5,CBLe3cTopVpad)
                                 ,xycoords=cax.transAxes 
                                 ,rotation='vertical' #90
@@ -412,15 +476,15 @@ def pltNetCB(
                                 )
 
 
-            if pltFWVB_mid_Anz > 0:
+            if pDf_mid_Anz > 0:
                  #Farbe 
-                limitMiddleColorMapNorm=colors.Normalize(limitBottom,limitTop)
-                value=pltFWVB_mid['Measure'].loc[pltFWVB_mid[pFWVBAttribute].idxmax()]
-                value=limitBottom+.5*(limitTop-limitBottom)
+                limitMiddleColorMapNorm=colors.Normalize(fixedColLow,fixedColHigh)
+                #value=pDf_mid[pMeasure].loc[pDf_mid[pAttribute].idxmax()]
+                value=fixedColLow+.5*(fixedColHigh-fixedColLow) # es werden weiter unten nur die Koordinaten benoetigt
                 limitMiddleColor=limitMiddleColorMap(limitMiddleColorMapNorm(value))               
                  #Symbol              
                 po=cax.scatter( CBHpad+CBLe3cHpadSymbol,CBLe3cMiddleVpad                            
-                                ,s=pFWVBrefSize*pltFWVB[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)                  
+                                ,s=CBLSymbolSize
                                 ,c=limitMiddleColor
                                 ,alpha=0.9
                                 ,edgecolors='face'             
@@ -441,7 +505,7 @@ def pltNetCB(
                                   ,visible=False
                 )
                  #weiterer Text dazu                
-                a=plt.annotate("Anz HA: {:6d}".format(pltFWVB_mid_Anz)                                              
+                a=plt.annotate("Anz HA: {:6d}".format(pDf_mid_Anz)                                              
                                 ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0)+.5,CBLe3cMiddleVpad)                                                                                 
                                 ,xycoords=cax.transAxes 
                                 ,rotation='vertical' #90
@@ -460,7 +524,7 @@ def pltNetCB(
         raise RmError(logStrFinal)                       
     finally:
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
-        return x
+        return cax
 
 class Rm():
     """
@@ -848,7 +912,7 @@ class Rm():
             pcFWVB, vmin, vmax = pltNetNodes(
                  pDf=pltFWVB # df                                                                                     
                 ,pAttribute=pFWVBAttribute # colName 
-                #,pMeasure='Measure'  # colName   
+                #,pMeasure=pMeasure  # colName   
                 #,pMCategory='MCategory' # colName 
                 #,pXCor='pXCor_i'  # colName 
                 #,pYCor='pYCor_i'  # colName 
@@ -886,179 +950,233 @@ class Rm():
                 ,limitMiddleClip=limitMiddleClip
             )
 
-            # ROHR
-            minLine=pltROHR[pROHRAttribute].min()
-            maxLine=pltROHR[pROHRAttribute].max()
-            logger.debug("{:s}minLine (Attribute): {:6.2f}".format(logStr,minLine))
-            logger.debug("{:s}maxLine (Attribute): {:6.2f}".format(logStr,maxLine))
-            normLine=colors.Normalize(minLine,maxLine)
+            cax = pltNetCB(
+                  pc=pcFWVB              
+                 ,pDf=pltFWVB # df         
+                 
+            #    ,pMeasureUNIT='[]'
+            #    ,pMeasureTYPE=''                 
+                                                                                             
+                # ,pAttribute=pFWVBAttribute # colName 
+            
+                                                
+            #    # Größe - pAttribute                
+            #    ,pSizeFactor=pFWVBSizeFactor
 
-            minMarker=pltROHR['Measure'].min()
-            maxMarker=pltROHR['Measure'].max()
-            normMarker=colors.Normalize(minMarker,maxMarker)
+                 ,CBLSymbolSize=pFWVBSizeFactor*pltFWVB[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)     #1.    #pSizeFactor*pDf[pAttribute].max()
 
-            for xs,ys,vLine,vMarker in zip(pltROHR['pWAYPXCors'],pltROHR['pWAYPYCors'],pltROHR[pROHRAttribute],pltROHR['Measure']):        
-                colorLine=pROHRAttributeColorMap(normLine(vLine)) 
-                colorMarker=pROHRMeasureColorMap(normMarker(vMarker))
-                pcLines=ax.plot(xs,ys
-                                ,color=colorLine
-                                ,linewidth=pROHRAttributeRefSize*vLine/maxLine
-                                ,ls=pROHRAttributeLs
-                                ,marker=pROHRMeasureMarker
-                                ,mfc=colorMarker 
-                                ,ms=pROHRMeasureRefSizeFactor*pROHRAttributeRefSize*vMarker/maxMarker
-                                ,mew=0.
-                                ,markevery=[0,len(xs)-1]
-                                ,aa=True
-                                ,clip_on=pROHRClip
-                               )            
-                logger.debug("{:s}pcLines: {!s:s}".format(logStr,pcLines))
+            #    # die einzufaerbenden Objekte        
+         
+
+            #    ,CBFraction=CBfraction #0.05  # fraction of original axes to use for colorbar
+            #    ,CBHpad=CBHpad #0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
+            #    ,CBlabelPad=CBlabelPad #-50
+               
+            #    ,CBAspect=CBaspect #0. # ratio of long to short dimension
+            #    ,CBShrink=CBshrink #0.3 # fraction by which to shrink the colorbar
+            #    ,CBanchorHorizontal=CBanchorHorizontal #. # horizontaler Fußpunkt der colorbar in Plot-%
+            #    ,CBanchorVertical=CBanchorVertical #0.2 # vertikaler Fußpunkt der colorbar in Plot-%                   
+             
+
+            #    ,fixedCoLimits=True
+            #    ,fixedColHigh=limitTop # Farb-Maxwert
+            #    ,fixedColLow=limitBottom # Farb-Minwert
+
+            #    ,pMeasure3Classes=pFWVBMeasure3Classes # True: # Measure wird dargestellt in 3 Klassen MCategory: Top, Middle, Bottom
+            #    ,pMCategory='MCategory' # colName 
+                   
+            #    #,pMCatTopTxt='Top'     
+            #    #,pMCatBotTxt='Bottom'    
+            #    #,pMCatMidTxt='Middle'             
+            #    # ------------------------
+
+            #    # Farbe - pMeasure                 
+            #    ,limitTopColor=limitTopColor
+            #    ,limitTopAlpha=limitTopAlpha
+            #    ,limitTopClip=limitTopClip   
+                                                                        
+            #    ,limitBottomColor=limitBottomColor 
+            #    ,limitBottomAlpha=limitBottomAlpha
+            #    ,limitBottomClip=limitBottomClip
+                  
+            #    ,limitMiddleColorMap=limitMiddleColorMap
+            #    ,limitMiddleAlpha=limitMiddleAlpha
+            #    ,limitMiddleClip=limitMiddleClip
+            )
+
+            ## ROHR
+            #minLine=pltROHR[pROHRAttribute].min()
+            #maxLine=pltROHR[pROHRAttribute].max()
+            #logger.debug("{:s}minLine (Attribute): {:6.2f}".format(logStr,minLine))
+            #logger.debug("{:s}maxLine (Attribute): {:6.2f}".format(logStr,maxLine))
+            #normLine=colors.Normalize(minLine,maxLine)
+
+            #minMarker=pltROHR['Measure'].min()
+            #maxMarker=pltROHR['Measure'].max()
+            #normMarker=colors.Normalize(minMarker,maxMarker)
+
+            #for xs,ys,vLine,vMarker in zip(pltROHR['pWAYPXCors'],pltROHR['pWAYPYCors'],pltROHR[pROHRAttribute],pltROHR['Measure']):        
+            #    colorLine=pROHRAttributeColorMap(normLine(vLine)) 
+            #    colorMarker=pROHRMeasureColorMap(normMarker(vMarker))
+            #    pcLines=ax.plot(xs,ys
+            #                    ,color=colorLine
+            #                    ,linewidth=pROHRAttributeRefSize*vLine/maxLine
+            #                    ,ls=pROHRAttributeLs
+            #                    ,marker=pROHRMeasureMarker
+            #                    ,mfc=colorMarker 
+            #                    ,ms=pROHRMeasureRefSizeFactor*pROHRAttributeRefSize*vMarker/maxMarker
+            #                    ,mew=0.
+            #                    ,markevery=[0,len(xs)-1]
+            #                    ,aa=True
+            #                    ,clip_on=pROHRClip
+            #                   )            
+            #    logger.debug("{:s}pcLines: {!s:s}".format(logStr,pcLines))
 
 
                                                   
-            # Legende Modellschriftfeld ---------------------------------------------------------------------
-            fig.sca(cax)
+            ## Legende Modellschriftfeld ---------------------------------------------------------------------
+            #fig.sca(cax)
 
-            if pFWVBMeasure3Classes:
-                vModelTitleBlock=bbTop.y1+titleBlockVSpace
-            else:
-                vModelTitleBlock=1+titleBlockVSpace
+            #if pFWVBMeasure3Classes:
+            #    vModelTitleBlock=bbTop.y1+titleBlockVSpace
+            #else:
+            #    vModelTitleBlock=1+titleBlockVSpace
             
-            Projekt=self.xm.dataFrames['MODELL']['PROJEKT'].iloc[0]
-            Planer=self.xm.dataFrames['MODELL']['PLANER'].iloc[0]
-            Inst=self.xm.dataFrames['MODELL']['INST'].iloc[0]
+            #Projekt=self.xm.dataFrames['MODELL']['PROJEKT'].iloc[0]
+            #Planer=self.xm.dataFrames['MODELL']['PLANER'].iloc[0]
+            #Inst=self.xm.dataFrames['MODELL']['INST'].iloc[0]
             
-            a=plt.annotate(Projekt, xy=(titleBlockHStart,vModelTitleBlock)
-                         ,xycoords=cax.transAxes 
-                         ,rotation='vertical'
-                         ,va='bottom'
-                         ,ha='left'
-            )
+            #a=plt.annotate(Projekt, xy=(titleBlockHStart,vModelTitleBlock)
+            #             ,xycoords=cax.transAxes 
+            #             ,rotation='vertical'
+            #             ,va='bottom'
+            #             ,ha='left'
+            #)
 
-            a=plt.annotate(Planer, xy=(titleBlockHStart+1*titleBlockHSpace,vModelTitleBlock)
-                         ,xycoords=cax.transAxes 
-                         ,rotation='vertical'
-                         ,va='bottom'
-                         ,ha='left'   
-            )
+            #a=plt.annotate(Planer, xy=(titleBlockHStart+1*titleBlockHSpace,vModelTitleBlock)
+            #             ,xycoords=cax.transAxes 
+            #             ,rotation='vertical'
+            #             ,va='bottom'
+            #             ,ha='left'   
+            #)
 
-            a=plt.annotate(Inst, xy=(titleBlockHStart+2*titleBlockHSpace,vModelTitleBlock)
-                         ,xycoords=cax.transAxes 
-                         ,rotation='vertical'
-                         ,va='bottom'
-                         ,ha='left'   
-            )
+            #a=plt.annotate(Inst, xy=(titleBlockHStart+2*titleBlockHSpace,vModelTitleBlock)
+            #             ,xycoords=cax.transAxes 
+            #             ,rotation='vertical'
+            #             ,va='bottom'
+            #             ,ha='left'   
+            #)
 
-            xmFileName,ext = os.path.splitext(os.path.basename(self.xm.xmlFile))
-            a=plt.annotate("M: {:s}".format(xmFileName), xy=(titleBlockHStart+3*titleBlockHSpace,vModelTitleBlock)
-                           ,xycoords=cax.transAxes 
-                           ,rotation='vertical'
-                           ,va='bottom'
-                           ,ha='left'   
-            )
-            (wDir,modelDir,modelName)=self.xm.getWDirModelDirModelName()
-            a=plt.annotate("E: {:s}".format(os.path.join(os.path.basename(wDir),os.path.join(modelDir,modelName))+'.MX1')
-                           ,xy=(titleBlockHStart+4*titleBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
-                           ,rotation='vertical'
-                           ,va='bottom'
-                           ,ha='left'   
-            )
+            #xmFileName,ext = os.path.splitext(os.path.basename(self.xm.xmlFile))
+            #a=plt.annotate("M: {:s}".format(xmFileName), xy=(titleBlockHStart+3*titleBlockHSpace,vModelTitleBlock)
+            #               ,xycoords=cax.transAxes 
+            #               ,rotation='vertical'
+            #               ,va='bottom'
+            #               ,ha='left'   
+            #)
+            #(wDir,modelDir,modelName)=self.xm.getWDirModelDirModelName()
+            #a=plt.annotate("E: {:s}".format(os.path.join(os.path.basename(wDir),os.path.join(modelDir,modelName))+'.MX1')
+            #               ,xy=(titleBlockHStart+4*titleBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
+            #               ,rotation='vertical'
+            #               ,va='bottom'
+            #               ,ha='left'   
+            #)
 
-            txt="TRef: {!s:s} T: {!s:s}".format(timeDeltaToRef,timeDeltaToT).replace('days','Tage')
-            a=plt.annotate(txt
-                           ,xy=(titleBlockHStart+5*titleBlockHSpace,vModelTitleBlock)
-                           ,xycoords=cax.transAxes 
-                           ,rotation='vertical'
-                           ,va='bottom'
-                           ,ha='left'   
-            )
+            #txt="TRef: {!s:s} T: {!s:s}".format(timeDeltaToRef,timeDeltaToT).replace('days','Tage')
+            #a=plt.annotate(txt
+            #               ,xy=(titleBlockHStart+5*titleBlockHSpace,vModelTitleBlock)
+            #               ,xycoords=cax.transAxes 
+            #               ,rotation='vertical'
+            #               ,va='bottom'
+            #               ,ha='left'   
+            #)
 
-            # ---------------------------------------------------------------------
-            # NumAnz 
-            fig.sca(ax)
+            ## ---------------------------------------------------------------------
+            ## NumAnz 
+            #fig.sca(ax)
 
-            patWBLZ='WBLZ~[\S ]+~\S*~\S+~\S+'
-            patDH='KNOT~K0001~\S*~\S+~QM'
-            for index, row in vNRCV_Mx1[
-             (
-               (vNRCV_Mx1['Sir3sID'].str.contains(patWBLZ)) 
-                 |
-               (vNRCV_Mx1['Sir3sID'].str.contains(patDH)) 
-              )  
-            &
-             (vNRCV_Mx1['CONT_ID'].astype(int) == 1001)  
-            ].iterrows():
-                s=self.mx.df[row.Sir3sID]
-                sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(row.Sir3sID)]
+            #patWBLZ='WBLZ~[\S ]+~\S*~\S+~\S+'
+            #patDH='KNOT~K0001~\S*~\S+~QM'
+            #for index, row in vNRCV_Mx1[
+            # (
+            #   (vNRCV_Mx1['Sir3sID'].str.contains(patWBLZ)) 
+            #     |
+            #   (vNRCV_Mx1['Sir3sID'].str.contains(patDH)) 
+            #  )  
+            #&
+            # (vNRCV_Mx1['CONT_ID'].astype(int) == 1001)  
+            #].iterrows():
+            #    s=self.mx.df[row.Sir3sID]
+            #    sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(row.Sir3sID)]
 
-                v=s[timeT]                
+            #    v=s[timeT]                
                 
-                if sCh.iloc[0].ATTRTYPE=='WVB':
-                    v0=s[timeRef]
-                    vp=v/v0*100               
+            #    if sCh.iloc[0].ATTRTYPE=='WVB':
+            #        v0=s[timeRef]
+            #        vp=v/v0*100               
                                 
-                x,y = row.pXYLB                
-                if x<0:
-                    x=0
-                if y<0:
-                    continue
+            #    x,y = row.pXYLB                
+            #    if x<0:
+            #        x=0
+            #    if y<0:
+            #        continue
                
-                if sCh.iloc[0].ATTRTYPE=='WVB':
-                    if sCh.iloc[0].NAME1=='InnenNo': # or sCh.iloc[0].NAME1=='WärmeblnzGes':
-                        rotation='vertical'
-                        va='center'
-                        ha='right'
-                    else:
-                        rotation='horizontal'
-                        va='bottom'
-                        ha='center' 
+            #    if sCh.iloc[0].ATTRTYPE=='WVB':
+            #        if sCh.iloc[0].NAME1=='InnenNo': # or sCh.iloc[0].NAME1=='WärmeblnzGes':
+            #            rotation='vertical'
+            #            va='center'
+            #            ha='right'
+            #        else:
+            #            rotation='horizontal'
+            #            va='bottom'
+            #            ha='center' 
 
-                    a=plt.annotate("{:s}: {:6.1f} {:s} {:6.1f}%".format(sCh.iloc[0].NAME1,v,sCh.iloc[0].UNIT,vp), xy=(round(x,0),round(y,0)), xycoords='data'                        
-                             ,va=va
-                             ,ha=ha
-                             ,rotation=rotation
-                            ,clip_on=False
-                    )
-                else:
-                    a=plt.annotate("{:s}: {:6.1f} {:s}".format('Kontrollwert DH',v,sCh.iloc[0].UNIT), xy=(round(x,0),round(y,0)), xycoords='data'                        
-                             ,va='bottom'
-                             ,ha='center' 
-                            ,clip_on=False
-                    )
+            #        a=plt.annotate("{:s}: {:6.1f} {:s} {:6.1f}%".format(sCh.iloc[0].NAME1,v,sCh.iloc[0].UNIT,vp), xy=(round(x,0),round(y,0)), xycoords='data'                        
+            #                 ,va=va
+            #                 ,ha=ha
+            #                 ,rotation=rotation
+            #                ,clip_on=False
+            #        )
+            #    else:
+            #        a=plt.annotate("{:s}: {:6.1f} {:s}".format('Kontrollwert DH',v,sCh.iloc[0].UNIT), xy=(round(x,0),round(y,0)), xycoords='data'                        
+            #                 ,va='bottom'
+            #                 ,ha='center' 
+            #                ,clip_on=False
+            #        )
 
-            # ---------------------------------------------------------------------
-            # VICs
-            if isinstance(pFWVBVICsDf,pd.core.frame.DataFrame):
-                fig.sca(ax)
-                xStart=9000.
-                yStart=1000.
-                fontsize=8
-                distance=50
-                idx=0
-                for index, row in pFWVB[pd.isnull(pFWVB['VIC'])==False].sort_values(['VIC'],ascending=False).iterrows():      
-                        kunde=row.VIC                         
-                        a=plt.annotate("{:s}".format(kunde), xy=(xStart,yStart+fontsize*distance*idx), xycoords='data'                              
-                                    ,fontsize=fontsize    
-                                    ,va='bottom'
-                                    ,ha='left' 
-                                ,clip_on=False
-                                    )
-                        idx=idx+1
+            ## ---------------------------------------------------------------------
+            ## VICs
+            #if isinstance(pFWVBVICsDf,pd.core.frame.DataFrame):
+            #    fig.sca(ax)
+            #    xStart=9000.
+            #    yStart=1000.
+            #    fontsize=8
+            #    distance=50
+            #    idx=0
+            #    for index, row in pFWVB[pd.isnull(pFWVB['VIC'])==False].sort_values(['VIC'],ascending=False).iterrows():      
+            #            kunde=row.VIC                         
+            #            a=plt.annotate("{:s}".format(kunde), xy=(xStart,yStart+fontsize*distance*idx), xycoords='data'                              
+            #                        ,fontsize=fontsize    
+            #                        ,va='bottom'
+            #                        ,ha='left' 
+            #                    ,clip_on=False
+            #                        )
+            #            idx=idx+1
 
-                idx=0
-                if pFWVBMeasureInRefPerc:
-                    unit='%'
-                else:
-                    unit=pFWVBMeasureUNIT
-                for index, row in pFWVB[pd.isnull(pFWVB['VIC'])==False].sort_values(['VIC'],ascending=False).iterrows():
-                        v=pFWVB['Measure'].loc[index]
-                        a=plt.annotate("{:6.2f} {:s}".format(v*100,unit), xy=(xStart+6000,yStart+fontsize*distance*idx), xycoords='data'                             
-                                    ,fontsize=fontsize    
-                                    ,va='bottom'
-                                    ,ha='left' 
-                                ,clip_on=False
-                                        )
-                        idx=idx+1  
+            #    idx=0
+            #    if pFWVBMeasureInRefPerc:
+            #        unit='%'
+            #    else:
+            #        unit=pFWVBMeasureUNIT
+            #    for index, row in pFWVB[pd.isnull(pFWVB['VIC'])==False].sort_values(['VIC'],ascending=False).iterrows():
+            #            v=pFWVB[pMeasure].loc[index]
+            #            a=plt.annotate("{:6.2f} {:s}".format(v*100,unit), xy=(xStart+6000,yStart+fontsize*distance*idx), xycoords='data'                             
+            #                        ,fontsize=fontsize    
+            #                        ,va='bottom'
+            #                        ,ha='left' 
+            #                    ,clip_on=False
+            #                            )
+            #            idx=idx+1  
                                                               
         except RmError:
             raise            
