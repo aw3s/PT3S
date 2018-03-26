@@ -318,8 +318,9 @@ def pltNetColorbar(
                 ,CBAnchorVertical=0. # vertikaler Fußpunkt der colorbar in Plot-% von ax       
                 
                 # Legend 3Classes
-                ,pAttribute='Attrib' # colName 
+                ,pAttribute='Attrib' 
                 ,pSizeFactor=1.
+
                 ,pMCategory='MCategory'
                 ,pMCatTopTxt='Top'
                 ,pMCatMidTxt='Middle'
@@ -327,6 +328,10 @@ def pltNetColorbar(
 
                 ,limitBottomColor='violet'                 
                 ,limitTopColor='palegreen' 
+
+                ,CBLe3cTopVPad=1+1*1/4                 
+                ,CBLe3cMiddleVPad=.5                                                                         
+                ,CBLe3cBottomVPad=0-1*1/4  
                                                                     
                 ):
     """
@@ -364,16 +369,14 @@ def pltNetColorbar(
                 ,CBAnchorHorizontal=CBAnchorHorizontal 
                 ,CBAnchorVertical=CBAnchorVertical                    
             )
-        cax=plt.gca()
         
-
-
-                           
-        if pMeasure3Classes:                                                        
-            pass
+        cax=plt.gca()
+                                   
+        if pMeasure3Classes:                                                                   
             pltNetColorbarLegend3Classes( 
                 pDf
 
+               ,CBShrink=CBShrink 
                ,CBAnchorHorizontal=CBAnchorHorizontal 
                ,CBAnchorVertical=CBAnchorVertical     
                
@@ -386,12 +389,12 @@ def pltNetColorbar(
                ,pMCatBotTxt=pMCatBotTxt
 
                ,limitBottomColor=limitBottomColor                 
-               ,limitTopColor=limitTopColor        
-                                                                                                
-                )
-
-
-   
+               ,limitTopColor=limitTopColor    
+               
+               ,CBLe3cTopVPad=CBLe3cTopVPad #1+1*1/4                 
+               ,CBLe3cMiddleVPad=CBLe3cMiddleVPad #.5                                                                         
+               ,CBLe3cBottomVPad=CBLe3cBottomVPad #0-1*1/4                                                                                                                     
+            )
                                                                                                                 
     except RmError:
         raise            
@@ -518,6 +521,7 @@ def pltNetColorbarBar(
 def pltNetColorbarLegend3Classes( 
                 pDf
 
+               ,CBShrink=1.
                ,CBAnchorHorizontal=0.
                ,CBAnchorVertical=0.
 
@@ -531,7 +535,10 @@ def pltNetColorbarLegend3Classes(
 
                ,limitBottomColor='violet' 
                ,limitTopColor='palegreen'           
-                                           
+                                  
+               ,CBLe3cTopVPad=1+1*1/4                 
+               ,CBLe3cMiddleVPad=.5                                                                         
+               ,CBLe3cBottomVPad=0-1*1/4                          
                 ):
     """
     zeichnet die Legende bei 3 Klassen     
@@ -552,10 +559,11 @@ def pltNetColorbarLegend3Classes(
         pDf_mid_Anz,col=pDf_mid.shape
         pDf_bot_Anz,col=pDf_bot.shape
 
+        legendSymbolSize=pSizeFactor*pDf[pAttribute].max()
         
         if pDf_bot_Anz > 0:
-            po=cax.scatter( CBAnchorHorizontal,CBAnchorVertical                          
-                            ,s=pSizeFactor*pDf[pAttribute].max()
+            po=cax.scatter( CBAnchorHorizontal,CBLe3cBottomVPad                   
+                            ,s=legendSymbolSize
                             ,c=limitBottomColor
                             ,alpha=0.9
                             ,edgecolors='face'             
@@ -583,14 +591,14 @@ def pltNetColorbarLegend3Classes(
         #                    ,color=limitBottomColor 
         #                    )
 
-        #if pDf_top_Anz > 0:
-        #    po=cax.scatter( CBHpad+CBLe3cHpadSymbol,CBLe3cTopVpad                        
-        #                    ,s=CBLSymbolSize
-        #                    ,c=limitTopColor
-        #                    ,alpha=0.9
-        #                    ,edgecolors='face'             
-        #                    ,clip_on=False                                 
-        #                    )
+        if pDf_top_Anz > 0:
+            po=cax.scatter( CBAnchorHorizontal,CBLe3cTopVPad                          
+                            ,s=legendSymbolSize
+                            ,c=limitTopColor
+                            ,alpha=0.9
+                            ,edgecolors='face'             
+                            ,clip_on=False                                 
+                            )
         #        #Text dazu
         #    o=po.findobj(match=None) 
         #    p=o[0]           
@@ -894,22 +902,19 @@ class Rm():
                    ,pROHRMeasureColorMapUsageStart=0.        
                    ,pROHRMeasureRefSize=1.0 
                                                    
-                   #############################################################
-
-                   #  
-                  
-
-                   # ColorbarLegend (3Classes)
+                   # ColorbarLegend (3Classes) --------------------------------------------------------------------------
                    # Position der Repräsentantensymbole 
                    # dabei sind:
                    # 0 = colorbar unten
                    # 1 = colorbar oben
                    # "1" ist alsp die colorbar-Länge; die Länge von "1" im Plot wird von CBaspect und CBshrink beeinflusst                       
-                   ,CBLe3cTopVpad=1+1*1/4
+                   ,CBLe3cTopVPad=1+1*1/4
                    # "1"
-                   ,CBLe3cMiddleVpad=.5                                                                         
-                   ,CBLe3cBottomVpad=0-1*1/4  
+                   ,CBLe3cMiddleVPad=.5                                                                         
+                   ,CBLe3cBottomVPad=0-1*1/4  
                  
+                   #################################################################### 
+
                    ,CBLe3cHpadSymbol=0.2 # 0.1  
                    ,CBLe3cHpad=1.2 # 1.4 # fixer Abstand Repräsentantentext zu Repräsentantensymbol      
                    ,CBLe3cTextSpaceFactor=0.5 # plus Abstandsfaktor Repräsentantentext zu Repräsentantensymbol
@@ -1208,7 +1213,11 @@ class Rm():
                 ,pMCatMidTxt=limitMiddleText     
 
                 ,limitBottomColor=limitBottomColor 
-                ,limitTopColor=limitBottomColor 
+                ,limitTopColor=limitTopColor 
+
+                ,CBLe3cTopVPad=CBLe3cTopVPad #1+1*1/4                 
+                ,CBLe3cMiddleVPad=CBLe3cMiddleVPad #.5                                                                         
+                ,CBLe3cBottomVPad=CBLe3cBottomVPad #0-1*1/4  
 
 
             )
