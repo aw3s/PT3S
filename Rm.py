@@ -136,23 +136,22 @@ class RmError(Exception):
         return repr(self.value)
 
 def pltNetNodes( 
-                 pDf # df   
-                ,pMeasure='Measure'  # colName                                                                                                                       
-                ,pAttribute='Attrib' # colName 
-
-                ,pXCor='pXCor_i'  # colName 
-                ,pYCor='pYCor_i'  # colName 
-
+                # ALLG
+                 pDf 
                 ,pMeasure3Classes=True # 
 
                 ,CBFixedLimits=True
                 ,CBFixedLimitLow=0. 
                 ,CBFixedLimitHigh=1. 
-                                                
-                # Größe - pAttribute                
+                # FWVB 
+                ,pMeasure='Measure'  # colName                                                                                                                       
+                ,pAttribute='Attrib' # colName 
+
+                ,pXCor='pXCor_i'  # colName 
+                ,pYCor='pYCor_i'  # colName 
+             
                 ,pSizeFactor=1. 
-                   
-                # Farbe - pMeasure
+                                 
                 ,pMeasureColorMap=plt.cm.autumn 
                 ,pMeasureAlpha=0.9 
                 ,pMeasureClip=False    
@@ -290,7 +289,7 @@ def pltNetColorbar(
                 # wird nur benötigt wenn CBFixedLimitLow/High _nicht gelten:
                 #>...                     
                 ,pDf=None # df            
-                ,pMeasure='Measure'  # colName   
+                ,pMeasure='Measure'  # colName                 
                 # pMeasure3Classes True: CBFixedLimitLow/High gelten; CBFixedLimits spielt keine Rolle
                 # False: CBFixedLimitLow/High gelten wenn CBFixedLimits
                 # sonst: pDf[pMeasure].min()/.max() sind die Limits 
@@ -298,15 +297,15 @@ def pltNetColorbar(
 
                 ,pMeasureInPerc=True # Measure wird interpretiert in Prozent [0-1] 
                 ,pMeasure3Classes=True 
-                
-                # Label
-                ,pMeasureUNIT='[]'
-                ,pMeasureTYPE=''
 
                 # Ticks (TickLabels und TickValues)
                 ,CBFixedLimits=False
                 ,CBFixedLimitLow=0 
                 ,CBFixedLimitHigh=1        
+                
+                # Label
+                ,pMeasureUNIT='[]'
+                ,pMeasureTYPE=''
 
                 # Geometrie
                 ,CBFraction=0.05  # fraction of original axes to use for colorbar
@@ -316,7 +315,19 @@ def pltNetColorbar(
                 ,CBAspect=10. # ratio of long to short dimension
                 ,CBShrink=1. # Colorbar füllt dann y von ax ganz aus 
                 ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-% von ax
-                ,CBAnchorVertical=0. # vertikaler Fußpunkt der colorbar in Plot-% von ax                                              
+                ,CBAnchorVertical=0. # vertikaler Fußpunkt der colorbar in Plot-% von ax       
+                
+                # Legend 3Classes
+                ,pAttribute='Attrib' # colName 
+                ,pSizeFactor=1.
+                ,pMCategory='MCategory'
+                ,pMCatTopTxt='Top'
+                ,pMCatMidTxt='Middle'
+                ,pMCatBotTxt='Bottom'
+
+                ,limitBottomColor='violet'                 
+                ,limitTopColor='palegreen' 
+                                                                    
                 ):
     """
     pltNetColorbarBar:
@@ -354,124 +365,32 @@ def pltNetColorbar(
                 ,CBAnchorVertical=CBAnchorVertical                    
             )
         cax=plt.gca()
-        fig=plt.gcf()   
+        
 
 
                            
-        #if pMeasure3Classes:                                                        
+        if pMeasure3Classes:                                                        
+            pass
+            pltNetColorbarLegend3Classes( 
+                pDf
 
-        #    pDf_top=pDf[(pDf[pMCategory]==pMCatTopTxt)] 
-        #    pDf_mid=pDf[(pDf[pMCategory]==pMCatMidTxt)]     
-        #    pDf_bot=pDf[(pDf[pMCategory]==pMCatBotTxt)] 
+               ,CBAnchorHorizontal=CBAnchorHorizontal 
+               ,CBAnchorVertical=CBAnchorVertical     
+               
+               ,pAttribute=pAttribute  
+               ,pSizeFactor=pSizeFactor
 
-        #    pDf_top_Anz,col=pDf_top.shape
-        #    pDf_mid_Anz,col=pDf_mid.shape
-        #    pDf_bot_Anz,col=pDf_bot.shape
+               ,pMCategory=pMCategory
+               ,pMCatTopTxt=pMCatTopTxt
+               ,pMCatMidTxt=pMCatMidTxt
+               ,pMCatBotTxt=pMCatBotTxt
 
-        #    # CB Legend 3Classes -----------------------------------------------      
-
-        #    fig.sca(cax)
-        #    if pDf_bot_Anz > 0:
-        #        po=cax.scatter( CBHpad+CBLe3cHpadSymbol,CBLe3cBottomVpad                            
-        #                        ,s=CBLSymbolSize
-        #                        ,c=limitBottomColor
-        #                        ,alpha=0.9
-        #                        ,edgecolors='face'             
-        #                        ,clip_on=False
-        #                        )
-        #        # Text dazu
-        #        o=po.findobj(match=None) 
-        #        p=o[0]           
-        #        bb=p.get_datalim(cax.transAxes)                               
-        #        a=plt.annotate(limitBottomText                                     
-        #                        ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cBottomVpad)
-        #                        ,xycoords=cax.transAxes 
-        #                        ,rotation='vertical' #90
-        #                        ,va='center'
-        #                        ,ha='center'  
-        #                        ,color=limitBottomColor 
-        #                        )
-        #        # weiterer Text dazu
-        #        a=plt.annotate("Anz HA: {:6d}".format(pDf_bot_Anz)                                
-        #                        ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0)+.5,CBLe3cBottomVpad)
-        #                        ,xycoords=cax.transAxes 
-        #                        ,rotation='vertical' #90
-        #                        ,va='center'
-        #                        ,ha='center'  
-        #                        ,color=limitBottomColor 
-        #                        )
-
-        #    if pDf_top_Anz > 0:
-        #        po=cax.scatter( CBHpad+CBLe3cHpadSymbol,CBLe3cTopVpad                        
-        #                        ,s=CBLSymbolSize
-        #                        ,c=limitTopColor
-        #                        ,alpha=0.9
-        #                        ,edgecolors='face'             
-        #                        ,clip_on=False                                 
-        #                        )
-        #         #Text dazu
-        #        o=po.findobj(match=None) 
-        #        p=o[0]           
-        #        bb=p.get_datalim(cax.transAxes)     
-        #        bbTop=bb      
-        #        a=plt.annotate(limitTopText                                
-        #                        ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cTopVpad)
-        #                        ,xycoords=cax.transAxes 
-        #                        ,rotation='vertical' #90
-        #                        ,va='center'
-        #                        ,ha='center'    
-        #                        ,color=limitTopColor                            
-        #                        )
-
-        #         #weiterer Text dazu                  
-        #        a=plt.annotate("Anz HA: {:6d}".format(pDf_top_Anz)                                       
-        #                        ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad++CBLe3cTextSpaceFactor*(bb.x1-bb.x0)+.5,CBLe3cTopVpad)
-        #                        ,xycoords=cax.transAxes 
-        #                        ,rotation='vertical' #90
-        #                        ,va='center'
-        #                        ,ha='center'    
-        #                        ,color=limitTopColor                            
-        #                        )
+               ,limitBottomColor=limitBottomColor                 
+               ,limitTopColor=limitTopColor        
+                                                                                                
+                )
 
 
-        #    if pDf_mid_Anz > 0:
-        #         #Farbe 
-        #        limitMiddleColorMapNorm=colors.Normalize(fixedColLow,fixedColHigh)
-        #        #value=pDf_mid[pMeasure].loc[pDf_mid[pAttribute].idxmax()]
-        #        value=fixedColLow+.5*(fixedColHigh-fixedColLow) # es werden weiter unten nur die Koordinaten benoetigt
-        #        limitMiddleColor=limitMiddleColorMap(limitMiddleColorMapNorm(value))               
-        #         #Symbol              
-        #        po=cax.scatter( CBHpad+CBLe3cHpadSymbol,CBLe3cMiddleVpad                            
-        #                        ,s=CBLSymbolSize
-        #                        ,c=limitMiddleColor
-        #                        ,alpha=0.9
-        #                        ,edgecolors='face'             
-        #                        ,clip_on=False
-        #                        ,visible=False # es erden nur die Koordinaten benoetigt
-        #                        )
-        #         #Text dazu
-        #        o=po.findobj(match=None) 
-        #        p=o[0]
-        #        bb=p.get_datalim(cax.transAxes)
-        #        a=plt.annotate(limitMiddleText                                    
-        #                        ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cMiddleVpad)                                                                                 
-        #                        ,xycoords=cax.transAxes 
-        #                        ,rotation='vertical' #90
-        #                        ,va='center'
-        #                        ,ha='center'
-        #                        ,color=limitMiddleColor   
-        #                          ,visible=False
-        #        )
-        #         #weiterer Text dazu                
-        #        a=plt.annotate("Anz HA: {:6d}".format(pDf_mid_Anz)                                              
-        #                        ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0)+.5,CBLe3cMiddleVpad)                                                                                 
-        #                        ,xycoords=cax.transAxes 
-        #                        ,rotation='vertical' #90
-        #                        ,va='center'
-        #                        ,ha='center'
-        #                        ,color=limitMiddleColor   
-        #                          ,visible=False
-        #        )
    
                                                                                                                 
     except RmError:
@@ -595,6 +514,158 @@ def pltNetColorbarBar(
         raise RmError(logStrFinal)                       
     finally:
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+
+def pltNetColorbarLegend3Classes( 
+                pDf
+
+               ,CBAnchorHorizontal=0.
+               ,CBAnchorVertical=0.
+
+               ,pAttribute='Attrib' # colName 
+               ,pSizeFactor=1.
+
+               ,pMCategory='MCategory'
+               ,pMCatTopTxt='Top'
+               ,pMCatMidTxt='Middle'
+               ,pMCatBotTxt='Bottom'
+
+               ,limitBottomColor='violet' 
+               ,limitTopColor='palegreen'           
+                                           
+                ):
+    """
+    zeichnet die Legende bei 3 Klassen     
+    """
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+    try: 
+        pass
+
+        cax=plt.gca()
+        
+        pDf_top=pDf[(pDf[pMCategory]==pMCatTopTxt)] 
+        pDf_mid=pDf[(pDf[pMCategory]==pMCatMidTxt)]     
+        pDf_bot=pDf[(pDf[pMCategory]==pMCatBotTxt)] 
+
+        pDf_top_Anz,col=pDf_top.shape
+        pDf_mid_Anz,col=pDf_mid.shape
+        pDf_bot_Anz,col=pDf_bot.shape
+
+        
+        if pDf_bot_Anz > 0:
+            po=cax.scatter( CBAnchorHorizontal,CBAnchorVertical                          
+                            ,s=pSizeFactor*pDf[pAttribute].max()
+                            ,c=limitBottomColor
+                            ,alpha=0.9
+                            ,edgecolors='face'             
+                            ,clip_on=False
+                            )
+        #    # Text dazu
+        #    o=po.findobj(match=None) 
+        #    p=o[0]           
+        #    bb=p.get_datalim(cax.transAxes)                               
+        #    a=plt.annotate(limitBottomText                                     
+        #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cBottomVpad)
+        #                    ,xycoords=cax.transAxes 
+        #                    ,rotation='vertical' #90
+        #                    ,va='center'
+        #                    ,ha='center'  
+        #                    ,color=limitBottomColor 
+        #                    )
+        #    # weiterer Text dazu
+        #    a=plt.annotate("Anz HA: {:6d}".format(pDf_bot_Anz)                                
+        #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0)+.5,CBLe3cBottomVpad)
+        #                    ,xycoords=cax.transAxes 
+        #                    ,rotation='vertical' #90
+        #                    ,va='center'
+        #                    ,ha='center'  
+        #                    ,color=limitBottomColor 
+        #                    )
+
+        #if pDf_top_Anz > 0:
+        #    po=cax.scatter( CBHpad+CBLe3cHpadSymbol,CBLe3cTopVpad                        
+        #                    ,s=CBLSymbolSize
+        #                    ,c=limitTopColor
+        #                    ,alpha=0.9
+        #                    ,edgecolors='face'             
+        #                    ,clip_on=False                                 
+        #                    )
+        #        #Text dazu
+        #    o=po.findobj(match=None) 
+        #    p=o[0]           
+        #    bb=p.get_datalim(cax.transAxes)     
+        #    bbTop=bb      
+        #    a=plt.annotate(limitTopText                                
+        #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cTopVpad)
+        #                    ,xycoords=cax.transAxes 
+        #                    ,rotation='vertical' #90
+        #                    ,va='center'
+        #                    ,ha='center'    
+        #                    ,color=limitTopColor                            
+        #                    )
+
+        #        #weiterer Text dazu                  
+        #    a=plt.annotate("Anz HA: {:6d}".format(pDf_top_Anz)                                       
+        #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad++CBLe3cTextSpaceFactor*(bb.x1-bb.x0)+.5,CBLe3cTopVpad)
+        #                    ,xycoords=cax.transAxes 
+        #                    ,rotation='vertical' #90
+        #                    ,va='center'
+        #                    ,ha='center'    
+        #                    ,color=limitTopColor                            
+        #                    )
+
+
+        #if pDf_mid_Anz > 0:
+        #        #Farbe 
+        #    limitMiddleColorMapNorm=colors.Normalize(fixedColLow,fixedColHigh)
+        #    #value=pDf_mid[pMeasure].loc[pDf_mid[pAttribute].idxmax()]
+        #    value=fixedColLow+.5*(fixedColHigh-fixedColLow) # es werden weiter unten nur die Koordinaten benoetigt
+        #    limitMiddleColor=limitMiddleColorMap(limitMiddleColorMapNorm(value))               
+        #        #Symbol              
+        #    po=cax.scatter( CBHpad+CBLe3cHpadSymbol,CBLe3cMiddleVpad                            
+        #                    ,s=CBLSymbolSize
+        #                    ,c=limitMiddleColor
+        #                    ,alpha=0.9
+        #                    ,edgecolors='face'             
+        #                    ,clip_on=False
+        #                    ,visible=False # es erden nur die Koordinaten benoetigt
+        #                    )
+        #        #Text dazu
+        #    o=po.findobj(match=None) 
+        #    p=o[0]
+        #    bb=p.get_datalim(cax.transAxes)
+        #    a=plt.annotate(limitMiddleText                                    
+        #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cMiddleVpad)                                                                                 
+        #                    ,xycoords=cax.transAxes 
+        #                    ,rotation='vertical' #90
+        #                    ,va='center'
+        #                    ,ha='center'
+        #                    ,color=limitMiddleColor   
+        #                        ,visible=False
+        #    )
+        #        #weiterer Text dazu                
+        #    a=plt.annotate("Anz HA: {:6d}".format(pDf_mid_Anz)                                              
+        #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0)+.5,CBLe3cMiddleVpad)                                                                                 
+        #                    ,xycoords=cax.transAxes 
+        #                    ,rotation='vertical' #90
+        #                    ,va='center'
+        #                    ,ha='center'
+        #                    ,color=limitMiddleColor   
+        #                        ,visible=False
+        #    )        
+      
+      
+                                                                                                                
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+
 
 def pltNetPipes(
                 pDf
@@ -767,15 +838,15 @@ class Rm():
 
                    # ALLG --------------------------------------------------------------------------
                    ,pFWVBMeasureInRefPerc=True # Measure wird verarbeitet in Prozent T zu Ref 
-                   ,pFWVBMeasure3Classes=True # Measure wird dargestellt in 3 Klassen
+                   ,pFWVBMeasure3Classes=False # Measure wird dargestellt in 3 Klassen
 
-                   ,pFWVBMeasureCBFixedLimits=True 
+                   ,pFWVBMeasureCBFixedLimits=False
                    ,pFWVBMeasureCBFixedLimitLow=.10 
                    ,pFWVBMeasureCBFixedLimitHigh=.95 
 
                    # FWVB --------------------------------------------------------------------------
                    ,pFWVBAttribute='W0LFK' 
-                   ,pFWVBMeasure='FWVB~*~*~*~W' # float()  muss möglich sein
+                   ,pFWVBMeasure='FWVB~*~*~*~W' 
 
                    ,pFWVBAttributeRefSize=10                   
                    
@@ -811,7 +882,6 @@ class Rm():
                    ,pROHRAttribute='DI'                                 
                    ,pROHRMeasure='ROHR~*~*~*~QMAV' 
 
-
                    ,pROHRClip=False
                    ,pROHRAttributeLs='-'
                    ,pROHRMeasureMarker='.'              
@@ -820,7 +890,7 @@ class Rm():
                    ,pROHRAttríbuteColorMapUsageStart=1./3        
                    ,pROHRAttributeRefSize=1.0 
                                                                                                                                                               
-                   ,pROHRMeasureColorMap=plt.cm.binary 
+                   ,pROHRMeasureColorMap=plt.cm.cool 
                    ,pROHRMeasureColorMapUsageStart=0.        
                    ,pROHRMeasureRefSize=1.0 
                                                    
@@ -1066,20 +1136,19 @@ class Rm():
             
 
             pcFWVB, CBLimitLow, CBLimitHigh = pltNetNodes(
+                # ALLG
                  pDf=pltFWVB   
-                ,pMeasure='Measure' 
-                ,pAttribute=pFWVBAttribute 
-
                 ,pMeasure3Classes=pFWVBMeasure3Classes 
 
                 ,CBFixedLimits=pFWVBMeasureCBFixedLimits
                 ,CBFixedLimitLow=pFWVBMeasureCBFixedLimitLow 
                 ,CBFixedLimitHigh=pFWVBMeasureCBFixedLimitHigh 
-                                                
-                # Größe - pAttribute                
-                ,pSizeFactor=pFWVBAttributeRefSize
+                # FWVB
+                ,pMeasure='Measure' 
+                ,pAttribute=pFWVBAttribute 
+                                             
+                ,pSizeFactor=pFWVBSizeFactor
                    
-                # Farbe - pMeasure
                 ,pMeasureColorMap=pFWVBMeasureColorMap 
                 ,pMeasureAlpha=pFWVBMeasureAlpha
                 ,pMeasureClip=pFWVBMeasureClip    
@@ -1088,8 +1157,7 @@ class Rm():
                 ,pMCatTopTxt='Top'     
                 ,pMCatBotTxt='Bottom'    
                 ,pMCatMidTxt='Middle'             
-
-                # Farbe - pMeasure                 
+               
                 ,limitTopColor=limitTopColor
                 ,limitTopAlpha=limitTopAlpha
                 ,limitTopClip=limitTopClip   
@@ -1104,21 +1172,24 @@ class Rm():
             )
 
             cax=pltNetColorbar(
-                # 
-                 pc=pcFWVB # PathCollection aus pltNetNodes        
-                #                      
+                # ALLG
+                 pc=pcFWVB # PathCollection aus pltNetNodes                                        
                 ,pDf=pltFWVB 
-                ,pMeasure='Measure'           
-                #
                 ,pMeasureInPerc=pFWVBMeasureInRefPerc 
-                ,pMeasure3Classes=pFWVBMeasure3Classes                 
+                ,pMeasure3Classes=pFWVBMeasure3Classes      
+                
+                # Ticks (TickLabels und TickValues)
+                ,CBFixedLimits=pFWVBMeasureCBFixedLimits
+                ,CBFixedLimitLow=pFWVBMeasureCBFixedLimitLow
+                ,CBFixedLimitHigh=pFWVBMeasureCBFixedLimitHigh                       
+
+                #
+                ,pMeasure='Measure'           
+         
                 # Label
                 ,pMeasureUNIT=pFWVBMeasureUNIT
                 ,pMeasureTYPE=pFWVBMeasureATTRTYPE
-                # Ticks (TickLabels und TickValues)
-                ,CBFixedLimits=pFWVBMeasureCBFixedLimits
-                ,CBFixedLimitLow=CBLimitLow
-                ,CBFixedLimitHigh=CBLimitHigh     
+
                 # Geometrie
                 ,CBFraction=CBFraction  
                 ,CBHpad=CBHpad          
@@ -1127,6 +1198,19 @@ class Rm():
                 ,CBShrink=CBShrink 
                 ,CBAnchorHorizontal=CBAnchorHorizontal 
                 ,CBAnchorVertical=CBAnchorVertical 
+
+                # Legend 3 Classes
+                ,pAttribute=pFWVBAttribute  
+                ,pSizeFactor=pFWVBSizeFactor                   
+                ,pMCategory='MCategory' 
+                ,pMCatTopTxt=limitTopText     
+                ,pMCatBotTxt=limitBottomText       
+                ,pMCatMidTxt=limitMiddleText     
+
+                ,limitBottomColor=limitBottomColor 
+                ,limitTopColor=limitBottomColor 
+
+
             )
 
             fig.sca(ax)
