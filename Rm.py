@@ -371,9 +371,10 @@ def pltNetColorbar(
             )
         
         cax=plt.gca()
-                                   
+        
+        TBAnchorVertical=1.                         
         if pMeasure3Classes:                                                                   
-            pltNetColorbarLegend3Classes( 
+             bbTop, bbMid, bbBot  = pltNetColorbarLegend3Classes( 
                 pDf
 
                ,CBShrink=CBShrink 
@@ -394,7 +395,8 @@ def pltNetColorbar(
                ,CBLe3cTopVPad=CBLe3cTopVPad #1+1*1/4                 
                ,CBLe3cMiddleVPad=CBLe3cMiddleVPad #.5                                                                         
                ,CBLe3cBottomVPad=CBLe3cBottomVPad #0-1*1/4                                                                                                                     
-            )
+             )
+             TBAnchorVertical=bbTop.y1
                                                                                                                 
     except RmError:
         raise            
@@ -404,7 +406,7 @@ def pltNetColorbar(
         raise RmError(logStrFinal)                       
     finally:
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
-        return cax
+        return (cax,TBAnchorVertical)
 
 def pltNetColorbarBar( 
                 pc # die einzufaerbenden Objekte; werden für die Erzeugung der colorbar zwingend benoetigt   
@@ -569,10 +571,11 @@ def pltNetColorbarLegend3Classes(
                             ,edgecolors='face'             
                             ,clip_on=False
                             )
-        #    # Text dazu
-        #    o=po.findobj(match=None) 
-        #    p=o[0]           
-        #    bb=p.get_datalim(cax.transAxes)                               
+            # Text dazu
+            o=po.findobj(match=None) 
+            p=o[0]           
+            bbBot=p.get_datalim(cax.transAxes)                               
+
         #    a=plt.annotate(limitBottomText                                     
         #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cBottomVpad)
         #                    ,xycoords=cax.transAxes 
@@ -599,6 +602,12 @@ def pltNetColorbarLegend3Classes(
                             ,edgecolors='face'             
                             ,clip_on=False                                 
                             )
+            # Text dazu
+            o=po.findobj(match=None) 
+            p=o[0]           
+            bbTop=p.get_datalim(cax.transAxes)      
+
+
         #        #Text dazu
         #    o=po.findobj(match=None) 
         #    p=o[0]           
@@ -624,21 +633,21 @@ def pltNetColorbarLegend3Classes(
         #                    )
 
 
-        #if pDf_mid_Anz > 0:
-        #        #Farbe 
-        #    limitMiddleColorMapNorm=colors.Normalize(fixedColLow,fixedColHigh)
-        #    #value=pDf_mid[pMeasure].loc[pDf_mid[pAttribute].idxmax()]
-        #    value=fixedColLow+.5*(fixedColHigh-fixedColLow) # es werden weiter unten nur die Koordinaten benoetigt
-        #    limitMiddleColor=limitMiddleColorMap(limitMiddleColorMapNorm(value))               
-        #        #Symbol              
-        #    po=cax.scatter( CBHpad+CBLe3cHpadSymbol,CBLe3cMiddleVpad                            
-        #                    ,s=CBLSymbolSize
-        #                    ,c=limitMiddleColor
-        #                    ,alpha=0.9
-        #                    ,edgecolors='face'             
-        #                    ,clip_on=False
-        #                    ,visible=False # es erden nur die Koordinaten benoetigt
-        #                    )
+        if pDf_mid_Anz > 0:           
+            po=cax.scatter( CBAnchorHorizontal,CBLe3cMiddleVPad                                    
+                            ,s=legendSymbolSize
+                            ,c='lightgrey'
+                            ,alpha=0.9
+                            ,edgecolors='face'             
+                            ,clip_on=False
+                            ,visible=False # es erden nur die Koordinaten benoetigt
+                            )
+            # Text dazu
+            o=po.findobj(match=None) 
+            p=o[0]           
+            bbMid=p.get_datalim(cax.transAxes)  
+
+
         #        #Text dazu
         #    o=po.findobj(match=None) 
         #    p=o[0]
@@ -672,8 +681,58 @@ def pltNetColorbarLegend3Classes(
         logger.error(logStrFinal) 
         raise RmError(logStrFinal)                       
     finally:
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+        return (bbTop, bbMid, bbBot)  
 
+def pltNetTitleblock( 
+              TBAnchorVertical=1.
+             ,Projekt='Projekt' 
+             ,Planer='Planer' 
+             ,Inst='Inst' 
+                         
+                ):
+    """
+    zeichnet das Schriftfeld      
+    """
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+    try: 
+        pass
+
+        cax=plt.gca()
+        
+        a=plt.annotate(Projekt, xy=(0.,TBAnchorVertical)
+                        ,xycoords=cax.transAxes 
+                        ,rotation='vertical'
+                        ,va='bottom'
+                        ,ha='left'
+        )
+
+        #a=plt.annotate(Planer, xy=(0.,TBAnchorVertical)
+        #                ,xycoords=cax.transAxes 
+        #                ,rotation='vertical'
+        #                ,va='bottom'
+        #                ,ha='left'   
+        #)
+
+        #a=plt.annotate(Inst, xy=(0.,TBAnchorVertical)
+        #                ,xycoords=cax.transAxes 
+        #                ,rotation='vertical'
+        #                ,va='bottom'
+        #                ,ha='left'   
+        #)        
+      
+      
+                                                                                                                
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
 def pltNetPipes(
                 pDf
@@ -913,6 +972,12 @@ class Rm():
                    ,CBLe3cMiddleVPad=.5                                                                         
                    ,CBLe3cBottomVPad=0-1*1/4  
                  
+                   # Schriftfeld ----------------------------------------------------------------------------------------
+                   ,TBVSpace=0.2 # von Top(ggf. Symbol) der Colorbar
+
+
+
+
                    #################################################################### 
 
                    ,CBLe3cHpadSymbol=0.2 # 0.1  
@@ -922,7 +987,7 @@ class Rm():
                    #Schriftfeld
                    ,titleBlockHStart=-0.18
                    ,titleBlockHSpace=0.45
-                   ,titleBlockVSpace=0.2 # von Top(ggf. Symbol) der Colorbar
+                   
                    ): 
         """
           
@@ -1176,7 +1241,7 @@ class Rm():
                 ,limitMiddleClip=limitMiddleClip
             )
 
-            cax=pltNetColorbar(
+            cax,TBAnchorVertical=pltNetColorbar(
                 # ALLG
                  pc=pcFWVB # PathCollection aus pltNetNodes                                        
                 ,pDf=pltFWVB 
@@ -1241,6 +1306,13 @@ class Rm():
                ,pMeasureSizeFactor=pROHRMeasureRefSize/pltROHR['Measure'].max()        
             )
 
+            fig.sca(cax)
+            pltNetTitleblock( 
+              TBAnchorVertical=TBAnchorVertical+TBVSpace
+             ,Projekt=self.xm.dataFrames['MODELL']['PROJEKT'].iloc[0]
+             ,Planer=self.xm.dataFrames['MODELL']['PLANER'].iloc[0]
+             ,Inst=self.xm.dataFrames['MODELL']['INST'].iloc[0]                          
+            )
 
 
                                                   
@@ -1256,26 +1328,7 @@ class Rm():
             #Planer=self.xm.dataFrames['MODELL']['PLANER'].iloc[0]
             #Inst=self.xm.dataFrames['MODELL']['INST'].iloc[0]
             
-            #a=plt.annotate(Projekt, xy=(titleBlockHStart,vModelTitleBlock)
-            #             ,xycoords=cax.transAxes 
-            #             ,rotation='vertical'
-            #             ,va='bottom'
-            #             ,ha='left'
-            #)
 
-            #a=plt.annotate(Planer, xy=(titleBlockHStart+1*titleBlockHSpace,vModelTitleBlock)
-            #             ,xycoords=cax.transAxes 
-            #             ,rotation='vertical'
-            #             ,va='bottom'
-            #             ,ha='left'   
-            #)
-
-            #a=plt.annotate(Inst, xy=(titleBlockHStart+2*titleBlockHSpace,vModelTitleBlock)
-            #             ,xycoords=cax.transAxes 
-            #             ,rotation='vertical'
-            #             ,va='bottom'
-            #             ,ha='left'   
-            #)
 
             #xmFileName,ext = os.path.splitext(os.path.basename(self.xm.xmlFile))
             #a=plt.annotate("M: {:s}".format(xmFileName), xy=(titleBlockHStart+3*titleBlockHSpace,vModelTitleBlock)
