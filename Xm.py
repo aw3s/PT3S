@@ -164,13 +164,6 @@ False
    11     1  Wärmebilanz    0  BLNZ1u5u7  5364712333175450942    KNOT  4694700216019268978
    12     1  Wärmebilanz    0  BLNZ1u5u7  5508992300317633799    KNOT  4694700216019268978
    13     1  Wärmebilanz    0  BLNZ1u5u7  5741235692335544560    KNOT  4694700216019268978'''
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vFWVB']).replace('\\n','\\n   ')))
-'''  BESCHREIBUNG IDREFERENZ   W0  LFK  TVL0  TRS0 LFKT   W  W_min  W_max  INDTR  TRSK  VTYP  IMBG  IRFV                   pk                   tk  NAME_i KVR_i TM_i   XKOR_i   YKOR_i ZKOR_i  pXCor_i  pYCor_i  NAME_k KVR_k TM_k   XKOR_k   YKOR_k ZKOR_k  pXCor_k  pYCor_k                                      CONT CONT_ID CONT_LFDNR                         WBLZ
-   0            1         -1  200  0.8    90    50  NaN NaN    NaN    NaN      1    55     1     0   0.0  4643800032883366034  4643800032883366034  V-K002     1   90  2541059  5706265     20    319.0     56.0  R-K002     2   60  2541059  5706265     20    319.0     56.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  [BLNZ1, BLNZ1u5, BLNZ1u5u7]
-   1            3         -1  200  1.0    90    65  NaN NaN    NaN    NaN      1    65     1     0   0.0  4704603947372595298  4704603947372595298  V-K004     1   90  2541539  5706361     20    799.0    152.0  R-K004     2   60  2541539  5706361     20    799.0    152.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           []
-   2            4         -1  200  0.8    90    60  NaN NaN    NaN    NaN      1    60     1     0   0.0  5121101823283893406  5121101823283893406  V-K005     1   90  2541627  5706363     20    887.0    154.0  R-K005     2   60  2541627  5706363     20    887.0    154.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  [BLNZ1u5, BLNZ1u5u7, BLNZ5]
-   3            5         -1  200  0.8    90    55  NaN NaN    NaN    NaN      1    55     1     0   0.0  5400405917816384862  5400405917816384862  V-K007     1   90  2541899  5706325     20   1159.0    116.0  R-K007     2   60  2541899  5706325     20   1159.0    116.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                  [BLNZ1u5u7]
-   4            2         -1  200  0.6    90    60  NaN NaN    NaN    NaN      1    62     1     0   0.0  5695730293103267172  5695730293103267172  V-K003     1   90  2541457  5706345     20    717.0    136.0  R-K003     2   60  2541457  5706345     20    717.0    136.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           []'''
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',5,'New',"vNRCV")) 
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',6,'New',"vNRCV_Mx1")) 
 >>> pd.set_option('display.max_rows',None)
@@ -390,6 +383,14 @@ True
    13  WBLZ~WärmeblnzGes~~5262603207038486299~WVERL         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WVERL  4722863010266870887  4722863010266870887  5476262878682325254  5476262878682325254    (90.0, 145.0)'''
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.41',1,'Change',"Mx Import")) 
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.42',1,'Change',"mx not Xm-Attribute: (Mx(), __Mx1(), __Mx2() changed")) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.45',1,'New',"vFWVB: W0LFK, DPHAUS")) 
+>>> print("'''{:s}'''".format(repr(xm.dataFrames['vFWVB']).replace('\\n','\\n   ')))
+'''  BESCHREIBUNG IDREFERENZ   W0  LFK  W0LFK  TVL0  TRS0  LFKT      W  W_min  W_max  INDTR  TRSK  VTYP  DPHAUS  IMBG  IRFV                   pk                   tk  NAME_i KVR_i TM_i   XKOR_i   YKOR_i ZKOR_i  pXCor_i  pYCor_i  NAME_k KVR_k TM_k   XKOR_k   YKOR_k ZKOR_k  pXCor_k  pYCor_k                                      CONT CONT_ID CONT_LFDNR                         WBLZ
+   0            1         -1  200  0.8  160.0    90    50  LFKT  160.0  160.0  160.0      1    55    14     0.7     0   0.0  4643800032883366034  4643800032883366034  V-K002     1   90  2541059  5706265     20    319.0     56.0  R-K002     2   60  2541059  5706265     20    319.0     56.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  [BLNZ1, BLNZ1u5, BLNZ1u5u7]
+   1            3         -1  200  1.0  200.0    90    65  LFKT  200.0  200.0  200.0      1    65    14     0.7     0   0.0  4704603947372595298  4704603947372595298  V-K004     1   90  2541539  5706361     20    799.0    152.0  R-K004     2   60  2541539  5706361     20    799.0    152.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           []
+   2            4         -1  200  0.8  160.0    90    60  LFKT  160.0  160.0  160.0      1    60    14     0.7     0   0.0  5121101823283893406  5121101823283893406  V-K005     1   90  2541627  5706363     20    887.0    154.0  R-K005     2   60  2541627  5706363     20    887.0    154.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  [BLNZ1u5, BLNZ1u5u7, BLNZ5]
+   3            5         -1  200  0.8  160.0    90    55  LFKT  160.0  160.0  160.0      1    55    14     0.7     0   0.0  5400405917816384862  5400405917816384862  V-K007     1   90  2541899  5706325     20   1159.0    116.0  R-K007     2   60  2541899  5706325     20   1159.0    116.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                  [BLNZ1u5u7]
+   4            2         -1  200  0.6  120.0    90    60  LFKT  120.0  120.0  120.0      1    62    14     0.7     0   0.0  5695730293103267172  5695730293103267172  V-K003     1   90  2541457  5706345     20    717.0    136.0  R-K003     2   60  2541457  5706345     20    717.0    136.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           []'''
 """
 
 import os
@@ -734,7 +735,15 @@ class Xm():
             except:
                 self.dataFrames['DTRO_ROWD']['REPARATUR']=pd.Series()    
 
-
+            # FWVB LFK
+            if 'FWVB' in self.dataFrames:
+                try:
+                    isinstance(self.dataFrames['FWVB']['LFK'],pd.core.series.Series)
+                except:
+                    logger.debug("{:s}ERROR/EXCEPTION: {:s}: {:s}.".format(logStr,"self.dataFrames['FWVB']['LFK']",'LFK not set?!')) 
+                    self.dataFrames['FWVB']['LFK']=pd.Series()
+                self.dataFrames['FWVB']['LFK'].fillna(value=1,inplace=True)
+                     
 
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -2117,13 +2126,16 @@ class Xm():
              'BESCHREIBUNG'
             ,'IDREFERENZ'
             ,'W0'
-            ,'LFK' ,'TVL0' ,'TRS0'
+            ,'LFK' 
+            ,'W0LFK'
+            ,'TVL0' ,'TRS0'
             #LFKT
             ,'LFKT'
             ,'W','W_min','W_max'
             #FWVB contd.
             ,'INDTR' ,'TRSK'
-            ,'VTYP' ,'IMBG' ,'IRFV'
+            ,'VTYP' 
+            ,'DPHAUS' ,'IMBG' ,'IRFV'
             #FWVB IDs
             ,'pk','tk'  
             #Ki
@@ -2168,6 +2180,7 @@ class Xm():
             vFWVB['INDTR']=pd.to_numeric(vFWVB['INDTR'])  
             vFWVB['TRSK']=pd.to_numeric(vFWVB['TRSK'])  
             vFWVB['VTYP']=pd.to_numeric(vFWVB['VTYP'])  
+            vFWVB['DPHAUS']=pd.to_numeric(vFWVB['DPHAUS']) 
             vFWVB['IMBG']=pd.to_numeric(vFWVB['IMBG']) 
             vFWVB['IRFV']=pd.to_numeric(vFWVB['IRFV']) 
             
@@ -2175,16 +2188,18 @@ class Xm():
             vFWVB=pd.merge(vFWVB,vLFKT,left_on='fkLFKT',right_on='pk',how='left')
             #logger.debug("{:s} nach vLFKT: {!s:s}".format(logStr,(vFWVB)))
             #
-            vFWVB['W']      = vFWVB.apply(lambda row: row.LF     * row.W0, axis=1)
-            vFWVB['W_min']  = vFWVB.apply(lambda row: row.LF_min * row.W0, axis=1)
-            vFWVB['W_max']  = vFWVB.apply(lambda row: row.LF_max * row.W0, axis=1)
+            vFWVB['W0LFK']  = vFWVB.apply(lambda row: row.LFK    * row.W0   , axis=1)
+            vFWVB['W']      = vFWVB.apply(lambda row: row.LF     * row.W0LFK, axis=1)
+            vFWVB['W_min']  = vFWVB.apply(lambda row: row.LF_min * row.W0LFK, axis=1)
+            vFWVB['W_max']  = vFWVB.apply(lambda row: row.LF_max * row.W0LFK, axis=1)
             #
             vFWVB=vFWVB[[
                     'BESCHREIBUNG_x','IDREFERENZ'
-                   ,'W0','LFK' ,'TVL0' ,'TRS0'
+                   ,'W0','LFK','W0LFK','TVL0' ,'TRS0'
                    ,'W','W_min','W_max'
                    ,'INDTR' ,'TRSK'
-                   ,'VTYP' ,'IMBG' ,'IRFV'
+                   ,'VTYP' 
+                   ,'DPHAUS','IMBG' ,'IRFV'
                    ,'pk_x','tk'
                    ,'NAME','BESCHREIBUNG_y'
                    ,'fkKI','fkKK'
@@ -2194,13 +2209,14 @@ class Xm():
             vFWVB=vFWVB[[
                     #FWVB
                     'BESCHREIBUNG','IDREFERENZ'
-                   ,'W0','LFK' ,'TVL0' ,'TRS0'
+                   ,'W0','LFK','W0LFK','TVL0' ,'TRS0'
                     #LFKT
                    ,'LFKT'
                    ,'W','W_min','W_max'
                     #FWVB contd.
                    ,'INDTR' ,'TRSK'
-                   ,'VTYP' ,'IMBG' ,'IRFV'
+                   ,'VTYP' 
+                   ,'DPHAUS', 'IMBG' ,'IRFV'
                     #FWVB IDs
                    ,'pk','tk'  
                    ,'fkKI','fkKK'   
@@ -2215,13 +2231,14 @@ class Xm():
             vFWVB=vFWVB[[
                     #FWVB
                     'BESCHREIBUNG','IDREFERENZ'
-                   ,'W0','LFK' ,'TVL0' ,'TRS0'
+                   ,'W0','LFK','W0LFK','TVL0' ,'TRS0'
                     #LFKT
                    ,'LFKT'
                    ,'W','W_min','W_max'
                     #FWVB contd.
                    ,'INDTR' ,'TRSK'
-                   ,'VTYP' ,'IMBG' ,'IRFV'
+                   ,'VTYP' 
+                   ,'DPHAUS','IMBG' ,'IRFV'
                     #FWVB IDs
                    ,'pk','tk'  
                     #Ki
@@ -2242,13 +2259,14 @@ class Xm():
             vFWVB=vFWVB[[
                     #FWVB
                     'BESCHREIBUNG','IDREFERENZ'
-                   ,'W0','LFK' ,'TVL0' ,'TRS0'
+                   ,'W0','LFK','W0LFK','TVL0' ,'TRS0'
                     #LFKT
                    ,'LFKT'
                    ,'W','W_min','W_max'
                     #FWVB contd.
                    ,'INDTR' ,'TRSK'
-                   ,'VTYP' ,'IMBG' ,'IRFV'
+                   ,'VTYP' 
+                   ,'DPHAUS','IMBG' ,'IRFV'
                     #FWVB IDs
                    ,'pk','tk'  
                     #Ki
@@ -2273,13 +2291,14 @@ class Xm():
             vFWVB=vFWVB[[
                     #FWVB
                     'BESCHREIBUNG','IDREFERENZ'
-                   ,'W0','LFK' ,'TVL0' ,'TRS0'
+                   ,'W0','LFK','W0LFK','TVL0' ,'TRS0'
                     #LFKT
                    ,'LFKT'
                    ,'W','W_min','W_max'
                     #FWVB contd.
                    ,'INDTR' ,'TRSK'
-                   ,'VTYP' ,'IMBG' ,'IRFV'
+                   ,'VTYP' 
+                   ,'DPHAUS','IMBG' ,'IRFV'
                     #FWVB IDs
                    ,'pk','tk'  
                     #Ki
