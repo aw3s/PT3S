@@ -1003,10 +1003,10 @@ class Rm():
                    ,pFWVBAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")
                    ,pFWVBMeasure='FWVB~*~*~*~W' 
 
-                   ,pFWVBGCategory=['BLNZ1u5u7'] # ['Süd','Innenstadt','Nord PWS','NordOst BHW','Ost HWV','Ost PWF/PSE','Nord Rest'] # NAMEn von WBLZ
+                   ,pFWVBGCategory=['BLNZ1u5u7'] # ['Süd','Nord','Innenstadt','Nord PWS','NordOst BHW','Ost HWV','Ost PWF/PSE','Nord Rest'] # NAMEn von WBLZ
                    ,pFWVBGCategoryXStart=.1
                    ,pFWVBGCategoryYStart=.9
-                   ,pFWVBGCategoryYSpace=-.001
+                   ,pFWVBGCategoryYSpace=-.01
 
                    ,pFWVBAttributeRefSize=10                   
                    
@@ -1418,14 +1418,12 @@ class Rm():
                             ,clip_on=False
             )     
 
-
-
             vWBLZ=self.xm.dataFrames['vWBLZ']
             df=pd.merge(vNRCV_Mx1,vWBLZ,left_on='fkOBJTYPE',right_on='pk')
             df=df[['Sir3sID','NAME','IDIM']].drop_duplicates()
             # Sir3sID NAME
             # alle NumAnz die definiert sind und WVB einer Wärmebilanz referenzieren
-
+            idx=0
             for NAME in pFWVBGCategory: # verlangte Wärmebilanzen       
                 try:         
                     row=df[df['NAME']==NAME].iloc[0]
@@ -1456,28 +1454,7 @@ class Rm():
                 )     
                    
                
-                #if sCh.iloc[0].ATTRTYPE=='WVB':
-                #    #if sCh.iloc[0].NAME1=='InnenNo': # or sCh.iloc[0].NAME1=='WärmeblnzGes':
-                #    #    rotation='vertical'
-                #    #    va='center'
-                #    #    ha='right'
-                #    #else:
-                #    rotation='horizontal'
-                #    va='bottom'
-                #    ha='center' 
 
-                #    a=plt.annotate("{:s}: {:6.1f} {:s} {:6.1f}%".format(sCh.iloc[0].NAME1,v,sCh.iloc[0].UNIT,vp), xy=(round(x,0),round(y,0)), xycoords='data'                        
-                #             ,va=va
-                #             ,ha=ha
-                #             ,rotation=rotation
-                #            ,clip_on=False
-                #    )
-                ##else:
-                ##    a=plt.annotate("{:s}: {:6.1f} {:s}".format('Kontrollwert DH',v,sCh.iloc[0].UNIT), xy=(round(x,0),round(y,0)), xycoords='data'                        
-                ##             ,va='bottom'
-                ##             ,ha='center' 
-                ##            ,clip_on=False
-                ##    )
 
             ## ---------------------------------------------------------------------
             ## VICs
