@@ -136,29 +136,28 @@ class RmError(Exception):
         return repr(self.value)
 
 def pltNetNodes( 
-                 pDf # df                                                                                     
+                 pDf # df   
+                ,pMeasure='Measure'  # colName                                                                                                                       
                 ,pAttribute='Attrib' # colName 
-                ,pMeasure='Measure'  # colName   
+
                 ,pXCor='pXCor_i'  # colName 
                 ,pYCor='pYCor_i'  # colName 
+
+                ,pMeasure3Classes=True # 
+
+                ,CBFixedLimits=True
+                ,CBFixedLimitLow=0. 
+                ,CBFixedLimitHigh=1. 
                                                 
                 # Größe - pAttribute                
-                ,pSizeFactor=1. # in diesem Fall ist die Größe in Pts = dem pAttribute-Wert                
+                ,pSizeFactor=1. 
                    
                 # Farbe - pMeasure
                 ,pMeasureColorMap=plt.cm.autumn 
                 ,pMeasureAlpha=0.9 
                 ,pMeasureClip=False    
 
-                ,CBFixedLimits=True
-                ,CBFixedLimitLow=0. # Farb-Minwert
-                ,CBFixedLimitHigh=1. # Farb-Maxwert
-
-                ,pMeasure3Classes=True # True: # Measure wird dargestellt in 3 Klassen MCategory: Top, Middle, Bottom
-                # ---------------------------------------------------------------------------------------------------
-
-                ,pMCategory='MCategory' # colName 
-                   
+                ,pMCategory='MCategory' # colName                    
                 ,pMCatTopTxt='Top'     
                 ,pMCatMidTxt='Middle'             
                 ,pMCatBotTxt='Bottom'    
@@ -173,8 +172,7 @@ def pltNetNodes(
                                                                         
                 ,limitBottomColor='violet' 
                 ,limitBottomAlpha=0.9 
-                ,limitBottomClip=False    
-                                             
+                ,limitBottomClip=False                                                 
                 ):
     """
     zeichnet Symbole auf gca()
@@ -600,51 +598,70 @@ def pltNetColorbarBar(
 
 def pltNetPipes(
                 pDf
-               ,pAttribute  # Line
-               ,pMeasure  # Marker
-               ,pAttríbuteColorMap
-               ,pMeasureColorMap
-               # Linienbreite - pAttribute                
-               ,pAttributeSizeFactor=1. # in diesem Fall ist die Linienbreite in Pts = dem pAttribute-Wert         
-               ,pMeasureSizeFactor=1. # in diesem Fall ist die Symbolgröße in Pts = dem pMeasure-Wert                             
-                                             
-                ):
-    """
+               ,pAttribute='DI'  # Line
+               ,pMeasure='Measure'  # Marker
 
+               ,pClip=False
+               ,pAttributeLs='-'  
+               ,pMeasureMarker='.' 
+
+               ,pAttríbuteColorMap=plt.cm.binary    
+               ,pAttríbuteColorMapUsageStart=1./3                           
+               ,pAttributeSizeFactor=1. # in diesem Fall ist die Linienbreite in Pts = dem pAttribute-Wert         
+
+               ,pMeasureColorMap=plt.cm.binary    
+               ,pMeasureColorMapUsageStart=1./3
+               ,pMeasureSizeFactor=1. # in diesem Fall ist die Symbolgröße in Pts = dem pMeasure-Wert                                                                          
+               ):
+    """
+    plottet Lines mit Marker auf gca()
     """
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
     try: 
-        pass
+        ax=plt.gca()
 
-        # ROHR
         minLine=pDf[pAttribute].min()
         maxLine=pDf[pAttribute].max()
         logger.debug("{:s}minLine (Attribute): {:6.2f}".format(logStr,minLine))
         logger.debug("{:s}maxLine (Attribute): {:6.2f}".format(logStr,maxLine))
         normLine=colors.Normalize(minLine,maxLine)
+        usageLineValue=minLine+pAttríbuteColorMapUsageStart*(maxLine-minLine)
+        usageLineColor=pAttríbuteColorMap(normLine(usageLineValue)) 
 
         minMarker=pDf[pMeasure].min()
         maxMarker=pDf[pMeasure].max()
         normMarker=colors.Normalize(minMarker,maxMarker)
+        usageMarkerValue=minMarker+pMeasureColorMapUsageStart*(maxMarker-minMarker)
+        usageMarkerColor=pMeasureColorMap(normMarker(usageMarkerValue)) 
 
         for xs,ys,vLine,vMarker in zip(pDf['pWAYPXCors'],pDf['pWAYPYCors'],pDf[pAttribute],pDf[pMeasure]):        
-            colorLine=pAttríbuteColorMap(normLine(vLine)) 
+            if vLine >= usageLineValue:
+                colorLine=pAttríbuteColorMap(normLine(vLine)) 
+            else:
+                colorLine=usageLineColor
+            if vMarker >= usageMarkerValue:
+                colorMarker=pMeasureColorMap(normMarker(vMarker))
+            else:
+                colorMarker=usageMarkerColor
+
             colorMarker=pMeasureColorMap(normMarker(vMarker))
             pcLines=ax.plot(xs,ys
                             ,color=colorLine
-                            ,linewidth=pAttributeSizeFactor*vLine #                      pDfAttributeRefSize*vLine/maxLine
-                            ,ls='-'
-                            ,marker='.' #pROHRMeasureMarker
+                            ,linewidth=pAttributeSizeFactor*vLine 
+                            ,ls=pAttributeLs
+                            ,marker=pMeasureMarker
                             ,mfc=colorMarker 
-                            ,ms=pMeasureSizeFactor*vMarker                             #pROHRMeasureRefSizeFactor*pDfAttributeRefSize*vMarker/maxMarker
-                            ,mew=0.
+                            ,mec=colorMarker  
+                            ,mfcalt=colorMarker  
+                            ,mew=0
+                            ,ms=pMeasureSizeFactor*vMarker                                                    
                             ,markevery=[0,len(xs)-1]
                             ,aa=True
-                            ,clip_on=False
+                            ,clip_on=pClip
                            )            
-            logger.debug("{:s}pcLines: {!s:s}".format(logStr,pcLines))
+            #logger.debug("{:s}pcLines: {!s:s}".format(logStr,pcLines))
       
                                                                                           
     except RmError:
@@ -703,21 +720,20 @@ class Rm():
                   
                    # Attribute (Sachdatum) & Measure (Ergebnis)
                    # FWVB
-                   ,pFWVBAttribute='W0' # nur Objekte mit >0 werden dargestellt - astype(float) muss möglich sein
+
                    ,pFWVBAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")
-                   ,pFWVBMeasure='FWVB~*~*~*~W' # float()  muss möglich sein
-                   ,pFWVBMeasureInRefPerc=True # Measure wird verarbeitet in Prozent T zu Ref 
-                   ,pFWVBMeasure3Classes=True # Measure wird dargestellt in 3 Klassen
+                 
+                 
                    ,pFWVBVICsDf=None # df with VICs; Kundenname, Knotenname (NAME_I)
                    ,pFWVBGCategory=['BLNZ1','BLNZ5'] # ['Süd','Innenstadt','Nord Rest','Nord PWS','NordOst BHW','Ost PWF/PSE','Ost HWV']
                    
                    # Attribute (Sachdatum) & Measure (Ergebnis)
                    # ROHR
-                   ,pROHRAttribute='DI' # nur Objekte mit >0 werden dargestellt - astype(float) muss möglich sein
+              
                    ,pROHRAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")
                    # Attribute wirkt auf die Linie (Breite, Farbe)
                    # Measure wirkt auf die Marker (Größe, Farbe)
-                   ,pROHRMeasure='ROHR~*~*~*~QMAV' # float()  muss möglich sein
+             
                    ,pROHRMeasureAbs=True #  Measure wird verarbeitet als Absolutwert 
                   
                    # Filterkriterien (haben ggf. Einfluss auf die Abmessungen der Darstellung)
@@ -748,65 +764,70 @@ class Rm():
                    ,figEdgecolor='white' # set the edge color of the Figure rectangle
                    ,figFacecolor='white' # set the face color of the Figure rectangle
 
-                   # Darstellung FWVB
-                   # Größe basierend auf pFWVBAttribute
-                   ,pFWVBrefSize=10 # Groesse der FWVB-Symbole bei Attribute-Referenzwert; je größer desto größer
-                   ,pFWVBrefScale=2 # Skalierung Groesse der FWVB-Symbole bei Attribute-Referenzwert; je größer desto kleiner
-                   # Attribute-Referenzwert ist die Standardabweichung; wenn diese <1 ist der Mittelwert
+
+                   # ALLG --------------------------------------------------------------------------
+                   ,pFWVBMeasureInRefPerc=True # Measure wird verarbeitet in Prozent T zu Ref 
+                   ,pFWVBMeasure3Classes=True # Measure wird dargestellt in 3 Klassen
+
+                   ,pFWVBMeasureCBFixedLimits=True 
+                   ,pFWVBMeasureCBFixedLimitLow=.10 
+                   ,pFWVBMeasureCBFixedLimitHigh=.95 
+
+                   # FWVB --------------------------------------------------------------------------
+                   ,pFWVBAttribute='W0LFK' 
+                   ,pFWVBMeasure='FWVB~*~*~*~W' # float()  muss möglich sein
+
+                   ,pFWVBAttributeRefSize=10                   
                    
-                   # Farbe basierend auf pFWVBMeasure
                    ,pFWVBMeasureColorMap=plt.cm.autumn 
                    ,pFWVBMeasureAlpha=0.9 
                    ,pFWVBMeasureClip=False    
-
-                   # # Farbe basierend auf pFWVBMeasure - pFWVBMeasure3Classes=True                  
+                
                    ,limitTopColor='palegreen'
                    ,limitTopAlpha=0.9 
                    ,limitTopClip=False            
-                   ,limitTopText='OK' 
-                   #,limitTopSizeQuantil=.95 
+                   ,limitTopText='Top' 
                                                     
-                   ,limitBottomColor='violet' # 'orchid'
+                   ,limitBottomColor='violet'
                    ,limitBottomAlpha=0.9 
                    ,limitBottomClip=False    
-                   ,limitBottomText='NOK' 
-                   #,limitBottomSizeQuantil=.95 
+                   ,limitBottomText='Bottom' 
 
                    ,limitMiddleColorMap=plt.cm.autumn 
                    ,limitMiddleAlpha=0.9 
                    ,limitMiddleClip=False    
-                   ,limitMiddleText='dazwischen'
-                   #,limitMiddleSizeQuantil=.95 
-
-                   # Darstellung ROHR
+                   ,limitMiddleText='Middle'     
                    
-                   # pROHRAttribute wirkt auf die Linie (Breite, Farbe)                   
-                   ,pROHRAttributeColorMap=plt.cm.binary    
-                   ,pROHRAttributeRefSize=1.0 # Dicke der Linie bei Attribute-Referenzwert; je größer desto dicker
-                   # Attribute-Referenzwert ist das Maximum                                
-                   ,pROHRClip=False
-                   ,pROHRAttributeLs='-'
-                   
-                   # Measure wirkt auf die Marker (Größe, Farbe)
-                   ,pROHRMeasureColorMap=plt.cm.binary #plt.cm.autumn
-                   ,pROHRMeasureRefSizeFactor=1.0 # Größe des Markers bei Measure-Referenzwert im Verhältnis zu pROHRAttributeRefSize ; je größer desto größer
-                   # Measure-Referenzwert ist das Maximum; je nach dem umhüllt die Liniendicke den Marker oder nicht
-                   ,pROHRMeasureMarker='.'                 
-                
-                   # Colorbar
+                   # CB   --------------------------------------------------------------------------
                    ,CBFraction=0.05  # fraction of original axes to use for colorbar
                    ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
-                   ,CBLabelPad=-50
-               
+                   ,CBLabelPad=-50               
                    ,CBAspect=10. # ratio of long to short dimension
                    ,CBShrink=0.3 # fraction by which to shrink the colorbar
                    ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-%
-                   ,CBAnchorVertical=0.2 # vertikaler Fußpunkt der colorbar in Plot-%
+                   ,CBAnchorVertical=0.2 # vertikaler Fußpunkt der colorbar in Plot-%                                
+
+                   # ROHR --------------------------------------------------------------------------
+                   ,pROHRAttribute='DI'                                 
+                   ,pROHRMeasure='ROHR~*~*~*~QMAV' 
+
+
+                   ,pROHRClip=False
+                   ,pROHRAttributeLs='-'
+                   ,pROHRMeasureMarker='.'              
+                                            
+                   ,pROHRAttributeColorMap=plt.cm.binary   
+                   ,pROHRAttríbuteColorMapUsageStart=1./3        
+                   ,pROHRAttributeRefSize=1.0 
+                                                                                                                                                              
+                   ,pROHRMeasureColorMap=plt.cm.binary 
+                   ,pROHRMeasureColorMapUsageStart=0.        
+                   ,pROHRMeasureRefSize=1.0 
+                                                   
+                   #############################################################
 
                    #  
-                   ,CBFixedLimits=True 
-                   ,CBFixedLimitLow=.10 #None
-                   ,CBFixedLimitHigh=.95 #None
+                  
 
                    # ColorbarLegend (3Classes)
                    # Position der Repräsentantensymbole 
@@ -889,14 +910,14 @@ class Rm():
                 pFWVB=vFWVB.assign(Measure=pd.Series(pFWVBMeasureValue)) #!
 
             # Sachdaten annotieren mit Spalte MCategory           
-            if  not CBFixedLimits and pFWVBMeasure3Classes:
+            if  not pFWVBMeasureCBFixedLimits and pFWVBMeasure3Classes:
                 logger.error("Bei 3-Klassendarstellung Wahr muss FixedLimits Wahr sein.")
 
             pFWVBCat=[]
             for index, row in pFWVB.iterrows():
-                if row.Measure >= CBFixedLimitHigh:
+                if row.Measure >= pFWVBMeasureCBFixedLimitHigh:
                     pFWVBCat.append('Top')
-                elif row.Measure <= CBFixedLimitLow:
+                elif row.Measure <= pFWVBMeasureCBFixedLimitLow:
                     pFWVBCat.append('Bottom')
                 else:
                     pFWVBCat.append('Middle')
@@ -1041,32 +1062,32 @@ class Rm():
                 pFWVBrefSizeValue=pltFWVB[pFWVBAttribute].mean()
             logger.debug("{:s}pFWVBrefSizeValue (Attributwert): {:6.2f}".format(logStr,pFWVBrefSizeValue)) 
 
-            pFWVBSizeFactor=pFWVBrefSize/(pFWVBrefScale*pFWVBrefSizeValue)
+            pFWVBSizeFactor=pFWVBAttributeRefSize/pFWVBrefSizeValue
             
 
             pcFWVB, CBLimitLow, CBLimitHigh = pltNetNodes(
-                 pDf=pltFWVB # df                                                                                     
-                ,pAttribute=pFWVBAttribute # colName 
+                 pDf=pltFWVB   
+                ,pMeasure='Measure' 
+                ,pAttribute=pFWVBAttribute 
+
+                ,pMeasure3Classes=pFWVBMeasure3Classes 
+
+                ,CBFixedLimits=pFWVBMeasureCBFixedLimits
+                ,CBFixedLimitLow=pFWVBMeasureCBFixedLimitLow 
+                ,CBFixedLimitHigh=pFWVBMeasureCBFixedLimitHigh 
                                                 
                 # Größe - pAttribute                
-                ,pSizeFactor=pFWVBSizeFactor
+                ,pSizeFactor=pFWVBAttributeRefSize
                    
                 # Farbe - pMeasure
                 ,pMeasureColorMap=pFWVBMeasureColorMap 
                 ,pMeasureAlpha=pFWVBMeasureAlpha
                 ,pMeasureClip=pFWVBMeasureClip    
-
-                ,CBFixedLimits=CBFixedLimits
-                ,CBFixedLimitLow=CBFixedLimitLow # Farb-Minwert
-                ,CBFixedLimitHigh=CBFixedLimitHigh # Farb-Maxwert
-
-
-                ,pMeasure3Classes=pFWVBMeasure3Classes # True: # Measure wird dargestellt in 3 Klassen MCategory: Top, Middle, Bottom
-                   
-                #,pMCatTopTxt='Top'     
-                #,pMCatBotTxt='Bottom'    
-                #,pMCatMidTxt='Middle'             
-                # ------------------------
+   
+                ,pMCategory='MCategory' 
+                ,pMCatTopTxt='Top'     
+                ,pMCatBotTxt='Bottom'    
+                ,pMCatMidTxt='Middle'             
 
                 # Farbe - pMeasure                 
                 ,limitTopColor=limitTopColor
@@ -1095,7 +1116,7 @@ class Rm():
                 ,pMeasureUNIT=pFWVBMeasureUNIT
                 ,pMeasureTYPE=pFWVBMeasureATTRTYPE
                 # Ticks (TickLabels und TickValues)
-                ,CBFixedLimits=CBFixedLimits
+                ,CBFixedLimits=pFWVBMeasureCBFixedLimits
                 ,CBFixedLimitLow=CBLimitLow
                 ,CBFixedLimitHigh=CBLimitHigh     
                 # Geometrie
@@ -1108,6 +1129,24 @@ class Rm():
                 ,CBAnchorVertical=CBAnchorVertical 
             )
 
+            fig.sca(ax)
+            pltNetPipes(
+                pltROHR
+               ,pAttribute=pROHRAttribute  # Line
+               ,pMeasure='Measure'  # Marker
+
+               ,pClip=pROHRClip
+               ,pAttributeLs=pROHRAttributeLs 
+               ,pMeasureMarker=pROHRMeasureMarker
+
+               ,pAttríbuteColorMap=pROHRAttributeColorMap 
+               ,pAttríbuteColorMapUsageStart=pROHRAttríbuteColorMapUsageStart 
+               ,pAttributeSizeFactor=pROHRAttributeRefSize/pltROHR[pROHRAttribute].max()              
+
+               ,pMeasureColorMap=pROHRMeasureColorMap 
+               ,pMeasureColorMapUsageStart=pROHRMeasureColorMapUsageStart             
+               ,pMeasureSizeFactor=pROHRMeasureRefSize/pltROHR['Measure'].max()        
+            )
 
 
 
