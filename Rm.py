@@ -307,6 +307,8 @@ def pltNetColorbar(
                 ,pMeasureUNIT='[]'
                 ,pMeasureTYPE=''
 
+                ,CBTicklabelsHPad=0.
+
                 # Geometrie
                 ,CBFraction=0.05  # fraction of original axes to use for colorbar
                 ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
@@ -360,6 +362,9 @@ def pltNetColorbar(
                 ,CBFixedLimits=CBFixedLimits
                 ,CBFixedLimitLow=CBFixedLimitLow
                 ,CBFixedLimitHigh=CBFixedLimitHigh
+
+                ,CBTicklabelsHPad=CBTicklabelsHPad
+
                 # Geometrie
                 ,CBFraction=CBFraction
                 ,CBHpad=CBHpad              
@@ -431,6 +436,8 @@ def pltNetColorbarBar(
                 ,CBFixedLimits=False
                 ,CBFixedLimitLow=0 
                 ,CBFixedLimitHigh=1        
+                
+                ,CBTicklabelsHPad=0        
 
                 # Geometrie
                 ,CBFraction=0.05  # fraction of original axes to use for colorbar
@@ -500,8 +507,9 @@ def pltNetColorbarBar(
                 minCBtickLabel="{:6.2f}".format(minCBtickValue)
                 maxCBtickLabel="{:6.2f}".format(maxCBtickValue)    
         logger.debug("{:s}minCBtickLabel={:s} maxCBtickLabel={:s}".format(logStr,minCBtickLabel,maxCBtickLabel))    
-        colorBar.set_ticklabels([minCBtickLabel,'',maxCBtickLabel])
-                              
+        colorBar.set_ticklabels([minCBtickLabel,'',maxCBtickLabel])        
+        colorBar.ax.yaxis.set_tick_params(pad=CBTicklabelsHPad)     
+                         
         
         # Label
         if pMeasureInPerc:
@@ -703,7 +711,7 @@ def pltNetTitleblock(
     try: 
         cax=plt.gca()
             
-        a=plt.annotate(Projekt, xy=(0.,TBAnchorVertical)
+        a=plt.annotate(Projekt, xy=(0.-1*TBHSpace,TBAnchorVertical)
                         ,family='monospace'
                         ,size='smaller'                    
                         ,xycoords=cax.transAxes 
@@ -713,7 +721,7 @@ def pltNetTitleblock(
         )
        
 
-        a=plt.annotate(Planer, xy=(0.+1*TBHSpace,TBAnchorVertical)
+        a=plt.annotate(Planer, xy=(0.+0*TBHSpace,TBAnchorVertical)
                         ,family='monospace'
                         ,size='smaller'                  
                         ,xycoords=cax.transAxes 
@@ -722,7 +730,7 @@ def pltNetTitleblock(
                         ,ha='left'   
         )
 
-        a=plt.annotate(Inst, xy=(0.+2*TBHSpace,TBAnchorVertical)
+        a=plt.annotate(Inst, xy=(0.+1*TBHSpace,TBAnchorVertical)
                         ,family='monospace'
                         ,size='smaller'                   
                         ,xycoords=cax.transAxes 
@@ -731,7 +739,7 @@ def pltNetTitleblock(
                         ,ha='left'   
         )        
 
-        a=plt.annotate(Model, xy=(0.+3*TBHSpace,TBAnchorVertical)
+        a=plt.annotate(Model, xy=(0.+2*TBHSpace,TBAnchorVertical)
                         ,family='monospace'
                         ,size='smaller'                  
                         ,xycoords=cax.transAxes 
@@ -740,7 +748,7 @@ def pltNetTitleblock(
                         ,ha='left'   
         )  
         
-        a=plt.annotate(Result, xy=(0.+4*TBHSpace,TBAnchorVertical)
+        a=plt.annotate(Result, xy=(0.+3*TBHSpace,TBAnchorVertical)
                         ,family='monospace'
                         ,size='smaller'                   
                         ,xycoords=cax.transAxes 
@@ -749,7 +757,7 @@ def pltNetTitleblock(
                         ,ha='left'   
         )        
         
-        a=plt.annotate(Times, xy=(0.+5*TBHSpace,TBAnchorVertical)
+        a=plt.annotate(Times, xy=(0.+4*TBHSpace,TBAnchorVertical)
                         ,family='monospace'
                         ,size='smaller'                  
                         ,xycoords=cax.transAxes 
@@ -844,6 +852,87 @@ def pltNetPipes(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                   
 
+def pltNetFigAx(
+                pDf
+               ,pXCor_i='pXCor_i'  # colName 
+               ,pYCor_i='pYCor_i'  # colName          
+               ,pXCor_k='pXCor_k'  # colName 
+               ,pYCor_k='pYCor_k'  # colName   
+
+               ,CBFraction=0.05  # fraction of original axes to use for colorbar
+               ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes            
+
+               # Plot
+               ,pltTitle='pltNetFigAx' # plt.title not f.suptitle
+               ,figFrameon=True # set whether the figure frame (background) is displayed or invisible
+               #,figLinewidth=1.
+               ,figEdgecolor='black' # set the edge color of the Figure rectangle
+               ,figFacecolor='white' # set the face color of the Figure rectangle
+                                                                                           
+               ):
+    """
+    Fig- und Ax-Parametrierungen
+    ax wird erzeugt
+    """
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+    try:         
+        dx=max(pDf[pXCor_i].max(),pDf[pXCor_k].max())
+        dy=max(pDf[pYCor_i].max(),pDf[pYCor_k].max())
+
+        # erf. Verhältnis bei verzerrungsfreier Darstellung
+        dydx=dy/dx 
+
+        if(dydx>=1):
+            dxInch=DINA4_x # Hochformat
+        else:
+            dxInch=DINA4_y # Querformat
+    
+        figwidth=dxInch
+
+        #verzerrungsfrei: Blattkoordinatenverhaeltnis = Weltkoordinatenverhaeltnis
+        factor=1-(CBFraction+CBHpad)
+        # verzerrungsfreie Darstellung sicherstellen
+        figheight=figwidth*dydx*factor
+
+        # Weltkoordinatenbereich
+        xlimLeft=0
+        ylimBottom=0
+        xlimRight=dx
+        ylimTop=dy
+
+        fig = plt.gcf()  
+        fig.set_figwidth(figwidth)
+        fig.set_figheight(figheight)
+
+        logger.debug("{:s}dx={:10.2f} dy={:10.2f}".format(logStr,dx,dy))     
+        logger.debug("{:s}figwidth={:10.2f} figheight={:10.2f}".format(logStr,figwidth,figheight))   
+
+        ax=plt.subplot()
+        ax.set_xlim(left=xlimLeft)
+        ax.set_ylim(bottom=ylimBottom)
+        ax.set_xlim(right=xlimRight)
+        ax.set_ylim(top=ylimTop)
+
+        xTicks=ax.get_xticks()
+        dxTick = xTicks[1]-xTicks[0]
+        yTicks=ax.set_yticks([idx*dxTick for idx in range(math.floor(dy/dxTick)+1)])
+
+        plt.title(pltTitle)              
+        fig.set_frameon(figFrameon) 
+        fig.set_edgecolor(figEdgecolor)
+        fig.set_facecolor(figFacecolor)
+                                                                                          
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))               
+
 class Rm():
     """
       
@@ -926,16 +1015,6 @@ class Rm():
                    # reine Darstellungsparametrierung (keine Filterung/Selektion mehr)
                    # -------------------------------------------------------------------------
 
-                   # Plot
-                   ,pltTitle='pltNetDHUS' # plt.title not f.suptitle
-
-                   # Figure
-                   ,figFrameon=True # set whether the figure frame (background) is displayed or invisible
-                   #,figLinewidth=1.
-                   ,figEdgecolor='white' # set the edge color of the Figure rectangle
-                   ,figFacecolor='white' # set the face color of the Figure rectangle
-
-
                    # ALLG --------------------------------------------------------------------------
                    ,pFWVBMeasureInRefPerc=True # Measure wird verarbeitet in Prozent T zu Ref 
                    ,pFWVBMeasure3Classes=False # Measure wird dargestellt in 3 Klassen
@@ -972,7 +1051,8 @@ class Rm():
                    # CB   --------------------------------------------------------------------------
                    ,CBFraction=0.05  # fraction of original axes to use for colorbar
                    ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
-                   ,CBLabelPad=-50               
+                   ,CBLabelPad=-50         
+                   ,CBTicklabelsHPad=0.      
                    ,CBAspect=10. # ratio of long to short dimension
                    ,CBShrink=0.3 # fraction by which to shrink the colorbar
                    ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-%
@@ -994,33 +1074,23 @@ class Rm():
                    ,pROHRMeasureColorMapUsageStart=0.        
                    ,pROHRMeasureRefSize=1.0 
                                                    
-                   # ColorbarLegend (3Classes) --------------------------------------------------------------------------
-                   # Position der Repräsentantensymbole 
-                   # dabei sind:
-                   # 0 = colorbar unten
-                   # 1 = colorbar oben
-                   # "1" ist alsp die colorbar-Länge; die Länge von "1" im Plot wird von CBaspect und CBshrink beeinflusst                       
+                   # CBLegend (3Classes) --------------------------------------------------------------------------
+                   # Position der Repräsentantensymbole             
                    ,CBLe3cTopVPad=1+1*1/4
                    # "1"
                    ,CBLe3cMiddleVPad=.5                                                                         
                    ,CBLe3cBottomVPad=0-1*1/4  
                  
-                   # Schriftfeld ----------------------------------------------------------------------------------------
+                   # TB -------------------------------------------------------------------------------------------------
                    ,TBVSpace=0.2 # von Top(ggf. Symbol) der Colorbar
                    ,TBHSpace=0.4 # von Top(ggf. Symbol) der Colorbar
 
-
-
-
-                   #################################################################### 
-
-                   ,CBLe3cHpadSymbol=0.2 # 0.1  
-                   ,CBLe3cHpad=1.2 # 1.4 # fixer Abstand Repräsentantentext zu Repräsentantensymbol      
-                   ,CBLe3cTextSpaceFactor=0.5 # plus Abstandsfaktor Repräsentantentext zu Repräsentantensymbol
-
-                   #Schriftfeld
-                   ,titleBlockHStart=-0.18
-                   ,titleBlockHSpace=0.45
+                   # FIG                   
+                   ,pltTitle='pltNetDHUS' # plt.title not f.suptitle                
+                   ,figFrameon=True 
+                   #,figLinewidth=1.
+                   ,figEdgecolor='black' 
+                   ,figFacecolor='white' 
                    
                    ): 
         """
@@ -1142,32 +1212,32 @@ class Rm():
             # FWVB
             pltFWVB=pltFWVB[(pltFWVB['CONT_ID'].astype(int).isin(CONT_IDisIn))]
 
-            # Ausdehnung des Plots ===============================================
-            dx=max(pltFWVB['pXCor_i'].max(),max(pltROHR[(pltROHR['CONT_ID'].astype(int).isin([1001]))]['pXCor_i'].max(),pltROHR[(pltROHR['CONT_ID'].astype(int).isin([1001]))]['pXCor_k'].max()))
-            dy=max(pltFWVB['pYCor_i'].max(),max(pltROHR[(pltROHR['CONT_ID'].astype(int).isin([1001]))]['pYCor_i'].max(),pltROHR[(pltROHR['CONT_ID'].astype(int).isin([1001]))]['pYCor_k'].max()))
+            ## Ausdehnung des Plots ===============================================
+            #dx=max(pltFWVB['pXCor_i'].max(),max(pltROHR[(pltROHR['CONT_ID'].astype(int).isin([1001]))]['pXCor_i'].max(),pltROHR[(pltROHR['CONT_ID'].astype(int).isin([1001]))]['pXCor_k'].max()))
+            #dy=max(pltFWVB['pYCor_i'].max(),max(pltROHR[(pltROHR['CONT_ID'].astype(int).isin([1001]))]['pYCor_i'].max(),pltROHR[(pltROHR['CONT_ID'].astype(int).isin([1001]))]['pYCor_k'].max()))
 
-            logger.debug("{:s}dx={:10.2f} dy={:10.2f}".format(logStr,dx,dy))     
+            #logger.debug("{:s}dx={:10.2f} dy={:10.2f}".format(logStr,dx,dy))     
 
-            # erf. Verhältnis bei verzerrungsfreier Darstellung
-            dydx=dy/dx 
+            ## erf. Verhältnis bei verzerrungsfreier Darstellung
+            #dydx=dy/dx 
 
-            if(dydx>=1):
-                dxInch=DINA4_x # Hochformat
-            else:
-                dxInch=DINA4_y # Querformat
+            #if(dydx>=1):
+            #    dxInch=DINA4_x # Hochformat
+            #else:
+            #    dxInch=DINA4_y # Querformat
     
-            figwidth=dxInch
+            #figwidth=dxInch
 
-            #verzerrungsfrei: Blattkoordinatenverhaeltnis = Weltkoordinatenverhaeltnis
-            factor=1-(CBFraction+CBHpad)
-            # verzerrungsfreie Darstellung sicherstellen
-            figheight=figwidth*dydx*factor
+            ##verzerrungsfrei: Blattkoordinatenverhaeltnis = Weltkoordinatenverhaeltnis
+            #factor=1-(CBFraction+CBHpad)
+            ## verzerrungsfreie Darstellung sicherstellen
+            #figheight=figwidth*dydx*factor
        
-            # Weltkoordinatenbereich
-            xlimLeft=0
-            ylimBottom=0
-            xlimRight=dx
-            ylimTop=dy
+            ## Weltkoordinatenbereich
+            #xlimLeft=0
+            #ylimBottom=0
+            #xlimRight=dx
+            #ylimTop=dy
 
             # =========================================             
             pltFWVB[pFWVBAttribute]=pltFWVB[pFWVBAttribute].astype(float)
@@ -1202,30 +1272,51 @@ class Rm():
             pltFWVB_mid_Anz,col=pltFWVB_mid.shape
             pltFWVB_bot_Anz,col=pltFWVB_bot.shape
 
+            # ############################################################
             # ============================================================
             # Plotten
             # ============================================================
+            # ############################################################
+            pltNetFigAx(
+                pDf=pltROHR
+               ,pXCor_i='pXCor_i'  # colName 
+               ,pYCor_i='pYCor_i'  # colName          
+               ,pXCor_k='pXCor_k'  # colName 
+               ,pYCor_k='pYCor_k'  # colName   
+
+               ,CBFraction=CBFraction 
+               ,CBHpad=CBHpad              
+
+               # Plot
+               ,pltTitle='pltNetFigAx' 
+               ,figFrameon=figFrameon
+               #,figLinewidth=1.
+               ,figEdgecolor=figEdgecolor 
+               ,figFacecolor=figFacecolor                                                                                            
+            )
             fig = plt.gcf()  
-            fig.set_figwidth(figwidth)
-            fig.set_figheight(figheight)
+            ax=plt.gca()
 
-            logger.debug("{:s}dx={:10.2f} dy={:10.2f}".format(logStr,dx,dy))     
-            logger.debug("{:s}figwidth={:10.2f} figheight={:10.2f}".format(logStr,figwidth,figheight))   
+            #fig.set_figwidth(figwidth)
+            #fig.set_figheight(figheight)
 
-            ax=plt.subplot()
-            ax.set_xlim(left=xlimLeft)
-            ax.set_ylim(bottom=ylimBottom)
-            ax.set_xlim(right=xlimRight)
-            ax.set_ylim(top=ylimTop)
+            #logger.debug("{:s}dx={:10.2f} dy={:10.2f}".format(logStr,dx,dy))     
+            #logger.debug("{:s}figwidth={:10.2f} figheight={:10.2f}".format(logStr,figwidth,figheight))   
 
-            xTicks=ax.get_xticks()
-            dxTick = xTicks[1]-xTicks[0]
-            yTicks=ax.set_yticks([idx*dxTick for idx in range(math.floor(dy/dxTick)+1)])
+            #ax=plt.subplot()
+            #ax.set_xlim(left=xlimLeft)
+            #ax.set_ylim(bottom=ylimBottom)
+            #ax.set_xlim(right=xlimRight)
+            #ax.set_ylim(top=ylimTop)
 
-            plt.title(pltTitle)              
-            fig.set_frameon(figFrameon) 
-            fig.set_edgecolor(figEdgecolor)
-            fig.set_facecolor(figFacecolor)
+            #xTicks=ax.get_xticks()
+            #dxTick = xTicks[1]-xTicks[0]
+            #yTicks=ax.set_yticks([idx*dxTick for idx in range(math.floor(dy/dxTick)+1)])
+
+            #plt.title(pltTitle)              
+            #fig.set_frameon(figFrameon) 
+            #fig.set_edgecolor(figEdgecolor)
+            #fig.set_facecolor(figFacecolor)
             #plt.setp(fig,linewidth=figLinewidth)
 
             
@@ -1294,6 +1385,8 @@ class Rm():
                 ,pMeasureUNIT=pFWVBMeasureUNIT
                 ,pMeasureTYPE=pFWVBMeasureATTRTYPE
 
+                ,CBTicklabelsHPad=CBTicklabelsHPad
+
                 # Geometrie
                 ,CBFraction=CBFraction  
                 ,CBHpad=CBHpad          
@@ -1354,39 +1447,7 @@ class Rm():
              ,Times="TRef: {!s:s} T: {!s:s}".format(timeDeltaToRef,timeDeltaToT).replace('days','Tage')             
             )
 
-
-                                                  
-            ## Legende Modellschriftfeld ---------------------------------------------------------------------
-            #fig.sca(cax)
-
-
-            
-
-
-            #xmFileName,ext = os.path.splitext(os.path.basename(self.xm.xmlFile))
-            #a=plt.annotate("M: {:s}".format(xmFileName), xy=(titleBlockHStart+3*titleBlockHSpace,vModelTitleBlock)
-            #               ,xycoords=cax.transAxes 
-            #               ,rotation='vertical'
-            #               ,va='bottom'
-            #               ,ha='left'   
-            #)
-            #(wDir,modelDir,modelName)=self.xm.getWDirModelDirModelName()
-            #a=plt.annotate("E: {:s}".format(os.path.join(os.path.basename(wDir),os.path.join(modelDir,modelName))+'.MX1')
-            #               ,xy=(titleBlockHStart+4*titleBlockHSpace,vModelTitleBlock), xycoords=cax.transAxes 
-            #               ,rotation='vertical'
-            #               ,va='bottom'
-            #               ,ha='left'   
-            #)
-
-            #txt="TRef: {!s:s} T: {!s:s}".format(timeDeltaToRef,timeDeltaToT).replace('days','Tage')
-            #a=plt.annotate(txt
-            #               ,xy=(titleBlockHStart+5*titleBlockHSpace,vModelTitleBlock)
-            #               ,xycoords=cax.transAxes 
-            #               ,rotation='vertical'
-            #               ,va='bottom'
-            #               ,ha='left'   
-            #)
-
+                                               
             ## ---------------------------------------------------------------------
             ## NumAnz 
             #fig.sca(ax)
