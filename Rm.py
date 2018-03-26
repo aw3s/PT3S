@@ -974,48 +974,21 @@ class Rm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def pltNetDHUS(self
-                   # Times
+                   # TIME ----------------------------------------------------------------------------------------
                    ,timeDeltaToRef=pd.to_timedelta('0 seconds') # Referenzzeit als TIMEDELTA zu Szenariumbeginn 
                    ,timeDeltaToT=None # Zeit als TIMEDELTA zu Szenariumbeginn                    
                   
-                   # Attribute (Sachdatum) & Measure (Ergebnis)
-                   # FWVB
-
-                   ,pFWVBAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")
-                 
-                 
-                   ,pFWVBVICsDf=None # df with VICs; Kundenname, Knotenname (NAME_I)
-                   ,pFWVBGCategory=['BLNZ1','BLNZ5'] # ['Süd','Innenstadt','Nord Rest','Nord PWS','NordOst BHW','Ost PWF/PSE','Ost HWV']
-                   
-                   # Attribute (Sachdatum) & Measure (Ergebnis)
-                   # ROHR
-              
-                   ,pROHRAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")
-                   # Attribute wirkt auf die Linie (Breite, Farbe)
-                   # Measure wirkt auf die Marker (Größe, Farbe)
-             
-                   ,pROHRMeasureAbs=True #  Measure wird verarbeitet als Absolutwert 
-                  
-                   # Filterkriterien (haben ggf. Einfluss auf die Abmessungen der Darstellung)
+                   # FILTER  (haben ggf. Einfluss auf die Abmessungen der Darstellung) ---------------------------
                    ,KVRisIn=[2]
                    ,CONT_IDisIn=[1001]                  
-                   # 3-Klassen Darstellung FWVB; die Kriterien beziehen sich auf pFWVBMeasure (ggf. verarbeitet in Prozent T/Ref)
-                #   ,limitTop=0.95 # >= in Top
-                #   ,limitBottom=0.10 # <= in Bottom
-                   # bei pFWVBMeasureInRefPerc=False muss für die Limits der pFWVBMeasure-Wertebereich angegeben werden 
-
-                   # Selektionskriterien (haben KEINEN Einfluss auf die Abmessungen der Darstellung)
-                   # sondern auf die Objekte, die dargestellt werden
-                   # wirkt auf Attribute
+             
+                   # SELECT (haben KEINEN Einfluss auf die Abmessungen der Darstellung) --------------------------                   
                    ,quantil_pROHRAttributeHigh=1. # die 25% gößten hier 'DI' also
                    ,quantil_pROHRAttributeLow=.75 
-                   ,quantil_pFWVBAttributeHigh=1. # alle 'W0' also
+                   ,quantil_pFWVBAttributeHigh=1. # alle 'W0LFK' also
                    ,quantil_pFWVBAttributeLow=0. 
                    
-                   # reine Darstellungsparametrierung (keine Filterung/Selektion mehr)
-                   # -------------------------------------------------------------------------
-
-                   # ALLG --------------------------------------------------------------------------
+                   # ALLG ----------------------------------------------------------------------------------------
                    ,pFWVBMeasureInRefPerc=True # Measure wird verarbeitet in Prozent T zu Ref 
                    ,pFWVBMeasure3Classes=False # Measure wird dargestellt in 3 Klassen
 
@@ -1023,8 +996,9 @@ class Rm():
                    ,pFWVBMeasureCBFixedLimitLow=.10 
                    ,pFWVBMeasureCBFixedLimitHigh=.95 
 
-                   # FWVB --------------------------------------------------------------------------
+                   # FWVB ----------------------------------------------------------------------------------------
                    ,pFWVBAttribute='W0LFK' 
+                   ,pFWVBAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")
                    ,pFWVBMeasure='FWVB~*~*~*~W' 
 
                    ,pFWVBAttributeRefSize=10                   
@@ -1048,7 +1022,7 @@ class Rm():
                    ,limitMiddleClip=False    
                    ,limitMiddleText='Middle'     
                    
-                   # CB   --------------------------------------------------------------------------
+                   # CB   -----------------------------------------------------------------------------------------
                    ,CBFraction=0.05  # fraction of original axes to use for colorbar
                    ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
                    ,CBLabelPad=-50         
@@ -1058,9 +1032,11 @@ class Rm():
                    ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-%
                    ,CBAnchorVertical=0.2 # vertikaler Fußpunkt der colorbar in Plot-%                                
 
-                   # ROHR --------------------------------------------------------------------------
-                   ,pROHRAttribute='DI'                                 
+                   # ROHR -----------------------------------------------------------------------------------------
+                   ,pROHRAttribute='DI'              
+                   ,pROHRAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")                                      
                    ,pROHRMeasure='ROHR~*~*~*~QMAV' 
+                   ,pROHRMeasureAbs=True #  Measure wird verarbeitet als Absolutwert 
 
                    ,pROHRClip=False
                    ,pROHRAttributeLs='-'
@@ -1081,17 +1057,34 @@ class Rm():
                    ,CBLe3cMiddleVPad=.5                                                                         
                    ,CBLe3cBottomVPad=0-1*1/4  
                  
-                   # TB -------------------------------------------------------------------------------------------------
-                   ,TBVSpace=0.2 # von Top(ggf. Symbol) der Colorbar
-                   ,TBHSpace=0.4 # von Top(ggf. Symbol) der Colorbar
+                   # TB --------------------------------------------------------------------------------------------
+                   ,TBVSpace=0.2 
+                   ,TBHSpace=0.4 
 
-                   # FIG                   
-                   ,pltTitle='pltNetDHUS' # plt.title not f.suptitle                
-                   ,figFrameon=True 
-                   #,figLinewidth=1.
+                   # FIG -------------------------------------------------------------------------------------------                  
+                   ,pltTitle='pltNetDHUS' 
+                   ,figFrameon=True                    
                    ,figEdgecolor='black' 
                    ,figFacecolor='white' 
                    
+                  
+
+
+                 
+                 
+                   ,pFWVBVICsDf=None # df with VICs; Kundenname, Knotenname (NAME_I)
+                   ,pFWVBGCategory=['BLNZ1','BLNZ5'] # ['Süd','Innenstadt','Nord Rest','Nord PWS','NordOst BHW','Ost PWF/PSE','Ost HWV']
+                   
+                   # Attribute (Sachdatum) & Measure (Ergebnis)
+                   # ROHR
+              
+                 
+                   # Attribute wirkt auf die Linie (Breite, Farbe)
+                   # Measure wirkt auf die Marker (Größe, Farbe)
+             
+                 
+
+
                    ): 
         """
           
@@ -1160,11 +1153,11 @@ class Rm():
             pFWVBCat=[]
             for index, row in pFWVB.iterrows():
                 if row.Measure >= pFWVBMeasureCBFixedLimitHigh:
-                    pFWVBCat.append('Top')
+                    pFWVBCat.append(limitTopText)
                 elif row.Measure <= pFWVBMeasureCBFixedLimitLow:
-                    pFWVBCat.append('Bottom')
+                    pFWVBCat.append(limitBottomText)
                 else:
-                    pFWVBCat.append('Middle')
+                    pFWVBCat.append(limitMiddleText)
             pFWVB=pFWVB.assign(MCategory=pd.Series(pFWVBCat)) 
 
             # Sachdaten annotieren mit Spalte GCategory               
@@ -1181,9 +1174,6 @@ class Rm():
                 else:
                     pFWVBCat.append(s.pop())
             pFWVB=pFWVB.assign(GCategory=pd.Series(pFWVBCat)) 
-
-
-
 
             # ROHR
             pROHRMeasureValueRaw=plotTimeDfs[timeTIdx][pROHRMeasure].iloc[0]   
@@ -1212,33 +1202,6 @@ class Rm():
             # FWVB
             pltFWVB=pltFWVB[(pltFWVB['CONT_ID'].astype(int).isin(CONT_IDisIn))]
 
-            ## Ausdehnung des Plots ===============================================
-            #dx=max(pltFWVB['pXCor_i'].max(),max(pltROHR[(pltROHR['CONT_ID'].astype(int).isin([1001]))]['pXCor_i'].max(),pltROHR[(pltROHR['CONT_ID'].astype(int).isin([1001]))]['pXCor_k'].max()))
-            #dy=max(pltFWVB['pYCor_i'].max(),max(pltROHR[(pltROHR['CONT_ID'].astype(int).isin([1001]))]['pYCor_i'].max(),pltROHR[(pltROHR['CONT_ID'].astype(int).isin([1001]))]['pYCor_k'].max()))
-
-            #logger.debug("{:s}dx={:10.2f} dy={:10.2f}".format(logStr,dx,dy))     
-
-            ## erf. Verhältnis bei verzerrungsfreier Darstellung
-            #dydx=dy/dx 
-
-            #if(dydx>=1):
-            #    dxInch=DINA4_x # Hochformat
-            #else:
-            #    dxInch=DINA4_y # Querformat
-    
-            #figwidth=dxInch
-
-            ##verzerrungsfrei: Blattkoordinatenverhaeltnis = Weltkoordinatenverhaeltnis
-            #factor=1-(CBFraction+CBHpad)
-            ## verzerrungsfreie Darstellung sicherstellen
-            #figheight=figwidth*dydx*factor
-       
-            ## Weltkoordinatenbereich
-            #xlimLeft=0
-            #ylimBottom=0
-            #xlimRight=dx
-            #ylimTop=dy
-
             # =========================================             
             pltFWVB[pFWVBAttribute]=pltFWVB[pFWVBAttribute].astype(float)
             pltROHR[pROHRAttribute]=pltROHR[pROHRAttribute].astype(float)
@@ -1264,13 +1227,13 @@ class Rm():
             pltFWVB=pltFWVB.sort_values(by=[pFWVBAttribute],ascending=pFWVBAttributeAsc) 
             pltROHR=pltROHR.sort_values(by=[pROHRAttribute],ascending=pROHRAttributeAsc) 
            
-            pltFWVB_top=pltFWVB[(pltFWVB['MCategory']=='Top')] 
-            pltFWVB_mid=pltFWVB[(pltFWVB['MCategory']=='Middle')]     
-            pltFWVB_bot=pltFWVB[(pltFWVB['MCategory']=='Bottom')] 
+            #pltFWVB_top=pltFWVB[(pltFWVB['MCategory']==limitTopText)] 
+            #pltFWVB_mid=pltFWVB[(pltFWVB['MCategory']==limitMiddleText)]     
+            #pltFWVB_bot=pltFWVB[(pltFWVB['MCategory']==limitBottomText)] 
 
-            pltFWVB_top_Anz,col=pltFWVB_top.shape
-            pltFWVB_mid_Anz,col=pltFWVB_mid.shape
-            pltFWVB_bot_Anz,col=pltFWVB_bot.shape
+            #pltFWVB_top_Anz,col=pltFWVB_top.shape
+            #pltFWVB_mid_Anz,col=pltFWVB_mid.shape
+            #pltFWVB_bot_Anz,col=pltFWVB_bot.shape
 
             # ############################################################
             # ============================================================
@@ -1287,8 +1250,7 @@ class Rm():
                ,CBFraction=CBFraction 
                ,CBHpad=CBHpad              
 
-               # Plot
-               ,pltTitle='pltNetFigAx' 
+               ,pltTitle=pltTitle
                ,figFrameon=figFrameon
                #,figLinewidth=1.
                ,figEdgecolor=figEdgecolor 
@@ -1297,39 +1259,12 @@ class Rm():
             fig = plt.gcf()  
             ax=plt.gca()
 
-            #fig.set_figwidth(figwidth)
-            #fig.set_figheight(figheight)
-
-            #logger.debug("{:s}dx={:10.2f} dy={:10.2f}".format(logStr,dx,dy))     
-            #logger.debug("{:s}figwidth={:10.2f} figheight={:10.2f}".format(logStr,figwidth,figheight))   
-
-            #ax=plt.subplot()
-            #ax.set_xlim(left=xlimLeft)
-            #ax.set_ylim(bottom=ylimBottom)
-            #ax.set_xlim(right=xlimRight)
-            #ax.set_ylim(top=ylimTop)
-
-            #xTicks=ax.get_xticks()
-            #dxTick = xTicks[1]-xTicks[0]
-            #yTicks=ax.set_yticks([idx*dxTick for idx in range(math.floor(dy/dxTick)+1)])
-
-            #plt.title(pltTitle)              
-            #fig.set_frameon(figFrameon) 
-            #fig.set_edgecolor(figEdgecolor)
-            #fig.set_facecolor(figFacecolor)
-            #plt.setp(fig,linewidth=figLinewidth)
-
-            
-
-
             pFWVBrefSizeValue=pltFWVB[pFWVBAttribute].std()
             if pFWVBrefSizeValue < 1:
                 pFWVBrefSizeValue=pltFWVB[pFWVBAttribute].mean()
             logger.debug("{:s}pFWVBrefSizeValue (Attributwert): {:6.2f}".format(logStr,pFWVBrefSizeValue)) 
-
             pFWVBSizeFactor=pFWVBAttributeRefSize/pFWVBrefSizeValue
             
-
             pcFWVB, CBLimitLow, CBLimitHigh = pltNetNodes(
                 # ALLG
                  pDf=pltFWVB   
