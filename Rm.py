@@ -31,12 +31,12 @@ DOCTEST
 >>> pd.set_option('display.width',666666)
 >>> pFWVB=rm.pltNetDHUS(timeDeltaToT=timeDeltaToT)
 >>> print("'''{:s}'''".format(repr(pFWVB[['Measure','MCategory','GCategory']]).replace('\\n','\\n   ')))
-'''    Measure MCategory GCategory
-   0  1.000000       Top     BLNZ1
-   1  0.941650    Middle          
-   2  0.932884    Middle     BLNZ5
-   3  0.926353    Middle          
-   4  0.967076       Top          '''
+'''    Measure MCategory  GCategory
+   0  1.000000       Top  BLNZ1u5u7
+   1  0.941650    Middle           
+   2  0.932884    Middle  BLNZ1u5u7
+   3  0.926353    Middle  BLNZ1u5u7
+   4  0.967076       Top           '''
 >>> (wD,fileName)=os.path.split(xm.xmlFile)
 >>> (base,ext)=os.path.splitext(fileName)
 >>> plotFileName=wD+os.path.sep+base+'.'+'pdf'
@@ -933,6 +933,8 @@ def pltNetFigAx(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))               
 
+
+
 class Rm():
     """
       
@@ -1000,6 +1002,11 @@ class Rm():
                    ,pFWVBAttribute='W0LFK' 
                    ,pFWVBAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")
                    ,pFWVBMeasure='FWVB~*~*~*~W' 
+
+                   ,pFWVBGCategory=['BLNZ1u5u7'] # ['Süd','Innenstadt','Nord PWS','NordOst BHW','Ost HWV','Ost PWF/PSE','Nord Rest'] # NAMEn von WBLZ
+                   ,pFWVBGCategoryXStart=.1
+                   ,pFWVBGCategoryYStart=.9
+                   ,pFWVBGCategoryYSpace=-.001
 
                    ,pFWVBAttributeRefSize=10                   
                    
@@ -1073,7 +1080,7 @@ class Rm():
                  
                  
                    ,pFWVBVICsDf=None # df with VICs; Kundenname, Knotenname (NAME_I)
-                   ,pFWVBGCategory=['BLNZ1','BLNZ5'] # ['Süd','Innenstadt','Nord Rest','Nord PWS','NordOst BHW','Ost PWF/PSE','Ost HWV']
+                
                    
                    # Attribute (Sachdatum) & Measure (Ergebnis)
                    # ROHR
@@ -1160,20 +1167,23 @@ class Rm():
                     pFWVBCat.append(limitMiddleText)
             pFWVB=pFWVB.assign(MCategory=pd.Series(pFWVBCat)) 
 
-            # Sachdaten annotieren mit Spalte GCategory               
-            sCatReq=set(pFWVBGCategory)       
-            pFWVBCat=[]
-            for index, row in pFWVB.iterrows():
-                gCat=row.WBLZ
-                sCat=set(gCat)
-                s=sCat.intersection(sCatReq)
-                if len(s) == 0:
-                    pFWVBCat.append('')
-                elif len(s) > 1:
-                    pFWVBCat.append("{!s:s}".format(s)) 
-                else:
-                    pFWVBCat.append(s.pop())
-            pFWVB=pFWVB.assign(GCategory=pd.Series(pFWVBCat)) 
+            # Sachdaten annotieren mit Spalte GCategory      
+            if isinstance(pFWVBGCategory,list):         
+                sCatReq=set(pFWVBGCategory)       
+                pFWVBCat=[]
+                for index, row in pFWVB.iterrows():
+                    gCat=row.WBLZ
+                    sCat=set(gCat)
+                    s=sCat.intersection(sCatReq)
+                    if len(s) == 0:
+                        pFWVBCat.append('')
+                    elif len(s) > 1:
+                        pFWVBCat.append("{!s:s}".format(s)) 
+                    else:
+                        pFWVBCat.append(s.pop())
+                pFWVB=pFWVB.assign(GCategory=pd.Series(pFWVBCat)) 
+            else:
+                pFWVB=pFWVB.assign(GCategory=pd.Series()) 
 
             # ROHR
             pROHRMeasureValueRaw=plotTimeDfs[timeTIdx][pROHRMeasure].iloc[0]   
@@ -1227,14 +1237,6 @@ class Rm():
             pltFWVB=pltFWVB.sort_values(by=[pFWVBAttribute],ascending=pFWVBAttributeAsc) 
             pltROHR=pltROHR.sort_values(by=[pROHRAttribute],ascending=pROHRAttributeAsc) 
            
-            #pltFWVB_top=pltFWVB[(pltFWVB['MCategory']==limitTopText)] 
-            #pltFWVB_mid=pltFWVB[(pltFWVB['MCategory']==limitMiddleText)]     
-            #pltFWVB_bot=pltFWVB[(pltFWVB['MCategory']==limitBottomText)] 
-
-            #pltFWVB_top_Anz,col=pltFWVB_top.shape
-            #pltFWVB_mid_Anz,col=pltFWVB_mid.shape
-            #pltFWVB_bot_Anz,col=pltFWVB_bot.shape
-
             # ############################################################
             # ============================================================
             # Plotten
@@ -1383,58 +1385,99 @@ class Rm():
             )
 
                                                
-            ## ---------------------------------------------------------------------
-            ## NumAnz 
-            #fig.sca(ax)
+            # ---------------------------------------------------------------------
+            # NumAnz 
+            fig.sca(ax)
 
-            #patWBLZ='WBLZ~[\S ]+~\S*~\S+~\S+'
-            #patDH='KNOT~K0001~\S*~\S+~QM'
-            #for index, row in vNRCV_Mx1[
-            # (
-            #   (vNRCV_Mx1['Sir3sID'].str.contains(patWBLZ)) 
-            #     |
-            #   (vNRCV_Mx1['Sir3sID'].str.contains(patDH)) 
-            #  )  
-            #&
-            # (vNRCV_Mx1['CONT_ID'].astype(int) == 1001)  
-            #].iterrows():
-            #    s=self.mx.df[row.Sir3sID]
-            #    sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(row.Sir3sID)]
 
-            #    v=s[timeT]                
+            patWBLZ='WBLZ~[\S ]+~\S*~\S+~\S+'
+            patWBLZ_WVB='WBLZ~[\S ]+~\S*~\S+~WVB' # Verbrauch
+            patWBLZ_WES='WBLZ~[\S ]+~\S*~\S+~WES' # Einspeisung
+
+            patWBLZ_WVB_GES='WBLZ~WärmeblnzGes~\S*~\S+~WVB' # Verbrauch Gesamt
+            #patWBLZ_WES_GES='WBLZ~WärmeblnzGes+~\S*~\S+~WES' # Einspeisung Gesamt
+
+            sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.contains(patWBLZ_WVB_GES)].iloc[0]
+            s=self.mx.df[sCh.Sir3sID]
                 
-            #    if sCh.iloc[0].ATTRTYPE=='WVB':
-            #        v0=s[timeRef]
-            #        vp=v/v0*100               
-                                
-            #    x,y = row.pXYLB                
-            #    if x<0:
-            #        x=0
-            #    if y<0:
-            #        continue
-               
-            #    if sCh.iloc[0].ATTRTYPE=='WVB':
-            #        if sCh.iloc[0].NAME1=='InnenNo': # or sCh.iloc[0].NAME1=='WärmeblnzGes':
-            #            rotation='vertical'
-            #            va='center'
-            #            ha='right'
-            #        else:
-            #            rotation='horizontal'
-            #            va='bottom'
-            #            ha='center' 
+            v=s[timeT]                
+            v0=s[timeRef]
+            vp=v/v0*100               
+                                                              
+            x,y=pFWVBGCategoryXStart,pFWVBGCategoryYStart            
 
-            #        a=plt.annotate("{:s}: {:6.1f} {:s} {:6.1f}%".format(sCh.iloc[0].NAME1,v,sCh.iloc[0].UNIT,vp), xy=(round(x,0),round(y,0)), xycoords='data'                        
-            #                 ,va=va
-            #                 ,ha=ha
-            #                 ,rotation=rotation
-            #                ,clip_on=False
-            #        )
-            #    else:
-            #        a=plt.annotate("{:s}: {:6.1f} {:s}".format('Kontrollwert DH',v,sCh.iloc[0].UNIT), xy=(round(x,0),round(y,0)), xycoords='data'                        
-            #                 ,va='bottom'
-            #                 ,ha='center' 
-            #                ,clip_on=False
-            #        )
+            txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(sCh.NAME1,v,sCh.UNIT,vp)
+            a=plt.annotate(txt
+                            ,xy=(x,y)
+                            ,family='monospace'
+                            ,size='smaller'                   
+                            ,xycoords=ax.transAxes #'data'  
+                            ,rotation='horizontal'
+                            ,va='bottom'
+                            ,ha='left'   
+                            ,clip_on=False
+            )     
+
+
+
+            vWBLZ=self.xm.dataFrames['vWBLZ']
+            df=pd.merge(vNRCV_Mx1,vWBLZ,left_on='fkOBJTYPE',right_on='pk')
+            df=df[['Sir3sID','NAME','IDIM']].drop_duplicates()
+            # Sir3sID NAME
+            # alle NumAnz die definiert sind und WVB einer Wärmebilanz referenzieren
+
+            for NAME in pFWVBGCategory: # verlangte Wärmebilanzen       
+                try:         
+                    row=df[df['NAME']==NAME].iloc[0]
+                except:
+                    logger.debug("{:s} verlangte Wärmebilanz (aus pFWVBGCategory)={:s} nicht definiert.".format(logStr,NAME))    
+                    continue
+
+                sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(row.Sir3sID)].iloc[0]
+                s=self.mx.df[row.Sir3sID]
+                
+                v=s[timeT]                
+                v0=s[timeRef]
+                vp=v/v0*100               
+                                                              
+                x,y=pFWVBGCategoryXStart,pFWVBGCategoryYStart+pFWVBGCategoryYSpace*(idx+1)
+                idx=idx+1
+
+                txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(sCh.NAME1,v,sCh.UNIT,vp)
+                a=plt.annotate(txt
+                              ,xy=(x,y)
+                              ,family='monospace'
+                              ,size='smaller'                   
+                              ,xycoords=ax.transAxes #'data'  
+                              ,rotation='horizontal'
+                              ,va='bottom'
+                              ,ha='left'   
+                              ,clip_on=False
+                )     
+                   
+               
+                #if sCh.iloc[0].ATTRTYPE=='WVB':
+                #    #if sCh.iloc[0].NAME1=='InnenNo': # or sCh.iloc[0].NAME1=='WärmeblnzGes':
+                #    #    rotation='vertical'
+                #    #    va='center'
+                #    #    ha='right'
+                #    #else:
+                #    rotation='horizontal'
+                #    va='bottom'
+                #    ha='center' 
+
+                #    a=plt.annotate("{:s}: {:6.1f} {:s} {:6.1f}%".format(sCh.iloc[0].NAME1,v,sCh.iloc[0].UNIT,vp), xy=(round(x,0),round(y,0)), xycoords='data'                        
+                #             ,va=va
+                #             ,ha=ha
+                #             ,rotation=rotation
+                #            ,clip_on=False
+                #    )
+                ##else:
+                ##    a=plt.annotate("{:s}: {:6.1f} {:s}".format('Kontrollwert DH',v,sCh.iloc[0].UNIT), xy=(round(x,0),round(y,0)), xycoords='data'                        
+                ##             ,va='bottom'
+                ##             ,ha='center' 
+                ##            ,clip_on=False
+                ##    )
 
             ## ---------------------------------------------------------------------
             ## VICs
