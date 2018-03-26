@@ -32,11 +32,11 @@ DOCTEST
 >>> pFWVB=rm.pltNetDHUS(timeDeltaToT=timeDeltaToT)
 >>> print("'''{:s}'''".format(repr(pFWVB[['Measure','MCategory','GCategory']]).replace('\\n','\\n   ')))
 '''    Measure MCategory GCategory
-   0  0.834995    Middle     BLNZ1
-   1  0.973037       Top          
-   2  0.818948    Middle     BLNZ5
-   3  0.837998    Middle          
-   4  0.674331    Middle          '''
+   0  1.000000       Top     BLNZ1
+   1  0.941650    Middle          
+   2  0.932884    Middle     BLNZ5
+   3  0.926353    Middle          
+   4  0.967076       Top          '''
 >>> (wD,fileName)=os.path.split(xm.xmlFile)
 >>> (base,ext)=os.path.splitext(fileName)
 >>> plotFileName=wD+os.path.sep+base+'.'+'pdf'
@@ -143,7 +143,7 @@ def pltNetNodes(
                 ,pYCor='pYCor_i'  # colName 
                                                 
                 # Größe - pAttribute                
-                ,pSizeFactor=1. # in diesem Fall 
+                ,pSizeFactor=1. # in diesem Fall ist die Größe in Pts = dem pAttribute-Wert                
                    
                 # Farbe - pMeasure
                 ,pMeasureColorMap=plt.cm.autumn 
@@ -178,12 +178,12 @@ def pltNetNodes(
                 ):
     """
     zeichnet Symbole auf gca()
-    Größenskalierung nach pAttribute und pSizeFactor
+    Größenskalierung mit pSizeFactor * pAttribute in Pts
     Farbe nach pMeasure und pMeasureColorMap      
     return:
             (pcN, vmin, vmax)
             pcN sind die mit pMeasureColorMap gezeichneten Symbole
-            vmin/vmax sind die dabei verwendeten Extremalwerte
+            vmin/vmax sind die für die Farbskala verwendeten Extremalwerte
     """
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -282,16 +282,11 @@ def pltNetNodes(
         logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
         logger.error(logStrFinal) 
         raise RmError(logStrFinal)                       
-    finally:
-        logger.debug("{:s}{!s:s}".format(logStr,dir(pcN)))   
-        logger.debug("{:s}{!s:s}".format(logStr,pcN.get_paths()))   
-        logger.debug("{:s}{!s:s}".format(logStr,pcN.get_zorder()))   
-        logger.debug("{:s}{!s:s}".format(logStr,pcN.get_zorder()))   
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-         
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))            
         return (pcN, vmin, vmax)
 
-def pltNetCB( 
+def pltNetColorbar( 
                 pc # die einzufaerbenden Objekte; werden für die Erzeugung der colorbar zwingend benoetigt   
                  
                 # wird nur benötigt wenn CBFixedLimitLow/High _nicht gelten:
@@ -323,109 +318,42 @@ def pltNetCB(
                 ,CBAspect=10. # ratio of long to short dimension
                 ,CBShrink=1. # Colorbar füllt dann y von ax ganz aus 
                 ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-% von ax
-                ,CBAnchorVertical=0. # vertikaler Fußpunkt der colorbar in Plot-% von ax
-
-
-
-              #   pc # die einzufaerbenden Objekte                  
-              #  ,pDf=None # df                                                                                                       
-              #  ,pMeasure='Measure'  # colName   
-              #  ,pMeasureInPerc=True # Measure wird interpretiert in Prozent [0-1] 
-              #  ,pMeasureUNIT='[]'
-              #  ,pMeasureTYPE=''
-              ##  ,pAttribute='Attrib' # colName 
-              #  # Größe - pAttribute                
-              #  ,pSizeFactor=1.      # pRefSize/(pRefScale*pRefSizeValue)
-
-              #  ,CBLSymbolSize=1. #r*pDf[pAttribute].max()
-
-           
-              #  ,CBFraction=0.05  # fraction of original axes to use for colorbar
-              #  ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
-              #  ,CBLabelPad=0
-               
-              #  ,CBAspect=10. # ratio of long to short dimension
-              #  ,CBShrink=1. #0.3 # fraction by which to shrink the colorbar
-              #  ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-%
-              #  ,CBAnchorVertical=0. #0.2 # vertikaler Fußpunkt der colorbar in Plot-%
-
-              #  ,fixedCoLimits=True
-              #  ,fixedColHigh=1 # Farb-Maxwert
-              #  ,fixedColLow=0 # Farb-Minwert
-
-              #  ,pMeasure3Classes=True #pFWVBMeasure3Classes # True:
-              #  ,pMCategory='MCategory' # colName 
-
-              #  ,pMCatTopTxt='Top'     
-              #  ,pMCatBotTxt='Bottom'    
-              #  ,pMCatMidTxt='Middle'             
-              #  # ------------------------
-
-              #  # Farbe - pMeasure                 
-              #  ,limitTopColor='palegreen'
-              #  ,limitTopAlpha=0.9 
-              #  ,limitTopClip=False            
-                                                                        
-              #  ,limitBottomColor='violet' 
-              #  ,limitBottomAlpha=0.9 
-              #  ,limitBottomClip=False    
-                  
-              #  ,limitMiddleColorMap=plt.cm.autumn 
-              #  ,limitMiddleAlpha=0.9 
-              #  ,limitMiddleClip=False    
-
-              #  ,limitTopText='OK' 
-                
-              #  ,limitBottomText='NOK' 
-                 
-              #  ,limitMiddleText='dazwischen'
-
-              #  # ColorbarLegend (3Classes)
-              #  # Position der Repräsentantensymbole 
-              #  # dabei sind:
-              #  # 0 = colorbar unten
-              #  # 1 = colorbar oben
-              #  # "1" ist alsp die colorbar-Länge; die Länge von "1" im Plot wird von CBaspect und CBshrink beeinflusst                       
-              #  ,CBLe3cTopVpad=1+1*1/4
-              #  # "1"
-              #  ,CBLe3cMiddleVpad=.5                                                                         
-              #  ,CBLe3cBottomVpad=0-1*1/4  
-                 
-              #  ,CBLe3cHpadSymbol=0.2 # 0.1  
-              #  ,CBLe3cHpad=1.2 # 1.4 # fixer Abstand Repräsentantentext zu Repräsentantensymbol      
-              #  ,CBLe3cTextSpaceFactor=0.5 # plus Abstandsfaktor Repräsentantentext zu Repräsentantensymbol                                                        
+                ,CBAnchorVertical=0. # vertikaler Fußpunkt der colorbar in Plot-% von ax                                              
                 ):
     """
-          
+    pltNetColorbarBar:
+        erzeugt aus ax=gca() cax für die Colorbar
+        zeichnet die Colorbar     
     """
-    #logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
     try: 
         ax=plt.gca()
-        pltNetCBar(
-                 pc # die einzufaerbenden Objekte                  
-                ,pDf=pDf # df                                                                                                       
-                ,pMeasure=pMeasure # 
+        pltNetColorbarBar(
+                #
+                 pc # PathCollection aus pltNetNodes                     
+                #
+                ,pDf=pDf                                                                                                       
+                ,pMeasure=pMeasure 
+                #
                 ,pMeasureInPerc=pMeasureInPerc
-                ,pMeasureUNIT='[]'
-                ,pMeasureTYPE=''
-           
-                ,CBFraction=CBFraction
-                ,CBHpad=CBHpad              
-                ,CBLabelPad=CBLabelPad 
-               
-                ,CBAspect=CBAspect 
-                ,CBShrink=CBShrink 
-                ,CBAnchorHorizontal=CBAnchorHorizontal 
-                ,CBAnchorVertical=CBAnchorVertical 
-
+                ,pMeasure3Classes=pMeasure3Classes         
+                # Label                
+                ,pMeasureUNIT=pMeasureUNIT
+                ,pMeasureTYPE=pMeasureTYPE
+                # Ticks (TickLabels und TickValues)
                 ,CBFixedLimits=CBFixedLimits
                 ,CBFixedLimitLow=CBFixedLimitLow
                 ,CBFixedLimitHigh=CBFixedLimitHigh
-
-                ,pMeasure3Classes=pMeasure3Classes            
+                # Geometrie
+                ,CBFraction=CBFraction
+                ,CBHpad=CBHpad              
+                ,CBLabelPad=CBLabelPad                
+                ,CBAspect=CBAspect 
+                ,CBShrink=CBShrink 
+                ,CBAnchorHorizontal=CBAnchorHorizontal 
+                ,CBAnchorVertical=CBAnchorVertical                    
             )
         cax=plt.gca()
         fig=plt.gcf()   
@@ -558,8 +486,7 @@ def pltNetCB(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
         return cax
 
-
-def pltNetCBar( 
+def pltNetColorbarBar( 
                 pc # die einzufaerbenden Objekte; werden für die Erzeugung der colorbar zwingend benoetigt   
                  
                 # wird nur benötigt wenn CBFixedLimitLow/High _nicht gelten:
@@ -586,8 +513,7 @@ def pltNetCBar(
                 # Geometrie
                 ,CBFraction=0.05  # fraction of original axes to use for colorbar
                 ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
-                ,CBLabelPad=0. # Label unmittelbar rechts neben der Colorbar
-               
+                ,CBLabelPad=0. # Label unmittelbar rechts neben der Colorbar               
                 ,CBAspect=10. # ratio of long to short dimension
                 ,CBShrink=1. # Colorbar füllt dann y von ax ganz aus 
                 ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-% von ax
@@ -634,7 +560,7 @@ def pltNetCBar(
             else:
                 minCBtickValue=pDf[pMeasure].min()
                 maxCBtickValue=pDf[pMeasure].max()           
-        colorBar.set_ticks([minCBtickValue,maxCBtickValue])  
+        colorBar.set_ticks([minCBtickValue,minCBtickValue+.5*(maxCBtickValue-minCBtickValue),maxCBtickValue])  
 
         # tick Labels
         if pMeasureInPerc:
@@ -651,11 +577,13 @@ def pltNetCBar(
             else:
                 minCBtickLabel="{:6.2f}".format(minCBtickValue)
                 maxCBtickLabel="{:6.2f}".format(maxCBtickValue)    
-        colorBar.set_ticklabels([minCBtickLabel,maxCBtickLabel])
+        logger.debug("{:s}minCBtickLabel={:s} maxCBtickLabel={:s}".format(logStr,minCBtickLabel,maxCBtickLabel))    
+        colorBar.set_ticklabels([minCBtickLabel,'',maxCBtickLabel])
                               
-         # Label
+        
+        # Label
         if pMeasureInPerc:
-                CBLabelText="{:s} in %".format(pMeasureUNIT)                                                                
+                CBLabelText="{:s} in [%]".format(pMeasureTYPE)                                                                
         else:
                 CBLabelText="{:s} in {:s}".format(pMeasureTYPE,pMeasureUNIT)
          
@@ -670,7 +598,63 @@ def pltNetCBar(
     finally:
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
 
+def pltNetPipes(
+                pDf
+               ,pAttribute  # Line
+               ,pMeasure  # Marker
+               ,pAttríbuteColorMap
+               ,pMeasureColorMap
+               # Linienbreite - pAttribute                
+               ,pAttributeSizeFactor=1. # in diesem Fall ist die Linienbreite in Pts = dem pAttribute-Wert         
+               ,pMeasureSizeFactor=1. # in diesem Fall ist die Symbolgröße in Pts = dem pMeasure-Wert                             
+                                             
+                ):
+    """
 
+    """
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+    try: 
+        pass
+
+        # ROHR
+        minLine=pDf[pAttribute].min()
+        maxLine=pDf[pAttribute].max()
+        logger.debug("{:s}minLine (Attribute): {:6.2f}".format(logStr,minLine))
+        logger.debug("{:s}maxLine (Attribute): {:6.2f}".format(logStr,maxLine))
+        normLine=colors.Normalize(minLine,maxLine)
+
+        minMarker=pDf[pMeasure].min()
+        maxMarker=pDf[pMeasure].max()
+        normMarker=colors.Normalize(minMarker,maxMarker)
+
+        for xs,ys,vLine,vMarker in zip(pDf['pWAYPXCors'],pDf['pWAYPYCors'],pDf[pAttribute],pDf[pMeasure]):        
+            colorLine=pAttríbuteColorMap(normLine(vLine)) 
+            colorMarker=pMeasureColorMap(normMarker(vMarker))
+            pcLines=ax.plot(xs,ys
+                            ,color=colorLine
+                            ,linewidth=pAttributeSizeFactor*vLine #                      pDfAttributeRefSize*vLine/maxLine
+                            ,ls='-'
+                            ,marker='.' #pROHRMeasureMarker
+                            ,mfc=colorMarker 
+                            ,ms=pMeasureSizeFactor*vMarker                             #pROHRMeasureRefSizeFactor*pDfAttributeRefSize*vMarker/maxMarker
+                            ,mew=0.
+                            ,markevery=[0,len(xs)-1]
+                            ,aa=True
+                            ,clip_on=False
+                           )            
+            logger.debug("{:s}pcLines: {!s:s}".format(logStr,pcLines))
+      
+                                                                                          
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                   
 
 class Rm():
     """
@@ -820,7 +804,7 @@ class Rm():
                    ,CBAnchorVertical=0.2 # vertikaler Fußpunkt der colorbar in Plot-%
 
                    #  
-                   ,CBFixedLimits=False 
+                   ,CBFixedLimits=True 
                    ,CBFixedLimitLow=.10 #None
                    ,CBFixedLimitHigh=.95 #None
 
@@ -900,13 +884,14 @@ class Rm():
             if pFWVBMeasureInRefPerc:  # auch in diesem Fall trägt die Spalte Measure das Ergebnis               
                 pFWVBMeasureValueRef=plotTimeDfs[timeRefIdx][pFWVBMeasure].iloc[0] 
                 pFWVBMeasureValuePerc=[float(m)/float(mRef) if float(mRef) >0 else 1 for m,mRef in zip(pFWVBMeasureValue,pFWVBMeasureValueRef)]
-            pFWVB=vFWVB.assign(Measure=pd.Series(pFWVBMeasureValuePerc)) #!
+                pFWVB=vFWVB.assign(Measure=pd.Series(pFWVBMeasureValuePerc)) #!
+            else:
+                pFWVB=vFWVB.assign(Measure=pd.Series(pFWVBMeasureValue)) #!
 
-            for m,mRef,mPerc in zip(pFWVBMeasureValue,pFWVBMeasureValueRef,pFWVBMeasureValuePerc):                
-                logger.debug("{:s}m={:10.3f} mRef={:10.3f} mPerc={:5.2f}".format(logStr,m,mRef,mPerc*100))     
+            # Sachdaten annotieren mit Spalte MCategory           
+            if  not CBFixedLimits and pFWVBMeasure3Classes:
+                logger.error("Bei 3-Klassendarstellung Wahr muss FixedLimits Wahr sein.")
 
-
-            # Sachdaten annotieren mit Spalte MCategory            
             pFWVBCat=[]
             for index, row in pFWVB.iterrows():
                 if row.Measure >= CBFixedLimitHigh:
@@ -1059,13 +1044,9 @@ class Rm():
             pFWVBSizeFactor=pFWVBrefSize/(pFWVBrefScale*pFWVBrefSizeValue)
             
 
-            pcFWVB, vmin, vmax = pltNetNodes(
+            pcFWVB, CBLimitLow, CBLimitHigh = pltNetNodes(
                  pDf=pltFWVB # df                                                                                     
                 ,pAttribute=pFWVBAttribute # colName 
-                #,pMeasure=pMeasure  # colName   
-                #,pMCategory='MCategory' # colName 
-                #,pXCor='pXCor_i'  # colName 
-                #,pYCor='pYCor_i'  # colName 
                                                 
                 # Größe - pAttribute                
                 ,pSizeFactor=pFWVBSizeFactor
@@ -1101,129 +1082,33 @@ class Rm():
                 ,limitMiddleClip=limitMiddleClip
             )
 
-          #  cax=pltNetCB(
-
-          #      pc=pcFWVB # die einzufaerbenden Objekte; werden für die Erzeugung der colorbar zwingend benoetigt   
-                 
-          #      # wird nur benötigt wenn CBFixedLimitLow/High _nicht gelten:
-          #      #>...                     
-          #      ,pDf=pltFWVB # df            
-          #      ,pMeasure='Measure'  # colName   
-          #      # pMeasure3Classes True: CBFixedLimitLow/High gelten; CBFixedLimits spielt keine Rolle
-          #      # False: CBFixedLimitLow/High gelten wenn CBFixedLimits
-          #      # sonst: pDf[pMeasure].min()/.max() sind die Limits 
-          #       #...<
-
-          #      ,pMeasureInPerc=pFWVBMeasureInRefPerc # Measure wird interpretiert in Prozent [0-1] 
-          #      ,pMeasure3Classes=pFWVBMeasure3Classes 
-                
-          #      # Label
-          #      ,pMeasureUNIT=pFWVBMeasureUNIT
-          #      ,pMeasureTYPE=pFWVBMeasureATTRTYPE
-
-          #      # Ticks (TickLabels und TickValues)
-          #      ,CBFixedLimits=CBFixedLimits
-          #      ,CBFixedLimitLow=CBFixedLimitLow
-          #      ,CBFixedLimitHigh=CBFixedLimitHigh        
-
-          #      # Geometrie
-          #      ,CBFraction=CBFraction  # fraction of original axes to use for colorbar in Plot-% von ax
-          #      ,CBHpad=CBHpad # fraction of original axes between colorbar and new image axes in Plot-% von ax             
-          #      ,CBLabelPad=CBLabelPad # Label unmittelbar rechts neben der Colorbar
-               
-          #      ,CBAspect=CBAspect # ratio of long to short dimension
-          #      ,CBShrink=CBShrink # 1.: Colorbar füllt dann y von ax ganz aus 
-          #      ,CBAnchorHorizontal=CBAnchorHorizontal # horizontaler Fußpunkt der colorbar in Plot-% von ax
-          #      ,CBAnchorVertical=CBAnchorVertical # vertikaler Fußpunkt der colorbar in Plot-% von ax
+            cax=pltNetColorbar(
+                # 
+                 pc=pcFWVB # PathCollection aus pltNetNodes        
+                #                      
+                ,pDf=pltFWVB 
+                ,pMeasure='Measure'           
+                #
+                ,pMeasureInPerc=pFWVBMeasureInRefPerc 
+                ,pMeasure3Classes=pFWVBMeasure3Classes                 
+                # Label
+                ,pMeasureUNIT=pFWVBMeasureUNIT
+                ,pMeasureTYPE=pFWVBMeasureATTRTYPE
+                # Ticks (TickLabels und TickValues)
+                ,CBFixedLimits=CBFixedLimits
+                ,CBFixedLimitLow=CBLimitLow
+                ,CBFixedLimitHigh=CBLimitHigh     
+                # Geometrie
+                ,CBFraction=CBFraction  
+                ,CBHpad=CBHpad          
+                ,CBLabelPad=CBLabelPad              
+                ,CBAspect=CBAspect 
+                ,CBShrink=CBShrink 
+                ,CBAnchorHorizontal=CBAnchorHorizontal 
+                ,CBAnchorVertical=CBAnchorVertical 
+            )
 
 
-
-
-
-
-
-
-
-          ##        pc=pcFWVB              
-          ##       ,pDf=pltFWVB # df         
-                 
-          #  #    ,pMeasureUNIT='[]'
-          #  #    ,pMeasureTYPE=''                 
-                                                                                             
-          #      # ,pAttribute=pFWVBAttribute # colName 
-            
-                                                
-          #  #    # Größe - pAttribute                
-          #  #    ,pSizeFactor=pFWVBSizeFactor
-
-          # #      ,CBLSymbolSize=pFWVBSizeFactor*pltFWVB[pFWVBAttribute].max()/(pFWVBrefScale*pFWVBrefSizeValue)     #1.    #pSizeFactor*pDf[pAttribute].max()
-
-          #  #    # die einzufaerbenden Objekte        
-         
-
-          #  #    ,CBFraction=CBfraction #0.05  # fraction of original axes to use for colorbar
-          #  #    ,CBHpad=CBHpad #0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
-          #  #     ,CBLabelPad=CBLabelPad #-50
-               
-          #  #    ,CBAspect=CBaspect #0. # ratio of long to short dimension
-          #   #    ,CBShrink=CBShrink #0.3 # fraction by which to shrink the colorbar
-          #  #    ,CBanchorHorizontal=CBanchorHorizontal #. # horizontaler Fußpunkt der colorbar in Plot-%
-          #    #   ,CBAnchorVertical=CBAnchorVertical #0.2 # vertikaler Fußpunkt der colorbar in Plot-%                   
-             
-
-          #  #    ,fixedCoLimits=True
-          #  #    ,fixedColHigh=limitTop # Farb-Maxwert
-          #  #    ,fixedColLow=limitBottom # Farb-Minwert
-
-          #  #    ,pMeasure3Classes=pFWVBMeasure3Classes # True: # Measure wird dargestellt in 3 Klassen MCategory: Top, Middle, Bottom
-          #  #    ,pMCategory='MCategory' # colName 
-                   
-          #  #    #,pMCatTopTxt='Top'     
-          #  #    #,pMCatBotTxt='Bottom'    
-          #  #    #,pMCatMidTxt='Middle'             
-          #  #    # ------------------------
-
-          #  #    # Farbe - pMeasure                 
-          #  #    ,limitTopColor=limitTopColor
-          #  #    ,limitTopAlpha=limitTopAlpha
-          #  #    ,limitTopClip=limitTopClip   
-                                                                        
-          #  #    ,limitBottomColor=limitBottomColor 
-          #  #    ,limitBottomAlpha=limitBottomAlpha
-          #  #    ,limitBottomClip=limitBottomClip
-                  
-          #  #    ,limitMiddleColorMap=limitMiddleColorMap
-          #  #    ,limitMiddleAlpha=limitMiddleAlpha
-          #  #    ,limitMiddleClip=limitMiddleClip
-          #  )
-
-            ## ROHR
-            #minLine=pltROHR[pROHRAttribute].min()
-            #maxLine=pltROHR[pROHRAttribute].max()
-            #logger.debug("{:s}minLine (Attribute): {:6.2f}".format(logStr,minLine))
-            #logger.debug("{:s}maxLine (Attribute): {:6.2f}".format(logStr,maxLine))
-            #normLine=colors.Normalize(minLine,maxLine)
-
-            #minMarker=pltROHR['Measure'].min()
-            #maxMarker=pltROHR['Measure'].max()
-            #normMarker=colors.Normalize(minMarker,maxMarker)
-
-            #for xs,ys,vLine,vMarker in zip(pltROHR['pWAYPXCors'],pltROHR['pWAYPYCors'],pltROHR[pROHRAttribute],pltROHR['Measure']):        
-            #    colorLine=pROHRAttributeColorMap(normLine(vLine)) 
-            #    colorMarker=pROHRMeasureColorMap(normMarker(vMarker))
-            #    pcLines=ax.plot(xs,ys
-            #                    ,color=colorLine
-            #                    ,linewidth=pROHRAttributeRefSize*vLine/maxLine
-            #                    ,ls=pROHRAttributeLs
-            #                    ,marker=pROHRMeasureMarker
-            #                    ,mfc=colorMarker 
-            #                    ,ms=pROHRMeasureRefSizeFactor*pROHRAttributeRefSize*vMarker/maxMarker
-            #                    ,mew=0.
-            #                    ,markevery=[0,len(xs)-1]
-            #                    ,aa=True
-            #                    ,clip_on=pROHRClip
-            #                   )            
-            #    logger.debug("{:s}pcLines: {!s:s}".format(logStr,pcLines))
 
 
                                                   
