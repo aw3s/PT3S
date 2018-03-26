@@ -686,10 +686,13 @@ def pltNetColorbarLegend3Classes(
 
 def pltNetTitleblock( 
               TBAnchorVertical=1.
+             ,TBHSpace=0.4 
              ,Projekt='Projekt' 
              ,Planer='Planer' 
              ,Inst='Inst' 
-                         
+             ,Model='M: ...'   
+             ,Result='E: ...'    
+             ,Times='TRef: ... T: ...'                                       
                 ):
     """
     zeichnet das Schriftfeld      
@@ -698,33 +701,63 @@ def pltNetTitleblock(
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
     try: 
-        pass
-
         cax=plt.gca()
-        
+            
         a=plt.annotate(Projekt, xy=(0.,TBAnchorVertical)
+                        ,family='monospace'
+                        ,size='smaller'                    
                         ,xycoords=cax.transAxes 
                         ,rotation='vertical'
                         ,va='bottom'
                         ,ha='left'
         )
+       
 
-        #a=plt.annotate(Planer, xy=(0.,TBAnchorVertical)
-        #                ,xycoords=cax.transAxes 
-        #                ,rotation='vertical'
-        #                ,va='bottom'
-        #                ,ha='left'   
-        #)
+        a=plt.annotate(Planer, xy=(0.+1*TBHSpace,TBAnchorVertical)
+                        ,family='monospace'
+                        ,size='smaller'                  
+                        ,xycoords=cax.transAxes 
+                        ,rotation='vertical'
+                        ,va='bottom'
+                        ,ha='left'   
+        )
 
-        #a=plt.annotate(Inst, xy=(0.,TBAnchorVertical)
-        #                ,xycoords=cax.transAxes 
-        #                ,rotation='vertical'
-        #                ,va='bottom'
-        #                ,ha='left'   
-        #)        
-      
-      
-                                                                                                                
+        a=plt.annotate(Inst, xy=(0.+2*TBHSpace,TBAnchorVertical)
+                        ,family='monospace'
+                        ,size='smaller'                   
+                        ,xycoords=cax.transAxes 
+                        ,rotation='vertical'
+                        ,va='bottom'
+                        ,ha='left'   
+        )        
+
+        a=plt.annotate(Model, xy=(0.+3*TBHSpace,TBAnchorVertical)
+                        ,family='monospace'
+                        ,size='smaller'                  
+                        ,xycoords=cax.transAxes 
+                        ,rotation='vertical'
+                        ,va='bottom'
+                        ,ha='left'   
+        )  
+        
+        a=plt.annotate(Result, xy=(0.+4*TBHSpace,TBAnchorVertical)
+                        ,family='monospace'
+                        ,size='smaller'                   
+                        ,xycoords=cax.transAxes 
+                        ,rotation='vertical'
+                        ,va='bottom'
+                        ,ha='left'   
+        )        
+        
+        a=plt.annotate(Times, xy=(0.+5*TBHSpace,TBAnchorVertical)
+                        ,family='monospace'
+                        ,size='smaller'                  
+                        ,xycoords=cax.transAxes 
+                        ,rotation='vertical'
+                        ,va='bottom'
+                        ,ha='left'   
+        )                              
+                                                                                                                      
     except RmError:
         raise            
     except Exception as e:
@@ -974,6 +1007,7 @@ class Rm():
                  
                    # Schriftfeld ----------------------------------------------------------------------------------------
                    ,TBVSpace=0.2 # von Top(ggf. Symbol) der Colorbar
+                   ,TBHSpace=0.4 # von Top(ggf. Symbol) der Colorbar
 
 
 
@@ -1307,11 +1341,17 @@ class Rm():
             )
 
             fig.sca(cax)
+            xmFileName,ext = os.path.splitext(os.path.basename(self.xm.xmlFile))
+            (wDir,modelDir,modelName)=self.xm.getWDirModelDirModelName()
             pltNetTitleblock( 
               TBAnchorVertical=TBAnchorVertical+TBVSpace
+             ,TBHSpace=TBHSpace  
              ,Projekt=self.xm.dataFrames['MODELL']['PROJEKT'].iloc[0]
              ,Planer=self.xm.dataFrames['MODELL']['PLANER'].iloc[0]
-             ,Inst=self.xm.dataFrames['MODELL']['INST'].iloc[0]                          
+             ,Inst=self.xm.dataFrames['MODELL']['INST'].iloc[0]       
+             ,Model="M: {:s}".format(xmFileName)   
+             ,Result="E: {:s}".format(os.path.join(os.path.basename(wDir),os.path.join(modelDir,modelName))+'.MX1')   
+             ,Times="TRef: {!s:s} T: {!s:s}".format(timeDeltaToRef,timeDeltaToT).replace('days','Tage')             
             )
 
 
@@ -1319,14 +1359,7 @@ class Rm():
             ## Legende Modellschriftfeld ---------------------------------------------------------------------
             #fig.sca(cax)
 
-            #if pFWVBMeasure3Classes:
-            #    vModelTitleBlock=bbTop.y1+titleBlockVSpace
-            #else:
-            #    vModelTitleBlock=1+titleBlockVSpace
-            
-            #Projekt=self.xm.dataFrames['MODELL']['PROJEKT'].iloc[0]
-            #Planer=self.xm.dataFrames['MODELL']['PLANER'].iloc[0]
-            #Inst=self.xm.dataFrames['MODELL']['INST'].iloc[0]
+
             
 
 
