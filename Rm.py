@@ -1078,25 +1078,15 @@ class Rm():
                    # NUMANZ
                    ,pFIGNrcv=['KNOT~PKON-Knoten~\S*~\S+~QM']                  
                    ,pFIGNrcvXStart=.5
-                   ,pFIGNrcvYStart=.9
+                   ,pFIGNrcvYStart=.5
                    ,pFIGNrcvYSpace=-.1
-
-
                  
-                 
-                   ,pFWVBVICsDf=None # df with VICs; Kundenname, Knotenname (NAME_I)
-                
-                   
-                   # Attribute (Sachdatum) & Measure (Ergebnis)
-                   # ROHR
-              
-                 
-                   # Attribute wirkt auf die Linie (Breite, Farbe)
-                   # Measure wirkt auf die Marker (Größe, Farbe)
-             
-                 
-
-
+                   # VICs 
+                   ,pVICsDf=pd.DataFrame({'Kundenname': ['VIC1'],'Knotenname': ['V-K007']})
+                   ,pVICsXStart=.8
+                   ,pVICsYStart=.5
+                   ,pVICsYSpace=-.1
+                                                   
                    ): 
         """
           
@@ -1134,8 +1124,8 @@ class Rm():
             vFWVB=self.xm.dataFrames['vFWVB']
             vNRCV_Mx1=self.xm.dataFrames['vNRCV_Mx1']
 
-            if isinstance(pFWVBVICsDf,pd.core.frame.DataFrame):
-                df=vFWVB.merge(pFWVBVICsDf,left_on='NAME_i',right_on='Knotenname')
+            if isinstance(pVICsDf,pd.core.frame.DataFrame):
+                df=vFWVB.merge(pVICsDf,left_on='NAME_i',right_on='Knotenname')
                 vFWVB=vFWVB.assign(VIC=df['Kundenname'])
            
             # Einheit der Measures ermitteln (fuer Annotationen)
@@ -1559,38 +1549,31 @@ class Rm():
 
             ## ---------------------------------------------------------------------
             ## VICs
-            #if isinstance(pFWVBVICsDf,pd.core.frame.DataFrame):
-            #    fig.sca(ax)
-            #    xStart=9000.
-            #    yStart=1000.
-            #    fontsize=8
-            #    distance=50
-            #    idx=0
-            #    for index, row in pFWVB[pd.isnull(pFWVB['VIC'])==False].sort_values(['VIC'],ascending=False).iterrows():      
-            #            kunde=row.VIC                         
-            #            a=plt.annotate("{:s}".format(kunde), xy=(xStart,yStart+fontsize*distance*idx), xycoords='data'                              
-            #                        ,fontsize=fontsize    
-            #                        ,va='bottom'
-            #                        ,ha='left' 
-            #                    ,clip_on=False
-            #                        )
-            #            idx=idx+1
 
-            #    idx=0
-            #    if pFWVBMeasureInRefPerc:
-            #        unit='%'
-            #    else:
-            #        unit=pFWVBMeasureUNIT
-            #    for index, row in pFWVB[pd.isnull(pFWVB['VIC'])==False].sort_values(['VIC'],ascending=False).iterrows():
-            #            v=pFWVB[pMeasure].loc[index]
-            #            a=plt.annotate("{:6.2f} {:s}".format(v*100,unit), xy=(xStart+6000,yStart+fontsize*distance*idx), xycoords='data'                             
-            #                        ,fontsize=fontsize    
-            #                        ,va='bottom'
-            #                        ,ha='left' 
-            #                    ,clip_on=False
-            #                            )
-            #            idx=idx+1  
-                                                              
+            if isinstance(pVICsDf,pd.core.frame.DataFrame):
+                fig.sca(ax)
+                xStart=pVICsXStart
+                yStart=pVICsXStart
+                fontsize=8
+                distance=50
+                idx=0
+                for index, row in pFWVB[pd.isnull(pFWVB['VIC'])==False].sort_values(['VIC'],ascending=False).iterrows():      
+                        kunde=row.VIC                         
+                        v=row.Measure
+                        txt="{:s} {:3.1f}%".format(kunde,v*100)      
+                        x,y=pVICsXStart,pVICsYStart+pVICsYSpace*idx                  
+                        a=plt.annotate(txt                                
+                                ,xy=(x,y)
+                                ,family='monospace'
+                                ,size='smaller'                   
+                                ,xycoords=ax.transAxes #'data'  
+                                ,rotation='horizontal'
+                                ,va='bottom'
+                                ,ha='left'   
+                                ,clip_on=False                                                                                                                                                                         
+                                    )
+                        idx=idx+1
+                                                                           
         except RmError:
             raise            
         except Exception as e:
