@@ -57,35 +57,6 @@ True
 >>> if os.path.exists(plotFileName):                        
 ...   pass #os.remove(plotFileName)
 """
-"""
-#>>> # ---
-#>>> # Test
-#>>> # ---
-#>>> rootDir=r'C:\\3S\Modelle'
-#>>> xmlFile=os.path.join(rootDir,'MVV_FWv12(Bericht Version 1.2)_TLN2_Szenarium.XML')
-#>>> xm=Xm.Xm(xmlFile=xmlFile)
-#>>> (wDir,modelDir,modelName)=xm.getWDirModelDirModelName()
-#>>> mx1File=os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'            
-#>>> mx=Mx.Mx(mx1File=mx1File)
-#>>> mx=Mx.Mx(mx1File=mx1File)
-#>>> rm=Rm(xm=xm,mx=mx)
-#>>> plt.close('all')
-#>>> fig=plt.figure(
-#...   frameon=True
-#...  ,linewidth=1.
-#...  ,edgecolor='k') # black
-#>>> timeDeltaToT=pd.to_timedelta('8 minutes 5 seconds')
-#>>> rm.pltNetDHUS(timeDeltaToT=timeDeltaToT,pROHRAttributeRefSize=100.)
-#>>> (wD,fileName)=os.path.split(xm.xmlFile)
-#>>> (base,ext)=os.path.splitext(fileName)
-#>>> plotFileName=wD+os.path.sep+base+'.'+'pdf'
-#>>> if os.path.exists(plotFileName):                        
-#...    os.remove(plotFileName)
-#>>> plt.savefig(plotFileName,dpi=300)
-#>>> os.path.exists(plotFileName)
-#True
-"""
-
 import os
 import sys
 import logging
@@ -1139,16 +1110,16 @@ class Rm():
 
             # FWVB            
             pFWVBMeasureValue=plotTimeDfs[timeTIdx][pFWVBMeasure].iloc[0] 
+            pFWVBMeasureValueRef=plotTimeDfs[timeRefIdx][pFWVBMeasure].iloc[0] 
             if pFWVBMeasureInRefPerc:  # auch in diesem Fall trägt die Spalte Measure das Ergebnis               
-                pFWVBMeasureValueRef=plotTimeDfs[timeRefIdx][pFWVBMeasure].iloc[0] 
+                #pFWVBMeasureValueRef=plotTimeDfs[timeRefIdx][pFWVBMeasure].iloc[0] 
                 pFWVBMeasureValuePerc=[float(m)/float(mRef) if float(mRef) >0 else 1 for m,mRef in zip(pFWVBMeasureValue,pFWVBMeasureValueRef)]
-                pFWVB=vFWVB.assign(Measure=pd.Series(pFWVBMeasureValuePerc)) #!
-                pFWVB=pFWVB.assign(MeasureRef=pd.Series(pFWVBMeasureValueRef)) 
-                pFWVB=pFWVB.assign(MeasureOrig=pd.Series(pFWVBMeasureValue)) 
+                pFWVB=vFWVB.assign(Measure=pd.Series(pFWVBMeasureValuePerc)) #!                                
             else:
-                pFWVB=vFWVB.assign(Measure=pd.Series(pFWVBMeasureValue)) #!
-                pFWVB=pFWVB.assign(MeasureRef=pd.Series(pFWVBMeasureValue)) 
-                pFWVB=pFWVB.assign(MeasureOrig=pd.Series(pFWVBMeasureValue)) 
+                pFWVB=vFWVB.assign(Measure=pd.Series(pFWVBMeasureValue)) #!                              
+
+            pFWVB=pFWVB.assign(MeasureOrig=pd.Series(pFWVBMeasureValue)) 
+            pFWVB=pFWVB.assign(MeasureRef=pd.Series(pFWVBMeasureValueRef)) 
 
             # Sachdaten annotieren mit Spalte MCategory           
             if  not pFWVBMeasureCBFixedLimits and pFWVBMeasure3Classes:
@@ -1493,15 +1464,17 @@ class Rm():
                     
                     if math.fabs(vpAgg-vp) > 0.1:
                         logger.error("{:s} für verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist das NumAnz Ergebnis verschieden vom Agg Ergebnis!".format(logStr,NAME))  
-                                                                                                         
-                               
+                                                                                                                                        
                 except:
                     logger.debug("{:s} für verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist keine NumAnz definiert.".format(logStr,NAME))                        
                                                                                     
                 x,y=pFWVBGCategoryXStart,pFWVBGCategoryYStart+pFWVBGCategoryYSpace*idx
                 idx=idx+1
 
-                txt="{:12s}: {:6.1f} {:4s} {:6.1f}% {:d}/{:d}/{:d}".format(NAME,vIst,pFWVBGCategoryUnit,vIst/vSoll*100,topAnz,midAnz,botAnz)
+                if pFWVBMeasure3Classes:
+                    txt="{:12s}: {:6.1f} {:4s} {:6.1f}% {:d}/{:d}/{:d}".format(NAME,vIst,pFWVBGCategoryUnit,vIst/vSoll*100,topAnz,midAnz,botAnz)
+                else:
+                    txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(NAME,vIst,pFWVBGCategoryUnit,vIst/vSoll*100)
                 a=plt.annotate(txt
                               ,xy=(x,y)
                               ,family='monospace'
@@ -1558,7 +1531,10 @@ class Rm():
                 for index, row in pFWVB[pd.isnull(pFWVB['VIC'])==False].sort_values(['VIC'],ascending=False).iterrows():      
                         kunde=row.VIC                         
                         v=row.Measure
-                        txt="{:s} {:3.1f}%".format(kunde,v*100)      
+                        if pFWVBMeasureInRefPerc:
+                            txt="{:s} {:3.1f}%".format(kunde,v*100)      
+                        else:
+                            txt="{:s} {:6.2f} {:s}".format(kunde,v,pFWVBMeasureUNIT)    
                         x,y=pVICsXStart,pVICsYStart+pVICsYSpace*idx                  
                         a=plt.annotate(txt                                
                                 ,xy=(x,y)
