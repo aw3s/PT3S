@@ -1466,15 +1466,25 @@ class Rm():
                 try: 
                     WSoll=vAggWblz.loc[NAME]['W']['sum']
                     WIst=vAggWblz.loc[NAME]['WIst']['sum']                                     
-                    vpAgg=WIst/WSoll*100     
-                    
-                    topAnz=int(vAggWblzMCat.loc[NAME,limitTopText]['Measure']['size'])
-                    midAnz=int(vAggWblzMCat.loc[NAME,limitMiddleText]['Measure']['size'])
-                    botAnz=int(vAggWblzMCat.loc[NAME,limitBottomText]['Measure']['size'])
-                                                                 
+                    vpAgg=WIst/WSoll*100                                                                                                             
                 except:
                     logger.debug("{:s} verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist nicht definiert.".format(logStr,NAME))    
                     continue
+
+                try:                                       
+                    topAnz=int(vAggWblzMCat.loc[NAME,limitTopText]['Measure']['size'])                                                                                
+                except:
+                    topAnz=0
+                   
+                try:                                                          
+                    midAnz=int(vAggWblzMCat.loc[NAME,limitMiddleText]['Measure']['size'])                                                                             
+                except:                 
+                    midAnz=0
+                  
+                try:                                                         
+                    botAnz=int(vAggWblzMCat.loc[NAME,limitBottomText]['Measure']['size'])                                                                 
+                except:                   
+                    botAnz=0                   
 
                 try: 
                     Sir3sID=vAggNumAnz.loc[NAME].index[0]   
