@@ -1006,7 +1006,7 @@ class Rm():
                    ,pFWVBGCategory=['BLNZ1u5u7'] # ['Süd','Nord','Innenstadt','Nord PWS','NordOst BHW','Ost HWV','Ost PWF/PSE','Nord Rest'] # NAMEn von WBLZ
                    ,pFWVBGCategoryXStart=.1
                    ,pFWVBGCategoryYStart=.9
-                   ,pFWVBGCategoryYSpace=-.01
+                   ,pFWVBGCategoryYSpace=-.1
 
                    ,pFWVBAttributeRefSize=10                   
                    
@@ -1423,7 +1423,7 @@ class Rm():
             df=df[['Sir3sID','NAME','IDIM']].drop_duplicates()
             # Sir3sID NAME
             # alle NumAnz die definiert sind und WVB einer Wärmebilanz referenzieren
-            idx=0
+            idx=1
             for NAME in pFWVBGCategory: # verlangte Wärmebilanzen       
                 try:         
                     row=df[df['NAME']==NAME].iloc[0]
@@ -1438,7 +1438,7 @@ class Rm():
                 v0=s[timeRef]
                 vp=v/v0*100               
                                                               
-                x,y=pFWVBGCategoryXStart,pFWVBGCategoryYStart+pFWVBGCategoryYSpace*(idx+1)
+                x,y=pFWVBGCategoryXStart,pFWVBGCategoryYStart+pFWVBGCategoryYSpace*idx
                 idx=idx+1
 
                 txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(sCh.NAME1,v,sCh.UNIT,vp)
