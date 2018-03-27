@@ -933,8 +933,6 @@ def pltNetFigAx(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))               
 
-
-
 class Rm():
     """
       
