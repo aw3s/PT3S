@@ -1045,7 +1045,8 @@ class Rm():
                    ,figFacecolor='white' 
                    
                    # NUMANZ
-                   ,pFIGNrcv=['KNOT~PKON-Knoten~\S*~\S+~QM']                  
+                   ,pFIGNrcv=['KNOT~PKON-Knoten~\S*~\S+~QM']       
+                   ,pFIGNrcvTxt=['Kontrollwert DH']                  
                    ,pFIGNrcvXStart=.5
                    ,pFIGNrcvYStart=.5
                    ,pFIGNrcvYSpace=-.1
@@ -1496,30 +1497,36 @@ class Rm():
             # Nrcv
             fig.sca(ax)
 
-            idxTxt=0
-            for idx,Sir3sIDRexp in  enumerate(pFIGNrcv):                           
-                try:
-                    sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.contains(Sir3sIDRexp)].iloc[0]
-                except:
-                    logger.debug("{:s} Sir3sIDRexp {:s} nicht in .MX1".format(logStr,Sir3sIDRexp))
-                    continue
+            if isinstance(pFIGNrcv,list) and isinstance(pFIGNrcvTxt,list):
+                if len(pFIGNrcv) == len(pFIGNrcvTxt):
+                    idxTxt=0
+                    for idx,Sir3sIDRexp in  enumerate(pFIGNrcv):                           
+                        try:
+                            sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.contains(Sir3sIDRexp)].iloc[0]
+                        except:
+                            logger.debug("{:s} Sir3sIDRexp {:s} nicht in .MX1".format(logStr,Sir3sIDRexp))
+                            continue
 
-                x,y=pFIGNrcvXStart,pFIGNrcvYStart+pFIGNrcvYSpace*idxTxt
-                idxTxt=idxTxt+1
+                        x,y=pFIGNrcvXStart,pFIGNrcvYStart+pFIGNrcvYSpace*idxTxt
+                        idxTxt=idxTxt+1
                 
-                s=self.mx.df[sCh.Sir3sID]                
-                v=s[timeT]          
-                txt="{:12s}: {:6.1f} {:6s} {:6s}".format(sCh.NAME1,v,sCh.ATTRTYPE,sCh.UNIT)
-                a=plt.annotate(txt
-                                ,xy=(x,y)
-                                ,family='monospace'
-                                ,size='smaller'                   
-                                ,xycoords=ax.transAxes #'data'  
-                                ,rotation='horizontal'
-                                ,va='bottom'
-                                ,ha='left'   
-                                ,clip_on=False   
-                              )             
+                        s=self.mx.df[sCh.Sir3sID]                
+                        v=s[timeT]          
+                        txt="{:15s}: {:6.1f}".format(pFIGNrcvTxt[idx] #         sCh.NAME1
+                                                           ,v
+                                                                 #,sCh.ATTRTYPE
+                                                                 #,sCh.UNIT
+                                                                 )
+                        a=plt.annotate(txt
+                                        ,xy=(x,y)
+                                        ,family='monospace'
+                                        ,size='smaller'                   
+                                        ,xycoords=ax.transAxes #'data'  
+                                        ,rotation='horizontal'
+                                        ,va='bottom'
+                                        ,ha='left'   
+                                        ,clip_on=False   
+                                      )             
                 
                                    
 
