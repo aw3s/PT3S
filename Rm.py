@@ -1389,7 +1389,7 @@ class Rm():
             # NumAnz 
             fig.sca(ax)
 
-
+            # Gesamtbilanz-----------------------------------------------------------------------
             patWBLZ='WBLZ~[\S ]+~\S*~\S+~\S+'
             patWBLZ_WVB='WBLZ~[\S ]+~\S*~\S+~WVB' # Verbrauch
             patWBLZ_WES='WBLZ~[\S ]+~\S*~\S+~WES' # Einspeisung
@@ -1418,30 +1418,73 @@ class Rm():
                             ,clip_on=False
             )     
 
+
+            # Userbilanzen-----------------------------------------------------------------------
+            #vKNOT=xm.dataFrames['vKNOT']
             vWBLZ=self.xm.dataFrames['vWBLZ']
-            df=pd.merge(vNRCV_Mx1,vWBLZ,left_on='fkOBJTYPE',right_on='pk')
-            df=df[['Sir3sID','NAME','IDIM']].drop_duplicates()
-            # Sir3sID NAME
-            # alle NumAnz die definiert sind und WVB einer Wärmebilanz referenzieren
+            vWBLZ_vKNOT=pd.merge(vWBLZ,vKNOT,left_on='OBJID',right_on='pk')
+            vWBLZ_vKNOT_pFWVB=pd.merge(vWBLZ_vKNOT,pFWVB,left_on='NAME_y',right_on='NAME_i')
+
+            vWBLZ_vKNOT_pFWVB=vWBLZ_vKNOT_pFWVB[['NAME_x','NAME_i','pk','W','pk_x','WBLZ', 'Measure','MCategory', 'GCategory']]
+            vWBLZ_vKNOT_pFWVB.rename(columns={'NAME_x':'NAME','pk_x':'pkWBLZ'},inplace=True)
+
+            vNRCV_Mx1=self.xm.dataFrames['vNRCV_Mx1']
+            vWBLZ_vKNOT_pFWVB_vNRCV_Mx1=pd.merge(vWBLZ_vKNOT_pFWVB,vNRCV_Mx1,left_on='pkWBLZ',right_on='fkOBJTYPE',how='left')
+            vWBLZ_vKNOT_pFWVB_vNRCV_Mx1['Sir3sID']=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1['Sir3sID'].fillna(value='')
+            vWBLZ_vKNOT_pFWVB_vNRCV_Mx1['cRefLfdNr']=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1['cRefLfdNr'].fillna(value=1)
+            vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.rename(columns={'pk_x':'pkFWVB'},inplace=True)
+
+            vWBLZ_vKNOT_pFWVB_vNRCV_Mx1=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1[['NAME','NAME_i','pkFWVB','W','WBLZ','Sir3sID'
+                                                         , 'Measure','MCategory', 'GCategory','cRefLfdNr']]
+            vWBLZ_vKNOT_pFWVB_vNRCV_Mx1=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1[vWBLZ_vKNOT_pFWVB_vNRCV_Mx1['cRefLfdNr']==1]
+            vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.drop('cRefLfdNr',axis=1,inplace=True)
+            
+            vWBLZ_vKNOT_pFWVB_vNRCV_Mx1['WIst']=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.apply(lambda row: row.Measure    * row.W   , axis=1)
+
+            vAggNumAnz=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.groupby(['NAME','Sir3sID']).size()
+            #vAggNumAnz.loc['BLNZ1u5u7'].index[0] liefert Sir3sID
+
+
+            vAggWblzMCat=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.groupby(['NAME','MCategory']).agg(
+            {
+                 'W': ['size','min', 'max', 'sum']
+                ,'Measure': ['size','min', 'max', 'sum']
+                ,'WIst': ['size','min', 'max', 'sum']
+            })
+
+            vAggWblz=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.groupby(['NAME']).agg(
+            {
+                'W': ['size','min', 'max', 'sum']
+               ,'Measure': ['size','min', 'max', 'sum']
+               ,'WIst': ['size','min', 'max', 'sum']
+            })
+
+
             idx=1
             for NAME in pFWVBGCategory: # verlangte Wärmebilanzen       
-                try:         
-                    row=df[df['NAME']==NAME].iloc[0]
+                try: 
+                    WSoll=vAggWblz.loc[NAME]['W']['sum']
+                    WIst=vAggWblz.loc[NAME]['WIst']['sum']                                     
+                    vpAgg=WIst/WSoll*100          
                 except:
-                    logger.debug("{:s} verlangte Wärmebilanz (aus pFWVBGCategory)={:s} nicht definiert.".format(logStr,NAME))    
+                    logger.debug("{:s} verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist nicht definiert.".format(logStr,NAME))    
                     continue
 
-                sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(row.Sir3sID)].iloc[0]
-                s=self.mx.df[row.Sir3sID]
-                
-                v=s[timeT]                
-                v0=s[timeRef]
-                vp=v/v0*100               
-                                                              
+                try: 
+                    Sir3sID=vAggNumAnz.loc[NAME].index[0]   
+                    sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(Sir3sID)].iloc[0]
+                    s=self.mx.df[Sir3sID]    
+                    v=s[timeT]                
+                    v0=s[timeRef]
+                    vp=v/v0*100                                                                                       
+                               
+                except:
+                    logger.debug("{:s} für verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist keine NumAnz definiert.".format(logStr,NAME))                        
+                                                                                    
                 x,y=pFWVBGCategoryXStart,pFWVBGCategoryYStart+pFWVBGCategoryYSpace*idx
                 idx=idx+1
 
-                txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(sCh.NAME1,v,sCh.UNIT,vp)
+                txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(NAME,WIst,'x',WIst/WSoll*100 )
                 a=plt.annotate(txt
                               ,xy=(x,y)
                               ,family='monospace'
