@@ -1004,6 +1004,7 @@ class Rm():
                    ,pFWVBMeasure='FWVB~*~*~*~W' 
 
                    ,pFWVBGCategory=['BLNZ1u5u7'] # ['Süd','Nord','Innenstadt','Nord PWS','NordOst BHW','Ost HWV','Ost PWF/PSE','Nord Rest'] # NAMEn von WBLZ
+                   ,pFWVBGCategoryUnit='[kW]'
                    ,pFWVBGCategoryXStart=.1
                    ,pFWVBGCategoryYStart=.9
                    ,pFWVBGCategoryYSpace=-.1
@@ -1406,7 +1407,7 @@ class Rm():
                                                               
             x,y=pFWVBGCategoryXStart,pFWVBGCategoryYStart            
 
-            txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(sCh.NAME1,v,sCh.UNIT,vp)
+            txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(sCh.NAME1,v,pFWVBGCategoryUnit,vp)
             a=plt.annotate(txt
                             ,xy=(x,y)
                             ,family='monospace'
@@ -1465,7 +1466,12 @@ class Rm():
                 try: 
                     WSoll=vAggWblz.loc[NAME]['W']['sum']
                     WIst=vAggWblz.loc[NAME]['WIst']['sum']                                     
-                    vpAgg=WIst/WSoll*100          
+                    vpAgg=WIst/WSoll*100     
+                    
+                    topAnz=int(vAggWblzMCat.loc[NAME,limitTopText]['Measure']['size'])
+                    midAnz=int(vAggWblzMCat.loc[NAME,limitMiddleText]['Measure']['size'])
+                    botAnz=int(vAggWblzMCat.loc[NAME,limitBottomText]['Measure']['size'])
+                                                                 
                 except:
                     logger.debug("{:s} verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist nicht definiert.".format(logStr,NAME))    
                     continue
@@ -1476,7 +1482,11 @@ class Rm():
                     s=self.mx.df[Sir3sID]    
                     v=s[timeT]                
                     v0=s[timeRef]
-                    vp=v/v0*100                                                                                       
+                    vp=v/v0*100     
+                    
+                    if math.fabs(vpAgg-vp) > 0.1:
+                        logger.error("{:s} für verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist das NumAnz Ergebnis verschieden vom Agg Ergebnis!".format(logStr,NAME))  
+                                                                                                         
                                
                 except:
                     logger.debug("{:s} für verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist keine NumAnz definiert.".format(logStr,NAME))                        
@@ -1484,7 +1494,7 @@ class Rm():
                 x,y=pFWVBGCategoryXStart,pFWVBGCategoryYStart+pFWVBGCategoryYSpace*idx
                 idx=idx+1
 
-                txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(NAME,WIst,'x',WIst/WSoll*100 )
+                txt="{:12s}: {:6.1f} {:4s} {:6.1f}% {:d}/{:d}/{:d}".format(NAME,WIst,pFWVBGCategoryUnit,WIst/WSoll*100,topAnz,midAnz,botAnz)
                 a=plt.annotate(txt
                               ,xy=(x,y)
                               ,family='monospace'
