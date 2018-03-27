@@ -1254,9 +1254,9 @@ class Rm():
                 ,pMeasureClip=pFWVBMeasureClip    
    
                 ,pMCategory='MCategory' 
-                ,pMCatTopTxt='Top'     
-                ,pMCatBotTxt='Bottom'    
-                ,pMCatMidTxt='Middle'             
+                ,pMCatTopTxt=limitTopText # 'Top'     
+                ,pMCatBotTxt=limitBottomText # 'Bottom'    
+                ,pMCatMidTxt=limitMiddleText # 'Middle'             
                
                 ,limitTopColor=limitTopColor
                 ,limitTopAlpha=limitTopAlpha
@@ -1428,65 +1428,70 @@ class Rm():
                ,'MeasureRef': ['size','min', 'max', 'sum']
             })
 
+            if isinstance(pFWVBGCategory,list):    
+                idx=1
+                for NAME in pFWVBGCategory: # verlangte Wärmebilanzen       
+                    try: 
+                        vSoll=vAggWblz.loc[NAME]['MeasureRef']['sum']
+                        vIst=vAggWblz.loc[NAME]['MeasureOrig']['sum']                                     
+                        vpAgg=vIst/vSoll*100                                                                                                             
+                    except:
+                        logger.debug("{:s} verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist nicht definiert.".format(logStr,NAME))    
+                        continue
 
-            idx=1
-            for NAME in pFWVBGCategory: # verlangte Wärmebilanzen       
-                try: 
-                    vSoll=vAggWblz.loc[NAME]['MeasureRef']['sum']
-                    vIst=vAggWblz.loc[NAME]['MeasureOrig']['sum']                                     
-                    vpAgg=vIst/vSoll*100                                                                                                             
-                except:
-                    logger.debug("{:s} verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist nicht definiert.".format(logStr,NAME))    
-                    continue
-
-                try:                                       
-                    topAnz=int(vAggWblzMCat.loc[NAME,limitTopText]['Measure']['size'])                                                                                
-                except:
-                    topAnz=0
+                    try:                                       
+                        topAnz=int(vAggWblzMCat.loc[NAME,limitTopText]['Measure']['size'])                                                                                
+                    except:
+                        topAnz=0
                    
-                try:                                                          
-                    midAnz=int(vAggWblzMCat.loc[NAME,limitMiddleText]['Measure']['size'])                                                                             
-                except:                 
-                    midAnz=0
+                    try:                                                          
+                        midAnz=int(vAggWblzMCat.loc[NAME,limitMiddleText]['Measure']['size'])                                                                             
+                    except:                 
+                        midAnz=0
                   
-                try:                                                         
-                    botAnz=int(vAggWblzMCat.loc[NAME,limitBottomText]['Measure']['size'])                                                                 
-                except:                   
-                    botAnz=0                   
+                    try:                                                         
+                        botAnz=int(vAggWblzMCat.loc[NAME,limitBottomText]['Measure']['size'])                                                                 
+                    except:                   
+                        botAnz=0                   
 
-                try: 
-                    Sir3sID=vAggNumAnz.loc[NAME].index[0]   
-                    sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(Sir3sID)].iloc[0]
-                    s=self.mx.df[Sir3sID]    
-                    v=s[timeT]                
-                    v0=s[timeRef]
-                    vp=v/v0*100     
+                    try: 
+                        Sir3sID=vAggNumAnz.loc[NAME].index[0]   
+                        sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(Sir3sID)].iloc[0]
+                        s=self.mx.df[Sir3sID]    
+                        v=s[timeT]                
+                        v0=s[timeRef]
+                        vp=v/v0*100     
                     
-                    if math.fabs(vpAgg-vp) > 0.1:
-                        logger.error("{:s} für verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist das NumAnz Ergebnis verschieden vom Agg Ergebnis!".format(logStr,NAME))  
+                        if math.fabs(vpAgg-vp) > 0.1:
+                            logger.error("{:s} für verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist das NumAnz Ergebnis verschieden vom Agg Ergebnis!".format(logStr,NAME))  
                                                                                                                                         
-                except:
-                    logger.debug("{:s} für verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist keine NumAnz definiert.".format(logStr,NAME))                        
+                    except:
+                        logger.debug("{:s} für verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist keine NumAnz definiert.".format(logStr,NAME))                        
                                                                                     
-                x,y=pFWVBGCategoryXStart,pFWVBGCategoryYStart+pFWVBGCategoryYSpace*idx
-                idx=idx+1
+                    x,y=pFWVBGCategoryXStart,pFWVBGCategoryYStart+pFWVBGCategoryYSpace*idx
+                    idx=idx+1
 
-                if pFWVBMeasure3Classes:
-                    txt="{:12s}: {:6.1f} {:4s} {:6.1f}% {:d}/{:d}/{:d}".format(NAME,vIst,pFWVBGCategoryUnit,vIst/vSoll*100,topAnz,midAnz,botAnz)
-                else:
-                    txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(NAME,vIst,pFWVBGCategoryUnit,vIst/vSoll*100)
-                a=plt.annotate(txt
-                              ,xy=(x,y)
-                              ,family='monospace'
-                              ,size='smaller'                   
-                              ,xycoords=ax.transAxes #'data'  
-                              ,rotation='horizontal'
-                              ,va='bottom'
-                              ,ha='left'   
-                              ,clip_on=False
-                )     
-                   
-               
+                    #  txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(sCh.NAME1,v,pFWVBGCategoryUnit,vp)
+
+                    vpIstZuvSoll=vIst/vSoll
+                    if pFWVBGCategoryUnit=='[MW]':
+                        vIst=vIst/1000.
+
+                    if pFWVBMeasure3Classes:
+                        txt="{:12s}: {:6.1f} {:4s} {:6.1f}% {:5d}/{:5d}/{:5d}".format(NAME,vIst,pFWVBGCategoryUnit,vpIstZuvSoll*100,topAnz,midAnz,botAnz)
+                    else:
+                        txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(NAME,vIst,pFWVBGCategoryUnit,vpIstZuvSoll*100)
+                    a=plt.annotate(txt
+                                  ,xy=(x,y)
+                                  ,family='monospace'
+                                  ,size='smaller'                   
+                                  ,xycoords=ax.transAxes #'data'  
+                                  ,rotation='horizontal'
+                                  ,va='bottom'
+                                  ,ha='left'   
+                                  ,clip_on=False
+                    )     
+                                  
             # ---------------------------------------------------------------------
             # Nrcv
             fig.sca(ax)
@@ -1532,9 +1537,9 @@ class Rm():
                         kunde=row.VIC                         
                         v=row.Measure
                         if pFWVBMeasureInRefPerc:
-                            txt="{:s} {:3.1f}%".format(kunde,v*100)      
-                        else:
-                            txt="{:s} {:6.2f} {:s}".format(kunde,v,pFWVBMeasureUNIT)    
+                            txt="{:30s} {:3.0f}%".format(kunde,v*100)      
+                        else:                           
+                            txt="{:30s} {:6.2f} {:s}".format(kunde,v,pFWVBMeasureUNIT)    
                         x,y=pVICsXStart,pVICsYStart+pVICsYSpace*idx                  
                         a=plt.annotate(txt                                
                                 ,xy=(x,y)
