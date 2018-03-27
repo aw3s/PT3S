@@ -1075,7 +1075,11 @@ class Rm():
                    ,figEdgecolor='black' 
                    ,figFacecolor='white' 
                    
-                  
+                   # NUMANZ
+                   ,pFIGNrcv=['KNOT~PKON-Knoten~\S*~\S+~QM']                  
+                   ,pFIGNrcvXStart=.5
+                   ,pFIGNrcvYStart=.9
+                   ,pFIGNrcvYSpace=-.1
 
 
                  
@@ -1388,10 +1392,9 @@ class Rm():
              ,Result="E: {:s}".format(os.path.join(os.path.basename(wDir),os.path.join(modelDir,modelName))+'.MX1')   
              ,Times="TRef: {!s:s} T: {!s:s}".format(timeDeltaToRef,timeDeltaToT).replace('days','Tage')             
             )
-
                                                
             # ---------------------------------------------------------------------
-            # NumAnz 
+            # Bilanzwerte
             fig.sca(ax)
 
             # Gesamtbilanz-----------------------------------------------------------------------
@@ -1523,7 +1526,36 @@ class Rm():
                 )     
                    
                
+            # ---------------------------------------------------------------------
+            # Nrcv
+            fig.sca(ax)
 
+            idxTxt=0
+            for idx,Sir3sIDRexp in  enumerate(pFIGNrcv):                           
+                try:
+                    sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.contains(Sir3sIDRexp)].iloc[0]
+                except:
+                    logger.debug("{:s} Sir3sIDRexp {:s} nicht in .MX1".format(logStr,Sir3sIDRexp))
+                    continue
+
+                x,y=pFIGNrcvXStart,pFIGNrcvYStart+pFIGNrcvYSpace*idxTxt
+                idxTxt=idxTxt+1
+                
+                s=self.mx.df[sCh.Sir3sID]                
+                v=s[timeT]          
+                txt="{:12s}: {:6.1f} {:6s} {:6s}".format(sCh.NAME1,v,sCh.ATTRTYPE,sCh.UNIT)
+                a=plt.annotate(txt
+                                ,xy=(x,y)
+                                ,family='monospace'
+                                ,size='smaller'                   
+                                ,xycoords=ax.transAxes #'data'  
+                                ,rotation='horizontal'
+                                ,va='bottom'
+                                ,ha='left'   
+                                ,clip_on=False   
+                              )             
+                
+                                   
 
             ## ---------------------------------------------------------------------
             ## VICs
