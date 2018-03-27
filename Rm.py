@@ -1151,8 +1151,12 @@ class Rm():
                 pFWVBMeasureValueRef=plotTimeDfs[timeRefIdx][pFWVBMeasure].iloc[0] 
                 pFWVBMeasureValuePerc=[float(m)/float(mRef) if float(mRef) >0 else 1 for m,mRef in zip(pFWVBMeasureValue,pFWVBMeasureValueRef)]
                 pFWVB=vFWVB.assign(Measure=pd.Series(pFWVBMeasureValuePerc)) #!
+                pFWVB=pFWVB.assign(MeasureRef=pd.Series(pFWVBMeasureValueRef)) 
+                pFWVB=pFWVB.assign(MeasureOrig=pd.Series(pFWVBMeasureValue)) 
             else:
                 pFWVB=vFWVB.assign(Measure=pd.Series(pFWVBMeasureValue)) #!
+                pFWVB=pFWVB.assign(MeasureRef=pd.Series(pFWVBMeasureValue)) 
+                pFWVB=pFWVB.assign(MeasureOrig=pd.Series(pFWVBMeasureValue)) 
 
             # Sachdaten annotieren mit Spalte MCategory           
             if  not pFWVBMeasureCBFixedLimits and pFWVBMeasure3Classes:
@@ -1426,7 +1430,7 @@ class Rm():
             vWBLZ_vKNOT=pd.merge(vWBLZ,vKNOT,left_on='OBJID',right_on='pk')
             vWBLZ_vKNOT_pFWVB=pd.merge(vWBLZ_vKNOT,pFWVB,left_on='NAME_y',right_on='NAME_i')
 
-            vWBLZ_vKNOT_pFWVB=vWBLZ_vKNOT_pFWVB[['NAME_x','NAME_i','pk','W','pk_x','WBLZ', 'Measure','MCategory', 'GCategory']]
+            vWBLZ_vKNOT_pFWVB=vWBLZ_vKNOT_pFWVB[['NAME_x','NAME_i','pk','W','pk_x','WBLZ', 'Measure', 'MeasureRef','MeasureOrig','MCategory', 'GCategory']]
             vWBLZ_vKNOT_pFWVB.rename(columns={'NAME_x':'NAME','pk_x':'pkWBLZ'},inplace=True)
 
             vNRCV_Mx1=self.xm.dataFrames['vNRCV_Mx1']
@@ -1436,11 +1440,11 @@ class Rm():
             vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.rename(columns={'pk_x':'pkFWVB'},inplace=True)
 
             vWBLZ_vKNOT_pFWVB_vNRCV_Mx1=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1[['NAME','NAME_i','pkFWVB','W','WBLZ','Sir3sID'
-                                                         , 'Measure','MCategory', 'GCategory','cRefLfdNr']]
+                                                         , 'Measure', 'MeasureRef','MeasureOrig','MCategory', 'GCategory','cRefLfdNr']]
             vWBLZ_vKNOT_pFWVB_vNRCV_Mx1=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1[vWBLZ_vKNOT_pFWVB_vNRCV_Mx1['cRefLfdNr']==1]
             vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.drop('cRefLfdNr',axis=1,inplace=True)
             
-            vWBLZ_vKNOT_pFWVB_vNRCV_Mx1['WIst']=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.apply(lambda row: row.Measure    * row.W   , axis=1)
+            #vWBLZ_vKNOT_pFWVB_vNRCV_Mx1['WIst']=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.apply(lambda row: row.Measure    * row.MeasureRef   , axis=1)
 
             vAggNumAnz=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.groupby(['NAME','Sir3sID']).size()
             #vAggNumAnz.loc['BLNZ1u5u7'].index[0] liefert Sir3sID
@@ -1450,23 +1454,25 @@ class Rm():
             {
                  'W': ['size','min', 'max', 'sum']
                 ,'Measure': ['size','min', 'max', 'sum']
-                ,'WIst': ['size','min', 'max', 'sum']
+                ,'MeasureOrig': ['size','min', 'max', 'sum']
+                ,'MeasureRef': ['size','min', 'max', 'sum']
             })
 
             vAggWblz=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.groupby(['NAME']).agg(
             {
                 'W': ['size','min', 'max', 'sum']
                ,'Measure': ['size','min', 'max', 'sum']
-               ,'WIst': ['size','min', 'max', 'sum']
+               ,'MeasureOrig': ['size','min', 'max', 'sum']
+               ,'MeasureRef': ['size','min', 'max', 'sum']
             })
 
 
             idx=1
             for NAME in pFWVBGCategory: # verlangte Wärmebilanzen       
                 try: 
-                    WSoll=vAggWblz.loc[NAME]['W']['sum']
-                    WIst=vAggWblz.loc[NAME]['WIst']['sum']                                     
-                    vpAgg=WIst/WSoll*100                                                                                                             
+                    vSoll=vAggWblz.loc[NAME]['MeasureRef']['sum']
+                    vIst=vAggWblz.loc[NAME]['MeasureOrig']['sum']                                     
+                    vpAgg=vIst/vSoll*100                                                                                                             
                 except:
                     logger.debug("{:s} verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist nicht definiert.".format(logStr,NAME))    
                     continue
@@ -1504,7 +1510,7 @@ class Rm():
                 x,y=pFWVBGCategoryXStart,pFWVBGCategoryYStart+pFWVBGCategoryYSpace*idx
                 idx=idx+1
 
-                txt="{:12s}: {:6.1f} {:4s} {:6.1f}% {:d}/{:d}/{:d}".format(NAME,WIst,pFWVBGCategoryUnit,WIst/WSoll*100,topAnz,midAnz,botAnz)
+                txt="{:12s}: {:6.1f} {:4s} {:6.1f}% {:d}/{:d}/{:d}".format(NAME,vIst,pFWVBGCategoryUnit,vIst/vSoll*100,topAnz,midAnz,botAnz)
                 a=plt.annotate(txt
                               ,xy=(x,y)
                               ,family='monospace'
