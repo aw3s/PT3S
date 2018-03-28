@@ -372,7 +372,8 @@ def pltNetColorbar(
                ,CBLe3cMiddleVPad=CBLe3cMiddleVPad #.5                                                                         
                ,CBLe3cBottomVPad=CBLe3cBottomVPad #0-1*1/4                                                                                                                     
              )
-             TBAnchorVertical=bbTop.y1
+             if bbTop != None:
+                TBAnchorVertical=bbTop.y1
                                                                                                                 
     except RmError:
         raise            
@@ -540,9 +541,16 @@ def pltNetColorbarLegend3Classes(
         pDf_mid_Anz,col=pDf_mid.shape
         pDf_bot_Anz,col=pDf_bot.shape
 
+        logger.debug("{:s} pDf_bot_Anz={:d}  pDf_mid_Anz={:d} pDf_top_Anz={:d}".format(logStr,pDf_bot_Anz,pDf_mid_Anz,pDf_top_Anz))
+
+        logger.debug("{:s} pDf[pAttribute].max()={:10.3f}".format(logStr,pDf[pAttribute].max()))
         legendSymbolSize=pSizeFactor*pDf[pAttribute].max()
         
-        if pDf_bot_Anz > 0:
+        bbBot=None
+        bbMid=None
+        bbTop=None
+
+        if pDf_bot_Anz >= 0:
             po=cax.scatter( CBAnchorHorizontal,CBLe3cBottomVPad                   
                             ,s=legendSymbolSize
                             ,c=limitBottomColor
@@ -553,7 +561,8 @@ def pltNetColorbarLegend3Classes(
             # Text dazu
             o=po.findobj(match=None) 
             p=o[0]           
-            bbBot=p.get_datalim(cax.transAxes)                               
+            bbBot=p.get_datalim(cax.transAxes)      
+            logger.debug("{:s} bbBot={!s:s}".format(logStr,bbBot))                         
 
         #    a=plt.annotate(limitBottomText                                     
         #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cBottomVpad)
@@ -573,7 +582,7 @@ def pltNetColorbarLegend3Classes(
         #                    ,color=limitBottomColor 
         #                    )
 
-        if pDf_top_Anz > 0:
+        if pDf_top_Anz >= 0:
             po=cax.scatter( CBAnchorHorizontal,CBLe3cTopVPad                          
                             ,s=legendSymbolSize
                             ,c=limitTopColor
@@ -612,7 +621,7 @@ def pltNetColorbarLegend3Classes(
         #                    )
 
 
-        if pDf_mid_Anz > 0:           
+        if pDf_mid_Anz >= 0:           
             po=cax.scatter( CBAnchorHorizontal,CBLe3cMiddleVPad                                    
                             ,s=legendSymbolSize
                             ,c='lightgrey'
@@ -1166,6 +1175,10 @@ class Rm():
                 else:
                     pROHRMeasureValue[idx]=m
             pROHR=vROHR.assign(Measure=pd.Series(pROHRMeasureValue)) #!
+
+            # ========================================
+            # Return pFWVB enthält die ungefilterte und unselektierte menge
+            # ========================================
 
             # Filtern >pltXXXX ===============================================
             # (haben ggf. Einfluss auf die Abmessungen der Darstellung)
