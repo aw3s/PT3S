@@ -1,383 +1,29 @@
 """
-SIR 3S MX-Interface (short: MX):
----------------------------
-MX is a file based, channel-oriented interface for SIR 3S' calculation results.
-Module Mx contains stuff to utilize SIR 3S' MX calculation results in pure Python.  
-SIR 3S MX calculation results:
----------------------------
-Binary .MXS-Files contain the SIR 3S calculations results. 
-A Model calculation run creates at least one .MXS-File (Result-File).
-There is one .MX1-File (an XML-File) for each SIR 3S Model calculation run.    
-This .MX1-File defines in XML a sequence of MX-Channels. 
-And - as a result - the Byte-Layout of a single MX3-Record in .MXS.
-A MX3-Record contains calculation results for one Timestamp.
-A .MXS-File contains at least one MX3-Record.
----------------------------
-A MX-Channel can be 
-a single Value or a
-Vector: Sequence of calculation results of the same AType
-    of all Objects of a certain OType or (called Vectorchannels)
-    of all interior Points for all Pipes (called Pipevectorchannels)
-    and Vectors with ATTRTYPE in: {'SVEC', 'PVECMIN_INST', 'PVECMAX_INST'}.
-For Vectorchannels and Pipevectorchannels the sequence of Objects is defined in the .MX2-File. 
-For Pipevectorchannels the Number of interior Points per Pipe is defined in the .MX2-File. 
----------------------------
-DOCTEST
----------------------------
->>> # ---
->>> # Imports
->>> # ---
->>> import logging
->>> logger = logging.getLogger('PT3S.Mx')  
->>> import os
->>> import zipfile
->>> import pandas as pd
->>> path = os.path.dirname(__file__)
->>> # ---
->>> # Init
->>> # ---
->>> h5File=os.path.join(path,'testdata\OneLPipe.h5')
->>> mx1File=os.path.join(path,'testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX1')
->>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
->>> isinstance(mx.mx1Df,pd.core.frame.DataFrame) # MX1-Content
-True
->>> isinstance(mx.df,type(None)) # MXS-Content
-True
->>> # ---
->>> # Clean Up
->>> # ---
->>> if os.path.exists(mx.h5File):                        
-...    os.remove(mx.h5File)
->>> metadataFile=mx.h5File+'.metadata'
->>> if os.path.exists(metadataFile):                        
-...    os.remove(metadataFile)
->>> if os.path.exists(mx.mxsZipFile):                        
-...    os.remove(mx.mxsZipFile)
->>> mxsDumpFile=mx.mxsFile+'.dump'
->>> if os.path.exists(mxsDumpFile):                        
-...    os.remove(mxsDumpFile)
->>> if os.path.exists(mx.h5FileMxsVecs):                        
-...    os.remove(mx.h5FileMxsVecs)
->>> # ---
->>> # 1st Read MXS
->>> # ---
->>> logger.debug("{0:s}: 1st Read MXS".format('DOCTEST')) 
->>> mx.setResultsToMxsFile() # looks for M-1-0-1.MXS in same Dir 
->>> isinstance(mx.df,pd.core.frame.DataFrame) # MXS-Content
-True
->>> rowsDf,colsDf = mx.df.shape
->>> (firstTime,lastTime,rows)=mx._checkMxsVecsFile()
->>> rowsDf==rows
-True
->>> mx.df.index[0]==firstTime
-True
->>> # ---
->>> # Write H5
->>> # ---
->>> if os.path.exists(mx.h5File):                        
-...      os.remove(mx.h5File)
->>> mx.ToH5() # M-1-0-1.h5 in same Dir 
->>> os.path.exists(mx.h5File)
-True
->>> # ---
->>> # Init with H5
->>> # ---
->>> mx=Mx(mx1File=mx1File) # looks for M-1-0-1.h5 in same Dir 
->>> # and reads the .h5 if newer than .MX1 and newer than an existing .MXS 
->>> isinstance(mx.mx1Df,pd.core.frame.DataFrame) # MX1-Content
-True
->>> isinstance(mx.df,pd.core.frame.DataFrame) # MXS-Content
-True
->>> # ---
->>> # 1st Read MXS Zip
->>> # ---
->>> # create the Zip first
->>> with zipfile.ZipFile(mx.mxsZipFile,'w') as myzip:
-...     myzip.write(mx.mxsFile)  
->>> logger.debug("{0:s}: 1st Read MXS Zip".format('DOCTEST')) 
->>> mx.setResultsToMxsZipFile() # looks for M-1-0-1.ZIP in same Dir
->>> isinstance(mx.df,pd.core.frame.DataFrame) # MXS-Content
-True
->>> rowsMxs,colsMxs = mx.df.shape
->>> mx.df.index.is_unique # all setResultsTo... will ensure this uniqueness under all circumstances
-True
->>> # uniqueness under all circumstances: also when add=True (setResultsTo... shall add the MXS-Content) is used
->>> # ---
->>> # 1st Add same MXS (for testing ensuring uniqueness) 
->>> # ---
->>> oldShape=mx.df.shape
->>> logger.debug("{0:s}: 1st Add same MXS (for testing ensuring uniqueness)".format('DOCTEST')) 
->>> mx.setResultsToMxsFile(add=True) # looks for M-1-0-1.MXS in same Dir 
->>> newShape=mx.df.shape
->>> newShape==oldShape
-True
->>> # ---
->>> # 1st Add same Zip (for testing ensuring uniqueness) 
->>> # ---
->>> logger.debug("{0:s}: 1st Add same Zip (for testing ensuring uniqueness)".format('DOCTEST')) 
->>> mx.setResultsToMxsZipFile(add=True) # looks for M-1-0-1.ZIP in same Dir 
->>> newShape=mx.df.shape
->>> newShape==oldShape
-True
->>> # ---
->>> # 1st Read MXS Zip with overlapping Timestamps (for testing ensuring uniqueness) 
->>> # ---
->>> with zipfile.ZipFile(mx.mxsZipFile,'w') as myzip:
-...      myzip.write(mx.mxsFile)  
-...      myzip.write(mx.mxsFile,arcname=mx.mxsFile+'.2')  
->>> logger.debug("{0:s}: 1st Read MXS Zip with overlapping Timestamps (for testing ensuring uniqueness)".format('DOCTEST')) 
->>> mx.setResultsToMxsZipFile() # looks for M-1-0-1.ZIP in same Dir 
->>> newShape=mx.df.shape
->>> newShape==oldShape
-True
->>> # ---
->>> # shift to younger Timestamps (for testing purposes) 
->>> # ---
->>> lastTimestamp=mx.df.index[-1]
->>> firstTimestamp=mx.df.index[0]
->>> timeSpan=lastTimestamp-firstTimestamp
->>> if len(mx.df.index)>1:
-...      timeStep=mx.df.index[-1]-mx.df.index[-2]
-... else:
-...      timeStep=pd.to_timedelta('1 second')
->>> mx.df.index=mx.df.index-(timeSpan+timeStep)
->>> # ---
->>> # 1st Read MXS (with the original Timestamps)
->>> # ---
->>> logger.debug("{0:s}: 1st Read MXS (with the original Timestamps)".format('DOCTEST')) 
->>> mx.setResultsToMxsFile(add=True) # looks for M-1-0-1.MXS in same Dir 
->>> rowsNew,colsNew=mx.df.shape
->>> rowsOld,colsOld=oldShape
->>> rowsNew==2*rowsOld
-True
->>> colsNew==colsOld
-True
->>> # ---
->>> # shift to older Timestamps (for testing purposes) 
->>> # ---
->>> lastTimestamp=mx.df.index[-1]
->>> firstTimestamp=mx.df.index[0]
->>> timeSpan=lastTimestamp-firstTimestamp
->>> if len(mx.df.index)>1:
-...      timeStep=mx.df.index[-1]-mx.df.index[-2]
-... else:
-...      timeStep=pd.to_timedelta('1 second')
->>> mx.df.index=mx.df.index+(timeSpan+timeStep)
->>> # ---
->>> # 2nd Read MXS (with the original Timestamps)
->>> # ---
->>> logger.debug("{0:s}: 2nd Read MXS (with the original Timestamps)".format('DOCTEST')) 
->>> mx.setResultsToMxsFile(add=True) # looks for M-1-0-1.MXS in same Dir 
->>> rowsNew,colsNew=mx.df.shape
->>> rowsNew==3*rowsOld
-True
->>> colsNew==colsOld
-True
->>> # ---
->>> # Write Dump
->>> # ---
->>> mx.dumpInMxsFormat() # dumps to .MXS.dump-File in same Dir
->>> # ---
->>> # Read Dump
->>> # ---
->>> logger.debug("{0:s}: Read Dump".format('DOCTEST')) 
->>> mx.setResultsToMxsFile(mxsFile=mxsDumpFile)
->>> with zipfile.ZipFile(mx.mxsZipFile,'w') as myzip:
-...     myzip.write(mx.mxsFile)  
-...     myzip.write(mxsDumpFile)  
->>> # ---
->>> # Read Zip with Orig and Dump
->>> # ---
->>> logger.debug("{0:s}: Read Zip with Orig and Dump".format('DOCTEST')) 
->>> mx.setResultsToMxsZipFile()
->>> rowsZip,colsZip = mx.df.shape
->>> rowsZip==rowsOld
-True
->>> # ---
->>> # Without MX1, MXS
->>> # ---
->>> os.rename(mx.mx1File,mx.mx1File+'.blind')
->>> os.rename(mx.mxsFile,mx.mxsFile+'.blind')
->>> mx=Mx(mx1File=mx1File)  
->>> os.rename(mx.mx1File+'.blind',mx.mx1File)
->>> os.rename(mx.mxsFile+'.blind',mx.mxsFile)
->>> # ---
->>> mx.mx1Df['Sir3sID'][mx.mx1Df['Sir3sID']=='ALLG~~~-1~TIMESTAMP'].index[0]   
-0
->>> mx.mx1Df['unpackIdx'][mx.mx1Df['Sir3sID']=='ALLG~~~-1~TIMESTAMP'].iloc[0]
-0
->>> mx.df.shape
-(4, 41)
->>> isinstance(mx.df.index[0],pd.tslib.Timestamp)
-True
->>> str(mx.df.index[0])
-'2018-03-03 00:00:00+00:00'
->>> ts=mx.df['KNOT~I~~5642914844465475844~QM']
->>> isinstance(ts,pd.core.series.Series)
-True
->>> "{:06.2f}".format(round(ts.iloc[0],2))
-'176.71'
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.31',1,'New','_checkMxsVecsFile: (...,fullCheck=False,...)')) 
->>> mx._checkMxsVecsFile()
-(Timestamp('2018-03-03 00:00:00+0000', tz='UTC'), Timestamp('2018-03-03 00:00:03+0000', tz='UTC'), 4)
->>> mx._checkMxsVecsFile(fullCheck=True)
-(Timestamp('2018-03-03 00:00:00+0000', tz='UTC'), Timestamp('2018-03-03 00:00:03+0000', tz='UTC'), 4)
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',1,'Change','setResultsToMxsFile: finally: h5.close()')) 
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',2,'Change','setResultsToMxsZipFile: finally: h5.close()')) 
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',3,'Change','ToH5: finally: h5.close()')) 
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',4,'Change','FromH5: finally: h5.close()')) 
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',5,'Change','*: except Exception as e')) 
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',6,'Change','setResultsToMxsFile: finally: NewH5Vec=False')) 
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',7,'Change','__init__(...,NoH5Read=True,...)')) 
->>> if os.path.exists(mx.h5FileMxsVecs):                        
-...    os.remove(mx.h5FileMxsVecs)
->>> mx=Mx(mx1File=mx1File,NoH5Read=True)
->>> os.path.exists(mx.h5FileMxsVecs) # exists due to previous test
-True
->>> h5VecsFileTime=os.path.getmtime(mx.h5FileMxsVecs) 
->>> mx=Mx(mx1File=mx1File,NoH5Read=True)
->>> h5VecsFileTime<os.path.getmtime(mx.h5FileMxsVecs) 
-True
->>> h5VecsFileTime=os.path.getmtime(mx.h5FileMxsVecs) 
->>> mx=Mx(mx1File=mx1File)
->>> h5VecsFileTime==os.path.getmtime(mx.h5FileMxsVecs) 
-True
->>> mx.setResultsToMxsFile()
->>> h5VecsFileTime==os.path.getmtime(mx.h5FileMxsVecs) 
-True
->>> mx.setResultsToMxsFile(NewH5Vec=True)
->>> h5VecsFileTime<os.path.getmtime(mx.h5FileMxsVecs) 
-True
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',8,'Change','setResultsToMxsZipFile: finally: NewH5Vec=False')) 
->>> mx.ToH5()
->>> mx=Mx(mx1File=mx1File,NoH5Read=True)
->>> os.path.exists(mx.h5File)
-False
->>> pd.set_option('display.max_columns',None)
->>> pd.set_option('display.width',666666)
->>> print("'''{:s}'''".format(repr(mx.mx1Df).replace('\\n','\\n   ')))
-'''   ADDEND      ATTRTYPE CLIENT_FLAGS CLIENT_ID  DATALENGTH  DATAOFFSET DATATYPE  DATATYPELENGTH DEVIATION FACTOR  FLAGS LINKED_CHANNEL LOWER_LIMIT NAME1 NAME2 NAME3 OBJTYPE           OBJTYPE_PK OPCITEM_ID                                     TITLE       UNIT UPPER_LIMIT                         Sir3sID  NOfItems isVectorChannel isVectorChannelMx2 isVectorChannelMx2Rvec  unpackIdx
-   0       0     TIMESTAMP            0                    32           0     CHAR              32         0      1    241             -1      -1E+20                      ALLG                   -1                            Zeitstempel nach ISO 8601     [text]       1E+20             ALLG~~~-1~TIMESTAMP         1           False              False                  False          0
-   1       0  SNAPSHOTTYPE            0                     4          32     CHAR               4         0      1    241             -1      -1E+20                      ALLG                   -1               Typ des Zeitpunktes/Ausgabedatensatzes     [text]       1E+20          ALLG~~~-1~SNAPSHOTTYPE         1           False              False                  False          1
-   2       0        CVERSO            0                    80          36     CHAR              80         0      1    241             -1      -1E+20                      ALLG                   -1                                      Versionskennung     [text]       1E+20                ALLG~~~-1~CVERSO         1           False              False                  False          2
-   3       0        EXSTAT            0                     4         116     INT4               4         0      1   1265             -1      -1E+20                      ALLG                   -1                           Exit-Status der Berechnung         []       1E+20                ALLG~~~-1~EXSTAT         1           False              False                  False          3
-   4       0         NFEHL            0                     4         120     INT4               4         0      1    241             -1      -1E+20                      ALLG                   -1                Anzahl Fehler im Berechnungsabschnitt         []       1E+20                 ALLG~~~-1~NFEHL         1           False              False                  False          4
-   5       0         NWARN            0                     4         124     INT4               4         0      1    241             -1      -1E+20                      ALLG                   -1             Anzahl Warnungen im Berechnungsabschnitt         []       1E+20                 ALLG~~~-1~NWARN         1           False              False                  False          5
-   6       0         NMELD            0                     4         128     INT4               4         0      1    241             -1      -1E+20                      ALLG                   -1             Anzahl Meldungen im Berechnungsabschnitt         []       1E+20                 ALLG~~~-1~NMELD         1           False              False                  False          6
-   7       0       CPUTIME            0                     4         132     REAL               4         0      1    241             -1      -1E+20                      ALLG                   -1                                  CPU-Zeit seit Start        [s]       1E+20               ALLG~~~-1~CPUTIME         1           False              False                  False          7
-   8       0       USRTIME            0                     4         136     REAL               4         0      1    241             -1      -1E+20                      ALLG                   -1                                  USR-Zeit seit Start        [s]       1E+20               ALLG~~~-1~USRTIME         1           False              False                  False          8
-   9       0       NPGREST            0                     4         140     INT4               4         0      1     49             -1      -1E+20                      ALLG                   -1                   Anzahl aktiver PGRP in Restriktion         []       1E+20               ALLG~~~-1~NPGREST         1           False              False                  False          9
-   10      0       NETZABN            0                     4         144     REAL               4         0      1   1233             -1      -1E+20                      ALLG                   -1                                          Netzabnahme     [m3/h]       1E+20               ALLG~~~-1~NETZABN         1           False              False                  False         10
-   11      0         NKNUV            0                     4         148     INT4               4         0      1   1233             -1      -1E+20                      ALLG                   -1                      Anzahl KNOT mit Unterversorgung         []       1E+20                 ALLG~~~-1~NKNUV         1           False              False                  False         11
-   12      0         MKNUV            0                     4         152     REAL               4         0      1   1233             -1      -1E+20                      ALLG                   -1                   Fehlmenge KNOT aus Unterversorgung     [m3/h]       1E+20                 ALLG~~~-1~MKNUV         1           False              False                  False         12
-   13      0       NFVHYUV            0                     4         156     INT4               4         0      1   1057             -1      -1E+20                      ALLG                   -1                Anzahl FWVB mit hydr. Unterversorgung         []       1E+20               ALLG~~~-1~NFVHYUV         1           False              False                  False         13
-   14      0       NFVTHUV            0                     4         160     INT4               4         0      1   1057             -1      -1E+20                      ALLG                   -1                Anzahl FWVB mit ther. Unterversorgung         []       1E+20               ALLG~~~-1~NFVTHUV         1           False              False                  False         14
-   15      0       MFVHYUV            0                     4         164     REAL               4         0      1   1057             -1      -1E+20                      ALLG                   -1             Fehlmenge FWVB aus hydr. Unterversorgung     [m3/h]       1E+20               ALLG~~~-1~MFVHYUV         1           False              False                  False         15
-   16      0       MFVTHUV            0                     4         168     REAL               4         0      1   1057             -1      -1E+20                      ALLG                   -1             Fehlmenge FWVB aus ther. Unterversorgung     [m3/h]       1E+20               ALLG~~~-1~MFVTHUV         1           False              False                  False         16
-   17      0      TVMINMAX            0                     4         172     REAL               4         0      1   1057             -1      -1E+20                      ALLG                   -1                  Maximum der erf. min. VL-Temperatur       [°C]       1E+20              ALLG~~~-1~TVMINMAX         1           False              False                  False         17
-   18      0        ITERHY            0                     4         176     INT4               4         0      1   1265             -1      -1E+20                      ALLG                   -1                Anzahl benötigter (hydr.) Iterationen         []       1E+20                ALLG~~~-1~ITERHY         1           False              False                  False         18
-   19      0         LFQSV            0                     4         180     REAL               4         0      1   1041             -1      -1E+20                      ALLG                   -1                       Lastfaktor für Strangentnahmen         []       1E+20                 ALLG~~~-1~LFQSV         1           False              False                  False         19
-   20      0         JWARN            0                     4         184     INT4               4         0      1    241             -1      -1E+20                      ALLG                   -1                                            Warnstufe         []       1E+20                 ALLG~~~-1~JWARN         1           False              False                  False         20
-   21      0  NETZABNEXITS            0                     4         188     REAL               4         0      1   1233             -1      -1E+20                      ALLG                   -1                         Netzabnahme ohne Druckränder     [m3/h]       1E+20          ALLG~~~-1~NETZABNEXITS         1           False              False                  False         21
-   22      0  LINEPACKRATE            0                     4         192     REAL               4         0      1     65             -1      -1E+20                      ALLG                   -1                                 Gesamt-Linepack-Rate  [(N)m3/h]       1E+20          ALLG~~~-1~LINEPACKRATE         1           False              False                  False         22
-   23      0   LINEPACKGES            0                     4         196     REAL               4         0      1     65             -1      -1E+20                      ALLG                   -1                                      Gesamt-Linepack    [(N)m3]       1E+20           ALLG~~~-1~LINEPACKGES         1           False              False                  False         23
-   24      0  LINEPACKGEOM            0                     4         200     REAL               4         0      1     65             -1      -1E+20                      ALLG                   -1                           Gesamt-Linepack Rohrinhalt    [(N)m3]       1E+20          ALLG~~~-1~LINEPACKGEOM         1           False              False                  False         24
-   25      0         RHOAV            0                     4         204     REAL               4         0      1   1265             -1      -1E+20                      ALLG                   -1                                      Mittlere Dichte    [kg/m3]       1E+20                 ALLG~~~-1~RHOAV         1           False              False                  False         25
-   26      0           TAV            0                     4         208     REAL               4         0      1   1265             -1      -1E+20                      ALLG                   -1                                  Mittlere Temperatur       [°C]       1E+20                   ALLG~~~-1~TAV         1           False              False                  False         26
-   27      0           PAV            0                     4         212     REAL               4         0      1   1265             -1      -1E+20                      ALLG                   -1                                      Mittlerer Druck    [bar,a]       1E+20                   ALLG~~~-1~PAV         1           False              False                  False         27
-   28      0   FWVB_DPHMIN            0                     4         216     REAL               4         0      1   1057             -1      -1E+20                      ALLG                   -1                Min. Differenzdruck aller Verbraucher      [bar]       1E+20           ALLG~~~-1~FWVB_DPHMIN         1           False              False                  False         28
-   29      0    KNOT_PHMAX            0                     4         220     REAL               4         0      1   1265             -1      -1E+20                      ALLG                   -1                             Max. Knotendruck im Netz      [bar]       1E+20            ALLG~~~-1~KNOT_PHMAX         1           False              False                  False         29
-   30      0    KNOT_PHMIN            0                     4         224     REAL               4         0      1   1265             -1      -1E+20                      ALLG                   -1                             Min. Knotendruck im Netz      [bar]       1E+20            ALLG~~~-1~KNOT_PHMIN         1           False              False                  False         30
-   31      0   FWVB_TVLMIN            0                     4         228     REAL               4         0      1   1057             -1      -1E+20                      ALLG                   -1                 Min. VL-Temperatur aller Verbraucher       [°C]       1E+20           ALLG~~~-1~FWVB_TVLMIN         1           False              False                  False         31
-   32      0       NETZBEZ            0                     4         232     REAL               4         0      1   1233             -1      -1E+20                      ALLG                   -1                                            Netzbezug     [m3/h]       1E+20               ALLG~~~-1~NETZBEZ         1           False              False                  False         32
-   33      0            PH            0                     4         236     REAL               4         0      1   1265             -1      -1E+20     I                KNOT  5642914844465475844                                                Druck      [bar]       1E+20  KNOT~I~~5642914844465475844~PH         1           False              False                  False         33
-   34      0            QM            0                     4         240     REAL               4         0      1   1265             -1      -1E+20     I                KNOT  5642914844465475844                                  Externer Durchfluss     [m3/h]       1E+20  KNOT~I~~5642914844465475844~QM         1           False              False                  False         34
-   35      0            PH            0                     4         244     REAL               4         0      1   1265             -1      -1E+20     K                KNOT  5289899964753656852                                                Druck      [bar]       1E+20  KNOT~K~~5289899964753656852~PH         1           False              False                  False         35
-   36      0            QM            0                     4         248     REAL               4         0      1   1265             -1      -1E+20     K                KNOT  5289899964753656852                                  Externer Durchfluss     [m3/h]       1E+20  KNOT~K~~5289899964753656852~QM         1           False              False                  False         36
-   37      0          MVEC            0                   404         252     RVEC               4         0      1    245             -1      -1E+20     *     *          ROHR                    *                                                          [kg/s]       1E+20                 ROHR~*~*~*~MVEC       101            True               True                   True         37
-   38      0        RHOVEC            0                   404         656     RVEC               4         0      1    245             -1      -1E+20     *     *          ROHR                    *                                                         [kg/m3]       1E+20               ROHR~*~*~*~RHOVEC       101            True               True                   True        138
-   39      0          ZVEC            0                   404        1060     RVEC               4         0      1    245             -1      -1E+20     *     *          ROHR                    *                                                             [m]       1E+20                 ROHR~*~*~*~ZVEC       101            True               True                   True        239
-   40      0           PHR            0                     4        1464     REAL               4         0      1   1269             -1      -1E+20     *     *          ROHR                    *                                                          [IDPH]       1E+20                  ROHR~*~*~*~PHR         1           False              False                  False        340
-   41      0          PVEC            0                   404        1468     RVEC               4         0      1    245             -1      -1E+20     *     *          ROHR                    *                                                         [bar,a]       1E+20                 ROHR~*~*~*~PVEC       101            True               True                   True        341
-   42      0            QM            0                     8        1872     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                          [IDQM]       1E+20                    KNOT~*~~*~QM         2            True               True                  False        442
-   43      0            PH            0                     8        1880     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                        [IDPH,4]       1E+20                    KNOT~*~~*~PH         2            True               True                  False        444
-   44      0             H            0                     8        1888     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                        [IDPH,6]       1E+20                     KNOT~*~~*~H         2            True               True                  False        446
-   45      0          QMAV            0                     4        1896     REAL               4         0      1   1269             -1      -1E+20     *     *          ROHR                    *                                                          [IDQM]       1E+20                 ROHR~*~*~*~QMAV         1           False              False                  False        448
-   46      0           VAV            0                     4        1900     REAL               4         0      1   1269             -1      -1E+20     *     *          ROHR                    *                                                           [m/s]       1E+20                  ROHR~*~*~*~VAV         1           False              False                  False        449
-   47      0      LFAKTAKT            0                     8        1904     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                              []       1E+20              KNOT~*~~*~LFAKTAKT         2            True               True                  False        450
-   48      0             P            0                     8        1912     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                         [bar,a]       1E+20                     KNOT~*~~*~P         2            True               True                  False        452
-   49      0        PH_EIN            0                     8        1920     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                          [IDPH]       1E+20                KNOT~*~~*~PH_EIN         2            True               True                  False        454
-   50      0           RHO            0                     8        1928     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                         [kg/m3]       1E+20                   KNOT~*~~*~RHO         2            True               True                  False        456
-   51      0             T            0                     8        1936     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                            [°C]       1E+20                     KNOT~*~~*~T         2            True               True                  False        458
-   52      0            EH            0                     8        1944     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                           [mNN]       1E+20                    KNOT~*~~*~EH         2            True               True                  False        460
-   53      0             A            0                     4        1952     REAL               4         0      1   1269             -1      -1E+20     *     *          ROHR                    *                                                           [m/s]       1E+20                    ROHR~*~*~*~A         1           False              False                  False        462
-   54      0       IRTRENN            0                     4        1956     INT4               4         0      1   1269             -1      -1E+20     *     *          ROHR                    *                                                              []       1E+20              ROHR~*~*~*~IRTRENN         1           False              False                  False        463'''
->>> print("'''{:s}'''".format(repr(mx.mx2Df).replace('\\n','\\n   ')))
-'''       AttrType                                        Data  DataLength DataType  DataTypeLength  NOfItems       ObjType
-   0  tk            [5642914844465475844, 5289899964753656852]          40     CHAR              20         2  KNOT        
-   1  pk                                 [5252810657060947333]          20     CHAR              20         1  LFKT        
-   2  pk                                 [5502689500012692689]          20     CHAR              20         1  PHI1        
-   3  pk                                 [5732781659713982525]          20     CHAR              20         1  PUMD        
-   4  pk                                 [5163733225086798083]          20     CHAR              20         1  PVAR        
-   5  pk                                 [4742976321174242828]          20     CHAR              20         1  QVAR        
-   6  tk                                 [4737064599036143765]          20     CHAR              20         1  ROHR        
-   7  N_OF_POINTS                                       (101,)           4     INT4               4         1  ROHR        
-   8  pk                                 [5396761270498593493]          20     CHAR              20         1  SWVT        '''
->>> print("'''{:s}'''".format(repr(mx.df.drop(['ALLG~~~-1~CPUTIME','ALLG~~~-1~USRTIME','ALLG~~~-1~CVERSO'],axis=1)).replace('\\n','\\n   ')))
-'''                          ALLG~~~-1~SNAPSHOTTYPE  ALLG~~~-1~EXSTAT  ALLG~~~-1~NFEHL  ALLG~~~-1~NWARN  ALLG~~~-1~NMELD  ALLG~~~-1~NPGREST  ALLG~~~-1~NETZABN  ALLG~~~-1~NKNUV  ALLG~~~-1~MKNUV  ALLG~~~-1~NFVHYUV  ALLG~~~-1~NFVTHUV  ALLG~~~-1~MFVHYUV  ALLG~~~-1~MFVTHUV  ALLG~~~-1~TVMINMAX  ALLG~~~-1~ITERHY  ALLG~~~-1~LFQSV  ALLG~~~-1~JWARN  ALLG~~~-1~NETZABNEXITS  ALLG~~~-1~LINEPACKRATE  ALLG~~~-1~LINEPACKGES  ALLG~~~-1~LINEPACKGEOM  ALLG~~~-1~RHOAV  ALLG~~~-1~TAV  ALLG~~~-1~PAV  ALLG~~~-1~FWVB_DPHMIN  ALLG~~~-1~KNOT_PHMAX  ALLG~~~-1~KNOT_PHMIN  ALLG~~~-1~FWVB_TVLMIN  ALLG~~~-1~NETZBEZ  KNOT~I~~5642914844465475844~PH  KNOT~I~~5642914844465475844~QM  KNOT~K~~5289899964753656852~PH  KNOT~K~~5289899964753656852~QM  ROHR~*~*~*~PHR  ROHR~*~*~*~QMAV  ROHR~*~*~*~VAV  ROHR~*~*~*~A  ROHR~*~*~*~IRTRENN
-   2018-03-03 00:00:00+00:00                b'STAT'                 0                0                0               13                  0         176.714600                0              0.0                  0                  0                0.0                0.0         -273.149994                11              1.0               30                     0.0                0.000000           0.000000e+00              490.873871      1000.299988     556.299988       3.108535           3.402823e+38              4.217070                   0.0           3.402823e+38           176.7146                        4.217070                        176.7146                             0.0                     -176.714600        4.217033       176.714600        1.000000        1000.0                   0
-   2018-03-03 00:00:01+00:00                b'TIME'                 0                0                0                0                  0         176.714737                0              0.0                  0                  0                0.0                0.0         -273.149994                 1              1.0               30                     0.0               -0.000137          -2.042460e-08              490.873871      1000.299988     556.299988       3.108534           3.402823e+38              4.217062                   0.0           3.402823e+38           176.7146                        4.217062                        176.7146                             0.0                     -176.714737        4.217032       176.714722        1.000001        1000.0                   0
-   2018-03-03 00:00:02+00:00                b'TIME'                 0                0                0                0                  0         176.714798                0              0.0                  0                  0                0.0                0.0         -273.149994                 1              1.0               30                     0.0               -0.000198          -5.934779e-08              490.873871      1000.299988     556.299988       3.108533           3.402823e+38              4.217058                   0.0           3.402823e+38           176.7146                        4.217058                        176.7146                             0.0                     -176.714798        4.217035       176.714767        1.000001        1000.0                   0
-   2018-03-03 00:00:03+00:00                b'TIME'                 0                0                0                0                  0         176.714859                0              0.0                  0                  0                0.0                0.0         -273.149994                 1              1.0               30                     0.0               -0.000259          -1.153421e-07              490.873871      1000.299988     556.299988       3.108532           3.402823e+38              4.217054                   0.0           3.402823e+38           176.7146                        4.217054                        176.7146                             0.0                     -176.714859        4.217036       176.714813        1.000001        1000.0                   0'''
->>> # ---
->>> # Clean Up OneLPipe
->>> # ---
->>> if os.path.exists(mx.h5File):                        
-...     os.remove(mx.h5File)
->>> if os.path.exists(mx.mxsZipFile):                        
-...     os.remove(mx.mxsZipFile)
->>> if os.path.exists(mxsDumpFile):                        
-...    os.remove(mxsDumpFile)
->>> if os.path.exists(mx.h5FileMxsVecs):                        
-...    os.remove(mx.h5FileMxsVecs)
->>> # ---
->>> # LocalHeatingNetwork
->>> # ---
->>> mx1File=os.path.join(path,'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1')
->>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
->>> mx.setResultsToMxsFile(maxRecords=1)
->>> print("'''{:s}'''".format(repr(mx.df.drop(['ALLG~~~-1~CPUTIME','ALLG~~~-1~USRTIME','ALLG~~~-1~CVERSO'],axis=1)).replace('\\n','\\n   ')))
-'''                          ALLG~~~-1~SNAPSHOTTYPE  ALLG~~~-1~EXSTAT  ALLG~~~-1~NFEHL  ALLG~~~-1~NWARN  ALLG~~~-1~NMELD  ALLG~~~-1~NPGREST  ALLG~~~-1~NETZABN  ALLG~~~-1~NKNUV  ALLG~~~-1~MKNUV  ALLG~~~-1~NFVHYUV  ALLG~~~-1~NFVTHUV  ALLG~~~-1~MFVHYUV  ALLG~~~-1~MFVTHUV  ALLG~~~-1~TVMINMAX  ALLG~~~-1~ITERHY  ALLG~~~-1~LFQSV  ALLG~~~-1~JWARN  ALLG~~~-1~NETZABNEXITS  ALLG~~~-1~LINEPACKRATE  ALLG~~~-1~LINEPACKGES  ALLG~~~-1~LINEPACKGEOM  ALLG~~~-1~RHOAV  ALLG~~~-1~TAV  ALLG~~~-1~PAV  ALLG~~~-1~FWVB_DPHMIN  ALLG~~~-1~KNOT_PHMAX  ALLG~~~-1~KNOT_PHMIN  ALLG~~~-1~FWVB_TVLMIN  ALLG~~~-1~NETZBEZ  KNOT~V-L~~5736262931552588702~PH  FWES~R3~V-1~5638756766880678918~W  KNOT~V-K007~~5741235692335544560~DP  WBLZ~WärmeblnzGes~~5262603207038486299~WSPEI  KNOT~R-L~~5356267303828212700~PH  PUMP~R-1~R2~5481331875203087055~N  KNOT~V-1~~5049461676240771430~T  WBLZ~WärmeblnzGes~~5262603207038486299~WES  WBLZ~WärmeblnzGes~~5262603207038486299~WVB  VENT~V-1~V-L~4678923650983295610~QM  WBLZ~WärmeblnzGes~~5262603207038486299~WVERL  KNOT~R3~~5219230031772497417~T  PUMP~R-1~R2~5481331875203087055~BK  PUMP~R-1~R2~5481331875203087055~PE  FWES~R3~V-1~5638756766880678918~TI  FWES~R3~V-1~5638756766880678918~TK  WBLZ~BLNZ1u5u7~~4694700216019268978~WVB  KNOT~PKON-Knoten~~5397990465339071638~QM  FWVB~V-K002~R-K002~4643800032883366034~DP  FWVB~V-K002~R-K002~4643800032883366034~INDUV  FWVB~V-K002~R-K002~4643800032883366034~LFH  FWVB~V-K002~R-K002~4643800032883366034~LFT  FWVB~V-K002~R-K002~4643800032883366034~W  FWVB~V-K002~R-K002~4643800032883366034~WSOLL  FWVB~V-K007~R-K007~5400405917816384862~DP  FWVB~V-K007~R-K007~5400405917816384862~INDUV  FWVB~V-K007~R-K007~5400405917816384862~LFH  FWVB~V-K007~R-K007~5400405917816384862~LFT  FWVB~V-K007~R-K007~5400405917816384862~W  FWVB~V-K007~R-K007~5400405917816384862~WSOLL  FWVB~V-K003~R-K003~5695730293103267172~DP  FWVB~V-K003~R-K003~5695730293103267172~INDUV  FWVB~V-K003~R-K003~5695730293103267172~LFH  FWVB~V-K003~R-K003~5695730293103267172~LFT  FWVB~V-K003~R-K003~5695730293103267172~W  FWVB~V-K003~R-K003~5695730293103267172~WSOLL  FWVB~V-K004~R-K004~4704603947372595298~DP  FWVB~V-K004~R-K004~4704603947372595298~INDUV  FWVB~V-K004~R-K004~4704603947372595298~LFH  FWVB~V-K004~R-K004~4704603947372595298~LFT  FWVB~V-K004~R-K004~4704603947372595298~W  FWVB~V-K004~R-K004~4704603947372595298~WSOLL  FWVB~V-K005~R-K005~5121101823283893406~INDUV  FWVB~V-K005~R-K005~5121101823283893406~LFH  FWVB~V-K005~R-K005~5121101823283893406~LFT  FWVB~V-K005~R-K005~5121101823283893406~W  FWVB~V-K005~R-K005~5121101823283893406~WSOLL  FWVB~V-K007~R-K007~5400405917816384862~QM  FWVB~V-K002~R-K002~4643800032883366034~QM  FWVB~V-K004~R-K004~4704603947372595298~TI  FWVB~V-K004~R-K004~4704603947372595298~TK  FWVB~V-K004~R-K004~4704603947372595298~TVMIN  FWVB~V-K002~R-K002~4643800032883366034~TI  FWVB~V-K002~R-K002~4643800032883366034~TK  FWVB~V-K002~R-K002~4643800032883366034~TVMIN  KNOT~V-L~~5736262931552588702~RHO  KNOT~V-L~~5736262931552588702~P  KNOT~V-L~~5736262931552588702~H  KNOT~V-L~~5736262931552588702~HMAX_INST  KNOT~V-L~~5736262931552588702~HMIN_INST  KNOT~V-L~~5736262931552588702~PMAX_INST  KNOT~V-L~~5736262931552588702~PMIN_INST  KNOT~V-L~~5736262931552588702~PDAMPF  KNOT~V-K000~~4766681917240867943~RHO  KNOT~V-K000~~4766681917240867943~P  KNOT~V-K000~~4766681917240867943~H  KNOT~V-K000~~4766681917240867943~HMAX_INST  KNOT~V-K000~~4766681917240867943~HMIN_INST  KNOT~V-K000~~4766681917240867943~PMAX_INST  KNOT~V-K000~~4766681917240867943~PMIN_INST  KNOT~V-K000~~4766681917240867943~PDAMPF  KNOT~V-K001~~4756962427318766791~RHO  KNOT~V-K001~~4756962427318766791~P  KNOT~V-K001~~4756962427318766791~H  KNOT~V-K001~~4756962427318766791~HMAX_INST  KNOT~V-K001~~4756962427318766791~HMIN_INST  KNOT~V-K001~~4756962427318766791~PMAX_INST  KNOT~V-K001~~4756962427318766791~PMIN_INST  KNOT~V-K001~~4756962427318766791~PDAMPF  KNOT~V-K002~~4731792362611615619~RHO  KNOT~V-K002~~4731792362611615619~P  KNOT~V-K002~~4731792362611615619~H  KNOT~V-K002~~4731792362611615619~HMAX_INST  KNOT~V-K002~~4731792362611615619~HMIN_INST  KNOT~V-K002~~4731792362611615619~PMAX_INST  KNOT~V-K002~~4731792362611615619~PMIN_INST  KNOT~V-K002~~4731792362611615619~PDAMPF  KNOT~V-K003~~5646671866542823796~RHO  KNOT~V-K003~~5646671866542823796~P  KNOT~V-K003~~5646671866542823796~H  KNOT~V-K003~~5646671866542823796~HMAX_INST  KNOT~V-K003~~5646671866542823796~HMIN_INST  KNOT~V-K003~~5646671866542823796~PMAX_INST  KNOT~V-K003~~5646671866542823796~PMIN_INST  KNOT~V-K003~~5646671866542823796~PDAMPF  KNOT~V-K004~~5370423799772591808~RHO  KNOT~V-K004~~5370423799772591808~P  KNOT~V-K004~~5370423799772591808~H  KNOT~V-K004~~5370423799772591808~HMAX_INST  KNOT~V-K004~~5370423799772591808~HMIN_INST  KNOT~V-K004~~5370423799772591808~PMAX_INST  KNOT~V-K004~~5370423799772591808~PMIN_INST  KNOT~V-K004~~5370423799772591808~PDAMPF  KNOT~V-K005~~5444644492819213978~RHO  KNOT~V-K005~~5444644492819213978~P  KNOT~V-K005~~5444644492819213978~H  KNOT~V-K005~~5444644492819213978~HMAX_INST  KNOT~V-K005~~5444644492819213978~HMIN_INST  KNOT~V-K005~~5444644492819213978~PMAX_INST  KNOT~V-K005~~5444644492819213978~PMIN_INST  KNOT~V-K005~~5444644492819213978~PDAMPF  KNOT~V-K006~~5515313800585145571~RHO  KNOT~V-K006~~5515313800585145571~P  KNOT~V-K006~~5515313800585145571~H  KNOT~V-K006~~5515313800585145571~HMAX_INST  KNOT~V-K006~~5515313800585145571~HMIN_INST  KNOT~V-K006~~5515313800585145571~PMAX_INST  KNOT~V-K006~~5515313800585145571~PMIN_INST  KNOT~V-K006~~5515313800585145571~PDAMPF  KNOT~V-K007~~5741235692335544560~RHO  KNOT~V-K007~~5741235692335544560~P  KNOT~V-K007~~5741235692335544560~H  KNOT~V-K007~~5741235692335544560~HMAX_INST  KNOT~V-K007~~5741235692335544560~HMIN_INST  KNOT~V-K007~~5741235692335544560~PMAX_INST  KNOT~V-K007~~5741235692335544560~PMIN_INST  KNOT~V-K007~~5741235692335544560~PDAMPF  KNOT~R-L~~5356267303828212700~RHO  KNOT~R-L~~5356267303828212700~P  KNOT~R-L~~5356267303828212700~H  KNOT~R-L~~5356267303828212700~HMAX_INST  KNOT~R-L~~5356267303828212700~HMIN_INST  KNOT~R-L~~5356267303828212700~PMAX_INST  KNOT~R-L~~5356267303828212700~PMIN_INST  KNOT~R-L~~5356267303828212700~PDAMPF  KNOT~R-K000~~4979785838440534851~RHO  KNOT~R-K000~~4979785838440534851~P  KNOT~R-K000~~4979785838440534851~H  KNOT~R-K000~~4979785838440534851~HMAX_INST  KNOT~R-K000~~4979785838440534851~HMIN_INST  KNOT~R-K000~~4979785838440534851~PMAX_INST  KNOT~R-K000~~4979785838440534851~PMIN_INST  KNOT~R-K000~~4979785838440534851~PDAMPF  KNOT~R-K001~~4807712987325933680~RHO  KNOT~R-K001~~4807712987325933680~P  KNOT~R-K001~~4807712987325933680~H  KNOT~R-K001~~4807712987325933680~HMAX_INST  KNOT~R-K001~~4807712987325933680~HMIN_INST  KNOT~R-K001~~4807712987325933680~PMAX_INST  KNOT~R-K001~~4807712987325933680~PMIN_INST  KNOT~R-K001~~4807712987325933680~PDAMPF  KNOT~R-K002~~5364712333175450942~RHO  KNOT~R-K002~~5364712333175450942~P  KNOT~R-K002~~5364712333175450942~H  KNOT~R-K002~~5364712333175450942~HMAX_INST  KNOT~R-K002~~5364712333175450942~HMIN_INST  KNOT~R-K002~~5364712333175450942~PMAX_INST  KNOT~R-K002~~5364712333175450942~PMIN_INST  KNOT~R-K002~~5364712333175450942~PDAMPF  KNOT~R-K003~~4891048046264179170~RHO  KNOT~R-K003~~4891048046264179170~P  KNOT~R-K003~~4891048046264179170~H  KNOT~R-K003~~4891048046264179170~HMAX_INST  KNOT~R-K003~~4891048046264179170~HMIN_INST  KNOT~R-K003~~4891048046264179170~PMAX_INST  KNOT~R-K003~~4891048046264179170~PMIN_INST  KNOT~R-K003~~4891048046264179170~PDAMPF  KNOT~R-K004~~4638663808856251977~RHO  KNOT~R-K004~~4638663808856251977~P  KNOT~R-K004~~4638663808856251977~H  KNOT~R-K004~~4638663808856251977~HMAX_INST  KNOT~R-K004~~4638663808856251977~HMIN_INST  KNOT~R-K004~~4638663808856251977~PMAX_INST  KNOT~R-K004~~4638663808856251977~PMIN_INST  KNOT~R-K004~~4638663808856251977~PDAMPF  KNOT~R-K005~~5183147862966701025~RHO  KNOT~R-K005~~5183147862966701025~P  KNOT~R-K005~~5183147862966701025~H  KNOT~R-K005~~5183147862966701025~HMAX_INST  KNOT~R-K005~~5183147862966701025~HMIN_INST  KNOT~R-K005~~5183147862966701025~PMAX_INST  KNOT~R-K005~~5183147862966701025~PMIN_INST  KNOT~R-K005~~5183147862966701025~PDAMPF  KNOT~R-K006~~5543326527366090679~RHO  KNOT~R-K006~~5543326527366090679~P  KNOT~R-K006~~5543326527366090679~H  KNOT~R-K006~~5543326527366090679~HMAX_INST  KNOT~R-K006~~5543326527366090679~HMIN_INST  KNOT~R-K006~~5543326527366090679~PMAX_INST  KNOT~R-K006~~5543326527366090679~PMIN_INST  KNOT~R-K006~~5543326527366090679~PDAMPF  KNOT~R-K007~~5508992300317633799~RHO  KNOT~R-K007~~5508992300317633799~P  KNOT~R-K007~~5508992300317633799~H  KNOT~R-K007~~5508992300317633799~HMAX_INST  KNOT~R-K007~~5508992300317633799~HMIN_INST  KNOT~R-K007~~5508992300317633799~PMAX_INST  KNOT~R-K007~~5508992300317633799~PMIN_INST  KNOT~R-K007~~5508992300317633799~PDAMPF  ROHR~V-L~V-K000~4939422678063487923~VI  ROHR~V-L~V-K000~4939422678063487923~VK  ROHR~V-L~V-K000~4939422678063487923~QMI  ROHR~V-L~V-K000~4939422678063487923~QMK  ROHR~V-K000~V-K001~4984202422877610920~VI  ROHR~V-K000~V-K001~4984202422877610920~VK  ROHR~V-K000~V-K001~4984202422877610920~QMI  ROHR~V-K000~V-K001~4984202422877610920~QMK  ROHR~V-K001~V-K002~4789218195240364437~VI  ROHR~V-K001~V-K002~4789218195240364437~VK  ROHR~V-K001~V-K002~4789218195240364437~QMI  ROHR~V-K001~V-K002~4789218195240364437~QMK  ROHR~V-K002~V-K003~4614949065966596185~VI  ROHR~V-K002~V-K003~4614949065966596185~VK  ROHR~V-K002~V-K003~4614949065966596185~QMI  ROHR~V-K002~V-K003~4614949065966596185~QMK  ROHR~V-K003~V-K004~5037777106796980248~VI  ROHR~V-K003~V-K004~5037777106796980248~VK  ROHR~V-K003~V-K004~5037777106796980248~QMI  ROHR~V-K003~V-K004~5037777106796980248~QMK  ROHR~V-K004~V-K005~4713733238627697042~VI  ROHR~V-K004~V-K005~4713733238627697042~VK  ROHR~V-K004~V-K005~4713733238627697042~QMI  ROHR~V-K004~V-K005~4713733238627697042~QMK  ROHR~V-K005~V-K006~5123819811204259837~VI  ROHR~V-K005~V-K006~5123819811204259837~VK  ROHR~V-K005~V-K006~5123819811204259837~QMI  ROHR~V-K005~V-K006~5123819811204259837~QMK  ROHR~V-K006~V-K007~5620197984230756681~VI  ROHR~V-K006~V-K007~5620197984230756681~VK  ROHR~V-K006~V-K007~5620197984230756681~QMI  ROHR~V-K006~V-K007~5620197984230756681~QMK  ROHR~R-L~R-K000~4769996343148550485~VI  ROHR~R-L~R-K000~4769996343148550485~VK  ROHR~R-L~R-K000~4769996343148550485~QMI  ROHR~R-L~R-K000~4769996343148550485~QMK  ROHR~R-K000~R-K001~5647213228462830353~VI  ROHR~R-K000~R-K001~5647213228462830353~VK  ROHR~R-K000~R-K001~5647213228462830353~QMI  ROHR~R-K000~R-K001~5647213228462830353~QMK  ROHR~R-K001~R-K002~5266224553324203132~VI  ROHR~R-K001~R-K002~5266224553324203132~VK  ROHR~R-K001~R-K002~5266224553324203132~QMI  ROHR~R-K001~R-K002~5266224553324203132~QMK  ROHR~R-K002~R-K003~5379365049009065623~VI  ROHR~R-K002~R-K003~5379365049009065623~VK  ROHR~R-K002~R-K003~5379365049009065623~QMI  ROHR~R-K002~R-K003~5379365049009065623~QMK  ROHR~R-K003~R-K004~4637102239750163477~VI  ROHR~R-K003~R-K004~4637102239750163477~VK  ROHR~R-K003~R-K004~4637102239750163477~QMI  ROHR~R-K003~R-K004~4637102239750163477~QMK  ROHR~R-K004~R-K005~4613782368750024999~VI  ROHR~R-K004~R-K005~4613782368750024999~VK  ROHR~R-K004~R-K005~4613782368750024999~QMI  ROHR~R-K004~R-K005~4613782368750024999~QMK  ROHR~R-K005~R-K006~5611703699850694889~VI  ROHR~R-K005~R-K006~5611703699850694889~VK  ROHR~R-K005~R-K006~5611703699850694889~QMI  ROHR~R-K005~R-K006~5611703699850694889~QMK  ROHR~R-K006~R-K007~4945727430885351042~VI  ROHR~R-K006~R-K007~4945727430885351042~VK  ROHR~R-K006~R-K007~4945727430885351042~QMI  ROHR~R-K006~R-K007~4945727430885351042~QMK  PUMP~R-1~R2~5481331875203087055~RHO  PUMP~R-1~R2~5481331875203087055~M  PUMP~R-1~R2~5481331875203087055~ETA  PUMP~R-1~R2~5481331875203087055~ETAW  PUMP~R-1~R2~5481331875203087055~DP  FWES~*~*~*~IAKTIV  KLAP~*~*~*~IAKTIV  PUMP~*~*~*~IAKTIV
-   2004-09-22 08:30:00+00:00                b'STAT'                 0                0                0               21                  0           0.000002                0              0.0                  0                  0                0.0                0.0           89.511505                 8              1.0               50                     0.0                     0.0                    0.0                23.12059       975.700012     619.633301        4.11655               1.500571              4.311969                   2.0                   90.0           0.000002                          4.126546                         802.719727                             1.500571                                      2.719672                          2.000133                        1142.490845                             90.0                                  802.719727                                       800.0                             22.98794                                           0.0                            60.0                            0.330514                            2.754284                                60.0                                90.0                                    480.0                                  0.000002                                   1.845007                                             0                                    0.914001                                         0.8                                160.000031                                         160.0                                   1.500571                                             0                                         0.8                                         0.8                                     160.0                                         160.0                                   1.562085                                             0                                    0.642765                                         0.6                                120.000008                                    120.000008                                   1.523539                                             0                                         1.0                                         1.0                                200.000015                                         200.0                                             0                                         0.8                                         0.8                                     160.0                                         160.0                                   3.928163                                   3.928163                                       90.0                                       65.0                                     89.511505                                       90.0                                       55.0                                     86.514343                         965.700012                         5.126546                         4.126546                                 4.126546                                 4.126546                                 5.126546                                 5.126546                                0.7011                            965.700012                            5.122155                            4.122155                                    4.122155                                    4.122155                                    5.122155                                    5.122155                                   0.7011                            965.700012                            5.084035                            4.084035                                    4.084035                                    4.084035                                    5.084035                                    5.084035                                   0.7011                            965.700012                            4.986475                            3.986475                                    3.986475                                    3.986475                                    4.986475                                    4.986475                                   0.7011                            965.700012                            4.845703                            3.845703                                    3.845703                                    3.845703                                    4.845703                                    4.845703                                   0.7011                            965.700012                            4.826566                            3.826566                                    3.826566                                    3.826566                                    4.826566                                    4.826566                                   0.7011                            965.700012                            4.820062                            3.820062                                    3.820062                                    3.820062                                    4.820062                                    4.820062                                   0.7011                            965.700012                            4.817194                            3.817194                                    3.817194                                    3.817194                                    4.817194                                    4.817194                                   0.7011                            965.700012                            4.815285                            3.815285                                    3.815285                                    3.815285                                    4.815285                                    4.815285                                   0.7011                         983.700012                         3.000133                         2.000133                                 2.000133                                 2.000133                                 3.000133                                 3.000133                                0.1992                            983.700012                            3.004938                            2.004938                                    2.004938                                    2.004938                                    3.004938                                    3.004938                                   0.1992                            983.700012                            3.043297                            2.043297                                    2.043297                                    2.043297                                    3.043297                                    3.043297                                   0.1992                            983.700012                            3.141468                            2.141468                                    2.141468                                    2.141468                                    3.141468                                    3.141468                                   0.1992                            983.700012                            3.283618                            2.283618                                    2.283618                                    2.283618                                    3.283618                                    3.283618                                   0.1992                            983.700012                            3.303027                            2.303027                                    2.303027                                    2.303027                                    3.303027                                    3.303027                                   0.1992                            983.700012                            3.309712                            2.309712                                    2.309712                                    2.309712                                    3.309712                                    3.309712                                   0.1992                            983.700012                            3.312715                            2.312715                                    2.312715                                    2.312715                                    3.312715                                    3.312715                                   0.1992                            983.700012                            3.314715                            2.314715                                    2.314715                                    2.314715                                    3.314715                                    3.314715                                   0.1992                                0.327641                                0.327641                                 22.98794                                 22.98794                                   0.733984                                   0.733984                                    22.98794                                    22.98794                                   0.733984                                   0.733984                                    22.98794                                    22.98794                                   0.608561                                   0.608561                                   19.059776                                   19.059776                                   0.491034                                   0.491034                                   15.378898                                   15.378898                                     0.2717                                     0.2717                                    8.509472                                    8.509472                                   0.125423                                   0.125423                                    3.928163                                    3.928163                                   0.125423                                   0.125423                                    3.928163                                    3.928163                               -0.321646                               -0.321646                               -22.987938                               -22.987938                                  -0.720553                                  -0.720553                                  -22.987938                                  -22.987938                                  -0.720553                                  -0.720553                                  -22.987938                                  -22.987938                                  -0.597426                                  -0.597426                                  -19.059776                                  -19.059776                                  -0.482049                                  -0.482049                                  -15.378897                                  -15.378897                                  -0.266728                                  -0.266728                                   -8.509471                                   -8.509471                                  -0.123128                                  -0.123128                                   -3.928163                                   -3.928163                                  -0.123128                                  -0.123128                                   -3.928163                                   -3.928163                           983.700012                           6.385539                             0.544889                              0.625568                            2.311969                  0                  0                  0'''
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.41',1,'New',"getMxsVecsFileData")) 
->>> timesReq=[]
->>> timesReq.append(mx.df.index[0])
->>> plotTimeDfs=mx.getMxsVecsFileData(timesReq=timesReq)
->>> len(plotTimeDfs)
-1
->>> isinstance(plotTimeDfs[0],pd.core.frame.DataFrame)
-True
->>> print("'''{:s}'''".format(repr(plotTimeDfs[0]).replace('\\n','\\n   ')))
-'''                                                             ROHR~*~*~*~MVEC                                  ROHR~*~*~*~RHOVEC                                    ROHR~*~*~*~ZVEC                                     ROHR~*~*~*~PHR                                    ROHR~*~*~*~PVEC                                       KNOT~*~~*~DP                                    ROHR~*~*~*~TVEC                                 ROHR~*~*~*~WALTERI                                 ROHR~*~*~*~WALTERK                                        KNOT~*~~*~T                                       KNOT~*~~*~PH                                       FWVB~*~*~*~W                                      FWVB~*~*~*~QM                                    ROHR~*~*~*~QMAV                                     ROHR~*~*~*~VAV ROHR~V-L~V-K000~4939422678063487923~SVEC ROHR~V-L~V-K000~4939422678063487923~PVECMAX_INST ROHR~V-L~V-K000~4939422678063487923~PVECMIN_INST ROHR~V-K000~V-K001~4984202422877610920~SVEC ROHR~V-K000~V-K001~4984202422877610920~PVECMAX_INST ROHR~V-K000~V-K001~4984202422877610920~PVECMIN_INST ROHR~V-K001~V-K002~4789218195240364437~SVEC ROHR~V-K001~V-K002~4789218195240364437~PVECMAX_INST ROHR~V-K001~V-K002~4789218195240364437~PVECMIN_INST ROHR~V-K002~V-K003~4614949065966596185~SVEC ROHR~V-K002~V-K003~4614949065966596185~PVECMAX_INST ROHR~V-K002~V-K003~4614949065966596185~PVECMIN_INST ROHR~V-K003~V-K004~5037777106796980248~SVEC ROHR~V-K003~V-K004~5037777106796980248~PVECMAX_INST ROHR~V-K003~V-K004~5037777106796980248~PVECMIN_INST ROHR~V-K004~V-K005~4713733238627697042~SVEC ROHR~V-K004~V-K005~4713733238627697042~PVECMAX_INST ROHR~V-K004~V-K005~4713733238627697042~PVECMIN_INST ROHR~V-K005~V-K006~5123819811204259837~SVEC ROHR~V-K005~V-K006~5123819811204259837~PVECMAX_INST ROHR~V-K005~V-K006~5123819811204259837~PVECMIN_INST ROHR~V-K006~V-K007~5620197984230756681~SVEC ROHR~V-K006~V-K007~5620197984230756681~PVECMAX_INST ROHR~V-K006~V-K007~5620197984230756681~PVECMIN_INST ROHR~R-L~R-K000~4769996343148550485~SVEC ROHR~R-L~R-K000~4769996343148550485~PVECMAX_INST ROHR~R-L~R-K000~4769996343148550485~PVECMIN_INST ROHR~R-K000~R-K001~5647213228462830353~SVEC ROHR~R-K000~R-K001~5647213228462830353~PVECMAX_INST ROHR~R-K000~R-K001~5647213228462830353~PVECMIN_INST ROHR~R-K001~R-K002~5266224553324203132~SVEC ROHR~R-K001~R-K002~5266224553324203132~PVECMAX_INST ROHR~R-K001~R-K002~5266224553324203132~PVECMIN_INST ROHR~R-K002~R-K003~5379365049009065623~SVEC ROHR~R-K002~R-K003~5379365049009065623~PVECMAX_INST ROHR~R-K002~R-K003~5379365049009065623~PVECMIN_INST ROHR~R-K003~R-K004~4637102239750163477~SVEC ROHR~R-K003~R-K004~4637102239750163477~PVECMAX_INST ROHR~R-K003~R-K004~4637102239750163477~PVECMIN_INST ROHR~R-K004~R-K005~4613782368750024999~SVEC ROHR~R-K004~R-K005~4613782368750024999~PVECMAX_INST ROHR~R-K004~R-K005~4613782368750024999~PVECMIN_INST ROHR~R-K005~R-K006~5611703699850694889~SVEC ROHR~R-K005~R-K006~5611703699850694889~PVECMAX_INST ROHR~R-K005~R-K006~5611703699850694889~PVECMIN_INST ROHR~R-K006~R-K007~4945727430885351042~SVEC ROHR~R-K006~R-K007~4945727430885351042~PVECMAX_INST ROHR~R-K006~R-K007~4945727430885351042~PVECMIN_INST                                   KNOT~*~~*~IAKTIV                                 ROHR~*~*~*~IAKTIV FWVB~*~*~*~IAKTIV VENT~*~*~*~IAKTIV                                   KNOT~*~~*~WALTER
-   2004-09-22 08:30:00+00:00  (-2.3637421131134033, -2.3637421131134033, 5.2...  (983.7000122070312, 983.7000122070312, 965.700...  (20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20....  (0.006684500724077225, 0.14074617624282837, 0....  (3.3030266761779785, 3.3097116947174072, 4.986...  (1.523539423942566, 1.8450068235397339, 2.0407...  (60.0, 60.0, 90.0, 90.0, 60.0, 60.0, 90.0, 90....  (0.37772566080093384, 0.16107234358787537, 0.2...  (0.2860592305660248, 0.3463727831840515, 0.209...  (60.0, 90.0, 90.0, 90.0, 60.0, 60.0, 60.0, 60....  (2.3030266761779785, 3.9864749908447266, 4.084...  (160.00003051757812, 200.00001525878906, 160.0...  (3.9281632900238037, 6.8694257736206055, 4.581...  (-8.50947093963623, 19.059776306152344, -15.37...  (-0.2667279839515686, 0.6085611581802368, -0.4...                  (0.0, 68.5999984741211)           (5.126544952392578, 5.122154712677002)           (5.126544952392578, 5.122154712677002)                     (0.0, 76.4000015258789)             (5.122154712677002, 5.084035396575928)              (5.122154712677002, 5.084035396575928)                    (0.0, 195.52999877929688)             (5.084035396575928, 4.986474990844727)              (5.084035396575928, 4.986474990844727)                     (0.0, 405.9599914550781)             (4.986474990844727, 4.845702648162842)              (4.986474990844727, 4.845702648162842)                     (0.0, 83.55000305175781)             (4.845702648162842, 4.826566219329834)              (4.845702648162842, 4.826566219329834)                      (0.0, 88.0199966430664)             (4.826566219329834, 4.820062160491943)              (4.826566219329834, 4.820062160491943)                    (0.0, 164.91000366210938)             (4.820062160491943, 4.817193984985352)              (4.820062160491943, 4.817193984985352)                     (0.0, 109.7699966430664)            (4.817193984985352, 4.8152852058410645)             (4.817193984985352, 4.8152852058410645)                  (0.0, 73.41999816894531)         (3.0001330375671387, 3.0049381256103516)         (3.0001330375671387, 3.0049381256103516)                     (0.0, 76.4000015258789)           (3.0049381256103516, 3.0432968139648438)            (3.0049381256103516, 3.0432968139648438)                    (0.0, 195.52999877929688)            (3.0432968139648438, 3.141468048095703)             (3.0432968139648438, 3.141468048095703)                     (0.0, 405.9599914550781)             (3.141468048095703, 3.283618688583374)              (3.141468048095703, 3.283618688583374)                     (0.0, 83.55000305175781)            (3.283618688583374, 3.3030266761779785)             (3.283618688583374, 3.3030266761779785)                      (0.0, 88.0199966430664)           (3.3030266761779785, 3.3097116947174072)            (3.3030266761779785, 3.3097116947174072)                    (0.0, 164.91000366210938)            (3.3097116947174072, 3.312715530395508)             (3.3097116947174072, 3.312715530395508)                     (0.0, 109.7699966430664)            (3.312715530395508, 3.3147149085998535)             (3.312715530395508, 3.3147149085998535)   (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)   (0, 0, 0, 0, 0)         (0, 0, 0)  (0.20900364220142365, 0.16107234358787537, 0.0...'''
->>> l=plotTimeDfs[0]['FWVB~*~*~*~W'].iloc[0]
->>> list(map(lambda x: round(x,2),l))
-[160.0, 200.0, 160.0, 160.0, 120.0]
->>> timesReq[0]=timesReq[0]-pd.to_timedelta('1 second')
->>> plotTimeDfs=mx.getMxsVecsFileData(timesReq=timesReq)
->>> len(plotTimeDfs)
-0
->>> # ---
->>> # Clean Up LocalHeatingNetwork
->>> # ---
->>> if os.path.exists(mx.h5File):                        
-...    os.remove(mx.h5File)
->>> if os.path.exists(mx.mxsZipFile):                        
-...    os.remove(mx.mxsZipFile)
->>> if os.path.exists(mxsDumpFile):                        
-...    os.remove(mxsDumpFile)
->>> if os.path.exists(mx.h5FileMxsVecs):                        
-...    os.remove(mx.h5FileMxsVecs)
+SIR 3S MX-Interface (short: MX)
+
+    MX is a file based, channel-oriented interface for SIR 3S' calculation results.
+    
+    Module Mx contains stuff to utilize SIR 3S' MX calculation results in pure Python.  
+
+    SIR 3S MX calculation results:
+
+        Binary .MXS-Files contain the SIR 3S calculations results. 
+        A Model calculation run creates at least one .MXS-File (Result-File).
+        There is one .MX1-File (an XML-File) for each SIR 3S Model calculation run.    
+        This .MX1-File defines (in XML) a sequence of MX-Channels. 
+        And - as a result - the Byte-Layout of a single MX3-Record in .MXS.
+        A MX3-Record contains calculation results for one Timestamp.
+        A .MXS-File contains at least one MX3-Record.
+
+    A MX-Channel can be 
+        * a single Value 
+        * or a Vector: Sequence of calculation results of the same Type:
+            * of all Objects of a certain Type or (called Vectorchannels)
+            * number of interior Points for all Pipes (called Pipevectorchannels)
+            * Vectors with ATTRTYPE in: {'SVEC', 'PVECMIN_INST', 'PVECMAX_INST'}
+
+For Vectorchannels and Pipevectorchannels the sequence of Objects is defined in the .MX2-File.
+
 """
 
 import os
@@ -1797,3 +1443,362 @@ if __name__ == "__main__":
     finally:
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.')) 
         sys.exit(0)
+
+"""
+DOCTEST
+
+>>> # ---
+>>> # Imports
+>>> # ---
+>>> import logging
+>>> logger = logging.getLogger('PT3S.Mx')  
+>>> import os
+>>> import zipfile
+>>> import pandas as pd
+>>> path = os.path.dirname(__file__)
+>>> # ---
+>>> # Init
+>>> # ---
+>>> h5File=os.path.join(path,'testdata\OneLPipe.h5')
+>>> mx1File=os.path.join(path,'testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX1')
+>>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
+>>> isinstance(mx.mx1Df,pd.core.frame.DataFrame) # MX1-Content
+True
+>>> isinstance(mx.df,type(None)) # MXS-Content
+True
+>>> # ---
+>>> # Clean Up
+>>> # ---
+>>> if os.path.exists(mx.h5File):                        
+...    os.remove(mx.h5File)
+>>> metadataFile=mx.h5File+'.metadata'
+>>> if os.path.exists(metadataFile):                        
+...    os.remove(metadataFile)
+>>> if os.path.exists(mx.mxsZipFile):                        
+...    os.remove(mx.mxsZipFile)
+>>> mxsDumpFile=mx.mxsFile+'.dump'
+>>> if os.path.exists(mxsDumpFile):                        
+...    os.remove(mxsDumpFile)
+>>> if os.path.exists(mx.h5FileMxsVecs):                        
+...    os.remove(mx.h5FileMxsVecs)
+>>> # ---
+>>> # 1st Read MXS
+>>> # ---
+>>> logger.debug("{0:s}: 1st Read MXS".format('DOCTEST')) 
+>>> mx.setResultsToMxsFile() # looks for M-1-0-1.MXS in same Dir 
+>>> isinstance(mx.df,pd.core.frame.DataFrame) # MXS-Content
+True
+>>> rowsDf,colsDf = mx.df.shape
+>>> (firstTime,lastTime,rows)=mx._checkMxsVecsFile()
+>>> rowsDf==rows
+True
+>>> mx.df.index[0]==firstTime
+True
+>>> # ---
+>>> # Write H5
+>>> # ---
+>>> if os.path.exists(mx.h5File):                        
+...      os.remove(mx.h5File)
+>>> mx.ToH5() # M-1-0-1.h5 in same Dir 
+>>> os.path.exists(mx.h5File)
+True
+>>> # ---
+>>> # Init with H5
+>>> # ---
+>>> mx=Mx(mx1File=mx1File) # looks for M-1-0-1.h5 in same Dir 
+>>> # and reads the .h5 if newer than .MX1 and newer than an existing .MXS 
+>>> isinstance(mx.mx1Df,pd.core.frame.DataFrame) # MX1-Content
+True
+>>> isinstance(mx.df,pd.core.frame.DataFrame) # MXS-Content
+True
+>>> # ---
+>>> # 1st Read MXS Zip
+>>> # ---
+>>> # create the Zip first
+>>> with zipfile.ZipFile(mx.mxsZipFile,'w') as myzip:
+...     myzip.write(mx.mxsFile)  
+>>> logger.debug("{0:s}: 1st Read MXS Zip".format('DOCTEST')) 
+>>> mx.setResultsToMxsZipFile() # looks for M-1-0-1.ZIP in same Dir
+>>> isinstance(mx.df,pd.core.frame.DataFrame) # MXS-Content
+True
+>>> rowsMxs,colsMxs = mx.df.shape
+>>> mx.df.index.is_unique # all setResultsTo... will ensure this uniqueness under all circumstances
+True
+>>> # uniqueness under all circumstances: also when add=True (setResultsTo... shall add the MXS-Content) is used
+>>> # ---
+>>> # 1st Add same MXS (for testing ensuring uniqueness) 
+>>> # ---
+>>> oldShape=mx.df.shape
+>>> logger.debug("{0:s}: 1st Add same MXS (for testing ensuring uniqueness)".format('DOCTEST')) 
+>>> mx.setResultsToMxsFile(add=True) # looks for M-1-0-1.MXS in same Dir 
+>>> newShape=mx.df.shape
+>>> newShape==oldShape
+True
+>>> # ---
+>>> # 1st Add same Zip (for testing ensuring uniqueness) 
+>>> # ---
+>>> logger.debug("{0:s}: 1st Add same Zip (for testing ensuring uniqueness)".format('DOCTEST')) 
+>>> mx.setResultsToMxsZipFile(add=True) # looks for M-1-0-1.ZIP in same Dir 
+>>> newShape=mx.df.shape
+>>> newShape==oldShape
+True
+>>> # ---
+>>> # 1st Read MXS Zip with overlapping Timestamps (for testing ensuring uniqueness) 
+>>> # ---
+>>> with zipfile.ZipFile(mx.mxsZipFile,'w') as myzip:
+...      myzip.write(mx.mxsFile)  
+...      myzip.write(mx.mxsFile,arcname=mx.mxsFile+'.2')  
+>>> logger.debug("{0:s}: 1st Read MXS Zip with overlapping Timestamps (for testing ensuring uniqueness)".format('DOCTEST')) 
+>>> mx.setResultsToMxsZipFile() # looks for M-1-0-1.ZIP in same Dir 
+>>> newShape=mx.df.shape
+>>> newShape==oldShape
+True
+>>> # ---
+>>> # shift to younger Timestamps (for testing purposes) 
+>>> # ---
+>>> lastTimestamp=mx.df.index[-1]
+>>> firstTimestamp=mx.df.index[0]
+>>> timeSpan=lastTimestamp-firstTimestamp
+>>> if len(mx.df.index)>1:
+...      timeStep=mx.df.index[-1]-mx.df.index[-2]
+... else:
+...      timeStep=pd.to_timedelta('1 second')
+>>> mx.df.index=mx.df.index-(timeSpan+timeStep)
+>>> # ---
+>>> # 1st Read MXS (with the original Timestamps)
+>>> # ---
+>>> logger.debug("{0:s}: 1st Read MXS (with the original Timestamps)".format('DOCTEST')) 
+>>> mx.setResultsToMxsFile(add=True) # looks for M-1-0-1.MXS in same Dir 
+>>> rowsNew,colsNew=mx.df.shape
+>>> rowsOld,colsOld=oldShape
+>>> rowsNew==2*rowsOld
+True
+>>> colsNew==colsOld
+True
+>>> # ---
+>>> # shift to older Timestamps (for testing purposes) 
+>>> # ---
+>>> lastTimestamp=mx.df.index[-1]
+>>> firstTimestamp=mx.df.index[0]
+>>> timeSpan=lastTimestamp-firstTimestamp
+>>> if len(mx.df.index)>1:
+...      timeStep=mx.df.index[-1]-mx.df.index[-2]
+... else:
+...      timeStep=pd.to_timedelta('1 second')
+>>> mx.df.index=mx.df.index+(timeSpan+timeStep)
+>>> # ---
+>>> # 2nd Read MXS (with the original Timestamps)
+>>> # ---
+>>> logger.debug("{0:s}: 2nd Read MXS (with the original Timestamps)".format('DOCTEST')) 
+>>> mx.setResultsToMxsFile(add=True) # looks for M-1-0-1.MXS in same Dir 
+>>> rowsNew,colsNew=mx.df.shape
+>>> rowsNew==3*rowsOld
+True
+>>> colsNew==colsOld
+True
+>>> # ---
+>>> # Write Dump
+>>> # ---
+>>> mx.dumpInMxsFormat() # dumps to .MXS.dump-File in same Dir
+>>> # ---
+>>> # Read Dump
+>>> # ---
+>>> logger.debug("{0:s}: Read Dump".format('DOCTEST')) 
+>>> mx.setResultsToMxsFile(mxsFile=mxsDumpFile)
+>>> with zipfile.ZipFile(mx.mxsZipFile,'w') as myzip:
+...     myzip.write(mx.mxsFile)  
+...     myzip.write(mxsDumpFile)  
+>>> # ---
+>>> # Read Zip with Orig and Dump
+>>> # ---
+>>> logger.debug("{0:s}: Read Zip with Orig and Dump".format('DOCTEST')) 
+>>> mx.setResultsToMxsZipFile()
+>>> rowsZip,colsZip = mx.df.shape
+>>> rowsZip==rowsOld
+True
+>>> # ---
+>>> # Without MX1, MXS
+>>> # ---
+>>> os.rename(mx.mx1File,mx.mx1File+'.blind')
+>>> os.rename(mx.mxsFile,mx.mxsFile+'.blind')
+>>> mx=Mx(mx1File=mx1File)  
+>>> os.rename(mx.mx1File+'.blind',mx.mx1File)
+>>> os.rename(mx.mxsFile+'.blind',mx.mxsFile)
+>>> # ---
+>>> mx.mx1Df['Sir3sID'][mx.mx1Df['Sir3sID']=='ALLG~~~-1~TIMESTAMP'].index[0]   
+0
+>>> mx.mx1Df['unpackIdx'][mx.mx1Df['Sir3sID']=='ALLG~~~-1~TIMESTAMP'].iloc[0]
+0
+>>> mx.df.shape
+(4, 41)
+>>> isinstance(mx.df.index[0],pd.tslib.Timestamp)
+True
+>>> str(mx.df.index[0])
+'2018-03-03 00:00:00+00:00'
+>>> ts=mx.df['KNOT~I~~5642914844465475844~QM']
+>>> isinstance(ts,pd.core.series.Series)
+True
+>>> "{:06.2f}".format(round(ts.iloc[0],2))
+'176.71'
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.31',1,'New','_checkMxsVecsFile: (...,fullCheck=False,...)')) 
+>>> mx._checkMxsVecsFile()
+(Timestamp('2018-03-03 00:00:00+0000', tz='UTC'), Timestamp('2018-03-03 00:00:03+0000', tz='UTC'), 4)
+>>> mx._checkMxsVecsFile(fullCheck=True)
+(Timestamp('2018-03-03 00:00:00+0000', tz='UTC'), Timestamp('2018-03-03 00:00:03+0000', tz='UTC'), 4)
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',1,'Change','setResultsToMxsFile: finally: h5.close()')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',2,'Change','setResultsToMxsZipFile: finally: h5.close()')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',3,'Change','ToH5: finally: h5.close()')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',4,'Change','FromH5: finally: h5.close()')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',5,'Change','*: except Exception as e')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',6,'Change','setResultsToMxsFile: finally: NewH5Vec=False')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',7,'Change','__init__(...,NoH5Read=True,...)')) 
+>>> if os.path.exists(mx.h5FileMxsVecs):                        
+...    os.remove(mx.h5FileMxsVecs)
+>>> mx=Mx(mx1File=mx1File,NoH5Read=True)
+>>> os.path.exists(mx.h5FileMxsVecs) # exists due to previous test
+True
+>>> h5VecsFileTime=os.path.getmtime(mx.h5FileMxsVecs) 
+>>> mx=Mx(mx1File=mx1File,NoH5Read=True)
+>>> h5VecsFileTime<os.path.getmtime(mx.h5FileMxsVecs) 
+True
+>>> h5VecsFileTime=os.path.getmtime(mx.h5FileMxsVecs) 
+>>> mx=Mx(mx1File=mx1File)
+>>> h5VecsFileTime==os.path.getmtime(mx.h5FileMxsVecs) 
+True
+>>> mx.setResultsToMxsFile()
+>>> h5VecsFileTime==os.path.getmtime(mx.h5FileMxsVecs) 
+True
+>>> mx.setResultsToMxsFile(NewH5Vec=True)
+>>> h5VecsFileTime<os.path.getmtime(mx.h5FileMxsVecs) 
+True
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',8,'Change','setResultsToMxsZipFile: finally: NewH5Vec=False')) 
+>>> mx.ToH5()
+>>> mx=Mx(mx1File=mx1File,NoH5Read=True)
+>>> os.path.exists(mx.h5File)
+False
+>>> pd.set_option('display.max_columns',None)
+>>> pd.set_option('display.width',666666)
+>>> print("'''{:s}'''".format(repr(mx.mx1Df).replace('\\n','\\n   ')))
+'''   ADDEND      ATTRTYPE CLIENT_FLAGS CLIENT_ID  DATALENGTH  DATAOFFSET DATATYPE  DATATYPELENGTH DEVIATION FACTOR  FLAGS LINKED_CHANNEL LOWER_LIMIT NAME1 NAME2 NAME3 OBJTYPE           OBJTYPE_PK OPCITEM_ID                                     TITLE       UNIT UPPER_LIMIT                         Sir3sID  NOfItems isVectorChannel isVectorChannelMx2 isVectorChannelMx2Rvec  unpackIdx
+   0       0     TIMESTAMP            0                    32           0     CHAR              32         0      1    241             -1      -1E+20                      ALLG                   -1                            Zeitstempel nach ISO 8601     [text]       1E+20             ALLG~~~-1~TIMESTAMP         1           False              False                  False          0
+   1       0  SNAPSHOTTYPE            0                     4          32     CHAR               4         0      1    241             -1      -1E+20                      ALLG                   -1               Typ des Zeitpunktes/Ausgabedatensatzes     [text]       1E+20          ALLG~~~-1~SNAPSHOTTYPE         1           False              False                  False          1
+   2       0        CVERSO            0                    80          36     CHAR              80         0      1    241             -1      -1E+20                      ALLG                   -1                                      Versionskennung     [text]       1E+20                ALLG~~~-1~CVERSO         1           False              False                  False          2
+   3       0        EXSTAT            0                     4         116     INT4               4         0      1   1265             -1      -1E+20                      ALLG                   -1                           Exit-Status der Berechnung         []       1E+20                ALLG~~~-1~EXSTAT         1           False              False                  False          3
+   4       0         NFEHL            0                     4         120     INT4               4         0      1    241             -1      -1E+20                      ALLG                   -1                Anzahl Fehler im Berechnungsabschnitt         []       1E+20                 ALLG~~~-1~NFEHL         1           False              False                  False          4
+   5       0         NWARN            0                     4         124     INT4               4         0      1    241             -1      -1E+20                      ALLG                   -1             Anzahl Warnungen im Berechnungsabschnitt         []       1E+20                 ALLG~~~-1~NWARN         1           False              False                  False          5
+   6       0         NMELD            0                     4         128     INT4               4         0      1    241             -1      -1E+20                      ALLG                   -1             Anzahl Meldungen im Berechnungsabschnitt         []       1E+20                 ALLG~~~-1~NMELD         1           False              False                  False          6
+   7       0       CPUTIME            0                     4         132     REAL               4         0      1    241             -1      -1E+20                      ALLG                   -1                                  CPU-Zeit seit Start        [s]       1E+20               ALLG~~~-1~CPUTIME         1           False              False                  False          7
+   8       0       USRTIME            0                     4         136     REAL               4         0      1    241             -1      -1E+20                      ALLG                   -1                                  USR-Zeit seit Start        [s]       1E+20               ALLG~~~-1~USRTIME         1           False              False                  False          8
+   9       0       NPGREST            0                     4         140     INT4               4         0      1     49             -1      -1E+20                      ALLG                   -1                   Anzahl aktiver PGRP in Restriktion         []       1E+20               ALLG~~~-1~NPGREST         1           False              False                  False          9
+   10      0       NETZABN            0                     4         144     REAL               4         0      1   1233             -1      -1E+20                      ALLG                   -1                                          Netzabnahme     [m3/h]       1E+20               ALLG~~~-1~NETZABN         1           False              False                  False         10
+   11      0         NKNUV            0                     4         148     INT4               4         0      1   1233             -1      -1E+20                      ALLG                   -1                      Anzahl KNOT mit Unterversorgung         []       1E+20                 ALLG~~~-1~NKNUV         1           False              False                  False         11
+   12      0         MKNUV            0                     4         152     REAL               4         0      1   1233             -1      -1E+20                      ALLG                   -1                   Fehlmenge KNOT aus Unterversorgung     [m3/h]       1E+20                 ALLG~~~-1~MKNUV         1           False              False                  False         12
+   13      0       NFVHYUV            0                     4         156     INT4               4         0      1   1057             -1      -1E+20                      ALLG                   -1                Anzahl FWVB mit hydr. Unterversorgung         []       1E+20               ALLG~~~-1~NFVHYUV         1           False              False                  False         13
+   14      0       NFVTHUV            0                     4         160     INT4               4         0      1   1057             -1      -1E+20                      ALLG                   -1                Anzahl FWVB mit ther. Unterversorgung         []       1E+20               ALLG~~~-1~NFVTHUV         1           False              False                  False         14
+   15      0       MFVHYUV            0                     4         164     REAL               4         0      1   1057             -1      -1E+20                      ALLG                   -1             Fehlmenge FWVB aus hydr. Unterversorgung     [m3/h]       1E+20               ALLG~~~-1~MFVHYUV         1           False              False                  False         15
+   16      0       MFVTHUV            0                     4         168     REAL               4         0      1   1057             -1      -1E+20                      ALLG                   -1             Fehlmenge FWVB aus ther. Unterversorgung     [m3/h]       1E+20               ALLG~~~-1~MFVTHUV         1           False              False                  False         16
+   17      0      TVMINMAX            0                     4         172     REAL               4         0      1   1057             -1      -1E+20                      ALLG                   -1                  Maximum der erf. min. VL-Temperatur       [°C]       1E+20              ALLG~~~-1~TVMINMAX         1           False              False                  False         17
+   18      0        ITERHY            0                     4         176     INT4               4         0      1   1265             -1      -1E+20                      ALLG                   -1                Anzahl benötigter (hydr.) Iterationen         []       1E+20                ALLG~~~-1~ITERHY         1           False              False                  False         18
+   19      0         LFQSV            0                     4         180     REAL               4         0      1   1041             -1      -1E+20                      ALLG                   -1                       Lastfaktor für Strangentnahmen         []       1E+20                 ALLG~~~-1~LFQSV         1           False              False                  False         19
+   20      0         JWARN            0                     4         184     INT4               4         0      1    241             -1      -1E+20                      ALLG                   -1                                            Warnstufe         []       1E+20                 ALLG~~~-1~JWARN         1           False              False                  False         20
+   21      0  NETZABNEXITS            0                     4         188     REAL               4         0      1   1233             -1      -1E+20                      ALLG                   -1                         Netzabnahme ohne Druckränder     [m3/h]       1E+20          ALLG~~~-1~NETZABNEXITS         1           False              False                  False         21
+   22      0  LINEPACKRATE            0                     4         192     REAL               4         0      1     65             -1      -1E+20                      ALLG                   -1                                 Gesamt-Linepack-Rate  [(N)m3/h]       1E+20          ALLG~~~-1~LINEPACKRATE         1           False              False                  False         22
+   23      0   LINEPACKGES            0                     4         196     REAL               4         0      1     65             -1      -1E+20                      ALLG                   -1                                      Gesamt-Linepack    [(N)m3]       1E+20           ALLG~~~-1~LINEPACKGES         1           False              False                  False         23
+   24      0  LINEPACKGEOM            0                     4         200     REAL               4         0      1     65             -1      -1E+20                      ALLG                   -1                           Gesamt-Linepack Rohrinhalt    [(N)m3]       1E+20          ALLG~~~-1~LINEPACKGEOM         1           False              False                  False         24
+   25      0         RHOAV            0                     4         204     REAL               4         0      1   1265             -1      -1E+20                      ALLG                   -1                                      Mittlere Dichte    [kg/m3]       1E+20                 ALLG~~~-1~RHOAV         1           False              False                  False         25
+   26      0           TAV            0                     4         208     REAL               4         0      1   1265             -1      -1E+20                      ALLG                   -1                                  Mittlere Temperatur       [°C]       1E+20                   ALLG~~~-1~TAV         1           False              False                  False         26
+   27      0           PAV            0                     4         212     REAL               4         0      1   1265             -1      -1E+20                      ALLG                   -1                                      Mittlerer Druck    [bar,a]       1E+20                   ALLG~~~-1~PAV         1           False              False                  False         27
+   28      0   FWVB_DPHMIN            0                     4         216     REAL               4         0      1   1057             -1      -1E+20                      ALLG                   -1                Min. Differenzdruck aller Verbraucher      [bar]       1E+20           ALLG~~~-1~FWVB_DPHMIN         1           False              False                  False         28
+   29      0    KNOT_PHMAX            0                     4         220     REAL               4         0      1   1265             -1      -1E+20                      ALLG                   -1                             Max. Knotendruck im Netz      [bar]       1E+20            ALLG~~~-1~KNOT_PHMAX         1           False              False                  False         29
+   30      0    KNOT_PHMIN            0                     4         224     REAL               4         0      1   1265             -1      -1E+20                      ALLG                   -1                             Min. Knotendruck im Netz      [bar]       1E+20            ALLG~~~-1~KNOT_PHMIN         1           False              False                  False         30
+   31      0   FWVB_TVLMIN            0                     4         228     REAL               4         0      1   1057             -1      -1E+20                      ALLG                   -1                 Min. VL-Temperatur aller Verbraucher       [°C]       1E+20           ALLG~~~-1~FWVB_TVLMIN         1           False              False                  False         31
+   32      0       NETZBEZ            0                     4         232     REAL               4         0      1   1233             -1      -1E+20                      ALLG                   -1                                            Netzbezug     [m3/h]       1E+20               ALLG~~~-1~NETZBEZ         1           False              False                  False         32
+   33      0            PH            0                     4         236     REAL               4         0      1   1265             -1      -1E+20     I                KNOT  5642914844465475844                                                Druck      [bar]       1E+20  KNOT~I~~5642914844465475844~PH         1           False              False                  False         33
+   34      0            QM            0                     4         240     REAL               4         0      1   1265             -1      -1E+20     I                KNOT  5642914844465475844                                  Externer Durchfluss     [m3/h]       1E+20  KNOT~I~~5642914844465475844~QM         1           False              False                  False         34
+   35      0            PH            0                     4         244     REAL               4         0      1   1265             -1      -1E+20     K                KNOT  5289899964753656852                                                Druck      [bar]       1E+20  KNOT~K~~5289899964753656852~PH         1           False              False                  False         35
+   36      0            QM            0                     4         248     REAL               4         0      1   1265             -1      -1E+20     K                KNOT  5289899964753656852                                  Externer Durchfluss     [m3/h]       1E+20  KNOT~K~~5289899964753656852~QM         1           False              False                  False         36
+   37      0          MVEC            0                   404         252     RVEC               4         0      1    245             -1      -1E+20     *     *          ROHR                    *                                                          [kg/s]       1E+20                 ROHR~*~*~*~MVEC       101            True               True                   True         37
+   38      0        RHOVEC            0                   404         656     RVEC               4         0      1    245             -1      -1E+20     *     *          ROHR                    *                                                         [kg/m3]       1E+20               ROHR~*~*~*~RHOVEC       101            True               True                   True        138
+   39      0          ZVEC            0                   404        1060     RVEC               4         0      1    245             -1      -1E+20     *     *          ROHR                    *                                                             [m]       1E+20                 ROHR~*~*~*~ZVEC       101            True               True                   True        239
+   40      0           PHR            0                     4        1464     REAL               4         0      1   1269             -1      -1E+20     *     *          ROHR                    *                                                          [IDPH]       1E+20                  ROHR~*~*~*~PHR         1           False              False                  False        340
+   41      0          PVEC            0                   404        1468     RVEC               4         0      1    245             -1      -1E+20     *     *          ROHR                    *                                                         [bar,a]       1E+20                 ROHR~*~*~*~PVEC       101            True               True                   True        341
+   42      0            QM            0                     8        1872     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                          [IDQM]       1E+20                    KNOT~*~~*~QM         2            True               True                  False        442
+   43      0            PH            0                     8        1880     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                        [IDPH,4]       1E+20                    KNOT~*~~*~PH         2            True               True                  False        444
+   44      0             H            0                     8        1888     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                        [IDPH,6]       1E+20                     KNOT~*~~*~H         2            True               True                  False        446
+   45      0          QMAV            0                     4        1896     REAL               4         0      1   1269             -1      -1E+20     *     *          ROHR                    *                                                          [IDQM]       1E+20                 ROHR~*~*~*~QMAV         1           False              False                  False        448
+   46      0           VAV            0                     4        1900     REAL               4         0      1   1269             -1      -1E+20     *     *          ROHR                    *                                                           [m/s]       1E+20                  ROHR~*~*~*~VAV         1           False              False                  False        449
+   47      0      LFAKTAKT            0                     8        1904     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                              []       1E+20              KNOT~*~~*~LFAKTAKT         2            True               True                  False        450
+   48      0             P            0                     8        1912     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                         [bar,a]       1E+20                     KNOT~*~~*~P         2            True               True                  False        452
+   49      0        PH_EIN            0                     8        1920     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                          [IDPH]       1E+20                KNOT~*~~*~PH_EIN         2            True               True                  False        454
+   50      0           RHO            0                     8        1928     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                         [kg/m3]       1E+20                   KNOT~*~~*~RHO         2            True               True                  False        456
+   51      0             T            0                     8        1936     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                            [°C]       1E+20                     KNOT~*~~*~T         2            True               True                  False        458
+   52      0            EH            0                     8        1944     REAL               4         0      1   1269             -1      -1E+20     *                KNOT                    *                                                           [mNN]       1E+20                    KNOT~*~~*~EH         2            True               True                  False        460
+   53      0             A            0                     4        1952     REAL               4         0      1   1269             -1      -1E+20     *     *          ROHR                    *                                                           [m/s]       1E+20                    ROHR~*~*~*~A         1           False              False                  False        462
+   54      0       IRTRENN            0                     4        1956     INT4               4         0      1   1269             -1      -1E+20     *     *          ROHR                    *                                                              []       1E+20              ROHR~*~*~*~IRTRENN         1           False              False                  False        463'''
+>>> print("'''{:s}'''".format(repr(mx.mx2Df).replace('\\n','\\n   ')))
+'''       AttrType                                        Data  DataLength DataType  DataTypeLength  NOfItems       ObjType
+   0  tk            [5642914844465475844, 5289899964753656852]          40     CHAR              20         2  KNOT        
+   1  pk                                 [5252810657060947333]          20     CHAR              20         1  LFKT        
+   2  pk                                 [5502689500012692689]          20     CHAR              20         1  PHI1        
+   3  pk                                 [5732781659713982525]          20     CHAR              20         1  PUMD        
+   4  pk                                 [5163733225086798083]          20     CHAR              20         1  PVAR        
+   5  pk                                 [4742976321174242828]          20     CHAR              20         1  QVAR        
+   6  tk                                 [4737064599036143765]          20     CHAR              20         1  ROHR        
+   7  N_OF_POINTS                                       (101,)           4     INT4               4         1  ROHR        
+   8  pk                                 [5396761270498593493]          20     CHAR              20         1  SWVT        '''
+>>> print("'''{:s}'''".format(repr(mx.df.drop(['ALLG~~~-1~CPUTIME','ALLG~~~-1~USRTIME','ALLG~~~-1~CVERSO'],axis=1)).replace('\\n','\\n   ')))
+'''                          ALLG~~~-1~SNAPSHOTTYPE  ALLG~~~-1~EXSTAT  ALLG~~~-1~NFEHL  ALLG~~~-1~NWARN  ALLG~~~-1~NMELD  ALLG~~~-1~NPGREST  ALLG~~~-1~NETZABN  ALLG~~~-1~NKNUV  ALLG~~~-1~MKNUV  ALLG~~~-1~NFVHYUV  ALLG~~~-1~NFVTHUV  ALLG~~~-1~MFVHYUV  ALLG~~~-1~MFVTHUV  ALLG~~~-1~TVMINMAX  ALLG~~~-1~ITERHY  ALLG~~~-1~LFQSV  ALLG~~~-1~JWARN  ALLG~~~-1~NETZABNEXITS  ALLG~~~-1~LINEPACKRATE  ALLG~~~-1~LINEPACKGES  ALLG~~~-1~LINEPACKGEOM  ALLG~~~-1~RHOAV  ALLG~~~-1~TAV  ALLG~~~-1~PAV  ALLG~~~-1~FWVB_DPHMIN  ALLG~~~-1~KNOT_PHMAX  ALLG~~~-1~KNOT_PHMIN  ALLG~~~-1~FWVB_TVLMIN  ALLG~~~-1~NETZBEZ  KNOT~I~~5642914844465475844~PH  KNOT~I~~5642914844465475844~QM  KNOT~K~~5289899964753656852~PH  KNOT~K~~5289899964753656852~QM  ROHR~*~*~*~PHR  ROHR~*~*~*~QMAV  ROHR~*~*~*~VAV  ROHR~*~*~*~A  ROHR~*~*~*~IRTRENN
+   2018-03-03 00:00:00+00:00                b'STAT'                 0                0                0               13                  0         176.714600                0              0.0                  0                  0                0.0                0.0         -273.149994                11              1.0               30                     0.0                0.000000           0.000000e+00              490.873871      1000.299988     556.299988       3.108535           3.402823e+38              4.217070                   0.0           3.402823e+38           176.7146                        4.217070                        176.7146                             0.0                     -176.714600        4.217033       176.714600        1.000000        1000.0                   0
+   2018-03-03 00:00:01+00:00                b'TIME'                 0                0                0                0                  0         176.714737                0              0.0                  0                  0                0.0                0.0         -273.149994                 1              1.0               30                     0.0               -0.000137          -2.042460e-08              490.873871      1000.299988     556.299988       3.108534           3.402823e+38              4.217062                   0.0           3.402823e+38           176.7146                        4.217062                        176.7146                             0.0                     -176.714737        4.217032       176.714722        1.000001        1000.0                   0
+   2018-03-03 00:00:02+00:00                b'TIME'                 0                0                0                0                  0         176.714798                0              0.0                  0                  0                0.0                0.0         -273.149994                 1              1.0               30                     0.0               -0.000198          -5.934779e-08              490.873871      1000.299988     556.299988       3.108533           3.402823e+38              4.217058                   0.0           3.402823e+38           176.7146                        4.217058                        176.7146                             0.0                     -176.714798        4.217035       176.714767        1.000001        1000.0                   0
+   2018-03-03 00:00:03+00:00                b'TIME'                 0                0                0                0                  0         176.714859                0              0.0                  0                  0                0.0                0.0         -273.149994                 1              1.0               30                     0.0               -0.000259          -1.153421e-07              490.873871      1000.299988     556.299988       3.108532           3.402823e+38              4.217054                   0.0           3.402823e+38           176.7146                        4.217054                        176.7146                             0.0                     -176.714859        4.217036       176.714813        1.000001        1000.0                   0'''
+>>> # ---
+>>> # Clean Up OneLPipe
+>>> # ---
+>>> if os.path.exists(mx.h5File):                        
+...     os.remove(mx.h5File)
+>>> if os.path.exists(mx.mxsZipFile):                        
+...     os.remove(mx.mxsZipFile)
+>>> if os.path.exists(mxsDumpFile):                        
+...    os.remove(mxsDumpFile)
+>>> if os.path.exists(mx.h5FileMxsVecs):                        
+...    os.remove(mx.h5FileMxsVecs)
+>>> # ---
+>>> # LocalHeatingNetwork
+>>> # ---
+>>> mx1File=os.path.join(path,'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1')
+>>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
+>>> mx.setResultsToMxsFile(maxRecords=1)
+>>> print("'''{:s}'''".format(repr(mx.df.drop(['ALLG~~~-1~CPUTIME','ALLG~~~-1~USRTIME','ALLG~~~-1~CVERSO'],axis=1)).replace('\\n','\\n   ')))
+'''                          ALLG~~~-1~SNAPSHOTTYPE  ALLG~~~-1~EXSTAT  ALLG~~~-1~NFEHL  ALLG~~~-1~NWARN  ALLG~~~-1~NMELD  ALLG~~~-1~NPGREST  ALLG~~~-1~NETZABN  ALLG~~~-1~NKNUV  ALLG~~~-1~MKNUV  ALLG~~~-1~NFVHYUV  ALLG~~~-1~NFVTHUV  ALLG~~~-1~MFVHYUV  ALLG~~~-1~MFVTHUV  ALLG~~~-1~TVMINMAX  ALLG~~~-1~ITERHY  ALLG~~~-1~LFQSV  ALLG~~~-1~JWARN  ALLG~~~-1~NETZABNEXITS  ALLG~~~-1~LINEPACKRATE  ALLG~~~-1~LINEPACKGES  ALLG~~~-1~LINEPACKGEOM  ALLG~~~-1~RHOAV  ALLG~~~-1~TAV  ALLG~~~-1~PAV  ALLG~~~-1~FWVB_DPHMIN  ALLG~~~-1~KNOT_PHMAX  ALLG~~~-1~KNOT_PHMIN  ALLG~~~-1~FWVB_TVLMIN  ALLG~~~-1~NETZBEZ  KNOT~V-L~~5736262931552588702~PH  FWES~R3~V-1~5638756766880678918~W  KNOT~V-K007~~5741235692335544560~DP  WBLZ~WärmeblnzGes~~5262603207038486299~WSPEI  KNOT~R-L~~5356267303828212700~PH  PUMP~R-1~R2~5481331875203087055~N  KNOT~V-1~~5049461676240771430~T  WBLZ~WärmeblnzGes~~5262603207038486299~WES  WBLZ~WärmeblnzGes~~5262603207038486299~WVB  VENT~V-1~V-L~4678923650983295610~QM  WBLZ~WärmeblnzGes~~5262603207038486299~WVERL  KNOT~R3~~5219230031772497417~T  PUMP~R-1~R2~5481331875203087055~BK  PUMP~R-1~R2~5481331875203087055~PE  FWES~R3~V-1~5638756766880678918~TI  FWES~R3~V-1~5638756766880678918~TK  WBLZ~BLNZ1u5u7~~4694700216019268978~WVB  KNOT~PKON-Knoten~~5397990465339071638~QM  FWVB~V-K002~R-K002~4643800032883366034~DP  FWVB~V-K002~R-K002~4643800032883366034~INDUV  FWVB~V-K002~R-K002~4643800032883366034~LFH  FWVB~V-K002~R-K002~4643800032883366034~LFT  FWVB~V-K002~R-K002~4643800032883366034~W  FWVB~V-K002~R-K002~4643800032883366034~WSOLL  FWVB~V-K007~R-K007~5400405917816384862~DP  FWVB~V-K007~R-K007~5400405917816384862~INDUV  FWVB~V-K007~R-K007~5400405917816384862~LFH  FWVB~V-K007~R-K007~5400405917816384862~LFT  FWVB~V-K007~R-K007~5400405917816384862~W  FWVB~V-K007~R-K007~5400405917816384862~WSOLL  FWVB~V-K003~R-K003~5695730293103267172~DP  FWVB~V-K003~R-K003~5695730293103267172~INDUV  FWVB~V-K003~R-K003~5695730293103267172~LFH  FWVB~V-K003~R-K003~5695730293103267172~LFT  FWVB~V-K003~R-K003~5695730293103267172~W  FWVB~V-K003~R-K003~5695730293103267172~WSOLL  FWVB~V-K004~R-K004~4704603947372595298~DP  FWVB~V-K004~R-K004~4704603947372595298~INDUV  FWVB~V-K004~R-K004~4704603947372595298~LFH  FWVB~V-K004~R-K004~4704603947372595298~LFT  FWVB~V-K004~R-K004~4704603947372595298~W  FWVB~V-K004~R-K004~4704603947372595298~WSOLL  FWVB~V-K005~R-K005~5121101823283893406~INDUV  FWVB~V-K005~R-K005~5121101823283893406~LFH  FWVB~V-K005~R-K005~5121101823283893406~LFT  FWVB~V-K005~R-K005~5121101823283893406~W  FWVB~V-K005~R-K005~5121101823283893406~WSOLL  FWVB~V-K007~R-K007~5400405917816384862~QM  FWVB~V-K002~R-K002~4643800032883366034~QM  FWVB~V-K004~R-K004~4704603947372595298~TI  FWVB~V-K004~R-K004~4704603947372595298~TK  FWVB~V-K004~R-K004~4704603947372595298~TVMIN  FWVB~V-K002~R-K002~4643800032883366034~TI  FWVB~V-K002~R-K002~4643800032883366034~TK  FWVB~V-K002~R-K002~4643800032883366034~TVMIN  KNOT~V-L~~5736262931552588702~RHO  KNOT~V-L~~5736262931552588702~P  KNOT~V-L~~5736262931552588702~H  KNOT~V-L~~5736262931552588702~HMAX_INST  KNOT~V-L~~5736262931552588702~HMIN_INST  KNOT~V-L~~5736262931552588702~PMAX_INST  KNOT~V-L~~5736262931552588702~PMIN_INST  KNOT~V-L~~5736262931552588702~PDAMPF  KNOT~V-K000~~4766681917240867943~RHO  KNOT~V-K000~~4766681917240867943~P  KNOT~V-K000~~4766681917240867943~H  KNOT~V-K000~~4766681917240867943~HMAX_INST  KNOT~V-K000~~4766681917240867943~HMIN_INST  KNOT~V-K000~~4766681917240867943~PMAX_INST  KNOT~V-K000~~4766681917240867943~PMIN_INST  KNOT~V-K000~~4766681917240867943~PDAMPF  KNOT~V-K001~~4756962427318766791~RHO  KNOT~V-K001~~4756962427318766791~P  KNOT~V-K001~~4756962427318766791~H  KNOT~V-K001~~4756962427318766791~HMAX_INST  KNOT~V-K001~~4756962427318766791~HMIN_INST  KNOT~V-K001~~4756962427318766791~PMAX_INST  KNOT~V-K001~~4756962427318766791~PMIN_INST  KNOT~V-K001~~4756962427318766791~PDAMPF  KNOT~V-K002~~4731792362611615619~RHO  KNOT~V-K002~~4731792362611615619~P  KNOT~V-K002~~4731792362611615619~H  KNOT~V-K002~~4731792362611615619~HMAX_INST  KNOT~V-K002~~4731792362611615619~HMIN_INST  KNOT~V-K002~~4731792362611615619~PMAX_INST  KNOT~V-K002~~4731792362611615619~PMIN_INST  KNOT~V-K002~~4731792362611615619~PDAMPF  KNOT~V-K003~~5646671866542823796~RHO  KNOT~V-K003~~5646671866542823796~P  KNOT~V-K003~~5646671866542823796~H  KNOT~V-K003~~5646671866542823796~HMAX_INST  KNOT~V-K003~~5646671866542823796~HMIN_INST  KNOT~V-K003~~5646671866542823796~PMAX_INST  KNOT~V-K003~~5646671866542823796~PMIN_INST  KNOT~V-K003~~5646671866542823796~PDAMPF  KNOT~V-K004~~5370423799772591808~RHO  KNOT~V-K004~~5370423799772591808~P  KNOT~V-K004~~5370423799772591808~H  KNOT~V-K004~~5370423799772591808~HMAX_INST  KNOT~V-K004~~5370423799772591808~HMIN_INST  KNOT~V-K004~~5370423799772591808~PMAX_INST  KNOT~V-K004~~5370423799772591808~PMIN_INST  KNOT~V-K004~~5370423799772591808~PDAMPF  KNOT~V-K005~~5444644492819213978~RHO  KNOT~V-K005~~5444644492819213978~P  KNOT~V-K005~~5444644492819213978~H  KNOT~V-K005~~5444644492819213978~HMAX_INST  KNOT~V-K005~~5444644492819213978~HMIN_INST  KNOT~V-K005~~5444644492819213978~PMAX_INST  KNOT~V-K005~~5444644492819213978~PMIN_INST  KNOT~V-K005~~5444644492819213978~PDAMPF  KNOT~V-K006~~5515313800585145571~RHO  KNOT~V-K006~~5515313800585145571~P  KNOT~V-K006~~5515313800585145571~H  KNOT~V-K006~~5515313800585145571~HMAX_INST  KNOT~V-K006~~5515313800585145571~HMIN_INST  KNOT~V-K006~~5515313800585145571~PMAX_INST  KNOT~V-K006~~5515313800585145571~PMIN_INST  KNOT~V-K006~~5515313800585145571~PDAMPF  KNOT~V-K007~~5741235692335544560~RHO  KNOT~V-K007~~5741235692335544560~P  KNOT~V-K007~~5741235692335544560~H  KNOT~V-K007~~5741235692335544560~HMAX_INST  KNOT~V-K007~~5741235692335544560~HMIN_INST  KNOT~V-K007~~5741235692335544560~PMAX_INST  KNOT~V-K007~~5741235692335544560~PMIN_INST  KNOT~V-K007~~5741235692335544560~PDAMPF  KNOT~R-L~~5356267303828212700~RHO  KNOT~R-L~~5356267303828212700~P  KNOT~R-L~~5356267303828212700~H  KNOT~R-L~~5356267303828212700~HMAX_INST  KNOT~R-L~~5356267303828212700~HMIN_INST  KNOT~R-L~~5356267303828212700~PMAX_INST  KNOT~R-L~~5356267303828212700~PMIN_INST  KNOT~R-L~~5356267303828212700~PDAMPF  KNOT~R-K000~~4979785838440534851~RHO  KNOT~R-K000~~4979785838440534851~P  KNOT~R-K000~~4979785838440534851~H  KNOT~R-K000~~4979785838440534851~HMAX_INST  KNOT~R-K000~~4979785838440534851~HMIN_INST  KNOT~R-K000~~4979785838440534851~PMAX_INST  KNOT~R-K000~~4979785838440534851~PMIN_INST  KNOT~R-K000~~4979785838440534851~PDAMPF  KNOT~R-K001~~4807712987325933680~RHO  KNOT~R-K001~~4807712987325933680~P  KNOT~R-K001~~4807712987325933680~H  KNOT~R-K001~~4807712987325933680~HMAX_INST  KNOT~R-K001~~4807712987325933680~HMIN_INST  KNOT~R-K001~~4807712987325933680~PMAX_INST  KNOT~R-K001~~4807712987325933680~PMIN_INST  KNOT~R-K001~~4807712987325933680~PDAMPF  KNOT~R-K002~~5364712333175450942~RHO  KNOT~R-K002~~5364712333175450942~P  KNOT~R-K002~~5364712333175450942~H  KNOT~R-K002~~5364712333175450942~HMAX_INST  KNOT~R-K002~~5364712333175450942~HMIN_INST  KNOT~R-K002~~5364712333175450942~PMAX_INST  KNOT~R-K002~~5364712333175450942~PMIN_INST  KNOT~R-K002~~5364712333175450942~PDAMPF  KNOT~R-K003~~4891048046264179170~RHO  KNOT~R-K003~~4891048046264179170~P  KNOT~R-K003~~4891048046264179170~H  KNOT~R-K003~~4891048046264179170~HMAX_INST  KNOT~R-K003~~4891048046264179170~HMIN_INST  KNOT~R-K003~~4891048046264179170~PMAX_INST  KNOT~R-K003~~4891048046264179170~PMIN_INST  KNOT~R-K003~~4891048046264179170~PDAMPF  KNOT~R-K004~~4638663808856251977~RHO  KNOT~R-K004~~4638663808856251977~P  KNOT~R-K004~~4638663808856251977~H  KNOT~R-K004~~4638663808856251977~HMAX_INST  KNOT~R-K004~~4638663808856251977~HMIN_INST  KNOT~R-K004~~4638663808856251977~PMAX_INST  KNOT~R-K004~~4638663808856251977~PMIN_INST  KNOT~R-K004~~4638663808856251977~PDAMPF  KNOT~R-K005~~5183147862966701025~RHO  KNOT~R-K005~~5183147862966701025~P  KNOT~R-K005~~5183147862966701025~H  KNOT~R-K005~~5183147862966701025~HMAX_INST  KNOT~R-K005~~5183147862966701025~HMIN_INST  KNOT~R-K005~~5183147862966701025~PMAX_INST  KNOT~R-K005~~5183147862966701025~PMIN_INST  KNOT~R-K005~~5183147862966701025~PDAMPF  KNOT~R-K006~~5543326527366090679~RHO  KNOT~R-K006~~5543326527366090679~P  KNOT~R-K006~~5543326527366090679~H  KNOT~R-K006~~5543326527366090679~HMAX_INST  KNOT~R-K006~~5543326527366090679~HMIN_INST  KNOT~R-K006~~5543326527366090679~PMAX_INST  KNOT~R-K006~~5543326527366090679~PMIN_INST  KNOT~R-K006~~5543326527366090679~PDAMPF  KNOT~R-K007~~5508992300317633799~RHO  KNOT~R-K007~~5508992300317633799~P  KNOT~R-K007~~5508992300317633799~H  KNOT~R-K007~~5508992300317633799~HMAX_INST  KNOT~R-K007~~5508992300317633799~HMIN_INST  KNOT~R-K007~~5508992300317633799~PMAX_INST  KNOT~R-K007~~5508992300317633799~PMIN_INST  KNOT~R-K007~~5508992300317633799~PDAMPF  ROHR~V-L~V-K000~4939422678063487923~VI  ROHR~V-L~V-K000~4939422678063487923~VK  ROHR~V-L~V-K000~4939422678063487923~QMI  ROHR~V-L~V-K000~4939422678063487923~QMK  ROHR~V-K000~V-K001~4984202422877610920~VI  ROHR~V-K000~V-K001~4984202422877610920~VK  ROHR~V-K000~V-K001~4984202422877610920~QMI  ROHR~V-K000~V-K001~4984202422877610920~QMK  ROHR~V-K001~V-K002~4789218195240364437~VI  ROHR~V-K001~V-K002~4789218195240364437~VK  ROHR~V-K001~V-K002~4789218195240364437~QMI  ROHR~V-K001~V-K002~4789218195240364437~QMK  ROHR~V-K002~V-K003~4614949065966596185~VI  ROHR~V-K002~V-K003~4614949065966596185~VK  ROHR~V-K002~V-K003~4614949065966596185~QMI  ROHR~V-K002~V-K003~4614949065966596185~QMK  ROHR~V-K003~V-K004~5037777106796980248~VI  ROHR~V-K003~V-K004~5037777106796980248~VK  ROHR~V-K003~V-K004~5037777106796980248~QMI  ROHR~V-K003~V-K004~5037777106796980248~QMK  ROHR~V-K004~V-K005~4713733238627697042~VI  ROHR~V-K004~V-K005~4713733238627697042~VK  ROHR~V-K004~V-K005~4713733238627697042~QMI  ROHR~V-K004~V-K005~4713733238627697042~QMK  ROHR~V-K005~V-K006~5123819811204259837~VI  ROHR~V-K005~V-K006~5123819811204259837~VK  ROHR~V-K005~V-K006~5123819811204259837~QMI  ROHR~V-K005~V-K006~5123819811204259837~QMK  ROHR~V-K006~V-K007~5620197984230756681~VI  ROHR~V-K006~V-K007~5620197984230756681~VK  ROHR~V-K006~V-K007~5620197984230756681~QMI  ROHR~V-K006~V-K007~5620197984230756681~QMK  ROHR~R-L~R-K000~4769996343148550485~VI  ROHR~R-L~R-K000~4769996343148550485~VK  ROHR~R-L~R-K000~4769996343148550485~QMI  ROHR~R-L~R-K000~4769996343148550485~QMK  ROHR~R-K000~R-K001~5647213228462830353~VI  ROHR~R-K000~R-K001~5647213228462830353~VK  ROHR~R-K000~R-K001~5647213228462830353~QMI  ROHR~R-K000~R-K001~5647213228462830353~QMK  ROHR~R-K001~R-K002~5266224553324203132~VI  ROHR~R-K001~R-K002~5266224553324203132~VK  ROHR~R-K001~R-K002~5266224553324203132~QMI  ROHR~R-K001~R-K002~5266224553324203132~QMK  ROHR~R-K002~R-K003~5379365049009065623~VI  ROHR~R-K002~R-K003~5379365049009065623~VK  ROHR~R-K002~R-K003~5379365049009065623~QMI  ROHR~R-K002~R-K003~5379365049009065623~QMK  ROHR~R-K003~R-K004~4637102239750163477~VI  ROHR~R-K003~R-K004~4637102239750163477~VK  ROHR~R-K003~R-K004~4637102239750163477~QMI  ROHR~R-K003~R-K004~4637102239750163477~QMK  ROHR~R-K004~R-K005~4613782368750024999~VI  ROHR~R-K004~R-K005~4613782368750024999~VK  ROHR~R-K004~R-K005~4613782368750024999~QMI  ROHR~R-K004~R-K005~4613782368750024999~QMK  ROHR~R-K005~R-K006~5611703699850694889~VI  ROHR~R-K005~R-K006~5611703699850694889~VK  ROHR~R-K005~R-K006~5611703699850694889~QMI  ROHR~R-K005~R-K006~5611703699850694889~QMK  ROHR~R-K006~R-K007~4945727430885351042~VI  ROHR~R-K006~R-K007~4945727430885351042~VK  ROHR~R-K006~R-K007~4945727430885351042~QMI  ROHR~R-K006~R-K007~4945727430885351042~QMK  PUMP~R-1~R2~5481331875203087055~RHO  PUMP~R-1~R2~5481331875203087055~M  PUMP~R-1~R2~5481331875203087055~ETA  PUMP~R-1~R2~5481331875203087055~ETAW  PUMP~R-1~R2~5481331875203087055~DP  FWES~*~*~*~IAKTIV  KLAP~*~*~*~IAKTIV  PUMP~*~*~*~IAKTIV
+   2004-09-22 08:30:00+00:00                b'STAT'                 0                0                0               21                  0           0.000002                0              0.0                  0                  0                0.0                0.0           89.511505                 8              1.0               50                     0.0                     0.0                    0.0                23.12059       975.700012     619.633301        4.11655               1.500571              4.311969                   2.0                   90.0           0.000002                          4.126546                         802.719727                             1.500571                                      2.719672                          2.000133                        1142.490845                             90.0                                  802.719727                                       800.0                             22.98794                                           0.0                            60.0                            0.330514                            2.754284                                60.0                                90.0                                    480.0                                  0.000002                                   1.845007                                             0                                    0.914001                                         0.8                                160.000031                                         160.0                                   1.500571                                             0                                         0.8                                         0.8                                     160.0                                         160.0                                   1.562085                                             0                                    0.642765                                         0.6                                120.000008                                    120.000008                                   1.523539                                             0                                         1.0                                         1.0                                200.000015                                         200.0                                             0                                         0.8                                         0.8                                     160.0                                         160.0                                   3.928163                                   3.928163                                       90.0                                       65.0                                     89.511505                                       90.0                                       55.0                                     86.514343                         965.700012                         5.126546                         4.126546                                 4.126546                                 4.126546                                 5.126546                                 5.126546                                0.7011                            965.700012                            5.122155                            4.122155                                    4.122155                                    4.122155                                    5.122155                                    5.122155                                   0.7011                            965.700012                            5.084035                            4.084035                                    4.084035                                    4.084035                                    5.084035                                    5.084035                                   0.7011                            965.700012                            4.986475                            3.986475                                    3.986475                                    3.986475                                    4.986475                                    4.986475                                   0.7011                            965.700012                            4.845703                            3.845703                                    3.845703                                    3.845703                                    4.845703                                    4.845703                                   0.7011                            965.700012                            4.826566                            3.826566                                    3.826566                                    3.826566                                    4.826566                                    4.826566                                   0.7011                            965.700012                            4.820062                            3.820062                                    3.820062                                    3.820062                                    4.820062                                    4.820062                                   0.7011                            965.700012                            4.817194                            3.817194                                    3.817194                                    3.817194                                    4.817194                                    4.817194                                   0.7011                            965.700012                            4.815285                            3.815285                                    3.815285                                    3.815285                                    4.815285                                    4.815285                                   0.7011                         983.700012                         3.000133                         2.000133                                 2.000133                                 2.000133                                 3.000133                                 3.000133                                0.1992                            983.700012                            3.004938                            2.004938                                    2.004938                                    2.004938                                    3.004938                                    3.004938                                   0.1992                            983.700012                            3.043297                            2.043297                                    2.043297                                    2.043297                                    3.043297                                    3.043297                                   0.1992                            983.700012                            3.141468                            2.141468                                    2.141468                                    2.141468                                    3.141468                                    3.141468                                   0.1992                            983.700012                            3.283618                            2.283618                                    2.283618                                    2.283618                                    3.283618                                    3.283618                                   0.1992                            983.700012                            3.303027                            2.303027                                    2.303027                                    2.303027                                    3.303027                                    3.303027                                   0.1992                            983.700012                            3.309712                            2.309712                                    2.309712                                    2.309712                                    3.309712                                    3.309712                                   0.1992                            983.700012                            3.312715                            2.312715                                    2.312715                                    2.312715                                    3.312715                                    3.312715                                   0.1992                            983.700012                            3.314715                            2.314715                                    2.314715                                    2.314715                                    3.314715                                    3.314715                                   0.1992                                0.327641                                0.327641                                 22.98794                                 22.98794                                   0.733984                                   0.733984                                    22.98794                                    22.98794                                   0.733984                                   0.733984                                    22.98794                                    22.98794                                   0.608561                                   0.608561                                   19.059776                                   19.059776                                   0.491034                                   0.491034                                   15.378898                                   15.378898                                     0.2717                                     0.2717                                    8.509472                                    8.509472                                   0.125423                                   0.125423                                    3.928163                                    3.928163                                   0.125423                                   0.125423                                    3.928163                                    3.928163                               -0.321646                               -0.321646                               -22.987938                               -22.987938                                  -0.720553                                  -0.720553                                  -22.987938                                  -22.987938                                  -0.720553                                  -0.720553                                  -22.987938                                  -22.987938                                  -0.597426                                  -0.597426                                  -19.059776                                  -19.059776                                  -0.482049                                  -0.482049                                  -15.378897                                  -15.378897                                  -0.266728                                  -0.266728                                   -8.509471                                   -8.509471                                  -0.123128                                  -0.123128                                   -3.928163                                   -3.928163                                  -0.123128                                  -0.123128                                   -3.928163                                   -3.928163                           983.700012                           6.385539                             0.544889                              0.625568                            2.311969                  0                  0                  0'''
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.41',1,'New',"getMxsVecsFileData")) 
+>>> timesReq=[]
+>>> timesReq.append(mx.df.index[0])
+>>> plotTimeDfs=mx.getMxsVecsFileData(timesReq=timesReq)
+>>> len(plotTimeDfs)
+1
+>>> isinstance(plotTimeDfs[0],pd.core.frame.DataFrame)
+True
+>>> print("'''{:s}'''".format(repr(plotTimeDfs[0]).replace('\\n','\\n   ')))
+'''                                                             ROHR~*~*~*~MVEC                                  ROHR~*~*~*~RHOVEC                                    ROHR~*~*~*~ZVEC                                     ROHR~*~*~*~PHR                                    ROHR~*~*~*~PVEC                                       KNOT~*~~*~DP                                    ROHR~*~*~*~TVEC                                 ROHR~*~*~*~WALTERI                                 ROHR~*~*~*~WALTERK                                        KNOT~*~~*~T                                       KNOT~*~~*~PH                                       FWVB~*~*~*~W                                      FWVB~*~*~*~QM                                    ROHR~*~*~*~QMAV                                     ROHR~*~*~*~VAV ROHR~V-L~V-K000~4939422678063487923~SVEC ROHR~V-L~V-K000~4939422678063487923~PVECMAX_INST ROHR~V-L~V-K000~4939422678063487923~PVECMIN_INST ROHR~V-K000~V-K001~4984202422877610920~SVEC ROHR~V-K000~V-K001~4984202422877610920~PVECMAX_INST ROHR~V-K000~V-K001~4984202422877610920~PVECMIN_INST ROHR~V-K001~V-K002~4789218195240364437~SVEC ROHR~V-K001~V-K002~4789218195240364437~PVECMAX_INST ROHR~V-K001~V-K002~4789218195240364437~PVECMIN_INST ROHR~V-K002~V-K003~4614949065966596185~SVEC ROHR~V-K002~V-K003~4614949065966596185~PVECMAX_INST ROHR~V-K002~V-K003~4614949065966596185~PVECMIN_INST ROHR~V-K003~V-K004~5037777106796980248~SVEC ROHR~V-K003~V-K004~5037777106796980248~PVECMAX_INST ROHR~V-K003~V-K004~5037777106796980248~PVECMIN_INST ROHR~V-K004~V-K005~4713733238627697042~SVEC ROHR~V-K004~V-K005~4713733238627697042~PVECMAX_INST ROHR~V-K004~V-K005~4713733238627697042~PVECMIN_INST ROHR~V-K005~V-K006~5123819811204259837~SVEC ROHR~V-K005~V-K006~5123819811204259837~PVECMAX_INST ROHR~V-K005~V-K006~5123819811204259837~PVECMIN_INST ROHR~V-K006~V-K007~5620197984230756681~SVEC ROHR~V-K006~V-K007~5620197984230756681~PVECMAX_INST ROHR~V-K006~V-K007~5620197984230756681~PVECMIN_INST ROHR~R-L~R-K000~4769996343148550485~SVEC ROHR~R-L~R-K000~4769996343148550485~PVECMAX_INST ROHR~R-L~R-K000~4769996343148550485~PVECMIN_INST ROHR~R-K000~R-K001~5647213228462830353~SVEC ROHR~R-K000~R-K001~5647213228462830353~PVECMAX_INST ROHR~R-K000~R-K001~5647213228462830353~PVECMIN_INST ROHR~R-K001~R-K002~5266224553324203132~SVEC ROHR~R-K001~R-K002~5266224553324203132~PVECMAX_INST ROHR~R-K001~R-K002~5266224553324203132~PVECMIN_INST ROHR~R-K002~R-K003~5379365049009065623~SVEC ROHR~R-K002~R-K003~5379365049009065623~PVECMAX_INST ROHR~R-K002~R-K003~5379365049009065623~PVECMIN_INST ROHR~R-K003~R-K004~4637102239750163477~SVEC ROHR~R-K003~R-K004~4637102239750163477~PVECMAX_INST ROHR~R-K003~R-K004~4637102239750163477~PVECMIN_INST ROHR~R-K004~R-K005~4613782368750024999~SVEC ROHR~R-K004~R-K005~4613782368750024999~PVECMAX_INST ROHR~R-K004~R-K005~4613782368750024999~PVECMIN_INST ROHR~R-K005~R-K006~5611703699850694889~SVEC ROHR~R-K005~R-K006~5611703699850694889~PVECMAX_INST ROHR~R-K005~R-K006~5611703699850694889~PVECMIN_INST ROHR~R-K006~R-K007~4945727430885351042~SVEC ROHR~R-K006~R-K007~4945727430885351042~PVECMAX_INST ROHR~R-K006~R-K007~4945727430885351042~PVECMIN_INST                                   KNOT~*~~*~IAKTIV                                 ROHR~*~*~*~IAKTIV FWVB~*~*~*~IAKTIV VENT~*~*~*~IAKTIV                                   KNOT~*~~*~WALTER
+   2004-09-22 08:30:00+00:00  (-2.3637421131134033, -2.3637421131134033, 5.2...  (983.7000122070312, 983.7000122070312, 965.700...  (20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20....  (0.006684500724077225, 0.14074617624282837, 0....  (3.3030266761779785, 3.3097116947174072, 4.986...  (1.523539423942566, 1.8450068235397339, 2.0407...  (60.0, 60.0, 90.0, 90.0, 60.0, 60.0, 90.0, 90....  (0.37772566080093384, 0.16107234358787537, 0.2...  (0.2860592305660248, 0.3463727831840515, 0.209...  (60.0, 90.0, 90.0, 90.0, 60.0, 60.0, 60.0, 60....  (2.3030266761779785, 3.9864749908447266, 4.084...  (160.00003051757812, 200.00001525878906, 160.0...  (3.9281632900238037, 6.8694257736206055, 4.581...  (-8.50947093963623, 19.059776306152344, -15.37...  (-0.2667279839515686, 0.6085611581802368, -0.4...                  (0.0, 68.5999984741211)           (5.126544952392578, 5.122154712677002)           (5.126544952392578, 5.122154712677002)                     (0.0, 76.4000015258789)             (5.122154712677002, 5.084035396575928)              (5.122154712677002, 5.084035396575928)                    (0.0, 195.52999877929688)             (5.084035396575928, 4.986474990844727)              (5.084035396575928, 4.986474990844727)                     (0.0, 405.9599914550781)             (4.986474990844727, 4.845702648162842)              (4.986474990844727, 4.845702648162842)                     (0.0, 83.55000305175781)             (4.845702648162842, 4.826566219329834)              (4.845702648162842, 4.826566219329834)                      (0.0, 88.0199966430664)             (4.826566219329834, 4.820062160491943)              (4.826566219329834, 4.820062160491943)                    (0.0, 164.91000366210938)             (4.820062160491943, 4.817193984985352)              (4.820062160491943, 4.817193984985352)                     (0.0, 109.7699966430664)            (4.817193984985352, 4.8152852058410645)             (4.817193984985352, 4.8152852058410645)                  (0.0, 73.41999816894531)         (3.0001330375671387, 3.0049381256103516)         (3.0001330375671387, 3.0049381256103516)                     (0.0, 76.4000015258789)           (3.0049381256103516, 3.0432968139648438)            (3.0049381256103516, 3.0432968139648438)                    (0.0, 195.52999877929688)            (3.0432968139648438, 3.141468048095703)             (3.0432968139648438, 3.141468048095703)                     (0.0, 405.9599914550781)             (3.141468048095703, 3.283618688583374)              (3.141468048095703, 3.283618688583374)                     (0.0, 83.55000305175781)            (3.283618688583374, 3.3030266761779785)             (3.283618688583374, 3.3030266761779785)                      (0.0, 88.0199966430664)           (3.3030266761779785, 3.3097116947174072)            (3.3030266761779785, 3.3097116947174072)                    (0.0, 164.91000366210938)            (3.3097116947174072, 3.312715530395508)             (3.3097116947174072, 3.312715530395508)                     (0.0, 109.7699966430664)            (3.312715530395508, 3.3147149085998535)             (3.312715530395508, 3.3147149085998535)   (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...  (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)   (0, 0, 0, 0, 0)         (0, 0, 0)  (0.20900364220142365, 0.16107234358787537, 0.0...'''
+>>> l=plotTimeDfs[0]['FWVB~*~*~*~W'].iloc[0]
+>>> list(map(lambda x: round(x,2),l))
+[160.0, 200.0, 160.0, 160.0, 120.0]
+>>> timesReq[0]=timesReq[0]-pd.to_timedelta('1 second')
+>>> plotTimeDfs=mx.getMxsVecsFileData(timesReq=timesReq)
+>>> len(plotTimeDfs)
+0
+>>> # ---
+>>> # Clean Up LocalHeatingNetwork
+>>> # ---
+>>> if os.path.exists(mx.h5File):                        
+...    os.remove(mx.h5File)
+>>> if os.path.exists(mx.mxsZipFile):                        
+...    os.remove(mx.mxsZipFile)
+>>> if os.path.exists(mxsDumpFile):                        
+...    os.remove(mxsDumpFile)
+>>> if os.path.exists(mx.h5FileMxsVecs):                        
+...    os.remove(mx.h5FileMxsVecs)
+"""
