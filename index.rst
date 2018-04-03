@@ -6,18 +6,21 @@
 Welcome to PT3S's documentation!
 ================================
 
-Contents:
-
 .. toctree::
    :maxdepth: 2
 
-.. automodule:: Mx
+.. automodule:: __init__
 	:members:
 
 .. autoclass:: Xm.Xm
    :members:
    :private-members:
    :special-members:
+
+.. automodule:: Mx
+	:members:
+
+
 
 Indices and tables
 ==================

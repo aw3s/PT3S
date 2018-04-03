@@ -27,6 +27,7 @@
     <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="index.rst" />
     <Content Include="LICENSE" />
     <Content Include="PT3S.html" />
     <Content Include="PT3S.ipynb" />
@@ -43,6 +44,7 @@
     <Content Include="testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MXS" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="conf.py" />
     <Compile Include="Mx.py" />
     <Compile Include="Rm.py">
       <SubType>Code</SubType>

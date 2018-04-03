@@ -1,11 +1,3 @@
-"""
-SIR 3S XML ModelFile To pandas DataFrames
-    * one pandas DataFrame per SIR 3S Objecttype 
-    * some Views As pandas DataFrames            
-        The Views are designed to deal with tedious groundwork 
-        Views are aggregated somhwat arbitrary ...
-        ... however usage of SIR 3S Modeldata is more convenient and efficient with appropriate Views     
-"""
 import os
 import sys
 import logging
@@ -42,27 +34,31 @@ class XmError(Exception):
 
 class Xm():
     """
-        Args:
-            xmlFile (str): SIR 3S Modelfile.
-
-            NoH5Read (bool): True: .h5 is read instead of the SIR 3S Modelfile.
+    SIR 3S Modelfile to pandas DataFrames
+        * one pandas DataFrame per SIR 3S Objecttype (i.e. KNOT, ROHR, ...)
+        * some Views as pandas DataFrames (i.e. vKNOT, vROHR, ...)            
+            The Views are designed to deal with tedious groundwork.
+             
+            Views are aggregated somhwat arbitrary. However: Usage of SIR 3S Modeldata is more convenient and efficient with appropriate Views.      
     """
     def __init__(self,xmlFile=None,NoH5Read=False):
         """
-        Reads SIR 3S XML ModelFile xmlFile
-        Stores all SIR 3S ModelData in DataFrames:
-             self.dataFrames[tableName]
-             tableName example: SWVT_ROWT
-        Performs fixes and basic conversions inplace the DataFrames 
-        Creates some Views as DataFrames:
-            self.dataFrames[viewName]
-            viewName example: vKNOT
-        ---
-        If a .h5-File exists and is newer than an (existing) xmlFile:
-            The .h5-File is read (instead) of the xmlFile
+        Args:
+            * xmlFile (str): SIR 3S Modelfile.
+            * NoH5Read (bool): True: 
+                An existing and newer h5File will not be read instead of the SIR 3S Modelfile. 
+                Default is False which means, that an exiating and newer h5File is read instead of the SIR 3S Modelfile.
+
+        Summary:
+            * Reads SIR 3S XML ModelFile xmlFile.
+            * Stores all SIR 3S ModelData in DataFrames: self.dataFrames[tableName]; tableName example: SWVT_ROWT.
+            * Performs fixes and basic conversions inplace the DataFrames. 
+            * Creates some Views as DataFrames: self.dataFrames[viewName]; viewName example: vKNOT.
+       
+        If a h5File exists and is newer than an (existing) xmlFile:
+            The h5File is read (instead) of the xmlFile.
         NoH5Read True:
-            A .h5-File is not read.        
-            An existing .h5-File is deleted.    
+            An existing h5File will not be read but deleted.    
         """
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
