@@ -104,7 +104,7 @@ class Xm():
                 h5Read=False               
             
             if not h5Read:                
-                self.__xmlRead()
+                self._xmlRead()
             else:
                 self.FromH5(h5File=self.h5File)
                           
@@ -115,7 +115,7 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
-    def __xmlRead(self):
+    def _xmlRead(self):
         """
         Reads SIR 3S XML ModelFile xmlFile
         Stores all SIR 3S ModelData in DataFrames:
