@@ -165,7 +165,7 @@ class Xm():
             logger.debug("{:s}xmlFile: {:s}: tableNames: {!s:s}.".format(logStr,self.xmlFile,sorted(self.dataFrames.keys()))) 
 
             #fixes and conversions
-            self.__convertAndFix()
+            self._convertAndFix()
 
             #Views
             self.__vXXXX()
@@ -266,7 +266,7 @@ class Xm():
             h5Store.close()
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
-    def __convertAndFix(self):
+    def _convertAndFix(self):
         """
         Performs fixes and basic conversions inplace the DataFrames
         Fixes and conbversions here are integrity-oriented
