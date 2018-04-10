@@ -31,8 +31,6 @@
     <Content Include="LICENSE" />
     <Content Include="PT3S.html" />
     <Content Include="PT3S.ipynb" />
-    <Content Include="README.md" />
-    <Content Include="README.rst" />
     <Content Include="setup.cfg" />
     <Content Include="testdata\LocalHeatingNetwork.XML" />
     <Content Include="testdata\OneLPipe.XML" />
