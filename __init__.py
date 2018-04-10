@@ -1,9 +1,3 @@
-"""
-Use SIR 3S Modeldata and SIR 3S Calculationresults in pure Python.
-With pandas, matplotlib and others.
-For documentation, test, verification, analysis, reporting, prototyping, play.
-"""
-
 import os
 import sys
 import logging
