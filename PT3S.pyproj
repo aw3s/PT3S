@@ -28,6 +28,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="doc\Mx.rst" />
+    <Content Include="doc\Xm.rst" />
     <Content Include="LICENSE" />
     <Content Include="PT3S.html" />
     <Content Include="PT3S.ipynb" />
