@@ -9,13 +9,16 @@ Welcome to PT3S's documentation!
 .. toctree::
    :maxdepth: 2
 
+   doc/api/xm
+
 .. automodule:: __init__
 	:members:
+
+	
 
 .. autoclass:: Xm.Xm
    :members:
    :private-members:
-   :special-members:
 
 .. automodule:: Mx
 	:members:

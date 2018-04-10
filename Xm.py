@@ -33,33 +33,37 @@ class XmError(Exception):
         return repr(self.value)
 
 class Xm():
-    """
-    SIR 3S Modelfile to pandas DataFrames
-        * one pandas DataFrame per SIR 3S Objecttype (i.e. KNOT, ROHR, ...)
-        * some Views as pandas DataFrames (i.e. vKNOT, vROHR, ...)            
-            The Views are designed to deal with tedious groundwork.
-             
-            Views are aggregated somhwat arbitrary. However: Usage of SIR 3S Modeldata is more convenient and efficient with appropriate Views.      
-    """
-    def __init__(self,xmlFile=None,NoH5Read=False):
-        """
-        Args:
-            * xmlFile (str): SIR 3S Modelfile.
-            * NoH5Read (bool): True: 
-                An existing and newer h5File will not be read instead of the SIR 3S Modelfile. 
-                Default is False which means, that an exiating and newer h5File is read instead of the SIR 3S Modelfile.
+    """SIR 3S modelFile to pandas DataFrames.
 
-        Summary:
-            * Reads SIR 3S XML ModelFile xmlFile.
-            * Stores all SIR 3S ModelData in DataFrames: self.dataFrames[tableName]; tableName example: SWVT_ROWT.
-            * Performs fixes and basic conversions inplace the DataFrames. 
-            * Creates some Views as DataFrames: self.dataFrames[viewName]; viewName example: vKNOT.
-       
-        If a h5File exists and is newer than an (existing) xmlFile:
-            The h5File is read (instead) of the xmlFile.
-        NoH5Read True:
-            An existing h5File will not be read but deleted.    
-        """
+    Args:
+        * xmlFile (str): SIR 3S modelFile
+        * NoH5Read (bool): 
+                False: 
+                    * An existing and newer h5File will be read _instead of xmlFile.
+                    * xmlFile will _not be read (it does even not have to exist)
+                True:
+                    * An existing h5File will be deleted.
+                    * xmlFile will be read.
+    
+    Attributes:
+        * xmlFile
+        * h5File: corresponding h5File(name) derived from xmlFile(name)
+        * dataFrames
+            * dict with pandas DataFrames
+            * one pandas DataFrame per SIR 3S Objecttype (i.e. KNOT, ROHR, ...)
+            * keys: KNOT, ROHR, ... and vKNOT, vROHR, ...
+            * some Views as pandas DataFrames 
+                * i.e. vKNOT, vROHR, ...
+                * The Views are designed to deal with tedious groundwork.
+                * The Views are aggregated somhwat arbitrary.
+                * However: Usage of SIR 3S Modeldata is more convenient and efficient with appropriate Views.      
+        * pXCorZero, pYCorZero
+   
+    Raises:
+        XmError
+    """
+    def __init__(self,xmlFile,NoH5Read=False):
+
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
@@ -116,15 +120,13 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def _xmlRead(self):
-        """
-        Reads SIR 3S XML ModelFile xmlFile
-        Stores all SIR 3S ModelData in DataFrames:
-             self.dataFrames[tableName]
-             tableName example: SWVT_ROWT
-        Performs fixes and basic conversions inplace the DataFrames 
-        Creates some Views as DataFrames:
-            self.dataFrames[viewName]
-            viewName example: vKNOT       
+        """Reads the SIR 3S modelFile.
+           
+        * Performs fixes and basic conversions inplace the dataFrames read from modelFile: _convertAndFix()
+        * Creates some Views: _vXXXX()
+
+        Raises:
+            XmError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -168,7 +170,7 @@ class Xm():
             self._convertAndFix()
 
             #Views
-            self.__vXXXX()
+            self._vXXXX()
                                             
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -178,11 +180,21 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def FromH5(self,h5File=None):
-        """
-        The h5File is read
-        and self.dataFrames is filled with the dfs in the h5File   
-        existing dfs in self.dataFrames are deleted
-        Note that after FromH5 the content of self.dataFrames can differ from the content of self.xmlFile
+        """Reads all dataFrames stored in h5File into self.DataFrames.
+        
+        Args:
+            h5File: 
+                * (str): the h5File(name) to be read
+                * (None): self.h5File will be read
+            
+          
+        * Reads all keys.
+        * Existing keys in self.dataFrames are overwritten.
+
+        Note that after .FromH5() the content of self.dataFrames may differ from the content given by an existing self.xmlFile.
+
+        Raises:
+            XmError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -217,8 +229,18 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def ToH5(self,h5File=None):
-        """
-        Stores all Dataframes in a .h5 File        
+        """Stores self.dataFrames to h5File.
+
+        Args:
+            h5File: 
+                * (str): the h5File(name) to be used
+                * (None): self.h5File will be used
+
+        * Stores all keys.
+        * Existing keys in h5File are overwritten.       
+        
+        Raises:
+            XmError         
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -267,15 +289,33 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def _convertAndFix(self):
-        """
-        Performs fixes and basic conversions inplace the DataFrames
-        Fixes and conbversions here are integrity-oriented
-        Usage-oriented conversions (i.e. pd.to_numeric and base64.b64decode) are done in the vXXXX-functions
-        conversions: 
-        - , > . (converted in: SWVT_ROWT, LFKT_ROWT, QVAR_ROWT)
-        fixes:
-        - 1st Time without Value?! (fixed in: SWVT_ROWT, LFKT_ROWT, QVAR_ROWT)       
-        - in new Models constructed from SIR 3S in Xml not all Attrubutes of an Object are written?!   
+        """Performs fixes and basic conversions inplace the dataFrames read from self.xmlFile.
+
+        * Fixes and conversions here are integrity-oriented.
+        * Usage-oriented conversions (i.e. pd.to_numeric and base64.b64decode) are done in the ._vXXXX-methods.
+
+        Conversions: 
+            * , > . (converted in: SWVT_ROWT, LFKT_ROWT, QVAR_ROWT)
+
+        Fixes:
+            * 1st Time without Value?! (fixed in: SWVT_ROWT, LFKT_ROWT, QVAR_ROWT)       
+            * Template Node(s)?!
+            * in new Models constructed from SIR 3S 
+               * not all Objectattributes are written?!   
+                    * KMOT/TE
+                    * FWVB/LFK
+                    * LTGR/BESCHREIBUNG
+                    * DTRO_ROWD
+                        * AUSFALLZEIT
+                        * PN
+                        * REHABILITATION
+                        * REPARATUR
+
+                * not all Objecttypes are written?!
+                    * CONT    
+                    
+        Raises:
+            XmError                                       
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -292,9 +332,10 @@ class Xm():
             self.dataFrames['QVAR_ROWT'].ZEIT=self.dataFrames['QVAR_ROWT'].ZEIT.str.replace(',', '.')
             self.dataFrames['QVAR_ROWT'].QM=self.dataFrames['QVAR_ROWT'].QM.str.replace(',', '.')
 
-            self.dataFrames['SWVT_ROWT']=self.dataFrames['SWVT_ROWT'].fillna(0) # 1. Zeit ohne Wert fuer ZEIT?!
-            self.dataFrames['LFKT_ROWT']=self.dataFrames['LFKT_ROWT'].fillna(0) # 1. Zeit ohne Wert fuer ZEIT?!
-            self.dataFrames['QVAR_ROWT']=self.dataFrames['QVAR_ROWT'].fillna(0) # 1. Zeit ohne Wert fuer ZEIT?!
+            # 1st Time without Value?!
+            self.dataFrames['SWVT_ROWT']=self.dataFrames['SWVT_ROWT'].fillna(0) 
+            self.dataFrames['LFKT_ROWT']=self.dataFrames['LFKT_ROWT'].fillna(0) 
+            self.dataFrames['QVAR_ROWT']=self.dataFrames['QVAR_ROWT'].fillna(0) 
             
             # Template Node
             self.dataFrames['KNOT']=self.dataFrames['KNOT'][self.dataFrames['KNOT'].NAME.fillna('').astype(str).isin(['TemplateNode','TemplNode-VL','TemplNode-RL'])==False]            
@@ -306,25 +347,23 @@ class Xm():
                 logger.debug("{:s}ERROR/EXCEPTION: {:s}: {:s}.".format(logStr,"self.dataFrames['KNOT_BZ']['TE']",'TE only in Heatingmodels?!')) 
                 self.dataFrames['KNOT_BZ']['TE']=pd.Series()     
 
+            # FWVB LFK
+            if 'FWVB' in self.dataFrames:
+                try:
+                    isinstance(self.dataFrames['FWVB']['LFK'],pd.core.series.Series)
+                except:
+                    logger.debug("{:s}ERROR/EXCEPTION: {:s}: {:s}.".format(logStr,"self.dataFrames['FWVB']['LFK']",'LFK not set?!')) 
+                    self.dataFrames['FWVB']['LFK']=pd.Series()
+                self.dataFrames['FWVB']['LFK'].fillna(value=1,inplace=True)
+
             # Models with only one Standard LTGR ...
             try:
                 isinstance(self.dataFrames['LTGR']['BESCHREIBUNG'],pd.core.series.Series)
             except:
                 self.dataFrames['LTGR']['BESCHREIBUNG']=pd.Series()    
 
-            # Models with no CONTs ...
-            try:
-                isinstance(self.dataFrames['CONT']['LFDNR'],pd.core.series.Series)
-            except:
-                self.dataFrames['CONT']['LFDNR']=pd.Series()    
-            try:
-                isinstance(self.dataFrames['CONT']['GRAF'],pd.core.series.Series)
-            except:
-                self.dataFrames['CONT']['GRAF']=pd.Series()    
-
             # Models with old DTRO_ROWD
             # ['AUSFALLZEIT' 'PN' 'REHABILITATION' 'REPARATUR']
-
             try:
                 isinstance(self.dataFrames['DTRO_ROWD']['AUSFALLZEIT'],pd.core.series.Series)
             except:
@@ -342,15 +381,15 @@ class Xm():
             except:
                 self.dataFrames['DTRO_ROWD']['REPARATUR']=pd.Series()    
 
-            # FWVB LFK
-            if 'FWVB' in self.dataFrames:
-                try:
-                    isinstance(self.dataFrames['FWVB']['LFK'],pd.core.series.Series)
-                except:
-                    logger.debug("{:s}ERROR/EXCEPTION: {:s}: {:s}.".format(logStr,"self.dataFrames['FWVB']['LFK']",'LFK not set?!')) 
-                    self.dataFrames['FWVB']['LFK']=pd.Series()
-                self.dataFrames['FWVB']['LFK'].fillna(value=1,inplace=True)
-                     
+            # Models with no CONTs ...
+            try:
+                isinstance(self.dataFrames['CONT']['LFDNR'],pd.core.series.Series)
+            except:
+                self.dataFrames['CONT']['LFDNR']=pd.Series()    
+            try:
+                isinstance(self.dataFrames['CONT']['GRAF'],pd.core.series.Series)
+            except:
+                self.dataFrames['CONT']['GRAF']=pd.Series()                         
 
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -360,10 +399,15 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def getWDirModelDirModelName(self):
-        """
-        returns (wDir,modelDir,modelName)
-        calculated from SYSTEMKONFIG, DATENEBENE, MODELL
+        """ Returns (wDir,modelDir,modelName).
+
+        Returns:            
+            (wDir,modelDir,modelName)
+
         mx1FileName: os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'    
+
+        Raises:
+            XmError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -394,54 +438,33 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return (wDir,modelDir,modelName)
 
-    def __vXXXX(self):
-        """
-        Creates some Views as DataFrames:
-            self.vXXX[viewName]=pd.merge(...)
-            viewName example: vKNOT
-
-        The Views are designed to deal with tedious groundwork 
-        Views are aggregated somhwat arbitrary ...
-        ... however usage of SIR 3S Modeldata is more convenient and efficient with appropriate Views 
-
-        View-Data:
-        Most Colummn-Names will be unchanged
-        If suitable renames (i.e. pd.to_numeric and base64.b64decode) are performed inplace
-
-        Some Model-oriented calculations are performed
-         
-        Most types will be unchanged (pandas' Object-Type)
-        If suitable conversions (i.e. pd.to_numeric and base64.b64decode) are performed inplace
+    def _vXXXX(self):
+        """Creates all Views.
 
         Views created:
-            #Ansichtsgruppen
-            vLAYR
-
-            #Wblz
-            vWBLZ
-
-            #time-Tables
-            vLFKT
-            vQVAR
-            vSWVT
-
-            #Signal-Model
-            vRSLW
-           
-            #Block-Nodes    
-            vVKNO
-            
-            #Nodes
-            vKNOT
-
-            vNRCV
-            vGTXT
-            
-            #Pipes
-            vROHR
-            
-            #House-Stations (district heating)
-            vFWVB        
+            * BLOB-Data 
+                * vLAYR
+                * vWBLZ
+            * Timeseries
+                * vLFKT
+                * vQVAR
+                * vSWVT
+            * Signalmodel
+                * vRSLW           
+            * Annotations
+                * vNRCV
+                * vGTXT
+            * Hydraulicmodel
+                * Nodes
+                    * vVKNO: CONT-Nodes (also called Block-Nodes)
+                    * vKNOT
+                    * pXCorZero, pYCorZero
+                * Edges
+                    * vROHR: Pipes
+                    * vFWVB: Housestations (district heating)       
+                    
+        Raises:
+            XmError                      
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -449,28 +472,29 @@ class Xm():
         
         try: 
 
-            #Layr
-            self.dataFrames['vLAYR']=self.__vLAYR()
+            #BLOB-Data
+            self.dataFrames['vLAYR']=self._vLAYR()
+            self.dataFrames['vWBLZ']=self._vWBLZ()
 
-            #Wblz
-            self.dataFrames['vWBLZ']=self.__vWBLZ()
+            #timeseries
+            self.dataFrames['vLFKT']=self._vLFKT()   
+            self.dataFrames['vQVAR']=self._vQVAR()                   
+            self.dataFrames['vSWVT']=self._vSWVT()
 
-            #time-Tables
-            self.dataFrames['vLFKT']=self.__vLFKT()   
-            self.dataFrames['vQVAR']=self.__vQVAR()                   
-            self.dataFrames['vSWVT']=self.__vSWVT()
-
-
-            self.dataFrames['vRSLW']=self.__vRSLW(vSWVT=self.dataFrames['vSWVT']
-                                             ) #SWVT-Usage
+            #signalmodel
+            self.dataFrames['vRSLW']=self._vRSLW(vSWVT=self.dataFrames['vSWVT']) 
             
+            #annotations
+            self.dataFrames['vNRCV']=self._vNRCV()            
+            self.dataFrames['vGTXT']=self._vGTXT()
+
             #nodes    
-            self.dataFrames['vVKNO']=self.__vVKNO()
-            self.dataFrames['vKNOT']=self.__vKNOT(
+            self.dataFrames['vVKNO']=self._vVKNO()
+            self.dataFrames['vKNOT']=self._vKNOT(
                  vVKNO=self.dataFrames['vVKNO']
                 ,vQVAR=self.dataFrames['vQVAR']
                 )
-
+            #
             vKNOT=self.dataFrames['vKNOT']
             self.pXCorZero=vKNOT[
                 (vKNOT['CONT_ID'].astype(int)==1001) 
@@ -481,14 +505,9 @@ class Xm():
                 (vKNOT['CONT_ID'].astype(int)==1001) 
                 & (vKNOT['BESCHREIBUNG'].fillna('').str.startswith('Template Element') == False)]['YKOR'].astype(np.double).min()
 
-            # NRCV
-            self.dataFrames['vNRCV']=self.__vNRCV()
-            # GTXT
-            self.dataFrames['vGTXT']=self.__vGTXT()
-
-            #elements
-            self.dataFrames['vROHR']=self.__vROHR(vKNOT=self.dataFrames['vKNOT'])
-            self.dataFrames['vFWVB']=self.__vFWVB(vKNOT=self.dataFrames['vKNOT']
+            #edges
+            self.dataFrames['vROHR']=self._vROHR(vKNOT=self.dataFrames['vKNOT'])
+            self.dataFrames['vFWVB']=self._vFWVB(vKNOT=self.dataFrames['vKNOT']
                                             ,vLFKT=self.dataFrames['vLFKT']
                                             ,vWBLZ=self.dataFrames['vWBLZ']
                                             )                                             
@@ -499,21 +518,28 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
-    def __vLAYR(self):
-        """
-            vLAYR:
-                One row per LAYR and OBJ:
-                #LAYR_DATA (vLAYR_DATA)
-                'LFDNR'
-                ,'NAME'
-                #LAYR_OBJS (vLAYR_OBJS)
-                ,'OBJTYPE' #type (i.e.ROHR) of a LAYR OBJ
-                ,'OBJID' #pk (or tk?!) of a LAYR OBJ               
-                #IDs (of the LAYR)
-                ,'pk','tk'         
-                # 
-                ,rObjInGroup #Element Nr.  ... in Gruppe                 
-                ,nrObjtypeInGroup #Element Nr. ... vom Typ x in Gruppe             
+    def _vLAYR(self):
+        """One row per LAYR and OBJ.
+        
+        Returns:
+            columns           
+                LAYR (also called 'Group')
+                    * LFDNR
+                    * NAME
+
+                    OBJS (BLOB) 
+                        * OBJTYPE: type (i.e.ROHR) of a LAYR OBJ
+                        * OBJID: pk (or tk?!) of a LAYR OBJ      
+                                 
+                LAYR IDs
+                    * pk, tk         
+
+                ANNOTATION
+                    * nrObjInGroup: Element Nr.  ... in LFDNR                
+                    * nrObjtypeInGroup: Element Nr. ... of OBJTYPE in LFDNR            
+                    
+        Raises:
+            XmError                     
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -579,20 +605,26 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             return vLAYR
 
-    def __vWBLZ(self):
-        """
-            vWBLZ:
-                One row per WBLZ and OBJ:
-            #WBLZ_DATA (vWBLZ_DATA)
-                'AKTIV'            
-               ,'BESCHREIBUNG'
-               ,'IDIM'
-               ,'NAME'
-            #from WBLZ's OBJS: 
-               ,'OBJID' #pk (or tk?!) of a WBLZ OBJ
-               ,'OBJTYPE' #type (i.e. KNOT) of a WBLZ OBJ
-            #IDs (of the WBLZ)
-               ,'pk'                          
+    def _vWBLZ(self):
+        """One row per WBLZ and OBJ.
+
+        Returns:
+            columns
+                WBLZ
+                    * AKTIV            
+                    * BESCHREIBUNG
+                    * IDIM
+                    * NAME
+
+                    OBJS (BLOB) 
+                        * OBJID: pk (or tk?!) of a WBLZ OBJ  
+                        * OBJTYPE: type (always KNOT?!) of a WBLZ OBJ
+
+                WBLZ IDs
+                    * pk              
+                    
+        Raises:
+            XmError                                
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -659,21 +691,25 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             return vWBLZ
 
-    def __vLFKT(self):
-        """
-        vLFKT:
-            One row per Loadfactor time-Table:
-            #LFKT
-             'NAME'
-            ,'BESCHREIBUNG'
-            ,'INTPOL'
-            ,'ZEITOPTION'
-            #ROWT
-            ,'LF' #1st Value
-            #time-Table aggregates:
-            ,'LF_min','LF_max'
-            #ID (of the LFKT)
-            ,'pk'
+    def _vLFKT(self):
+        """One row per Loadfactor Timeseries.
+
+        Returns:
+            columns
+                LFKT
+                    * NAME
+                    * BESCHREIBUNG
+                    * INTPOL
+                    * ZEITOPTION
+                SERIES
+                    * LF: 1st Value
+                    * LF_min
+                    * LF_max
+                LFKT ID
+                    * pk
+
+        Raises:
+            XmError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -713,29 +749,35 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vLFKT  
 
-    def __vNRCV(self):
-        """
-        vNRCV:
-            One row per NRCV:           
-               'cRefLfdNr' 
-              # CONT
-              ,'CONT'
-              ,'CONT_ID'
-              ,'CONT_LFDNR'
-              # DPGR
-              ,'DPGR'
-               # Data (of the DPGR_ROW)
-              ,'OBJTYPE'
-              ,'fkOBJTYPE'
-              ,'ATTRTYPE'
-              # IDs (of the DPGR_ROW)
-              ,'pk_ROWS'
-              ,'tk_ROWS'       
-              # IDs (of the NRCV)
-              ,'pk'
-              ,'tk'          
-              # PLot Coordinates XY LeftBottom
-              ,'pXYLB'
+    def _vNRCV(self):
+        """One row per NRCV (NumeRiCal Value).
+
+        Returns:
+            columns
+                ANNOTATIONS
+                    * cRefLfdNr
+                CONT
+                    * CONT
+                    * CONT_ID
+                    * CONT_LFDNR
+                DP
+                    Datapointgroup
+                        * DPGR
+                    Datapoint
+                        * OBJTYPE
+                        * fkOBJTYPE
+                        * ATTRTYPE                    
+                    Datapoint IDs
+                        * pk_ROWS
+                        * tk_ROWS
+                NRCV IDs
+                    * pk
+                    * tk
+                PLot Coordinates
+                    * pXYLB: (X,Y): Left,Bottom
+
+        Raises:
+            XmError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -837,21 +879,25 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vNRCV
 
-    def __vGTXT(self):
-        """
-        vGTXT:
-            One row per GTXT:                          
-              # CONT
-               'CONT'
-              ,'CONT_ID'
-              ,'CONT_LFDNR'
-              #
-              ,'GRAFTEXT'
-              # IDs (of the GTXT)
-              ,'pk'
-              ,'tk'          
-              # PLot Coordinates XY LeftBottom
-              ,'pXYLB'
+    def _vGTXT(self):
+        """One row per GTXT (Graphic TeXT).
+
+        Returns:
+            columns
+                GTXT
+                    * GRAFTEXT (the text)
+                CONT
+                    * CONT
+                    * CONT_ID
+                    * CONT_LFDNR
+                GTXT IDs
+                    * pk
+                    * tk
+                PLot Coordinates
+                    * pXYLB: (X,Y): Left,Bottom
+
+        Raises:
+            XmError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -925,19 +971,25 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vGTXT
 
-    def __vSWVT(self):
-        """
-        vSWVT:
-            #SWVT
-             'NAME'
-            ,'BESCHREIBUNG'
-            ,'INTPOL','ZEITOPTION'
-            #ROWT
-            ,'W' #1st Value
-            #time-Table aggregates:
-            ,'W_min','W_max'
-            #ID (of the SWVT)
-            ,'pk'       
+    def _vSWVT(self):
+        """One row per Timeseries.
+
+        Returns:
+            columns
+                SWVT
+                    * NAME
+                    * BESCHREIBUNG
+                    * INTPOL
+                    * ZEITOPTION
+                SERIES
+                    * W: 1st Value
+                    * W_min
+                    * W_max
+                SWVT ID
+                    * pk
+
+        Raises:
+            XmError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -970,25 +1022,43 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
             return vSWVT   
 
-    def __vRSLW(self,vSWVT=None):
-        """
-        vRSLW:
-            # RSLW
-            'KA'
-            ,'BESCHREIBUNG'
-            ,'INDWBG','INDWNO'
-            # RSLW BZ
-            ,'INDSLW','SLWKON'
-            # CONT
-            ,'CONT' #(NAME)
-            ,'ID'          
-            # vSWVT
-            ,'SWVT' #(NAME)
-            ,'BESCHREIBUNG_SWVT' #(BESCHREIBUNG)
-            ,'INTPOL','ZEITOPTION'
-            ,'W','W_min','W_max'
-            # RSLW IDs   
-            ,'pk','tk'
+    def _vRSLW(self,vSWVT=None):
+        """One row per RSLW.
+
+        Args:
+            * vSWVT 
+
+        Returns:
+            columns
+                RSLW
+                    * KA
+                    * BESCHREIBUNG
+                    * INDWBG, INDWNO
+
+                RSLW BZ
+                    * INDSLW, SLWKON
+
+                CONT
+                    * CONT
+                    * ID
+
+                SWVT
+                    * SWVT
+                    * BESCHREIBUNG_SWVT
+                    * INTPOL
+                    * ZEITOPTION
+
+                    SERIES
+                        * W: 1st Value
+                        * W_min
+                        * W_max
+
+                RSLW IDs
+                    * pk
+                    * tk
+
+        Raises:
+            XmError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1065,16 +1135,25 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vRSLW
 
-    def __vQVAR(self):
-        """
-        vQVAR:
-            'NAME'
-           ,'BESCHREIBUNG'
-           ,'INTPOL'
-           ,'ZEITOPTION'
-           ,'QM'
-           ,'QM_min','QM_max'
-           ,'pk'       
+    def _vQVAR(self):
+        """One row per Timeseries.
+
+        Returns:
+            columns
+                QVAR
+                    * NAME
+                    * BESCHREIBUNG
+                    * INTPOL
+                    * ZEITOPTION
+                SERIES
+                    * QM: 1st Value
+                    * QM_min
+                    * QM_max
+                QVAR ID
+                    * pk
+
+        Raises:
+            XmError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1107,13 +1186,18 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             return vQVAR
             
-    def __vVKNO(self):
-        """
-        vVKNO:
-           'NAME' # der Name des Knotens
-          ,'CONT' # der Blockname des Blockes fuer den der Knoten Blockknoten ist
-          ,'fkKNOT'
-          ,'fkCONT'       
+    def _vVKNO(self):
+        """One row per Blocknode.
+
+        Returns:
+            columns
+                * NAME 
+                * CONT (Blockname)
+                * fkKNOT
+                * fkCONT   
+
+        Raises:
+            XmError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1153,28 +1237,42 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vVKNO
 
-    def __vKNOT(self,vVKNO=None,vQVAR=None):
-        """
-        vKNOT:
-            'NAME'
-           ,'BESCHREIBUNG'
-           ,'IDREFERENZ'
-           ,'CONT' # aus KNOT>CONT (der Blockname des Knotens)
-           ,'CONT_ID' # aus KNOT>CONT
-           ,'CONT_LFDNR' # aus KNOT>CONT
-           ,'CONT_VKNO' # aus vVKNO (der Blockname des Blocks fuer den der Knoten Blockknoten ist)
-           ,'KTYP'
-           ,'LFAKT','QM_EIN'
-           ,'QVAR_NAME'
-           ,'QM','QM_min','QM_max'     
-           ,'KVR' 
-           ,'TE','TM' 
-           ,'XKOR','YKOR','ZKOR'
-           ,'pk','tk'
-           #plotCors
-           ,'pXCor' 
-           ,'pYCor' 
-          
+    def _vKNOT(self,vVKNO=None,vQVAR=None):
+        """One row per Node (KNOT).
+
+        Args:
+            * vVKNO
+            * vQVAR
+
+        Returns:
+            columns
+                KNOT
+                    * NAME
+                    * BESCHREIBUNG
+                    * IDREFERENZ
+                CONT
+                    * CONT
+                    * CONT_ID
+                    * CONT_LFDNR
+                    * CONT_VKNO (name of the Block/Container for NAME is a Blocknode)
+                KNOT 
+                    * KTYP
+                    * LFAKT, QMEIN
+                QVAR
+                    * QVAR_NAME
+                    * QM, QM_min, QM_max 
+                KNOT 
+                    * KVR
+                    * TE, TM
+                KNOT
+                    * XKOR, YKOR, ZKOR
+                KNOT IDs
+                    * pk, tk
+                KNOT
+                    * pXCor, pYCor
+
+        Raises:
+            XmError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1276,58 +1374,63 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vKNOT
 
-    def __vROHR(self,vKNOT=None):
-        """
-        vROHR:
-                     'BESCHREIBUNG'
-                    ,'IDREFERENZ'
-                    #Asset
-                    ,'BAUJAHR','HAL'
-                    ,'IPLANUNG','KENNUNG'
-                    #Reibung
-                    ,'L','LZU','RAU','ZAUS','ZEIN','ZUML'
-                    ,'JLAMBS','LAMBDA0'
-                    #inst.
-                    ,'ASOLL','INDSCHALL'
-                    #FW
-                    ,'fk2LROHR','KVR'
-                    #DTRO_ROWD
-                    ,'AUSFALLZEIT','DA','DI','DN','KT','PN','REHABILITATION','REPARATUR','S','WSTEIG','WTIEFE'
-                    #LTGR
-                    ,'LTGR_NAME','LTGR_BESCHREIBUNG','SICHTBARKEIT','VERLEGEART'
-                    #DTRO
-                    ,'DTRO_NAME'
-                    ,'DTRO_BESCHREIBUNG'
-                    ,'E'
-                    #Ref.
-                    ,'fkSTRASSE','fkSRAT'
-                    #IDs 
-                    ,'pk','tk'
-                    #BZ
-                    ,'IRTRENN'
-                    ,'LECKSTART','LECKEND','LECKMENGE','LECKORT','LECKSTATUS'
-                    #Rest
-                    ,'QSVB'
-                    ,'ZVLIMPTNZ'
-                    ,'KANTENZV'
-                    #CONT
-                    ,'CONT' 
-                    ,'CONT_ID'
-                    ,'CONT_LFDNR'
-                    #Ki
-                    ,'NAME_i'
-                    ,'KVR_i','TM_i'
-                    ,'XKOR_i','YKOR_i','ZKOR_i'                 
-                    #Kk
-                    ,'NAME_k'
-                    ,'KVR_k','TM_k'
-                    ,'XKOR_k','YKOR_k','ZKOR_k'
-                    #plotCors
-                    ,'pXCor_i','pYCor_i'
-                    ,'pXCor_k','pYCor_k'
-                    # matplotlibs's .plot(pXCors,pYCors,...)
-                    ,'pXCors','pYCors' # nur die Endpunkte
-                    ,'pWAYPXCors','pWAYPYCors' # alle Wegpunkte                         
+    def _vROHR(self,vKNOT=None):
+        """One row per Pipe (ROHR).
+
+        Args:
+            vKNOT
+
+        Returns:
+            columns
+                ROHR
+                    * BESCHREIBUNG
+                    * IDREFERENZ
+                ROHR
+                    * BAUJAHR, HAL
+                    * IPLANUNG, KENNUNG
+                ROHR
+                    * L, LZU, RAU, ZAUS, ZEIN, ZUML
+                    * JLAMBS, LAMBDA0
+                ROHR
+                    * ASOLL, INDSCHALL
+                ROHR
+                    * fk2LROHR, KVR
+                DTRO_ROWD
+                    * AUSFALLZEIT, DA , DI , DN , KT , PN , REHABILITATION , REPARATUR , S , WSTEIG , WTIEFE
+                LTGR
+                    * LTGR_NAME, LTGR_BESCHREIBUNG , SICHTBARKEIT , VERLEGEART
+                DTRO
+                    * DTRO_NAME, DTRO_BESCHREIBUNG, E
+                REF
+                    * fkSTRASSE, fkSRAT
+                ROHR IDs
+                    * pk, tk
+                ROHR BZ
+                    * ITRENN
+                    * LECKSTART, LECKEND, LECKMENGE, LECKORT, LECKSTATUS
+                Rest
+                    * QSVB, ZVLIMPTNZ, KANTENZV
+                CONT
+                    * CONT
+                    * CONT_ID
+                    * CONT_LFDNR
+                vKNOT
+                    KI
+                        * NAME_i
+                        * KVR_i, TM_i
+                        * XKOR_i, YKOR_i, ZKOR_i
+                    KK
+                        * NAME_k
+                        * KVR_k, TM_k
+                        * XKOR_k, YKOR_k, ZKOR_k
+                    pXCor_i, pYCor_i
+                    pXCor_k, pYCor_k
+                PLOT
+                    * pXCors, pYCors
+                    * pWAYPXCors, pWAYPYCors        
+
+        Raises:
+            XmError                           
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1727,42 +1830,53 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
             return vROHR 
 
-    def __vFWVB(self,vKNOT=None,vLFKT=None,vWBLZ=None):
-        """
-        vFWVB:
-             'BESCHREIBUNG'
-            ,'IDREFERENZ'
-            ,'W0'
-            ,'LFK' 
-            ,'W0LFK'
-            ,'TVL0' ,'TRS0'
-            #LFKT
-            ,'LFKT'
-            ,'W','W_min','W_max'
-            #FWVB contd.
-            ,'INDTR' ,'TRSK'
-            ,'VTYP' 
-            ,'DPHAUS' ,'IMBG' ,'IRFV'
-            #FWVB IDs
-            ,'pk','tk'  
-            #Ki
-            ,'NAME_i'
-            ,'KVR_i','TM_i'
-            ,'XKOR_i','YKOR_i','ZKOR_i'
-            ,'pXCor_i','pYCor_i'
-            #Kk
-            ,'NAME_k'
-            ,'KVR_k','TM_k'
-            ,'XKOR_k','YKOR_k','ZKOR_k'  
-            ,'pXCor_k','pYCor_k'
-            #CONT
-            ,'CONT' 
-            ,'CONT_ID'
-            ,'CONT_LFDNR' 
-            #WBLZ
-            ,['BLZ1','BLZ2',...]] 
-                # list of the WBLZ-Names of the FWVB in alphabetical Order  
-                # empty, if FWVB is not a WBLZ-Member      
+    def _vFWVB(self,vKNOT=None,vLFKT=None,vWBLZ=None):
+        """One row per DistrictHeatingHousestation (FWVB).
+
+        Args:
+            * vKNOT 
+            * vLFKT
+            * wWBLZ
+
+        Returns:
+            columns
+                FWVB
+                    * BESCHREIBUNG
+                    * IDREFERENZ
+                    * W0
+                    * LFK
+                    * W0LFK
+                    * TVL0, TRS0
+                vLFKT
+                    * LFKT
+                    * W, W_min, W_max
+                FWVB contd.
+                    * INDTR, TRSK
+                    * VTYP 
+                    * DPHAUS, IMBG, IRFV
+                FWVB IDs
+                    * pk, tk  
+                vKNOT
+                    Ki
+                        * NAME_i
+                        * KVR_i, TM_i
+                        * XKOR_i, YKOR_i, ZKOR_i
+                        * pXCor_i, pYCor_i
+                    Kk
+                        * NAME_k
+                        * KVR_k, TM_i
+                        * XKOR_k, YKOR_k, ZKOR_i
+                        * pXCor_k, pYCor_i                   
+                vCONT
+                    * CONT 
+                    * CONT_ID
+                    * CONT_LFDNR 
+                vWBLZ
+                    * ['BLZ1','BLZ2',...]
+                        list of the WBLZ-Names of the FWVB in alphabetical Order;  
+                        empty list, if FWVB is not a WBLZ-Member      
+        Raises:
+            XmError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -2264,11 +2378,14 @@ class Xm():
     #        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def Mx(self,mx=None):
-        """
-        Mapping of Xm to Mx   
-        >self.mx
-        >self.__Mx1() (vNRCV_Mx1)
-        >self.__Mx2() (vROHR-Attributes)                 
+        """Mx-Information (MX1, MX2) into some Views.
+
+        Args:
+            mx: Mx-Object
+                If no Mx-Object is given a Mx-Object is constructed and Mx-Information is read.        
+
+        Raises:
+            XmError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -2294,28 +2411,23 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
     def __Mx1(self,mx):
-        """
-        vNRCV_Mx1:
-            One row per NRCV-referenced Sir3sID in mx1Df:
-               'Sir3sID'
-              ,'cRefLfdNr' 
-              # CONT
-              ,'CONT'
-              ,'CONT_ID'
-              ,'CONT_LFDNR'
-              # DPGR
-              ,'DPGR'
-               # Data (of the DPGR_ROW)
-              ,'OBJTYPE'
-              ,'fkOBJTYPE'
-              ,'ATTRTYPE'
-              # IDs (of the DPGR_ROW)
-              ,'pk_ROWS'
-              ,'tk_ROWS'       
-              # IDs (of the NRCV)
-              ,'pk'
-              ,'tk' 
-              ,'pXYLB'                   
+        """Mx1-Information into some Views.
+
+        Args:
+            mx: Mx-Object
+
+        self.dataFrames['vNRCV']
+                index
+                    * reindex
+                FILTERed
+                    * existing MX-Channels only
+                    * cRefLfdNr: 1st references only 
+                SORTed
+                    * Sir3sID 
+                columns NEW
+                    * Sir3sID
+        Raises:
+            XmError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -2377,9 +2489,17 @@ class Xm():
             self.dataFrames['vNRCV_Mx1']=vNRCV_Mx1
 
     def __Mx2(self,mx):
-        """
-        mx2Idx    for Pipes (vROHR)
-        mx2NofPts for Pipes (vROHR)
+        """Mx2-Information into some Views.
+        
+        Args:
+            mx: Mx-Object
+
+        self.dataFrames['vROHR']
+                columns NEW
+                    * mx2Idx
+                    * mx2NoPts
+        Raises:
+            XmError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -2412,7 +2532,8 @@ class Xm():
             logger.error(logStrFinal) 
                           
         finally:
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))              
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))      
+            self.dataFrames['vROHR']=vROHR        
                      
 if __name__ == "__main__":
     """
