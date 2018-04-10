@@ -3,27 +3,18 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to PT3S's documentation!
+Welcome to PT3S' documentation!
 ================================
+
+Use SIR 3S Modeldata and SIR 3S Calculationresults in pure Python.
+With pandas, matplotlib and others.
+For documentation, test, verification, analysis, reporting, prototyping, play.
 
 .. toctree::
    :maxdepth: 2
 
-   doc/api/xm
-
-.. automodule:: __init__
-	:members:
-
-	
-
-.. autoclass:: Xm.Xm
-   :members:
-   :private-members:
-
-.. automodule:: Mx
-	:members:
-
-
+   doc/Mx
+   doc/Xm
 
 Indices and tables
 ==================
