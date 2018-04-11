@@ -1544,7 +1544,7 @@ class Rm():
                                    
 
             ## ---------------------------------------------------------------------
-            ## VICs
+            ## VICs 
 
             if isinstance(pVICsDf,pd.core.frame.DataFrame):
                 fig.sca(ax)
