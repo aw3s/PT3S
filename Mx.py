@@ -3,27 +3,28 @@ SIR 3S MX-Interface (short: MX)
 
     MX is a file based, channel-oriented interface for SIR 3S' calculation results.
     
-    Module Mx contains stuff to utilize SIR 3S' MX calculation results in pure Python.  
+    This module contains stuff to utilize SIR 3S' MX calculation results in pure Python.  
 
     SIR 3S MX calculation results:
 
-        Binary .MXS-Files contain the SIR 3S calculations results. 
-        A Model calculation run creates at least one .MXS-File (Result-File).
-        There is one .MX1-File (an XML-File) for each SIR 3S Model calculation run.    
-        This .MX1-File defines (in XML) a sequence of MX-Channels. 
-        And - as a result - the Byte-Layout of a single MX3-Record in .MXS.
-        A MX3-Record contains calculation results for one Timestamp.
-        A .MXS-File contains at least one MX3-Record.
+        * Binary .MXS-Files contain the SIR 3S calculations results. 
+        * A Model calculation run creates at least one .MXS-File.
+        * There is one .MX1-File (an XML-File) for each SIR 3S Model calculation run.    
+        * This .MX1-File defines (in XML) a sequence of MX-Channels. 
+        * And - as a result - the Byte-Layout of a single MX3-Record in .MXS-File(s).
+        * A MX3-Record contains calculation results for one TIMESTAMP.
+        * A .MXS-File contains at least one MX3-Record.
 
-    A MX-Channel can be 
+    A MX-Channel can be:
+     
         * a single Value 
-        * or a Vector: Sequence of calculation results of the same Type:
-            * of all Objects of a certain Type or (called Vectorchannels)
-            * number of interior Points for all Pipes (called Pipevectorchannels)
+        * or a Vector: Sequence of Values of the same Type:
+
+            * for all Objects of a certain Type or (called Vectorchannels)
+            * number of interior Points for all Pipes (special Vectorchannels: Pipevectorchannels)
             * Vectors with ATTRTYPE in: {'SVEC', 'PVECMIN_INST', 'PVECMAX_INST'}
 
-For Vectorchannels and Pipevectorchannels the sequence of Objects is defined in the .MX2-File.
-
+    For Vectorchannels (including Pipevectorchannels) the sequence of Objects is defined in the .MX2-File.
 """
 
 import os
@@ -60,33 +61,42 @@ import PT3S
 
 logger = logging.getLogger('PT3S.Mx')  
 
-#Sir3sID
+# Sir3sID regExp
 reSir3sID='(\S+)~([\S ]+)~(\S*)~(\S+)~(\S+)'
 reSir3sIDcompiled=re.compile(reSir3sID) 
   
-def getMicrosecondsFromRefTime(refTime=None,time=None):
+def getMicrosecondsFromRefTime(refTime,time):
+    """Returns time in microseconds since refTime.
+
+    Args:
+        * refTime
+        * time
+
+    Raises:
+        MxError
     """
-    returns microseconds since refTime
-    """
-    pass
     try:
         timeH5=time-refTime
         h5Key=int(math.floor(timeH5.total_seconds())*1000+timeH5.microseconds)
-    except:
-        pass
+    except Exception as e:
+        logStrFinal="{:s}: Exception: Line: {:d}: {!s:s}: {:s}".format('getMicrosecondsFromRefTime',sys.exc_info()[-1].tb_lineno,type(e),str(e)) 
+        raise MxError(logStrFinal)              
     finally:
         return h5Key
 
 class MxError(Exception):
+    """MxError.
+    """
     def __init__(self, value):
         self.value = value
     def __str__(self):
         return repr(self.value)
 
 class Mx():
-    """
+    """Reading SIR 3S' MX-Files. 
+
     Args:
-        * mx1File (str): SIR 3S mx1File (a XML-File)
+        * mx1File (str): .MX1-File (an XML-File)
         * NoH5Read (bool): 
             False (default): 
                 * If a .h5-File 
@@ -94,7 +104,7 @@ class Mx():
                     * and is newer (>) than an .MX1-File 
                     * and is newer (>) than an .MXS-File:
 
-                        * The .h5-File is read _instead of the .MX1-File.
+                        * The .h5-File is read instead of the .MX1-File.
 
             True:             
                 * An .h5-File is deleted if existing.  
@@ -114,26 +124,32 @@ class Mx():
 
     Attributes:
         * fileNames
-            * mx1File
+            * .mx1File: .MX1-File 
 
             derived from mx1File
-                * mx2File
-                * mxsFile
-                * mxsZipFile
-                * h5File
-                * h5FileMxsVecs
+                * .mx2File: .MX2-File 
+                * .mxsFile: .MXS-File 
+                * .mxsZipFile
+                * .h5File: .h5-File
+                * .h5FileVecs: .vec.h5-File
+
+        * .mxRecordStructFmtString
 
         * dataFrames
-            * mx1Df  
-            * mx2Df 
-            * df
-                * the .MXS-File(s) Data (if any) 
-                * Non Vectorchannels Only
+            * .mx1Df  
+            * .mx2Df 
+            * .df
+                * the .MXS-File(s) Content
+                * non Vectordata only
                 * index:   TIMESTAMP (scenario time)
                 * columns: Values  
-                    * The following (String-)ID - called Sir3sID - is used as Column-Label:
-                    * OBJTYPE~NAME1~NAME2~OBJTYPE_PK~ATTRTYPE 
-                    * a Sir3sID consists of ~ seperated MX1-File terms 
+                    * The following (String-)ID - called Sir3sID - is used as Columnlabel:                    
+                    * this Sir3sID consists of ~ separated .MX1-File terms:
+                    * OBJTYPE~NAME1~NAME2~OBJTYPE_PK~ATTRTYPE  
+                    * Sir3sID regExp: '(\S+)~([\S ]+)~(\S*)~(\S+)~(\S+)'
+    
+    Raises:
+        MxError
     """
     def __init__(self,mx1File,NoH5Read=False,NoMxsRead=False): 
         
@@ -154,8 +170,8 @@ class Mx():
             self.mx2File=wD+os.path.sep+base+'.'+'MX2'   
                                                      
             #Determine corresponding .h5 Filename(s)
-            self.h5File=wD+os.path.sep+base+'.'+'h5'    # mx1Df, mx2Df, df (Non Vectordata Only)
-            self.h5FileMxsVecs=wD+os.path.sep+base+'.'+'vec'+'.'+'h5' # (Vectordata)           
+            self.h5File=wD+os.path.sep+base+'.'+'h5'    # mx1Df, mx2Df, df (non Vectordata only)
+            self.h5FileVecs=wD+os.path.sep+base+'.'+'vec'+'.'+'h5' # (Vectordata)           
             
             #Determine corresponding .MXS Filename
             self.mxsFile=wD+os.path.sep+base+'.'+'MXS'  
@@ -230,18 +246,50 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def _initWithMx1(self):
-        """(Re-)initialize the set with an existing MX1-File.
+        """(Re-)initialize .mx1Df, .mx2Df, .mxRecordStructFmtString and related stuff with .mx1File.
 
         Calls:
-            * _parseMx2()     
-            * _buildMxRecordStructUnpackFmtString()      
-            * _buildMxRecordStructUnpackFmtStringPost()   
+            * ._parseMx1()     
+            * ._parseMx2()     
+            * ._buildMxRecordStructUnpackFmtString()      
+            * ._buildMxRecordStructUnpackFmtStringPost()   
+
+        Raises:
+            MxError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
-        try: 
+        try:             
+            self._parseMx1()     
+            self._parseMx2()     
+            self._buildMxRecordStructUnpackFmtString()      
+            self._buildMxRecordStructUnpackFmtStringPost()      
+                            
+        except MxError:
+            raise            
+        except Exception as e:
+            logStrFinal="{:s}mx1File: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,self.mx1File,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)                    
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def _parseMx1(self):
+        """Parses .mx1File.
+
+        Sets
+            * .mx1Df
+
+        Raises:
+            MxError
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try:             
             logger.debug("{0:s}mx1File: {1:s} reading ...".format(logStr,self.mx1File))    
             # read mx1File To Dataframe
             Mx1Tree = ET.parse(self.mx1File)
@@ -290,24 +338,24 @@ class Mx():
             self.mx1Df['isVectorChannelMx2Rvec']=[True if isVectorChannelMx2 and dataType=='RVEC' else False for isVectorChannelMx2,dataType in zip(self.mx1Df['isVectorChannelMx2'],self.mx1Df['DATATYPE'])] 
 
             logger.debug("{0:s}mx1Df after some generated Columns: Shape: {1!s}.".format(logStr,self.mx1Df.shape))    
-
-            self._parseMx2()     
-            self._buildMxRecordStructUnpackFmtString()      
-            self._buildMxRecordStructUnpackFmtStringPost()      
-                            
+                                                                       
         except MxError:
             raise            
         except Exception as e:
-            logStrFinal="{:s}mx1File: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,self.mx1File,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logStrFinal="{:s}mx2File: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,self.mx2File,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                    
+            raise MxError(logStrFinal)             
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def _parseMx2(self):
-        """Parses mx2File.
+        """Parses .mx2File.
 
-        self.mx2Df
+        Sets
+            * .mx2Df
+
+        Raises:
+            MxError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -395,11 +443,14 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def _buildMxRecordStructUnpackFmtString(self):
-        """(Re-)builds mxRecordStructFmtString and releated stuff.
+        """(Re-)builds .mxRecordStructFmtString and releated stuff.
             
-        Attributes set:
-            * mxRecordStructFmtString                   
-            * mx1Df['unpackIdx']        
+        Sets
+            * .mxRecordStructFmtString                   
+            * .mx1Df['unpackIdx']        
+
+        Raises:
+            MxError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -536,15 +587,18 @@ class Mx():
     def _buildMxRecordStructUnpackFmtStringPost(self):
         """Stuff todo after buildMxRecordStructUnpackFmtString.
            
-        Attributes set:                 
-            * idxTIMESTAMP (idx of TIMESTAMP in MX1)
-            * unpackIdxTIMESTAMP (idx of TIMESTAMP in recordData)
-            * mxColumnNames=[] (of Non Vector Channels without TIMESTAMP in MX1-Sequence)
-            * mxColumnNamesVecs=[] (of Vector Channels without TIMESTAMP in MX1-Sequence)
-            * idxUnpackNonVectorChannels[] (idx in recordData)
-            * idxUnpackVectorChannels[] (idx in recordData of the 1st ([0]) Element of the Vector)
-            * idxOfNonVectorChannels[] (idx in MX1 without TIMESTAMP)
-            * idxVectorChannels[] (idx in MX1)
+        Sets                 
+            * .idxTIMESTAMP (idx of TIMESTAMP in MX1)
+            * .unpackIdxTIMESTAMP (idx of TIMESTAMP in recordData)
+            * .mxColumnNames=[] (of non Vectordata without TIMESTAMP in MX1-Sequence)
+            * .mxColumnNamesVecs=[] (of Vectordata without TIMESTAMP in MX1-Sequence)
+            * .idxUnpackNonVectorChannels[] (idx in recordData)
+            * .idxUnpackVectorChannels[] (idx in recordData of the 1st ([0]) Element of the Vector)
+            * .idxOfNonVectorChannels[] (idx in MX1 without TIMESTAMP)
+            * .idxVectorChannels[] (idx in MX1)
+
+        Raises:
+            MxError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -635,17 +689,19 @@ class Mx():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
-    def _readMxsFile(self,mxsFilePtr=None,mxsVecsH5StorePtr=None,firstTime=None,maxRecords=None):
+    def _readMxsFile(self,mxsFilePtr,mxsVecsH5StorePtr,firstTime=None,maxRecords=None):
 
         """
         Args:
-            * mxsFilePtr
-            * mxsVecsH5StorePtr
-            * firstTime
+            * mxsFilePtr: .MXS-File
+            * mxsVecsH5StorePtr: .vec.h5-File
+            * firstTime: used to calculate h5Key for mxsVecsH5Store
+                * None (default): firstTime is set to 1st TIMESTAMP in .MXS-File 
+
             * maxRecords
 
         Returns:
-            df: the mxsFile (Non Vectordata Only) as DataFrame
+            df: the mxsFile (non Vectordata only) as DataFrame
 
                 * index: TIMESTAMP
                 * df.index.is_unique 
@@ -656,14 +712,17 @@ class Mx():
         
         mxsVecsH5StorePtr
 
-            * is used to update the mxsVecsH5Store with mxsFile
+            * is used to update the mxsVecsH5Store with mxsFile-Content
 
                 * Key: microseconds from firstTime 
-                * Value: dfVecs (df with Vectordata for one TIMESTAMP)
-
-                    * TIMESTAMP is used as index
+                * dfVecs
+                    * index: TIMESTAMP 
+                    * values: Vectordata for the TIMESTAMP
             
             * the Vectordata for a TIMESTAMP is only written when the Key does _not already exist 
+
+        Raises:
+            MxError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -684,7 +743,7 @@ class Mx():
                 maxRecordsLimit=False   
                       
             recsReadFromFile=0     
-            firstTime=None    
+            #firstTime=None    
             
             if mxsVecsH5StorePtr != None:
                 keysAtStart=mxsVecsH5StorePtr.keys()
@@ -743,8 +802,7 @@ class Mx():
                             logStrFinal="{0:s}store record in memory failed at Time={1!s}. Error.".format(logStr,time_read_finally)
                             logger.error(logStrFinal) 
                             raise MxError(logStrFinal)   
-                        
-                        h5DumpLog="{:s} NO (no Dumpfile).".format('H5Dump:')
+                                               
                         if mxsVecsH5StorePtr != None:
                             # store record as df in H5
                             try:      
@@ -818,13 +876,21 @@ class Mx():
 
     def _checkMxsVecsFile(self,fullCheck=False):
         """Returns (firstTime,lastTime,NOfTimes).
+
+        Args:
+            * fullCheck (bool)
+                * False (default): only 1st and last h5Keys are read
+                * True: all h5Keys are read
+
+        Raises:
+            MxError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
         try:         
-            with pd.HDFStore(self.h5FileMxsVecs) as mxsVecsH5Store: 
+            with pd.HDFStore(self.h5FileVecs) as mxsVecsH5Store: 
                                                                                                                                                
                 keys=sorted([int(key.replace('/','')) for key in mxsVecsH5Store.keys()])
                 keysH5=['/'+str(key) for key in keys]
@@ -856,17 +922,19 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
             return (firstTime,lastTime,len(keysH5))   
         
-    def _handleMxsVecsFileDeletion(self,mxsFile=None,newMxsVecsFile=False):
+    def _handleMxsVecsFileDeletion(self,mxsFile,newMxsVecsFile=False):
         """Handles the deletion of mxsVecsFile.
 
         Args:
             * mxsFile
             * newMxsVecsFile
 
-
-        mxsVecsFile is deleted if: 
+        mxsVecsFile is DELETED! if: 
             * existing and older than mxsFile
-            * or newMxsVecsFile                               
+            * or newMxsVecsFile                  
+            
+        Raises:
+            MxError                         
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -875,22 +943,22 @@ class Mx():
         try: 
         
             # .vec.h5 Handling 
-            if os.path.exists(self.h5FileMxsVecs):      
+            if os.path.exists(self.h5FileVecs):      
 
                 if newMxsVecsFile:
-                    logger.debug("{:s}Delete H5VecDump because NewH5Vec ...".format(logStr,self.h5FileMxsVecs)) 
-                    os.remove(self.h5FileMxsVecs)   
+                    logger.debug("{:s}Delete H5VecDump because NewH5Vec ...".format(logStr,self.h5FileVecs)) 
+                    os.remove(self.h5FileVecs)   
                 else:
                     if os.path.exists(mxsFile):                         
                         mxsFileTime=os.path.getmtime(mxsFile) 
                     else:
                         mxsFileTime=0
-                    mxsH5FileTime=os.path.getmtime(self.h5FileMxsVecs)
+                    mxsH5FileTime=os.path.getmtime(self.h5FileVecs)
 
                     if mxsFileTime>mxsH5FileTime:
                         # die zu lesende Mxs ist neuer als der Dump: Dump loeschen              
-                        logger.debug("{:s}Delete H5VecDump because Mxs {:s} To Read is newer than H5VecDump {:s} ...".format(logStr,mxsFile,self.h5FileMxsVecs))                             
-                        os.remove(self.h5FileMxsVecs)      
+                        logger.debug("{:s}Delete H5VecDump because Mxs {:s} To Read is newer than H5VecDump {:s} ...".format(logStr,mxsFile,self.h5FileVecs))                             
+                        os.remove(self.h5FileVecs)      
                         
         except MxError:
             raise
@@ -902,15 +970,16 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                                       
             
     def setResultsToMxsFile(self,mxsFile=None,add=False,NewH5Vec=False,maxRecords=None):
-        """Sets (default) or adds mxsFile-Content to self.df.
+        """Sets (default) or adds mxsFile-Content to .df.
         
         Args:
-            * mxsFile (str): default: None: self.mxsFile is used  
+            * mxsFile (str)
+                * None (default): .mxsFile is used  
             * add (bool): default: False: sets df to mxsFile-Content 
             * NewH5Vec
             * maxRecords
              
-        self.df
+        .df
             * index: TIMESTAMP
             
             * self.df.index.is_unique will be True 
@@ -923,13 +992,16 @@ class Mx():
                    
             * and because resulting overlapping TIMESTAMPs due to intersections (add=True) are also dropped      
 
-        h5FileMxsVecs
+        .h5FileVecs
 
             * is updated with mxsFile-Content
 
-            * is deleted before if existing if 
+            * is DELETED! before if existing and 
                 * older than mxsFile
-                * or newMxsVecsFile                                         
+                * or newMxsVecsFile        
+                
+        Raises:
+            MxError                                                 
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -945,7 +1017,7 @@ class Mx():
             # .vec.h5 Handling 
             self._handleMxsVecsFileDeletion(mxsFile=mxsFile,newMxsVecsFile=NewH5Vec)
               
-            mxsVecH5Store=pd.HDFStore(self.h5FileMxsVecs) 
+            mxsVecH5Store=pd.HDFStore(self.h5FileVecs) 
                                                                                       
             if isinstance(self.df,pd.core.frame.DataFrame):   
                 firstTime=self.df.index[0]
@@ -994,7 +1066,10 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                 
 
     def setResultsToMxsZipFile(self,mxsZipFile=None,add=False,NewH5Vec=False,maxRecords=None):
-        """Sets (default) or adds mxsZipFile-Content to self.df.
+        """Sets (default) or adds mxsZipFile-Content to .df.
+
+        Raises:
+            MxError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1028,7 +1103,7 @@ class Mx():
             # .vec.h5 Handling 
             self._handleMxsVecsFileDeletion(mxsFile=mxsZipFile,newMxsVecsFile=NewH5Vec)
                 
-            mxsVecH5Store=pd.HDFStore(self.h5FileMxsVecs) 
+            mxsVecH5Store=pd.HDFStore(self.h5FileVecs) 
                                                                                       
             if isinstance(self.df,pd.core.frame.DataFrame):   
                 firstTime=self.df.index[0]
@@ -1107,18 +1182,21 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                 
 
     def ToH5(self,h5File=None):
-        """Stores self.mx1Df, .mx2Df, .df to h5File.
+        """Stores .mx1Df, .mx2Df, .df to h5File.
 
         Args:
             h5File(str): default: None: self.h5File is used  
 
-        h5File:
+        .h5File
             * is !DELETED! before if existing
 
         Keys used
             * /MX1
             * /MX2
             * /MXS
+
+        Raises:
+            MxError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1185,15 +1263,19 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                 
 
     def FromH5(self,h5File=None):
-        """Sets self.mx1Df, .mx2Df, .df to h5File-Content.
+        """Sets .mx1Df, .mx2Df, .df to h5File-Content.
 
         Args:
-            h5File(str): default: None: self.h5File is used  
+            * h5File(str)
+                * None (default): .h5File is used  
 
         Keys expected
             * /MX1
             * /MX2
             * /MXS
+
+        Raises:
+            MxError
         """
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.'))  
@@ -1278,6 +1360,9 @@ class Mx():
             * List of dfs with mxsVecsFileData
             * one TIMESTAMP per df
             * index: TIMESTAMP
+
+        Raises:
+            MxError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1287,10 +1372,10 @@ class Mx():
            
             mxsVecsDfs=None
 
-            if os.path.exists(self.h5FileMxsVecs):
+            if os.path.exists(self.h5FileVecs):
                 pass
             else:
-                logStrFinal="{:s}{:s}: Not existing!".format(logStr,self.h5FileMxsVecs)
+                logStrFinal="{:s}{:s}: Not existing!".format(logStr,self.h5FileVecs)
                 logger.error(logStrFinal) 
                 raise MxError(logStrFinal)         
 
@@ -1303,14 +1388,14 @@ class Mx():
             h5KeysRequested=['/'+str(key) for key in h5KeysRequested]           
                                  
             mxsVecsDfs=[]
-            with pd.HDFStore(self.h5FileMxsVecs) as h5Store:
+            with pd.HDFStore(self.h5FileVecs) as h5Store:
                 #available
                 h5KeysAvailable=sorted(h5Store.keys())      
                 for idx,h5Key in enumerate(h5KeysRequested):
                     if h5Key in h5KeysAvailable:
                         mxsVecsDfs.append(h5Store[h5Key])
                     else:
-                        logger.debug("{:s}{:s}: Key {:s} (Time {:s}) not available.".format(logStr,self.h5FileMxsVecs,h5Key,timesReq[idx]))
+                        logger.debug("{:s}{:s}: Key {:s} (Time {:s}) not available.".format(logStr,self.h5FileVecs,h5Key,timesReq[idx]))
                                                         
         except MxError:
             raise
@@ -1324,6 +1409,9 @@ class Mx():
 
     def dumpInMxsFormat(self,mxsDumpFile=None):
         """Dumps in MXS-Format to mxsDumpFile (for testing purposes). 
+
+        Raises:
+            MxError
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1363,7 +1451,7 @@ class Mx():
                         
                         h5Key='/'+str(h5Key)
                         # dfVecs lesen
-                        with pd.HDFStore(self.h5FileMxsVecs) as mxsVecsH5Store: 
+                        with pd.HDFStore(self.h5FileVecs) as mxsVecsH5Store: 
                             dfVecs=mxsVecsH5Store[h5Key]  
                         for row in dfVecs.itertuples(index=False):
                             # one row
@@ -1405,7 +1493,6 @@ class Mx():
             raise MxError(logStrFinal)                                  
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))               
-
 
 if __name__ == "__main__":
     """
@@ -1501,8 +1588,8 @@ True
 >>> mxsDumpFile=mx.mxsFile+'.dump'
 >>> if os.path.exists(mxsDumpFile):                        
 ...    os.remove(mxsDumpFile)
->>> if os.path.exists(mx.h5FileMxsVecs):                        
-...    os.remove(mx.h5FileMxsVecs)
+>>> if os.path.exists(mx.h5FileVecs):                        
+...    os.remove(mx.h5FileVecs)
 >>> # ---
 >>> # 1st Read MXS
 >>> # ---
@@ -1674,24 +1761,24 @@ True
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',5,'Change','*: except Exception as e')) 
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',6,'Change','setResultsToMxsFile: finally: NewH5Vec=False')) 
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',7,'Change','__init__(...,NoH5Read=True,...)')) 
->>> if os.path.exists(mx.h5FileMxsVecs):                        
-...    os.remove(mx.h5FileMxsVecs)
+>>> if os.path.exists(mx.h5FileVecs):                        
+...    os.remove(mx.h5FileVecs)
 >>> mx=Mx(mx1File=mx1File,NoH5Read=True)
->>> os.path.exists(mx.h5FileMxsVecs) # exists due to previous test
+>>> os.path.exists(mx.h5FileVecs) # exists due to previous test
 True
->>> h5VecsFileTime=os.path.getmtime(mx.h5FileMxsVecs) 
+>>> h5VecsFileTime=os.path.getmtime(mx.h5FileVecs) 
 >>> mx=Mx(mx1File=mx1File,NoH5Read=True)
->>> h5VecsFileTime<os.path.getmtime(mx.h5FileMxsVecs) 
+>>> h5VecsFileTime<os.path.getmtime(mx.h5FileVecs) 
 True
->>> h5VecsFileTime=os.path.getmtime(mx.h5FileMxsVecs) 
+>>> h5VecsFileTime=os.path.getmtime(mx.h5FileVecs) 
 >>> mx=Mx(mx1File=mx1File)
->>> h5VecsFileTime==os.path.getmtime(mx.h5FileMxsVecs) 
+>>> h5VecsFileTime==os.path.getmtime(mx.h5FileVecs) 
 True
 >>> mx.setResultsToMxsFile()
->>> h5VecsFileTime==os.path.getmtime(mx.h5FileMxsVecs) 
+>>> h5VecsFileTime==os.path.getmtime(mx.h5FileVecs) 
 True
 >>> mx.setResultsToMxsFile(NewH5Vec=True)
->>> h5VecsFileTime<os.path.getmtime(mx.h5FileMxsVecs) 
+>>> h5VecsFileTime<os.path.getmtime(mx.h5FileVecs) 
 True
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',8,'Change','setResultsToMxsZipFile: finally: NewH5Vec=False')) 
 >>> mx.ToH5()
@@ -1783,8 +1870,8 @@ False
 ...     os.remove(mx.mxsZipFile)
 >>> if os.path.exists(mxsDumpFile):                        
 ...    os.remove(mxsDumpFile)
->>> if os.path.exists(mx.h5FileMxsVecs):                        
-...    os.remove(mx.h5FileMxsVecs)
+>>> if os.path.exists(mx.h5FileVecs):                        
+...    os.remove(mx.h5FileVecs)
 >>> # ---
 >>> # LocalHeatingNetwork
 >>> # ---
@@ -1821,6 +1908,6 @@ True
 ...    os.remove(mx.mxsZipFile)
 >>> if os.path.exists(mxsDumpFile):                        
 ...    os.remove(mxsDumpFile)
->>> if os.path.exists(mx.h5FileMxsVecs):                        
-...    os.remove(mx.h5FileMxsVecs)
+>>> if os.path.exists(mx.h5FileVecs):                        
+...    os.remove(mx.h5FileVecs)
 """
