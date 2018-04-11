@@ -451,9 +451,6 @@ class Xm():
                 * vSWVT
             * Signalmodel
                 * vRSLW           
-            * Annotations
-                * vNRCV
-                * vGTXT
             * Hydraulicmodel
                 * Nodes
                     * vVKNO: CONT-Nodes (also called Block-Nodes)
@@ -461,7 +458,10 @@ class Xm():
                     * pXCorZero, pYCorZero
                 * Edges
                     * vROHR: Pipes
-                    * vFWVB: Housestations (district heating)       
+                    * vFWVB: Housestations (district heating)    
+            * Annotations
+                * vNRCV
+                * vGTXT                       
                     
         Raises:
             XmError                      
@@ -484,10 +484,6 @@ class Xm():
             #signalmodel
             self.dataFrames['vRSLW']=self._vRSLW(vSWVT=self.dataFrames['vSWVT']) 
             
-            #annotations
-            self.dataFrames['vNRCV']=self._vNRCV()            
-            self.dataFrames['vGTXT']=self._vGTXT()
-
             #nodes    
             self.dataFrames['vVKNO']=self._vVKNO()
             self.dataFrames['vKNOT']=self._vKNOT(
@@ -511,6 +507,11 @@ class Xm():
                                             ,vLFKT=self.dataFrames['vLFKT']
                                             ,vWBLZ=self.dataFrames['vWBLZ']
                                             )                                             
+
+            #annotations
+            self.dataFrames['vNRCV']=self._vNRCV()            
+            self.dataFrames['vGTXT']=self._vGTXT()
+
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
