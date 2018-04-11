@@ -13,8 +13,8 @@ For documentation, test, verification, analysis, reporting, prototyping, play.
 .. toctree::
    :maxdepth: 2
 
-   doc/Mx
-   doc/Xm
+   Mx
+   Xm
 
 Indices and tables
 ==================

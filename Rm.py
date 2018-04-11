@@ -52,8 +52,8 @@ True
 ...    os.remove(mx.h5File)
 >>> if os.path.exists(mx.mxsZipFile):                        
 ...    os.remove(mx.mxsZipFile)
->>> if os.path.exists(mx.h5FileMxsVecs):                        
-...   os.remove(mx.h5FileMxsVecs)
+>>> if os.path.exists(mx.h5FileVecs):                        
+...   os.remove(mx.h5FileVecs)
 >>> if os.path.exists(plotFileName):                        
 ...   pass #os.remove(plotFileName)
 """
@@ -1104,8 +1104,9 @@ class Rm():
             vNRCV_Mx1=self.xm.dataFrames['vNRCV_Mx1']
 
             if isinstance(pVICsDf,pd.core.frame.DataFrame):
-                df=vFWVB.merge(pVICsDf,left_on='NAME_i',right_on='Knotenname')
-                vFWVB=vFWVB.assign(VIC=df['Kundenname'])
+                vFWVB=vFWVB.merge(pVICsDf,left_on='NAME_i',right_on='Knotenname',how='left')
+                vFWVB.rename(columns={'Kundenname':'VIC'},inplace=True)
+                vFWVB.drop('Knotenname',axis=1,inplace=True)
            
             # Einheit der Measures ermitteln (fuer Annotationen)
             pFWVBMeasureCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(pFWVBMeasure)]

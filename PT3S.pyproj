@@ -27,8 +27,8 @@
     <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="doc\Mx.rst" />
-    <Content Include="doc\Xm.rst" />
+    <Content Include="Mx.rst" />
+    <Content Include="Xm.rst" />
     <Content Include="LICENSE" />
     <Content Include="PT3S.html" />
     <Content Include="PT3S.ipynb" />
@@ -57,7 +57,6 @@
     <Compile Include="setup.py" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="doc\" />
     <Folder Include="testdata\" />
     <Folder Include="testdata\WDLocalHeatingNetwork\" />
     <Folder Include="testdata\WDLocalHeatingNetwork\B1\" />
