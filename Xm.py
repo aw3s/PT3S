@@ -1,3 +1,392 @@
+"""
+---------------------------
+DOCTEST
+---------------------------
+>>> # ---
+>>> # Imports
+>>> # ---
+>>> import os
+>>> import pandas as pd
+>>> import logging
+>>> logger = logging.getLogger('PT3S.Xm')  
+>>> path = os.path.dirname(__file__)
+>>> # ---
+>>> # Clean Up
+>>> # ---
+>>> h5File=os.path.join(path,'testdata\OneLPipe.h5')
+>>> if os.path.exists(h5File):                        
+...    os.remove(h5File)
+>>> # ---
+>>> # Init
+>>> # ---
+>>> xmlFile=os.path.join(path,'testdata\OneLPipe.XML')
+>>> xm=Xm(xmlFile=xmlFile)
+>>> # ---
+>>> # a View
+>>> # ---
+>>> v='vKNOT'
+>>> v in xm.dataFrames
+True
+>>> isinstance(xm.dataFrames[v],pd.core.frame.DataFrame)
+True
+>>> # ---
+>>> # ToH5
+>>> # ---
+>>> xm.ToH5()
+>>> os.path.exists(xm.h5File) 
+True
+>>> # ---
+>>> # force Read H5 instead of Xml
+>>> # ---
+>>> os.rename(xm.xmlFile,xm.xmlFile+'.blind')
+>>> xm=Xm(xmlFile=xmlFile)
+>>> os.rename(xm.xmlFile+'.blind',xm.xmlFile)
+>>> # ---
+>>> vKNOT=xm.dataFrames['vKNOT']
+>>> vKNOT[(vKNOT.KTYP.isin(['QKON','PKON'])) & (vKNOT.BESCHREIBUNG.fillna('').str.startswith('Template Element')==False)].shape
+(2, 24)
+>>> vROHR=xm.dataFrames['vROHR']
+>>> vROHR.shape
+(1, 73)
+>>> isinstance(vROHR['pXCors'],pd.core.series.Series)
+True
+>>> vROHR['pXCors'][0]
+[0.0, 500.0]
+>>> vROHR.pYCors[0]
+[0.0, 0.0]
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.31',1,'Bugfix',"__convertAndFix: self.dataFrames['KNOT_BZ']['TE']=pd.Series() if missing")) 
+>>> 'TE' not in xm.dataFrames['KNOT'].columns
+True
+>>> 'TE' in xm.dataFrames['KNOT_BZ'].columns
+True
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.31',2,'New',"getWDirModelDirModelName()")) 
+>>> (wDir,modelDir,modelName)=xm.getWDirModelDirModelName()
+>>> modelName
+'M-1-0-1'
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',1,'Change','ToH5: finally: h5.close()')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',2,'Change','FromH5: finally: h5.close()')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',3,'Bugfix','__init__: NoH5Read=True')) 
+>>> if os.path.exists(xm.h5File):                        
+...    os.remove(xm.h5File)
+>>> xm=Xm(xmlFile=xmlFile)
+>>> xm.ToH5()
+>>> os.path.exists(xm.h5File)
+True
+>>> xm=Xm(xmlFile=xmlFile,NoH5Read=True)
+>>> os.path.exists(xm.h5File)
+False
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.33',1,'Change','__vKNOT: pX/YCorZero')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',1,'New','__vWBLZ')) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',2,'New',"vFWVB['WBLZ']")) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',3,'New',"vFWVB ... vLFKT ... how='left'")) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',4,'New',"vNODE ... without Template Element ...")) 
+>>> pd.set_option('display.max_columns',None)
+>>> pd.set_option('display.width',6666)
+>>> print("'''{:s}'''".format(repr(xm.dataFrames['vKNOT']).replace('\\n','\\n   ')))
+'''  NAME BESCHREIBUNG             IDREFERENZ      CONT CONT_ID  CONT_LFDNR  CONT_VKNO  KTYP LFAKT    QM_EIN QVAR_NAME  QM  QM_min  QM_max KVR  TE  TM XKOR YKOR ZKOR                   pk                   tk  pXCor  pYCor
+   0    I          NaN  3S5642914844465475844  OneLPipe    1001         NaN        NaN  QKON     1  176.7146       NaN NaN     NaN     NaN   0 NaN  10  300  600   10  5642914844465475844  5642914844465475844    0.0    0.0
+   1    K          NaN  3S5289899964753656852  OneLPipe    1001         NaN        NaN  PKON     1         0       NaN NaN     NaN     NaN   0 NaN  10  800  600   10  5289899964753656852  5289899964753656852  500.0    0.0'''
+>>> print("'''{:s}'''".format(repr(xm.dataFrames['vROHR']).replace('\\n','\\n   ')))
+'''  BESCHREIBUNG             IDREFERENZ BAUJAHR HAL IPLANUNG KENNUNG      L LZU   RAU ZAUS ZEIN ZUML JLAMBS LAMBDA0 ASOLL INDSCHALL fk2LROHR KVR AUSFALLZEIT DA   DI   DN KT PN REHABILITATION REPARATUR  S WSTEIG WTIEFE LTGR_NAME  LTGR_BESCHREIBUNG SICHTBARKEIT VERLEGEART DTRO_NAME                           DTRO_BESCHREIBUNG        E fkSTRASSE fkSRAT                   pk                   tk IRTRENN LECKSTART LECKEND LECKMENGE LECKORT LECKSTATUS QSVB ZVLIMPTNZ KANTENZV      CONT CONT_ID  CONT_LFDNR NAME_i KVR_i TM_i XKOR_i YKOR_i ZKOR_i NAME_k KVR_k TM_k XKOR_k YKOR_k ZKOR_k  pXCor_i  pYCor_i  pXCor_k  pYCor_k        pXCors      pYCors    pWAYPXCors  pWAYPYCors                              WAYP
+   0          NaN  3S4737064599036143765    2017   0        1       0  10000   0  0.25    0    0    0      1   0.025  1000         0       -1   0           0  0  250  250  0  0              0         0  0      0      0   STDROHR                NaN            1     999999   STDROHR  Standard-Druckrohre mit di = DN (DIN 2402)  2.1E+11        -1     -1  4737064599036143765  4737064599036143765       0         0       0         0       0          0    0         0        0  OneLPipe    1001         NaN      I     0   10    300    600     10      K     0   10    800    600     10      0.0      0.0    500.0      0.0  [0.0, 500.0]  [0.0, 0.0]  [0.0, 500.0]  [0.0, 0.0]  [(300.0, 600.0), (800.0, 600.0)]'''
+>>> # ---
+>>> # Clean Up
+>>> # ---
+>>> if os.path.exists(xm.h5File):                        
+...    os.remove(xm.h5File)
+>>> # ---
+>>> # LocalHeatingNetwork
+>>> # ---
+>>> xmlFile=os.path.join(path,'testdata\LocalHeatingNetwork.XML')
+>>> xm=Xm(xmlFile=xmlFile)
+>>> print("'''{:s}'''".format(repr(xm.dataFrames['vKNOT']).replace('\\n','\\n   ')))
+'''           NAME                    BESCHREIBUNG IDREFERENZ                                      CONT CONT_ID CONT_LFDNR CONT_VKNO  KTYP LFAKT QM_EIN QVAR_NAME  QM  QM_min  QM_max KVR  TE  TM     XKOR     YKOR ZKOR                   pk                   tk   pXCor  pYCor
+   0        R-K004                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541539  5706361   20  4638663808856251977  4638663808856251977   799.0  152.0
+   1        V-K002                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541059  5706265   20  4731792362611615619  4731792362611615619   319.0   56.0
+   2        V-K001                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2540867  5706228   20  4756962427318766791  4756962427318766791   127.0   19.0
+   3        V-K000                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2540793  5706209   20  4766681917240867943  4766681917240867943    53.0    0.0
+   4        R-K001                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2540867  5706228   20  4807712987325933680  4807712987325933680   127.0   19.0
+   5        R-K003                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541457  5706345   20  4891048046264179170  4891048046264179170   717.0  136.0
+   6        R-K000                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2540793  5706209   20  4979785838440534851  4979785838440534851    53.0    0.0
+   7        R-K005                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541627  5706363   20  5183147862966701025  5183147862966701025   887.0  154.0
+   8           R-L                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1      BHKW  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2540740  5706225   20  5356267303828212700  5356267303828212700     0.0   16.0
+   9        R-K002                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541059  5706265   20  5364712333175450942  5364712333175450942   319.0   56.0
+   10       V-K004                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541539  5706361   20  5370423799772591808  5370423799772591808   799.0  152.0
+   11       V-K005                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541627  5706363   20  5444644492819213978  5444644492819213978   887.0  154.0
+   12       R-K007                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541899  5706325   20  5508992300317633799  5508992300317633799  1159.0  116.0
+   13       V-K006                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541790  5706338   20  5515313800585145571  5515313800585145571  1050.0  129.0
+   14       R-K006                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541790  5706338   20  5543326527366090679  5543326527366090679  1050.0  129.0
+   15       V-K003                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541457  5706345   20  5646671866542823796  5646671866542823796   717.0  136.0
+   16          V-L                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1      BHKW  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2540740  5706240   20  5736262931552588702  5736262931552588702     0.0   31.0
+   17       V-K007                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541899  5706325   20  5741235692335544560  5741235692335544560  1159.0  116.0
+   18           R2                            None         -1                                      BHKW    1002         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60      170       20   20  5002109894154139899  5002109894154139899   170.0   20.0
+   19          V-1                            None         -1                                      BHKW    1002         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90      140      160   20  5049461676240771430  5049461676240771430   140.0  160.0
+   20           R3                            None         -1                                      BHKW    1002         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60      140       20   20  5219230031772497417  5219230031772497417   140.0   20.0
+   21  PKON-Knoten  Druckhaltung - 2 bar Ruhedruck         -1                                      BHKW    1002         -1       NaN  PKON     1      0       NaN NaN     NaN     NaN   2  60  60      200       40   20  5397990465339071638  5397990465339071638   200.0   40.0
+   22          R-1          Anbindung Druckhaltung         -1                                      BHKW    1002         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60      195       20   20  5557222628687032084  5557222628687032084   195.0   20.0'''
+>>> print("'''{:s}'''".format(repr(xm.dataFrames['vROHR']).replace('\\n','\\n   ')))
+'''   BESCHREIBUNG IDREFERENZ BAUJAHR HAL IPLANUNG KENNUNG       L LZU  RAU ZAUS ZEIN ZUML JLAMBS LAMBDA0 ASOLL INDSCHALL             fk2LROHR KVR  AUSFALLZEIT     DA     DI   DN     KT  PN  REHABILITATION  REPARATUR    S WSTEIG WTIEFE LTGR_NAME            LTGR_BESCHREIBUNG SICHTBARKEIT VERLEGEART DTRO_NAME                        DTRO_BESCHREIBUNG        E fkSTRASSE fkSRAT                   pk                   tk IRTRENN LECKSTART LECKEND LECKMENGE LECKORT LECKSTATUS QSVB ZVLIMPTNZ KANTENZV                                      CONT CONT_ID CONT_LFDNR  NAME_i KVR_i TM_i   XKOR_i   YKOR_i ZKOR_i  NAME_k KVR_k TM_k   XKOR_k   YKOR_k ZKOR_k  pXCor_i  pYCor_i  pXCor_k  pYCor_k            pXCors          pYCors                        pWAYPXCors                      pWAYPYCors                                               WAYP
+   0          None         -1    None   0        1       0   88.02   0  0.1    0    0    0      1   0.025  1000         0  4713733238627697042   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4613782368750024999  4613782368750024999       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K004     2   60  2541539  5706361     20  R-K005     2   60  2541627  5706363     20    799.0    152.0    887.0    154.0    [799.0, 887.0]  [152.0, 154.0]                   [807.9, 895.95]                 [140.1, 142.05]  [(2541547.9, 5706349.1), (2541635.95, 5706351....
+   1          None         -1    None   0        1       0  405.96   0  0.1    0    0    0      1   0.025  1000         0  5379365049009065623   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4614949065966596185  4614949065966596185       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K002     1   90  2541059  5706265     20  V-K003     1   90  2541457  5706345     20    319.0     56.0    717.0    136.0    [319.0, 717.0]   [56.0, 136.0]                   [319.0, 716.95]          [56.0499999998, 136.0]  [(2541059.0, 5706265.05), (2541456.95, 5706345...
+   2          None         -1    None   0        1       0   83.55   0  0.1    0    0    0      1   0.025  1000         0  5037777106796980248   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4637102239750163477  4637102239750163477       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K003     2   60  2541457  5706345     20  R-K004     2   60  2541539  5706361     20    717.0    136.0    799.0    152.0    [717.0, 799.0]  [136.0, 152.0]                   [725.85, 807.9]                 [124.05, 140.1]  [(2541465.85, 5706333.05), (2541547.9, 5706349...
+   3          None         -1    None   0        1       0   88.02   0  0.1    0    0    0      1   0.025  1000         0  4613782368750024999   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4713733238627697042  4713733238627697042       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K004     1   90  2541539  5706361     20  V-K005     1   90  2541627  5706363     20    799.0    152.0    887.0    154.0    [799.0, 887.0]  [152.0, 154.0]                   [799.0, 887.05]                  [152.0, 154.0]  [(2541539.0, 5706361.0), (2541627.05, 5706363.0)]
+   4          None         -1    None   0        1       0  195.53   0  0.1    0    0    0      1   0.025  1000         0  5266224553324203132   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4789218195240364437  4789218195240364437       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K001     1   90  2540867  5706228     20  V-K002     1   90  2541059  5706265     20    127.0     19.0    319.0     56.0    [127.0, 319.0]    [19.0, 56.0]                    [127.0, 319.0]           [19.0, 56.0499999998]  [(2540867.0, 5706228.0), (2541059.0, 5706265.05)]
+   5          None         -1    None   0        1       0  109.77   0  0.1    0    0    0      1   0.025  1000         0  5620197984230756681   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4945727430885351042  4945727430885351042       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K006     2   60  2541790  5706338     20  R-K007     2   60  2541899  5706325     20   1050.0    129.0   1159.0    116.0  [1050.0, 1159.0]  [129.0, 116.0]                 [1058.85, 1167.9]                  [117.0, 104.1]  [(2541798.85, 5706326.0), (2541907.9, 5706313.1)]
+   6          None         -1    None   0        1       0    76.4   0  0.1    0    0    0      1   0.025  1000         0  5647213228462830353   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4984202422877610920  4984202422877610920       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K000     1   90  2540793  5706209     20  V-K001     1   90  2540867  5706228     20     53.0      0.0    127.0     19.0     [53.0, 127.0]     [0.0, 19.0]            [53.0499999998, 127.0]        [-0.0499999998137, 19.0]  [(2540793.05, 5706208.95), (2540867.0, 5706228...
+   7          None         -1    None   0        1       0   83.55   0  0.1    0    0    0      1   0.025  1000         0  4637102239750163477   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5037777106796980248  5037777106796980248       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K003     1   90  2541457  5706345     20  V-K004     1   90  2541539  5706361     20    717.0    136.0    799.0    152.0    [717.0, 799.0]  [136.0, 152.0]                   [716.95, 799.0]                  [136.0, 152.0]  [(2541456.95, 5706345.0), (2541539.0, 5706361.0)]
+   8          None         -1    None   0        1       0  164.91   0  0.1    0    0    0      1   0.025  1000         0  5611703699850694889   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5123819811204259837  5123819811204259837       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K005     1   90  2541627  5706363     20  V-K006     1   90  2541790  5706338     20    887.0    154.0   1050.0    129.0   [887.0, 1050.0]  [154.0, 129.0]                 [887.05, 1049.95]                 [154.0, 128.95]  [(2541627.05, 5706363.0), (2541789.95, 5706337...
+   9          None         -1    None   0        1       0  195.53   0  0.1    0    0    0      1   0.025  1000         0  4789218195240364437   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5266224553324203132  5266224553324203132       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K001     2   60  2540867  5706228     20  R-K002     2   60  2541059  5706265     20    127.0     19.0    319.0     56.0    [127.0, 319.0]    [19.0, 56.0]                    [135.9, 327.9]  [7.04999999981, 44.0999999996]  [(2540875.9, 5706216.05), (2541067.9, 5706253.1)]
+   10         None         -1    None   0        1       0  405.96   0  0.1    0    0    0      1   0.025  1000         0  4614949065966596185   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5379365049009065623  5379365049009065623       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K002     2   60  2541059  5706265     20  R-K003     2   60  2541457  5706345     20    319.0     56.0    717.0    136.0    [319.0, 717.0]   [56.0, 136.0]                   [327.9, 725.85]         [44.0999999996, 124.05]  [(2541067.9, 5706253.1), (2541465.85, 5706333....
+   11         None         -1    None   0        1       0  164.91   0  0.1    0    0    0      1   0.025  1000         0  5123819811204259837   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5611703699850694889  5611703699850694889       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K005     2   60  2541627  5706363     20  R-K006     2   60  2541790  5706338     20    887.0    154.0   1050.0    129.0   [887.0, 1050.0]  [154.0, 129.0]                 [895.95, 1058.85]                 [142.05, 117.0]  [(2541635.95, 5706351.05), (2541798.85, 570632...
+   12         None         -1    None   0        1       0  109.77   0  0.1    0    0    0      1   0.025  1000         0  4945727430885351042   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5620197984230756681  5620197984230756681       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K006     1   90  2541790  5706338     20  V-K007     1   90  2541899  5706325     20   1050.0    129.0   1159.0    116.0  [1050.0, 1159.0]  [129.0, 116.0]                 [1049.95, 1159.0]                [128.95, 116.05]  [(2541789.95, 5706337.95), (2541899.0, 5706325...
+   13         None         -1    None   0        1       0    76.4   0  0.1    0    0    0      1   0.025  1000         0  4984202422877610920   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5647213228462830353  5647213228462830353       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K000     2   60  2540793  5706209     20  R-K001     2   60  2540867  5706228     20     53.0      0.0    127.0     19.0     [53.0, 127.0]     [0.0, 19.0]            [61.9500000002, 135.9]          [-12.0, 7.04999999981]  [(2540801.95, 5706197.0), (2540875.9, 5706216....
+   14         None         -1    None   0        1       0   73.42   0  0.1    0    0    0      1   0.025  1000         0  4939422678063487923   2          NaN  168.3  160.3  150   0.45 NaN             NaN        NaN    4    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4769996343148550485  4769996343148550485       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1     R-L     2   60  2540740  5706225     20  R-K000     2   60  2540793  5706209     20      0.0     16.0     53.0      0.0       [0.0, 53.0]     [16.0, 0.0]  [0.0, 24.0, 45.0, 61.9500000002]      [16.0, 16.0, -12.0, -12.0]  [(2540740.0, 5706225.0), (2540764.0, 5706225.0...
+   15         None         -1    None   0        1       0    68.6   0  0.1    0    0    0      1   0.025  1000         0  4769996343148550485   1          NaN  168.3  160.3  150   0.45 NaN             NaN        NaN    4    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4939422678063487923  4939422678063487923       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1     V-L     1   90  2540740  5706240     20  V-K000     1   90  2540793  5706209     20      0.0     31.0     53.0      0.0       [0.0, 53.0]     [31.0, 0.0]        [0.0, 30.0, 53.0499999998]  [31.0, 31.0, -0.0499999998137]  [(2540740.0, 5706240.0), (2540770.0, 5706240.0...'''
+>>> print("'''{:s}'''".format(repr(xm.dataFrames['vWBLZ']).replace('\\n','\\n   ')))
+'''   AKTIV BESCHREIBUNG IDIM       NAME                OBJID OBJTYPE                   pk
+   0      1  Wärmebilanz    0      BLNZ1  4731792362611615619    KNOT  5579937562601803472
+   1      1  Wärmebilanz    0      BLNZ1  5364712333175450942    KNOT  5579937562601803472
+   2      1  Wärmebilanz    0      BLNZ5  5183147862966701025    KNOT  5581152085151655438
+   3      1  Wärmebilanz    0      BLNZ5  5444644492819213978    KNOT  5581152085151655438
+   4      1  Wärmebilanz    0    BLNZ1u5  5183147862966701025    KNOT  5187647097142898375
+   5      1  Wärmebilanz    0    BLNZ1u5  5444644492819213978    KNOT  5187647097142898375
+   6      1  Wärmebilanz    0    BLNZ1u5  4731792362611615619    KNOT  5187647097142898375
+   7      1  Wärmebilanz    0    BLNZ1u5  5364712333175450942    KNOT  5187647097142898375
+   8      1  Wärmebilanz    0  BLNZ1u5u7  5183147862966701025    KNOT  4694700216019268978
+   9      1  Wärmebilanz    0  BLNZ1u5u7  5444644492819213978    KNOT  4694700216019268978
+   10     1  Wärmebilanz    0  BLNZ1u5u7  4731792362611615619    KNOT  4694700216019268978
+   11     1  Wärmebilanz    0  BLNZ1u5u7  5364712333175450942    KNOT  4694700216019268978
+   12     1  Wärmebilanz    0  BLNZ1u5u7  5508992300317633799    KNOT  4694700216019268978
+   13     1  Wärmebilanz    0  BLNZ1u5u7  5741235692335544560    KNOT  4694700216019268978'''
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',5,'New',"vNRCV")) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',6,'New',"vNRCV_Mx1")) 
+>>> pd.set_option('display.max_rows',None)
+>>> print("'''{:s}'''".format(repr(xm.dataFrames['vLAYR'].sort_values(['LFDNR','NAME','OBJTYPE','OBJID'],ascending=True)).replace('\\n','\\n   ')))
+'''   LFDNR           NAME OBJTYPE                OBJID                   pk                   tk  nrObjInGroup  nrObjtypeInGroup
+   0      1        Vorlauf    FWES  5638756766880678918  5206516471428693478  5206516471428693478             1                 1
+   1      1        Vorlauf    KNOT  4731792362611615619  5206516471428693478  5206516471428693478             2                 1
+   2      1        Vorlauf    KNOT  4756962427318766791  5206516471428693478  5206516471428693478             3                 2
+   3      1        Vorlauf    KNOT  4766681917240867943  5206516471428693478  5206516471428693478             4                 3
+   4      1        Vorlauf    KNOT  5049461676240771430  5206516471428693478  5206516471428693478             5                 4
+   5      1        Vorlauf    KNOT  5370423799772591808  5206516471428693478  5206516471428693478             6                 5
+   6      1        Vorlauf    KNOT  5444644492819213978  5206516471428693478  5206516471428693478             7                 6
+   7      1        Vorlauf    KNOT  5515313800585145571  5206516471428693478  5206516471428693478             8                 7
+   8      1        Vorlauf    KNOT  5646671866542823796  5206516471428693478  5206516471428693478             9                 8
+   9      1        Vorlauf    KNOT  5736262931552588702  5206516471428693478  5206516471428693478            10                 9
+   10     1        Vorlauf    KNOT  5741235692335544560  5206516471428693478  5206516471428693478            11                10
+   11     1        Vorlauf    ROHR  4614949065966596185  5206516471428693478  5206516471428693478            12                 1
+   12     1        Vorlauf    ROHR  4713733238627697042  5206516471428693478  5206516471428693478            13                 2
+   13     1        Vorlauf    ROHR  4789218195240364437  5206516471428693478  5206516471428693478            14                 3
+   14     1        Vorlauf    ROHR  4939422678063487923  5206516471428693478  5206516471428693478            15                 4
+   15     1        Vorlauf    ROHR  4984202422877610920  5206516471428693478  5206516471428693478            16                 5
+   16     1        Vorlauf    ROHR  5037777106796980248  5206516471428693478  5206516471428693478            17                 6
+   17     1        Vorlauf    ROHR  5123819811204259837  5206516471428693478  5206516471428693478            18                 7
+   18     1        Vorlauf    ROHR  5620197984230756681  5206516471428693478  5206516471428693478            19                 8
+   19     1        Vorlauf    VENT  4678923650983295610  5206516471428693478  5206516471428693478            20                 1
+   20     2       Rücklauf    KLAP  4801110583764519435  4693347477612662930  4693347477612662930             1                 1
+   21     2       Rücklauf    KNOT  4638663808856251977  4693347477612662930  4693347477612662930             2                 1
+   22     2       Rücklauf    KNOT  4807712987325933680  4693347477612662930  4693347477612662930             3                 2
+   23     2       Rücklauf    KNOT  4891048046264179170  4693347477612662930  4693347477612662930             4                 3
+   24     2       Rücklauf    KNOT  4979785838440534851  4693347477612662930  4693347477612662930             5                 4
+   25     2       Rücklauf    KNOT  5002109894154139899  4693347477612662930  4693347477612662930             6                 5
+   26     2       Rücklauf    KNOT  5183147862966701025  4693347477612662930  4693347477612662930             7                 6
+   27     2       Rücklauf    KNOT  5219230031772497417  4693347477612662930  4693347477612662930             8                 7
+   28     2       Rücklauf    KNOT  5356267303828212700  4693347477612662930  4693347477612662930             9                 8
+   29     2       Rücklauf    KNOT  5364712333175450942  4693347477612662930  4693347477612662930            10                 9
+   30     2       Rücklauf    KNOT  5397990465339071638  4693347477612662930  4693347477612662930            11                10
+   31     2       Rücklauf    KNOT  5508992300317633799  4693347477612662930  4693347477612662930            12                11
+   32     2       Rücklauf    KNOT  5543326527366090679  4693347477612662930  4693347477612662930            13                12
+   33     2       Rücklauf    KNOT  5557222628687032084  4693347477612662930  4693347477612662930            14                13
+   34     2       Rücklauf    PUMP  5481331875203087055  4693347477612662930  4693347477612662930            15                 1
+   35     2       Rücklauf    ROHR  4613782368750024999  4693347477612662930  4693347477612662930            16                 1
+   36     2       Rücklauf    ROHR  4637102239750163477  4693347477612662930  4693347477612662930            17                 2
+   37     2       Rücklauf    ROHR  4769996343148550485  4693347477612662930  4693347477612662930            18                 3
+   38     2       Rücklauf    ROHR  4945727430885351042  4693347477612662930  4693347477612662930            19                 4
+   39     2       Rücklauf    ROHR  5266224553324203132  4693347477612662930  4693347477612662930            20                 5
+   40     2       Rücklauf    ROHR  5379365049009065623  4693347477612662930  4693347477612662930            21                 6
+   41     2       Rücklauf    ROHR  5611703699850694889  4693347477612662930  4693347477612662930            22                 7
+   42     2       Rücklauf    ROHR  5647213228462830353  4693347477612662930  4693347477612662930            23                 8
+   43     2       Rücklauf    VENT  4897018421024717974  4693347477612662930  4693347477612662930            24                 1
+   44     2       Rücklauf    VENT  5525310316015533093  4693347477612662930  4693347477612662930            25                 2
+   45     3  Kundenanlagen    FWVB  4643800032883366034  5003333277973347346  5003333277973347346             1                 1
+   46     3  Kundenanlagen    FWVB  4704603947372595298  5003333277973347346  5003333277973347346             2                 2
+   47     3  Kundenanlagen    FWVB  5121101823283893406  5003333277973347346  5003333277973347346             3                 3
+   48     3  Kundenanlagen    FWVB  5400405917816384862  5003333277973347346  5003333277973347346             4                 4
+   49     3  Kundenanlagen    FWVB  5695730293103267172  5003333277973347346  5003333277973347346             5                 5
+   50     4           BHKW    BSYM  5043395081363401573  5555393404073362943  5555393404073362943             1                 1
+   51     4           BHKW    TEXT  5056836766824229789  5555393404073362943  5555393404073362943             2                 1
+   52     4           BHKW    TEXT  5329748935118523443  5555393404073362943  5555393404073362943             3                 2
+   53     5          Texte    ARRW  4664845735864571219  5394410243594912680  5394410243594912680             1                 1
+   54     5          Texte    ARRW  4902474974831811106  5394410243594912680  5394410243594912680             2                 2
+   55     5          Texte    ARRW  5026846801782366678  5394410243594912680  5394410243594912680             3                 3
+   56     5          Texte    ARRW  5688313372729413840  5394410243594912680  5394410243594912680             4                 4
+   57     5          Texte    NRCV  4681213816714574464  5394410243594912680  5394410243594912680             5                 1
+   58     5          Texte    NRCV  4857294696992797631  5394410243594912680  5394410243594912680             6                 2
+   59     5          Texte    NRCV  4914949875368816179  5394410243594912680  5394410243594912680             7                 3
+   60     5          Texte    NRCV  4946584950744559030  5394410243594912680  5394410243594912680             8                 4
+   61     5          Texte    NRCV  4968703141722117357  5394410243594912680  5394410243594912680             9                 5
+   62     5          Texte    NRCV  5091374651838464239  5394410243594912680  5394410243594912680            10                 6
+   63     5          Texte    NRCV  5097127385155151127  5394410243594912680  5394410243594912680            11                 7
+   64     5          Texte    NRCV  5179988968597313889  5394410243594912680  5394410243594912680            12                 8
+   65     5          Texte    NRCV  5281885868749421521  5394410243594912680  5394410243594912680            13                 9
+   66     5          Texte    NRCV  5410904806390050339  5394410243594912680  5394410243594912680            14                10
+   67     5          Texte    NRCV  5476262878682325254  5394410243594912680  5394410243594912680            15                11
+   68     5          Texte    NRCV  5557806245003742769  5394410243594912680  5394410243594912680            16                12
+   69     5          Texte    RECT  4994817837124479818  5394410243594912680  5394410243594912680            17                 1
+   70     5          Texte    RPFL  5158870568935841216  5394410243594912680  5394410243594912680            18                 1
+   71     5          Texte    TEXT  4628671704393700430  5394410243594912680  5394410243594912680            19                 1
+   72     5          Texte    TEXT  4654104397990769217  5394410243594912680  5394410243594912680            20                 2
+   73     5          Texte    TEXT  4666644549022031339  5394410243594912680  5394410243594912680            21                 3
+   74     5          Texte    TEXT  4693143208412077585  5394410243594912680  5394410243594912680            22                 4
+   75     5          Texte    TEXT  4768731522550494423  5394410243594912680  5394410243594912680            23                 5
+   76     5          Texte    TEXT  4770844990228490264  5394410243594912680  5394410243594912680            24                 6
+   77     5          Texte    TEXT  4782197969172967134  5394410243594912680  5394410243594912680            25                 7
+   78     5          Texte    TEXT  4855692488683645764  5394410243594912680  5394410243594912680            26                 8
+   79     5          Texte    TEXT  4965628942555351751  5394410243594912680  5394410243594912680            27                 9
+   80     5          Texte    TEXT  4995961504641886710  5394410243594912680  5394410243594912680            28                10
+   81     5          Texte    TEXT  5017907661719368413  5394410243594912680  5394410243594912680            29                11
+   82     5          Texte    TEXT  5028052147238787802  5394410243594912680  5394410243594912680            30                12
+   83     5          Texte    TEXT  5036153631350515544  5394410243594912680  5394410243594912680            31                13
+   84     5          Texte    TEXT  5054433315422452796  5394410243594912680  5394410243594912680            32                14
+   85     5          Texte    TEXT  5108336975548011049  5394410243594912680  5394410243594912680            33                15
+   86     5          Texte    TEXT  5262441422409836340  5394410243594912680  5394410243594912680            34                16
+   87     5          Texte    TEXT  5297832234834839298  5394410243594912680  5394410243594912680            35                17
+   88     5          Texte    TEXT  5370727463979416592  5394410243594912680  5394410243594912680            36                18
+   89     5          Texte    TEXT  5421223289472778073  5394410243594912680  5394410243594912680            37                19
+   90     5          Texte    TEXT  5501963349880613918  5394410243594912680  5394410243594912680            38                20
+   91     5          Texte    TEXT  5502619581048467908  5394410243594912680  5394410243594912680            39                21
+   92     5          Texte    TEXT  5540395812045688781  5394410243594912680  5394410243594912680            40                22
+   93     5          Texte    TEXT  5550982489075668484  5394410243594912680  5394410243594912680            41                23
+   94     5          Texte    TEXT  5610916400841895317  5394410243594912680  5394410243594912680            42                24
+   95     5          Texte    TEXT  5646820849868629537  5394410243594912680  5394410243594912680            43                25
+   96     5          Texte    TEXT  5696590398594231893  5394410243594912680  5394410243594912680            44                26
+   97     5          Texte    TEXT  5697088036451277538  5394410243594912680  5394410243594912680            45                27'''
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.39',1,'New',"vNRCV: pXYLB")) 
+>>> print("'''{:s}'''".format(repr(xm.dataFrames['vNRCV'].sort_values(['OBJTYPE','fkOBJTYPE','ATTRTYPE','cRefLfdNr'],ascending=True)).replace('\\n','\\n   ')))
+'''   cRefLfdNr                                      CONT CONT_ID CONT_LFDNR         DPGR OBJTYPE            fkOBJTYPE ATTRTYPE              pk_ROWS              tk_ROWS                   pk                   tk                                  pXYLB
+   0          1                                      BHKW    1002         -1  UserDefined    FWES  5638756766880678918        W  5762106696740202356  5762106696740202356  4857294696992797631  4857294696992797631                           (90.0, 65.0)
+   1          1                                      BHKW    1002         -1  UserDefined    KNOT  5049461676240771430        T  4723443975311885965  4723443975311885965  5097127385155151127  5097127385155151127                           (90.0, 95.0)
+   2          1                                      BHKW    1002         -1  UserDefined    KNOT  5219230031772497417        T  5602301870151014230  5602301870151014230  5557806245003742769  5557806245003742769                           (90.0, 35.0)
+   3          1                                      BHKW    1002         -1  UserDefined    KNOT  5356267303828212700       PH  5000989080893535213  5000989080893535213  4968703141722117357  4968703141722117357                          (220.0, 25.0)
+   4          1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5397990465339071638       QM  5134531789044068877  5134531789044068877  5410059595276504750  5410059595276504750                          (91.0, -94.0)
+   5          2                                      BHKW    1002         -1  UserDefined    KNOT  5397990465339071638       QM  5134531789044068877  5134531789044068877  5357021981944933535  5357021981944933535  (184.999999464624, 57.99999953107601)
+   6          1                                      BHKW    1002         -1  UserDefined    KNOT  5736262931552588702       PH  4754881272083464445  4754881272083464445  4681213816714574464  4681213816714574464                          (220.0, 85.0)
+   7          1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5741235692335544560       DP  4949183695502554728  4949183695502554728  4914949875368816179  4914949875368816179                         (1234.0, 83.0)
+   8          1                                      BHKW    1002         -1  UserDefined    PUMP  5481331875203087055        N  5563842594211689762  5563842594211689762  5091374651838464239  5091374651838464239                          (170.0, 45.0)
+   9          1                                      BHKW    1002         -1  UserDefined    VENT  4678923650983295610       QM  5126307362398248950  5126307362398248950  5410904806390050339  5410904806390050339                         (200.0, 110.0)
+   10         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    WBLZ  4694700216019268978      WVB  4778244458749966216  4778244458749966216  4991097791264453745  4991097791264453745                        (354.0, -225.0)
+   11         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WES  5690691957596882133  5690691957596882133  5179988968597313889  5179988968597313889                          (90.0, 155.0)
+   12         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WSPEI  5153847813311339683  5153847813311339683  4946584950744559030  4946584950744559030                          (90.0, 140.0)
+   13         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WVB  5214984699859365639  5214984699859365639  5281885868749421521  5281885868749421521                          (90.0, 150.0)
+   14         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WVERL  4722863010266870887  4722863010266870887  5476262878682325254  5476262878682325254                          (90.0, 145.0)'''
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.37',1,'New',"Mx(),__Mx2() and ReOrg __Mx1()")) 
+>>> vROHR=xm.dataFrames['vROHR']
+>>> vROHR.shape
+(16, 73)
+>>> 'vNRCV_Mx1' in xm.dataFrames
+False
+>>> xm.Mx()
+>>> 'vNRCV_Mx1' in xm.dataFrames
+True
+>>> vROHR.shape
+(16, 75)
+>>> print("'''{:s}'''".format(repr(xm.dataFrames['vROHR']).replace('\\n','\\n   ')))
+'''   BESCHREIBUNG IDREFERENZ BAUJAHR HAL IPLANUNG KENNUNG       L LZU  RAU ZAUS ZEIN ZUML JLAMBS LAMBDA0 ASOLL INDSCHALL             fk2LROHR KVR  AUSFALLZEIT     DA     DI   DN     KT  PN  REHABILITATION  REPARATUR    S WSTEIG WTIEFE LTGR_NAME            LTGR_BESCHREIBUNG SICHTBARKEIT VERLEGEART DTRO_NAME                        DTRO_BESCHREIBUNG        E fkSTRASSE fkSRAT                   pk                   tk IRTRENN LECKSTART LECKEND LECKMENGE LECKORT LECKSTATUS QSVB ZVLIMPTNZ KANTENZV                                      CONT CONT_ID CONT_LFDNR  NAME_i KVR_i TM_i   XKOR_i   YKOR_i ZKOR_i  NAME_k KVR_k TM_k   XKOR_k   YKOR_k ZKOR_k  pXCor_i  pYCor_i  pXCor_k  pYCor_k            pXCors          pYCors                        pWAYPXCors                      pWAYPYCors                                               WAYP  mx2Idx  mx2NofPts
+   0          None         -1    None   0        1       0   88.02   0  0.1    0    0    0      1   0.025  1000         0  4713733238627697042   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4613782368750024999  4613782368750024999       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K004     2   60  2541539  5706361     20  R-K005     2   60  2541627  5706363     20    799.0    152.0    887.0    154.0    [799.0, 887.0]  [152.0, 154.0]                   [807.9, 895.95]                 [140.1, 142.05]  [(2541547.9, 5706349.1), (2541635.95, 5706351....       0          2
+   1          None         -1    None   0        1       0  405.96   0  0.1    0    0    0      1   0.025  1000         0  5379365049009065623   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4614949065966596185  4614949065966596185       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K002     1   90  2541059  5706265     20  V-K003     1   90  2541457  5706345     20    319.0     56.0    717.0    136.0    [319.0, 717.0]   [56.0, 136.0]                   [319.0, 716.95]          [56.0499999998, 136.0]  [(2541059.0, 5706265.05), (2541456.95, 5706345...       1          2
+   2          None         -1    None   0        1       0   83.55   0  0.1    0    0    0      1   0.025  1000         0  5037777106796980248   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4637102239750163477  4637102239750163477       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K003     2   60  2541457  5706345     20  R-K004     2   60  2541539  5706361     20    717.0    136.0    799.0    152.0    [717.0, 799.0]  [136.0, 152.0]                   [725.85, 807.9]                 [124.05, 140.1]  [(2541465.85, 5706333.05), (2541547.9, 5706349...       2          2
+   3          None         -1    None   0        1       0   88.02   0  0.1    0    0    0      1   0.025  1000         0  4613782368750024999   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4713733238627697042  4713733238627697042       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K004     1   90  2541539  5706361     20  V-K005     1   90  2541627  5706363     20    799.0    152.0    887.0    154.0    [799.0, 887.0]  [152.0, 154.0]                   [799.0, 887.05]                  [152.0, 154.0]  [(2541539.0, 5706361.0), (2541627.05, 5706363.0)]       3          2
+   4          None         -1    None   0        1       0  195.53   0  0.1    0    0    0      1   0.025  1000         0  5266224553324203132   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4789218195240364437  4789218195240364437       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K001     1   90  2540867  5706228     20  V-K002     1   90  2541059  5706265     20    127.0     19.0    319.0     56.0    [127.0, 319.0]    [19.0, 56.0]                    [127.0, 319.0]           [19.0, 56.0499999998]  [(2540867.0, 5706228.0), (2541059.0, 5706265.05)]       5          2
+   5          None         -1    None   0        1       0  109.77   0  0.1    0    0    0      1   0.025  1000         0  5620197984230756681   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4945727430885351042  4945727430885351042       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K006     2   60  2541790  5706338     20  R-K007     2   60  2541899  5706325     20   1050.0    129.0   1159.0    116.0  [1050.0, 1159.0]  [129.0, 116.0]                 [1058.85, 1167.9]                  [117.0, 104.1]  [(2541798.85, 5706326.0), (2541907.9, 5706313.1)]       7          2
+   6          None         -1    None   0        1       0    76.4   0  0.1    0    0    0      1   0.025  1000         0  5647213228462830353   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4984202422877610920  4984202422877610920       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K000     1   90  2540793  5706209     20  V-K001     1   90  2540867  5706228     20     53.0      0.0    127.0     19.0     [53.0, 127.0]     [0.0, 19.0]            [53.0499999998, 127.0]        [-0.0499999998137, 19.0]  [(2540793.05, 5706208.95), (2540867.0, 5706228...       8          2
+   7          None         -1    None   0        1       0   83.55   0  0.1    0    0    0      1   0.025  1000         0  4637102239750163477   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5037777106796980248  5037777106796980248       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K003     1   90  2541457  5706345     20  V-K004     1   90  2541539  5706361     20    717.0    136.0    799.0    152.0    [717.0, 799.0]  [136.0, 152.0]                   [716.95, 799.0]                  [136.0, 152.0]  [(2541456.95, 5706345.0), (2541539.0, 5706361.0)]       9          2
+   8          None         -1    None   0        1       0  164.91   0  0.1    0    0    0      1   0.025  1000         0  5611703699850694889   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5123819811204259837  5123819811204259837       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K005     1   90  2541627  5706363     20  V-K006     1   90  2541790  5706338     20    887.0    154.0   1050.0    129.0   [887.0, 1050.0]  [154.0, 129.0]                 [887.05, 1049.95]                 [154.0, 128.95]  [(2541627.05, 5706363.0), (2541789.95, 5706337...      10          2
+   9          None         -1    None   0        1       0  195.53   0  0.1    0    0    0      1   0.025  1000         0  4789218195240364437   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5266224553324203132  5266224553324203132       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K001     2   60  2540867  5706228     20  R-K002     2   60  2541059  5706265     20    127.0     19.0    319.0     56.0    [127.0, 319.0]    [19.0, 56.0]                    [135.9, 327.9]  [7.04999999981, 44.0999999996]  [(2540875.9, 5706216.05), (2541067.9, 5706253.1)]      11          2
+   10         None         -1    None   0        1       0  405.96   0  0.1    0    0    0      1   0.025  1000         0  4614949065966596185   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5379365049009065623  5379365049009065623       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K002     2   60  2541059  5706265     20  R-K003     2   60  2541457  5706345     20    319.0     56.0    717.0    136.0    [319.0, 717.0]   [56.0, 136.0]                   [327.9, 725.85]         [44.0999999996, 124.05]  [(2541067.9, 5706253.1), (2541465.85, 5706333....      12          2
+   11         None         -1    None   0        1       0  164.91   0  0.1    0    0    0      1   0.025  1000         0  5123819811204259837   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5611703699850694889  5611703699850694889       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K005     2   60  2541627  5706363     20  R-K006     2   60  2541790  5706338     20    887.0    154.0   1050.0    129.0   [887.0, 1050.0]  [154.0, 129.0]                 [895.95, 1058.85]                 [142.05, 117.0]  [(2541635.95, 5706351.05), (2541798.85, 570632...      13          2
+   12         None         -1    None   0        1       0  109.77   0  0.1    0    0    0      1   0.025  1000         0  4945727430885351042   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5620197984230756681  5620197984230756681       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K006     1   90  2541790  5706338     20  V-K007     1   90  2541899  5706325     20   1050.0    129.0   1159.0    116.0  [1050.0, 1159.0]  [129.0, 116.0]                 [1049.95, 1159.0]                [128.95, 116.05]  [(2541789.95, 5706337.95), (2541899.0, 5706325...      14          2
+   13         None         -1    None   0        1       0    76.4   0  0.1    0    0    0      1   0.025  1000         0  4984202422877610920   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5647213228462830353  5647213228462830353       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K000     2   60  2540793  5706209     20  R-K001     2   60  2540867  5706228     20     53.0      0.0    127.0     19.0     [53.0, 127.0]     [0.0, 19.0]            [61.9500000002, 135.9]          [-12.0, 7.04999999981]  [(2540801.95, 5706197.0), (2540875.9, 5706216....      15          2
+   14         None         -1    None   0        1       0   73.42   0  0.1    0    0    0      1   0.025  1000         0  4939422678063487923   2          NaN  168.3  160.3  150   0.45 NaN             NaN        NaN    4    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4769996343148550485  4769996343148550485       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1     R-L     2   60  2540740  5706225     20  R-K000     2   60  2540793  5706209     20      0.0     16.0     53.0      0.0       [0.0, 53.0]     [16.0, 0.0]  [0.0, 24.0, 45.0, 61.9500000002]      [16.0, 16.0, -12.0, -12.0]  [(2540740.0, 5706225.0), (2540764.0, 5706225.0...       4          2
+   15         None         -1    None   0        1       0    68.6   0  0.1    0    0    0      1   0.025  1000         0  4769996343148550485   1          NaN  168.3  160.3  150   0.45 NaN             NaN        NaN    4    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4939422678063487923  4939422678063487923       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1     V-L     1   90  2540740  5706240     20  V-K000     1   90  2540793  5706209     20      0.0     31.0     53.0      0.0       [0.0, 53.0]     [31.0, 0.0]        [0.0, 30.0, 53.0499999998]  [31.0, 31.0, -0.0499999998137]  [(2540740.0, 5706240.0), (2540770.0, 5706240.0...       6          2'''
+>>> xmlFile=os.path.join(path,'testdata\LocalHeatingNetwork.XML')
+>>> xm=Xm(xmlFile=xmlFile)
+>>> vROHR=xm.dataFrames['vROHR']
+>>> (wDir,modelDir,modelName)=xm.getWDirModelDirModelName()
+>>> mx1File=os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'    
+>>> mx=Mx.Mx(mx1File=mx1File)
+>>> vROHR.shape
+(16, 73)
+>>> 'vNRCV_Mx1' in xm.dataFrames
+False
+>>> xm.Mx(mx=mx)
+>>> vROHR.shape
+(16, 75)
+>>> 'vNRCV_Mx1' in xm.dataFrames
+True
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.39',2,'New',"vGTXT")) 
+>>> print("'''{:s}'''".format(repr(xm.dataFrames['vGTXT']).replace('\\n','\\n   ')))
+'''                                        CONT CONT_ID CONT_LFDNR                                     GRAFTEXT                   pk                   tk               pXYLB
+   0   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           Georeferenzpunkt 2  4628671704393700430  4628671704393700430   (1115.95, -323.0)
+   1   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                                        Block  4666644549022031339  4666644549022031339      (-58.0, -77.0)
+   2   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           numerische Anzeige  4693143208412077585  4693143208412077585      (1211.0, -9.0)
+   3   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                             Knoten und Rohre  4995961504641886710  4995961504641886710      (570.0, -49.0)
+   4   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                                Vorlaufstrang  5017907661719368413  5017907661719368413  (358.207, 220.395)
+   5   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                          LocalHeatingNetwork  5028052147238787802  5028052147238787802     (1163.0, 536.0)
+   6   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1   Tel. 05131 - 4980-0 ; Fax. 05131 - 4980-15  5054433315422452796  5054433315422452796   (-230.0, -1143.0)
+   7   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  eMail. info@3SConsult.de ; www.3SConsult.de  5370727463979416592  5370727463979416592   (-230.0, -1204.0)
+   8   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                Differenzdruck VL-/ RL-Knoten  5502619581048467908  5502619581048467908     (1211.0, -49.0)
+   9   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                                 Kundenanlage  5540395812045688781  5540395812045688781   (1131.95, 283.95)
+   10  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                         Fernwärmeverbraucher  5550982489075668484  5550982489075668484     (1050.0, 239.0)
+   11  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                               Rücklaufstrang  5610916400841895317  5610916400841895317       (570.0, -9.0)
+   12  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                             Knoten und Rohre  5646820849868629537  5646820849868629537  (358.207, 174.395)
+   13  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                          numerische Anzeige:  4614148870174765680  4614148870174765680     (219.0, -278.0)
+   14  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                        Wärmebilanz: 3 Kunden  5150752151066924202  5150752151066924202     (219.0, -318.0)
+   15  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                    Kontrolle: DH-Massenstrom  5100960407865990868  5100960407865990868     (-60.0, -160.0)
+   16                                      BHKW    1002         -1                          Fernwärmeeinspeiser  4654104397990769217  4654104397990769217       (115.0, 80.0)
+   17                                      BHKW    1002         -1                                        Pumpe  4768731522550494423  4768731522550494423       (175.0, 25.0)
+   18                                      BHKW    1002         -1                            Wärmebilanz Netz:  4770844990228490264  4770844990228490264       (90.0, 160.0)
+   19                                      BHKW    1002         -1                                  Speicherung  4782197969172967134  4782197969172967134      (110.0, 140.0)
+   20                                      BHKW    1002         -1                               Richtungspfeil  4855692488683645764  4855692488683645764      (220.0, 105.0)
+   21                                      BHKW    1002         -1                                     Verluste  4965628942555351751  4965628942555351751      (110.0, 145.0)
+   22                                      BHKW    1002         -1                          (Element verbinden)  5036153631350515544  5036153631350515544       (150.0, 90.0)
+   23                                      BHKW    1002         -1                    BHKW Modul 1000 kW therm.  5056836766824229789  5056836766824229789        (35.0, 55.0)
+   24                                      BHKW    1002         -1                                       Ventil  5108336975548011049  5108336975548011049       (205.0, 25.0)
+   25                                      BHKW    1002         -1                                    Verbrauch  5262441422409836340  5262441422409836340      (110.0, 150.0)
+   26                                      BHKW    1002         -1                                  Einspeisung  5297832234834839298  5297832234834839298      (110.0, 155.0)
+   27                                      BHKW    1002         -1                           Druckhaltung 2 bar  5329748935118523443  5329748935118523443       (180.0, 65.0)
+   28                                      BHKW    1002         -1                           Numerische Anzeige  5421223289472778073  5421223289472778073      (190.0, 115.0)
+   29                                      BHKW    1002         -1                             Verbindungslinie  5501963349880613918  5501963349880613918       (150.0, 95.0)
+   30                                      BHKW    1002         -1                                       (Text)  5696590398594231893  5696590398594231893        (35.0, 50.0)
+   31                                      BHKW    1002         -1                                       Klappe  5697088036451277538  5697088036451277538       (145.0, 25.0)'''
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.40',1,'New',"vNRCV_Mx1: pXYLB")) 
+>>> print("'''{:s}'''".format(repr(xm.dataFrames['vNRCV_Mx1'].sort_values(['Sir3sID'],ascending=True)).replace('\\n','\\n   ')))
+'''                                         Sir3sID cRefLfdNr                                      CONT CONT_ID CONT_LFDNR         DPGR OBJTYPE            fkOBJTYPE ATTRTYPE              pk_ROWS              tk_ROWS                   pk                   tk            pXYLB
+   0              FWES~R3~V-1~5638756766880678918~W         1                                      BHKW    1002         -1  UserDefined    FWES  5638756766880678918        W  5762106696740202356  5762106696740202356  4857294696992797631  4857294696992797631     (90.0, 65.0)
+   1       KNOT~PKON-Knoten~~5397990465339071638~QM         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5397990465339071638       QM  5134531789044068877  5134531789044068877  5410059595276504750  5410059595276504750    (91.0, -94.0)
+   2               KNOT~R-L~~5356267303828212700~PH         1                                      BHKW    1002         -1  UserDefined    KNOT  5356267303828212700       PH  5000989080893535213  5000989080893535213  4968703141722117357  4968703141722117357    (220.0, 25.0)
+   3                 KNOT~R3~~5219230031772497417~T         1                                      BHKW    1002         -1  UserDefined    KNOT  5219230031772497417        T  5602301870151014230  5602301870151014230  5557806245003742769  5557806245003742769     (90.0, 35.0)
+   4                KNOT~V-1~~5049461676240771430~T         1                                      BHKW    1002         -1  UserDefined    KNOT  5049461676240771430        T  4723443975311885965  4723443975311885965  5097127385155151127  5097127385155151127     (90.0, 95.0)
+   5            KNOT~V-K007~~5741235692335544560~DP         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5741235692335544560       DP  4949183695502554728  4949183695502554728  4914949875368816179  4914949875368816179   (1234.0, 83.0)
+   6               KNOT~V-L~~5736262931552588702~PH         1                                      BHKW    1002         -1  UserDefined    KNOT  5736262931552588702       PH  4754881272083464445  4754881272083464445  4681213816714574464  4681213816714574464    (220.0, 85.0)
+   7              PUMP~R-1~R2~5481331875203087055~N         1                                      BHKW    1002         -1  UserDefined    PUMP  5481331875203087055        N  5563842594211689762  5563842594211689762  5091374651838464239  5091374651838464239    (170.0, 45.0)
+   8            VENT~V-1~V-L~4678923650983295610~QM         1                                      BHKW    1002         -1  UserDefined    VENT  4678923650983295610       QM  5126307362398248950  5126307362398248950  5410904806390050339  5410904806390050339   (200.0, 110.0)
+   9        WBLZ~BLNZ1u5u7~~4694700216019268978~WVB         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    WBLZ  4694700216019268978      WVB  4778244458749966216  4778244458749966216  4991097791264453745  4991097791264453745  (354.0, -225.0)
+   10    WBLZ~WärmeblnzGes~~5262603207038486299~WES         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WES  5690691957596882133  5690691957596882133  5179988968597313889  5179988968597313889    (90.0, 155.0)
+   11  WBLZ~WärmeblnzGes~~5262603207038486299~WSPEI         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WSPEI  5153847813311339683  5153847813311339683  4946584950744559030  4946584950744559030    (90.0, 140.0)
+   12    WBLZ~WärmeblnzGes~~5262603207038486299~WVB         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WVB  5214984699859365639  5214984699859365639  5281885868749421521  5281885868749421521    (90.0, 150.0)
+   13  WBLZ~WärmeblnzGes~~5262603207038486299~WVERL         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WVERL  4722863010266870887  4722863010266870887  5476262878682325254  5476262878682325254    (90.0, 145.0)'''
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.41',1,'Change',"Mx Import")) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.42',1,'Change',"mx not Xm-Attribute: (Mx(), __Mx1(), __Mx2() changed")) 
+>>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.45',1,'New',"vFWVB: W0LFK, DPHAUS")) 
+>>> print("'''{:s}'''".format(repr(xm.dataFrames['vFWVB']).replace('\\n','\\n   ')))
+'''  BESCHREIBUNG IDREFERENZ   W0  LFK  W0LFK  TVL0  TRS0  LFKT      W  W_min  W_max  INDTR  TRSK  VTYP  DPHAUS  IMBG  IRFV                   pk                   tk  NAME_i KVR_i TM_i   XKOR_i   YKOR_i ZKOR_i  pXCor_i  pYCor_i  NAME_k KVR_k TM_k   XKOR_k   YKOR_k ZKOR_k  pXCor_k  pYCor_k                                      CONT CONT_ID CONT_LFDNR                         WBLZ
+   0            1         -1  200  0.8  160.0    90    50  LFKT  160.0  160.0  160.0      1    55    14     0.7     0   0.0  4643800032883366034  4643800032883366034  V-K002     1   90  2541059  5706265     20    319.0     56.0  R-K002     2   60  2541059  5706265     20    319.0     56.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  [BLNZ1, BLNZ1u5, BLNZ1u5u7]
+   1            3         -1  200  1.0  200.0    90    65  LFKT  200.0  200.0  200.0      1    65    14     0.7     0   0.0  4704603947372595298  4704603947372595298  V-K004     1   90  2541539  5706361     20    799.0    152.0  R-K004     2   60  2541539  5706361     20    799.0    152.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           []
+   2            4         -1  200  0.8  160.0    90    60  LFKT  160.0  160.0  160.0      1    60    14     0.7     0   0.0  5121101823283893406  5121101823283893406  V-K005     1   90  2541627  5706363     20    887.0    154.0  R-K005     2   60  2541627  5706363     20    887.0    154.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  [BLNZ1u5, BLNZ1u5u7, BLNZ5]
+   3            5         -1  200  0.8  160.0    90    55  LFKT  160.0  160.0  160.0      1    55    14     0.7     0   0.0  5400405917816384862  5400405917816384862  V-K007     1   90  2541899  5706325     20   1159.0    116.0  R-K007     2   60  2541899  5706325     20   1159.0    116.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                  [BLNZ1u5u7]
+   4            2         -1  200  0.6  120.0    90    60  LFKT  120.0  120.0  120.0      1    62    14     0.7     0   0.0  5695730293103267172  5695730293103267172  V-K003     1   90  2541457  5706345     20    717.0    136.0  R-K003     2   60  2541457  5706345     20    717.0    136.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           []'''
+"""
+
 import os
 import sys
 import logging
@@ -31,6 +420,7 @@ class XmError(Exception):
         self.value = value
     def __str__(self):
         return repr(self.value)
+
 
 class Xm():
     """SIR 3S modelFile to pandas DataFrames.
@@ -404,6 +794,9 @@ class Xm():
         Returns:            
             (wDir,modelDir,modelName)
 
+        wDir
+            If wDir as given literally in .xmlFile is not a valid Dir, a wDir relative to .xmlFile is returned. 
+
         mx1FileName: os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'    
 
         Raises:
@@ -418,6 +811,14 @@ class Xm():
         try:    
             t=self.dataFrames['SYSTEMKONFIG']
             wDir=t[t['ID'].astype(int)==1]['WERT'].iloc[0] 
+            
+            if not os.path.isdir(wDir):            
+                logger.debug("{:s}wDir: {:s} does not exist.".format(logStr,wDir))
+                head,wDirTail=os.path.split(os.path.abspath(wDir))
+                xmlDirHead,tail=os.path.split(os.path.abspath(self.xmlFile))
+                wDir=os.path.join(xmlDirHead,wDirTail)
+                if not os.path.isdir(wDir):                
+                    logger.info("{:s}wDir: {:s} also does not exist?!".format(logStr,wDir))
 
             t=self.dataFrames['DATENEBENE']
             B=t[t['TYP'].str.contains('BASIS')]['ORDNERNAME'].iloc[0] 
@@ -427,16 +828,20 @@ class Xm():
 
             t=self.dataFrames['MODELL']
             modelName=t['BEZEICHNER'].iloc[0]          
+
+            result=tuple([wDir,modelDir,modelName])
             
-            mx1Filename=os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'                              
-            logger.debug("{:s}mx1FileName: {:s}".format(logStr,mx1Filename))
+            mx1Filename=os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'     
+            if not os.path.isfile(mx1Filename):                                          
+                logger.info("{:s}mx1FileName: {:s} does not exist?!".format(logStr,mx1Filename))
+
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))            
             logger.error(logStrFinal)       
             raise XmError(logStrFinal)               
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
-            return (wDir,modelDir,modelName)
+            return result 
 
     def _vXXXX(self):
         """Creates all Views.
@@ -2596,391 +3001,3 @@ if __name__ == "__main__":
         sys.exit(0)
 
 
-"""
----------------------------
-DOCTEST
----------------------------
->>> # ---
->>> # Imports
->>> # ---
->>> import os
->>> import pandas as pd
->>> import logging
->>> logger = logging.getLogger('PT3S.Xm')  
->>> path = os.path.dirname(__file__)
->>> # ---
->>> # Clean Up
->>> # ---
->>> h5File=os.path.join(path,'testdata\OneLPipe.h5')
->>> if os.path.exists(h5File):                        
-...    os.remove(h5File)
->>> # ---
->>> # Init
->>> # ---
->>> xmlFile=os.path.join(path,'testdata\OneLPipe.XML')
->>> xm=Xm(xmlFile=xmlFile)
->>> # ---
->>> # a View
->>> # ---
->>> v='vKNOT'
->>> v in xm.dataFrames
-True
->>> isinstance(xm.dataFrames[v],pd.core.frame.DataFrame)
-True
->>> # ---
->>> # ToH5
->>> # ---
->>> xm.ToH5()
->>> os.path.exists(xm.h5File) 
-True
->>> # ---
->>> # force Read H5 instead of Xml
->>> # ---
->>> os.rename(xm.xmlFile,xm.xmlFile+'.blind')
->>> xm=Xm(xmlFile=xmlFile)
->>> os.rename(xm.xmlFile+'.blind',xm.xmlFile)
->>> # ---
->>> vKNOT=xm.dataFrames['vKNOT']
->>> vKNOT[(vKNOT.KTYP.isin(['QKON','PKON'])) & (vKNOT.BESCHREIBUNG.fillna('').str.startswith('Template Element')==False)].shape
-(2, 24)
->>> vROHR=xm.dataFrames['vROHR']
->>> vROHR.shape
-(1, 73)
->>> isinstance(vROHR['pXCors'],pd.core.series.Series)
-True
->>> vROHR['pXCors'][0]
-[0.0, 500.0]
->>> vROHR.pYCors[0]
-[0.0, 0.0]
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.31',1,'Bugfix',"__convertAndFix: self.dataFrames['KNOT_BZ']['TE']=pd.Series() if missing")) 
->>> 'TE' not in xm.dataFrames['KNOT'].columns
-True
->>> 'TE' in xm.dataFrames['KNOT_BZ'].columns
-True
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.31',2,'New',"getWDirModelDirModelName()")) 
->>> (wDir,modelDir,modelName)=xm.getWDirModelDirModelName()
->>> modelName
-'M-1-0-1'
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',1,'Change','ToH5: finally: h5.close()')) 
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',2,'Change','FromH5: finally: h5.close()')) 
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',3,'Bugfix','__init__: NoH5Read=True')) 
->>> if os.path.exists(xm.h5File):                        
-...    os.remove(xm.h5File)
->>> xm=Xm(xmlFile=xmlFile)
->>> xm.ToH5()
->>> os.path.exists(xm.h5File)
-True
->>> xm=Xm(xmlFile=xmlFile,NoH5Read=True)
->>> os.path.exists(xm.h5File)
-False
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.33',1,'Change','__vKNOT: pX/YCorZero')) 
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',1,'New','__vWBLZ')) 
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',2,'New',"vFWVB['WBLZ']")) 
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',3,'New',"vFWVB ... vLFKT ... how='left'")) 
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',4,'New',"vNODE ... without Template Element ...")) 
->>> pd.set_option('display.max_columns',None)
->>> pd.set_option('display.width',6666)
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vKNOT']).replace('\\n','\\n   ')))
-'''  NAME BESCHREIBUNG             IDREFERENZ      CONT CONT_ID  CONT_LFDNR  CONT_VKNO  KTYP LFAKT    QM_EIN QVAR_NAME  QM  QM_min  QM_max KVR  TE  TM XKOR YKOR ZKOR                   pk                   tk  pXCor  pYCor
-   0    I          NaN  3S5642914844465475844  OneLPipe    1001         NaN        NaN  QKON     1  176.7146       NaN NaN     NaN     NaN   0 NaN  10  300  600   10  5642914844465475844  5642914844465475844    0.0    0.0
-   1    K          NaN  3S5289899964753656852  OneLPipe    1001         NaN        NaN  PKON     1         0       NaN NaN     NaN     NaN   0 NaN  10  800  600   10  5289899964753656852  5289899964753656852  500.0    0.0'''
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vROHR']).replace('\\n','\\n   ')))
-'''  BESCHREIBUNG             IDREFERENZ BAUJAHR HAL IPLANUNG KENNUNG      L LZU   RAU ZAUS ZEIN ZUML JLAMBS LAMBDA0 ASOLL INDSCHALL fk2LROHR KVR AUSFALLZEIT DA   DI   DN KT PN REHABILITATION REPARATUR  S WSTEIG WTIEFE LTGR_NAME  LTGR_BESCHREIBUNG SICHTBARKEIT VERLEGEART DTRO_NAME                           DTRO_BESCHREIBUNG        E fkSTRASSE fkSRAT                   pk                   tk IRTRENN LECKSTART LECKEND LECKMENGE LECKORT LECKSTATUS QSVB ZVLIMPTNZ KANTENZV      CONT CONT_ID  CONT_LFDNR NAME_i KVR_i TM_i XKOR_i YKOR_i ZKOR_i NAME_k KVR_k TM_k XKOR_k YKOR_k ZKOR_k  pXCor_i  pYCor_i  pXCor_k  pYCor_k        pXCors      pYCors    pWAYPXCors  pWAYPYCors                              WAYP
-   0          NaN  3S4737064599036143765    2017   0        1       0  10000   0  0.25    0    0    0      1   0.025  1000         0       -1   0           0  0  250  250  0  0              0         0  0      0      0   STDROHR                NaN            1     999999   STDROHR  Standard-Druckrohre mit di = DN (DIN 2402)  2.1E+11        -1     -1  4737064599036143765  4737064599036143765       0         0       0         0       0          0    0         0        0  OneLPipe    1001         NaN      I     0   10    300    600     10      K     0   10    800    600     10      0.0      0.0    500.0      0.0  [0.0, 500.0]  [0.0, 0.0]  [0.0, 500.0]  [0.0, 0.0]  [(300.0, 600.0), (800.0, 600.0)]'''
->>> # ---
->>> # Clean Up
->>> # ---
->>> if os.path.exists(xm.h5File):                        
-...    os.remove(xm.h5File)
->>> # ---
->>> # LocalHeatingNetwork
->>> # ---
->>> xmlFile=os.path.join(path,'testdata\LocalHeatingNetwork.XML')
->>> xm=Xm(xmlFile=xmlFile)
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vKNOT']).replace('\\n','\\n   ')))
-'''           NAME                    BESCHREIBUNG IDREFERENZ                                      CONT CONT_ID CONT_LFDNR CONT_VKNO  KTYP LFAKT QM_EIN QVAR_NAME  QM  QM_min  QM_max KVR  TE  TM     XKOR     YKOR ZKOR                   pk                   tk   pXCor  pYCor
-   0        R-K004                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541539  5706361   20  4638663808856251977  4638663808856251977   799.0  152.0
-   1        V-K002                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541059  5706265   20  4731792362611615619  4731792362611615619   319.0   56.0
-   2        V-K001                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2540867  5706228   20  4756962427318766791  4756962427318766791   127.0   19.0
-   3        V-K000                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2540793  5706209   20  4766681917240867943  4766681917240867943    53.0    0.0
-   4        R-K001                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2540867  5706228   20  4807712987325933680  4807712987325933680   127.0   19.0
-   5        R-K003                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541457  5706345   20  4891048046264179170  4891048046264179170   717.0  136.0
-   6        R-K000                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2540793  5706209   20  4979785838440534851  4979785838440534851    53.0    0.0
-   7        R-K005                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541627  5706363   20  5183147862966701025  5183147862966701025   887.0  154.0
-   8           R-L                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1      BHKW  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2540740  5706225   20  5356267303828212700  5356267303828212700     0.0   16.0
-   9        R-K002                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541059  5706265   20  5364712333175450942  5364712333175450942   319.0   56.0
-   10       V-K004                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541539  5706361   20  5370423799772591808  5370423799772591808   799.0  152.0
-   11       V-K005                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541627  5706363   20  5444644492819213978  5444644492819213978   887.0  154.0
-   12       R-K007                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541899  5706325   20  5508992300317633799  5508992300317633799  1159.0  116.0
-   13       V-K006                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541790  5706338   20  5515313800585145571  5515313800585145571  1050.0  129.0
-   14       R-K006                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60  2541790  5706338   20  5543326527366090679  5543326527366090679  1050.0  129.0
-   15       V-K003                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541457  5706345   20  5646671866542823796  5646671866542823796   717.0  136.0
-   16          V-L                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1      BHKW  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2540740  5706240   20  5736262931552588702  5736262931552588702     0.0   31.0
-   17       V-K007                            None         -1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90  2541899  5706325   20  5741235692335544560  5741235692335544560  1159.0  116.0
-   18           R2                            None         -1                                      BHKW    1002         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60      170       20   20  5002109894154139899  5002109894154139899   170.0   20.0
-   19          V-1                            None         -1                                      BHKW    1002         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   1  10  90      140      160   20  5049461676240771430  5049461676240771430   140.0  160.0
-   20           R3                            None         -1                                      BHKW    1002         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60      140       20   20  5219230031772497417  5219230031772497417   140.0   20.0
-   21  PKON-Knoten  Druckhaltung - 2 bar Ruhedruck         -1                                      BHKW    1002         -1       NaN  PKON     1      0       NaN NaN     NaN     NaN   2  60  60      200       40   20  5397990465339071638  5397990465339071638   200.0   40.0
-   22          R-1          Anbindung Druckhaltung         -1                                      BHKW    1002         -1       NaN  QKON     1      0       NaN NaN     NaN     NaN   2  10  60      195       20   20  5557222628687032084  5557222628687032084   195.0   20.0'''
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vROHR']).replace('\\n','\\n   ')))
-'''   BESCHREIBUNG IDREFERENZ BAUJAHR HAL IPLANUNG KENNUNG       L LZU  RAU ZAUS ZEIN ZUML JLAMBS LAMBDA0 ASOLL INDSCHALL             fk2LROHR KVR  AUSFALLZEIT     DA     DI   DN     KT  PN  REHABILITATION  REPARATUR    S WSTEIG WTIEFE LTGR_NAME            LTGR_BESCHREIBUNG SICHTBARKEIT VERLEGEART DTRO_NAME                        DTRO_BESCHREIBUNG        E fkSTRASSE fkSRAT                   pk                   tk IRTRENN LECKSTART LECKEND LECKMENGE LECKORT LECKSTATUS QSVB ZVLIMPTNZ KANTENZV                                      CONT CONT_ID CONT_LFDNR  NAME_i KVR_i TM_i   XKOR_i   YKOR_i ZKOR_i  NAME_k KVR_k TM_k   XKOR_k   YKOR_k ZKOR_k  pXCor_i  pYCor_i  pXCor_k  pYCor_k            pXCors          pYCors                        pWAYPXCors                      pWAYPYCors                                               WAYP
-   0          None         -1    None   0        1       0   88.02   0  0.1    0    0    0      1   0.025  1000         0  4713733238627697042   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4613782368750024999  4613782368750024999       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K004     2   60  2541539  5706361     20  R-K005     2   60  2541627  5706363     20    799.0    152.0    887.0    154.0    [799.0, 887.0]  [152.0, 154.0]                   [807.9, 895.95]                 [140.1, 142.05]  [(2541547.9, 5706349.1), (2541635.95, 5706351....
-   1          None         -1    None   0        1       0  405.96   0  0.1    0    0    0      1   0.025  1000         0  5379365049009065623   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4614949065966596185  4614949065966596185       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K002     1   90  2541059  5706265     20  V-K003     1   90  2541457  5706345     20    319.0     56.0    717.0    136.0    [319.0, 717.0]   [56.0, 136.0]                   [319.0, 716.95]          [56.0499999998, 136.0]  [(2541059.0, 5706265.05), (2541456.95, 5706345...
-   2          None         -1    None   0        1       0   83.55   0  0.1    0    0    0      1   0.025  1000         0  5037777106796980248   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4637102239750163477  4637102239750163477       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K003     2   60  2541457  5706345     20  R-K004     2   60  2541539  5706361     20    717.0    136.0    799.0    152.0    [717.0, 799.0]  [136.0, 152.0]                   [725.85, 807.9]                 [124.05, 140.1]  [(2541465.85, 5706333.05), (2541547.9, 5706349...
-   3          None         -1    None   0        1       0   88.02   0  0.1    0    0    0      1   0.025  1000         0  4613782368750024999   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4713733238627697042  4713733238627697042       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K004     1   90  2541539  5706361     20  V-K005     1   90  2541627  5706363     20    799.0    152.0    887.0    154.0    [799.0, 887.0]  [152.0, 154.0]                   [799.0, 887.05]                  [152.0, 154.0]  [(2541539.0, 5706361.0), (2541627.05, 5706363.0)]
-   4          None         -1    None   0        1       0  195.53   0  0.1    0    0    0      1   0.025  1000         0  5266224553324203132   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4789218195240364437  4789218195240364437       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K001     1   90  2540867  5706228     20  V-K002     1   90  2541059  5706265     20    127.0     19.0    319.0     56.0    [127.0, 319.0]    [19.0, 56.0]                    [127.0, 319.0]           [19.0, 56.0499999998]  [(2540867.0, 5706228.0), (2541059.0, 5706265.05)]
-   5          None         -1    None   0        1       0  109.77   0  0.1    0    0    0      1   0.025  1000         0  5620197984230756681   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4945727430885351042  4945727430885351042       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K006     2   60  2541790  5706338     20  R-K007     2   60  2541899  5706325     20   1050.0    129.0   1159.0    116.0  [1050.0, 1159.0]  [129.0, 116.0]                 [1058.85, 1167.9]                  [117.0, 104.1]  [(2541798.85, 5706326.0), (2541907.9, 5706313.1)]
-   6          None         -1    None   0        1       0    76.4   0  0.1    0    0    0      1   0.025  1000         0  5647213228462830353   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4984202422877610920  4984202422877610920       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K000     1   90  2540793  5706209     20  V-K001     1   90  2540867  5706228     20     53.0      0.0    127.0     19.0     [53.0, 127.0]     [0.0, 19.0]            [53.0499999998, 127.0]        [-0.0499999998137, 19.0]  [(2540793.05, 5706208.95), (2540867.0, 5706228...
-   7          None         -1    None   0        1       0   83.55   0  0.1    0    0    0      1   0.025  1000         0  4637102239750163477   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5037777106796980248  5037777106796980248       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K003     1   90  2541457  5706345     20  V-K004     1   90  2541539  5706361     20    717.0    136.0    799.0    152.0    [717.0, 799.0]  [136.0, 152.0]                   [716.95, 799.0]                  [136.0, 152.0]  [(2541456.95, 5706345.0), (2541539.0, 5706361.0)]
-   8          None         -1    None   0        1       0  164.91   0  0.1    0    0    0      1   0.025  1000         0  5611703699850694889   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5123819811204259837  5123819811204259837       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K005     1   90  2541627  5706363     20  V-K006     1   90  2541790  5706338     20    887.0    154.0   1050.0    129.0   [887.0, 1050.0]  [154.0, 129.0]                 [887.05, 1049.95]                 [154.0, 128.95]  [(2541627.05, 5706363.0), (2541789.95, 5706337...
-   9          None         -1    None   0        1       0  195.53   0  0.1    0    0    0      1   0.025  1000         0  4789218195240364437   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5266224553324203132  5266224553324203132       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K001     2   60  2540867  5706228     20  R-K002     2   60  2541059  5706265     20    127.0     19.0    319.0     56.0    [127.0, 319.0]    [19.0, 56.0]                    [135.9, 327.9]  [7.04999999981, 44.0999999996]  [(2540875.9, 5706216.05), (2541067.9, 5706253.1)]
-   10         None         -1    None   0        1       0  405.96   0  0.1    0    0    0      1   0.025  1000         0  4614949065966596185   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5379365049009065623  5379365049009065623       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K002     2   60  2541059  5706265     20  R-K003     2   60  2541457  5706345     20    319.0     56.0    717.0    136.0    [319.0, 717.0]   [56.0, 136.0]                   [327.9, 725.85]         [44.0999999996, 124.05]  [(2541067.9, 5706253.1), (2541465.85, 5706333....
-   11         None         -1    None   0        1       0  164.91   0  0.1    0    0    0      1   0.025  1000         0  5123819811204259837   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5611703699850694889  5611703699850694889       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K005     2   60  2541627  5706363     20  R-K006     2   60  2541790  5706338     20    887.0    154.0   1050.0    129.0   [887.0, 1050.0]  [154.0, 129.0]                 [895.95, 1058.85]                 [142.05, 117.0]  [(2541635.95, 5706351.05), (2541798.85, 570632...
-   12         None         -1    None   0        1       0  109.77   0  0.1    0    0    0      1   0.025  1000         0  4945727430885351042   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5620197984230756681  5620197984230756681       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K006     1   90  2541790  5706338     20  V-K007     1   90  2541899  5706325     20   1050.0    129.0   1159.0    116.0  [1050.0, 1159.0]  [129.0, 116.0]                 [1049.95, 1159.0]                [128.95, 116.05]  [(2541789.95, 5706337.95), (2541899.0, 5706325...
-   13         None         -1    None   0        1       0    76.4   0  0.1    0    0    0      1   0.025  1000         0  4984202422877610920   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5647213228462830353  5647213228462830353       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K000     2   60  2540793  5706209     20  R-K001     2   60  2540867  5706228     20     53.0      0.0    127.0     19.0     [53.0, 127.0]     [0.0, 19.0]            [61.9500000002, 135.9]          [-12.0, 7.04999999981]  [(2540801.95, 5706197.0), (2540875.9, 5706216....
-   14         None         -1    None   0        1       0   73.42   0  0.1    0    0    0      1   0.025  1000         0  4939422678063487923   2          NaN  168.3  160.3  150   0.45 NaN             NaN        NaN    4    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4769996343148550485  4769996343148550485       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1     R-L     2   60  2540740  5706225     20  R-K000     2   60  2540793  5706209     20      0.0     16.0     53.0      0.0       [0.0, 53.0]     [16.0, 0.0]  [0.0, 24.0, 45.0, 61.9500000002]      [16.0, 16.0, -12.0, -12.0]  [(2540740.0, 5706225.0), (2540764.0, 5706225.0...
-   15         None         -1    None   0        1       0    68.6   0  0.1    0    0    0      1   0.025  1000         0  4769996343148550485   1          NaN  168.3  160.3  150   0.45 NaN             NaN        NaN    4    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4939422678063487923  4939422678063487923       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1     V-L     1   90  2540740  5706240     20  V-K000     1   90  2540793  5706209     20      0.0     31.0     53.0      0.0       [0.0, 53.0]     [31.0, 0.0]        [0.0, 30.0, 53.0499999998]  [31.0, 31.0, -0.0499999998137]  [(2540740.0, 5706240.0), (2540770.0, 5706240.0...'''
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vWBLZ']).replace('\\n','\\n   ')))
-'''   AKTIV BESCHREIBUNG IDIM       NAME                OBJID OBJTYPE                   pk
-   0      1  Wärmebilanz    0      BLNZ1  4731792362611615619    KNOT  5579937562601803472
-   1      1  Wärmebilanz    0      BLNZ1  5364712333175450942    KNOT  5579937562601803472
-   2      1  Wärmebilanz    0      BLNZ5  5183147862966701025    KNOT  5581152085151655438
-   3      1  Wärmebilanz    0      BLNZ5  5444644492819213978    KNOT  5581152085151655438
-   4      1  Wärmebilanz    0    BLNZ1u5  5183147862966701025    KNOT  5187647097142898375
-   5      1  Wärmebilanz    0    BLNZ1u5  5444644492819213978    KNOT  5187647097142898375
-   6      1  Wärmebilanz    0    BLNZ1u5  4731792362611615619    KNOT  5187647097142898375
-   7      1  Wärmebilanz    0    BLNZ1u5  5364712333175450942    KNOT  5187647097142898375
-   8      1  Wärmebilanz    0  BLNZ1u5u7  5183147862966701025    KNOT  4694700216019268978
-   9      1  Wärmebilanz    0  BLNZ1u5u7  5444644492819213978    KNOT  4694700216019268978
-   10     1  Wärmebilanz    0  BLNZ1u5u7  4731792362611615619    KNOT  4694700216019268978
-   11     1  Wärmebilanz    0  BLNZ1u5u7  5364712333175450942    KNOT  4694700216019268978
-   12     1  Wärmebilanz    0  BLNZ1u5u7  5508992300317633799    KNOT  4694700216019268978
-   13     1  Wärmebilanz    0  BLNZ1u5u7  5741235692335544560    KNOT  4694700216019268978'''
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',5,'New',"vNRCV")) 
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.34',6,'New',"vNRCV_Mx1")) 
->>> pd.set_option('display.max_rows',None)
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vLAYR'].sort_values(['LFDNR','NAME','OBJTYPE','OBJID'],ascending=True)).replace('\\n','\\n   ')))
-'''   LFDNR           NAME OBJTYPE                OBJID                   pk                   tk  nrObjInGroup  nrObjtypeInGroup
-   0      1        Vorlauf    FWES  5638756766880678918  5206516471428693478  5206516471428693478             1                 1
-   1      1        Vorlauf    KNOT  4731792362611615619  5206516471428693478  5206516471428693478             2                 1
-   2      1        Vorlauf    KNOT  4756962427318766791  5206516471428693478  5206516471428693478             3                 2
-   3      1        Vorlauf    KNOT  4766681917240867943  5206516471428693478  5206516471428693478             4                 3
-   4      1        Vorlauf    KNOT  5049461676240771430  5206516471428693478  5206516471428693478             5                 4
-   5      1        Vorlauf    KNOT  5370423799772591808  5206516471428693478  5206516471428693478             6                 5
-   6      1        Vorlauf    KNOT  5444644492819213978  5206516471428693478  5206516471428693478             7                 6
-   7      1        Vorlauf    KNOT  5515313800585145571  5206516471428693478  5206516471428693478             8                 7
-   8      1        Vorlauf    KNOT  5646671866542823796  5206516471428693478  5206516471428693478             9                 8
-   9      1        Vorlauf    KNOT  5736262931552588702  5206516471428693478  5206516471428693478            10                 9
-   10     1        Vorlauf    KNOT  5741235692335544560  5206516471428693478  5206516471428693478            11                10
-   11     1        Vorlauf    ROHR  4614949065966596185  5206516471428693478  5206516471428693478            12                 1
-   12     1        Vorlauf    ROHR  4713733238627697042  5206516471428693478  5206516471428693478            13                 2
-   13     1        Vorlauf    ROHR  4789218195240364437  5206516471428693478  5206516471428693478            14                 3
-   14     1        Vorlauf    ROHR  4939422678063487923  5206516471428693478  5206516471428693478            15                 4
-   15     1        Vorlauf    ROHR  4984202422877610920  5206516471428693478  5206516471428693478            16                 5
-   16     1        Vorlauf    ROHR  5037777106796980248  5206516471428693478  5206516471428693478            17                 6
-   17     1        Vorlauf    ROHR  5123819811204259837  5206516471428693478  5206516471428693478            18                 7
-   18     1        Vorlauf    ROHR  5620197984230756681  5206516471428693478  5206516471428693478            19                 8
-   19     1        Vorlauf    VENT  4678923650983295610  5206516471428693478  5206516471428693478            20                 1
-   20     2       Rücklauf    KLAP  4801110583764519435  4693347477612662930  4693347477612662930             1                 1
-   21     2       Rücklauf    KNOT  4638663808856251977  4693347477612662930  4693347477612662930             2                 1
-   22     2       Rücklauf    KNOT  4807712987325933680  4693347477612662930  4693347477612662930             3                 2
-   23     2       Rücklauf    KNOT  4891048046264179170  4693347477612662930  4693347477612662930             4                 3
-   24     2       Rücklauf    KNOT  4979785838440534851  4693347477612662930  4693347477612662930             5                 4
-   25     2       Rücklauf    KNOT  5002109894154139899  4693347477612662930  4693347477612662930             6                 5
-   26     2       Rücklauf    KNOT  5183147862966701025  4693347477612662930  4693347477612662930             7                 6
-   27     2       Rücklauf    KNOT  5219230031772497417  4693347477612662930  4693347477612662930             8                 7
-   28     2       Rücklauf    KNOT  5356267303828212700  4693347477612662930  4693347477612662930             9                 8
-   29     2       Rücklauf    KNOT  5364712333175450942  4693347477612662930  4693347477612662930            10                 9
-   30     2       Rücklauf    KNOT  5397990465339071638  4693347477612662930  4693347477612662930            11                10
-   31     2       Rücklauf    KNOT  5508992300317633799  4693347477612662930  4693347477612662930            12                11
-   32     2       Rücklauf    KNOT  5543326527366090679  4693347477612662930  4693347477612662930            13                12
-   33     2       Rücklauf    KNOT  5557222628687032084  4693347477612662930  4693347477612662930            14                13
-   34     2       Rücklauf    PUMP  5481331875203087055  4693347477612662930  4693347477612662930            15                 1
-   35     2       Rücklauf    ROHR  4613782368750024999  4693347477612662930  4693347477612662930            16                 1
-   36     2       Rücklauf    ROHR  4637102239750163477  4693347477612662930  4693347477612662930            17                 2
-   37     2       Rücklauf    ROHR  4769996343148550485  4693347477612662930  4693347477612662930            18                 3
-   38     2       Rücklauf    ROHR  4945727430885351042  4693347477612662930  4693347477612662930            19                 4
-   39     2       Rücklauf    ROHR  5266224553324203132  4693347477612662930  4693347477612662930            20                 5
-   40     2       Rücklauf    ROHR  5379365049009065623  4693347477612662930  4693347477612662930            21                 6
-   41     2       Rücklauf    ROHR  5611703699850694889  4693347477612662930  4693347477612662930            22                 7
-   42     2       Rücklauf    ROHR  5647213228462830353  4693347477612662930  4693347477612662930            23                 8
-   43     2       Rücklauf    VENT  4897018421024717974  4693347477612662930  4693347477612662930            24                 1
-   44     2       Rücklauf    VENT  5525310316015533093  4693347477612662930  4693347477612662930            25                 2
-   45     3  Kundenanlagen    FWVB  4643800032883366034  5003333277973347346  5003333277973347346             1                 1
-   46     3  Kundenanlagen    FWVB  4704603947372595298  5003333277973347346  5003333277973347346             2                 2
-   47     3  Kundenanlagen    FWVB  5121101823283893406  5003333277973347346  5003333277973347346             3                 3
-   48     3  Kundenanlagen    FWVB  5400405917816384862  5003333277973347346  5003333277973347346             4                 4
-   49     3  Kundenanlagen    FWVB  5695730293103267172  5003333277973347346  5003333277973347346             5                 5
-   50     4           BHKW    BSYM  5043395081363401573  5555393404073362943  5555393404073362943             1                 1
-   51     4           BHKW    TEXT  5056836766824229789  5555393404073362943  5555393404073362943             2                 1
-   52     4           BHKW    TEXT  5329748935118523443  5555393404073362943  5555393404073362943             3                 2
-   53     5          Texte    ARRW  4664845735864571219  5394410243594912680  5394410243594912680             1                 1
-   54     5          Texte    ARRW  4902474974831811106  5394410243594912680  5394410243594912680             2                 2
-   55     5          Texte    ARRW  5026846801782366678  5394410243594912680  5394410243594912680             3                 3
-   56     5          Texte    ARRW  5688313372729413840  5394410243594912680  5394410243594912680             4                 4
-   57     5          Texte    NRCV  4681213816714574464  5394410243594912680  5394410243594912680             5                 1
-   58     5          Texte    NRCV  4857294696992797631  5394410243594912680  5394410243594912680             6                 2
-   59     5          Texte    NRCV  4914949875368816179  5394410243594912680  5394410243594912680             7                 3
-   60     5          Texte    NRCV  4946584950744559030  5394410243594912680  5394410243594912680             8                 4
-   61     5          Texte    NRCV  4968703141722117357  5394410243594912680  5394410243594912680             9                 5
-   62     5          Texte    NRCV  5091374651838464239  5394410243594912680  5394410243594912680            10                 6
-   63     5          Texte    NRCV  5097127385155151127  5394410243594912680  5394410243594912680            11                 7
-   64     5          Texte    NRCV  5179988968597313889  5394410243594912680  5394410243594912680            12                 8
-   65     5          Texte    NRCV  5281885868749421521  5394410243594912680  5394410243594912680            13                 9
-   66     5          Texte    NRCV  5410904806390050339  5394410243594912680  5394410243594912680            14                10
-   67     5          Texte    NRCV  5476262878682325254  5394410243594912680  5394410243594912680            15                11
-   68     5          Texte    NRCV  5557806245003742769  5394410243594912680  5394410243594912680            16                12
-   69     5          Texte    RECT  4994817837124479818  5394410243594912680  5394410243594912680            17                 1
-   70     5          Texte    RPFL  5158870568935841216  5394410243594912680  5394410243594912680            18                 1
-   71     5          Texte    TEXT  4628671704393700430  5394410243594912680  5394410243594912680            19                 1
-   72     5          Texte    TEXT  4654104397990769217  5394410243594912680  5394410243594912680            20                 2
-   73     5          Texte    TEXT  4666644549022031339  5394410243594912680  5394410243594912680            21                 3
-   74     5          Texte    TEXT  4693143208412077585  5394410243594912680  5394410243594912680            22                 4
-   75     5          Texte    TEXT  4768731522550494423  5394410243594912680  5394410243594912680            23                 5
-   76     5          Texte    TEXT  4770844990228490264  5394410243594912680  5394410243594912680            24                 6
-   77     5          Texte    TEXT  4782197969172967134  5394410243594912680  5394410243594912680            25                 7
-   78     5          Texte    TEXT  4855692488683645764  5394410243594912680  5394410243594912680            26                 8
-   79     5          Texte    TEXT  4965628942555351751  5394410243594912680  5394410243594912680            27                 9
-   80     5          Texte    TEXT  4995961504641886710  5394410243594912680  5394410243594912680            28                10
-   81     5          Texte    TEXT  5017907661719368413  5394410243594912680  5394410243594912680            29                11
-   82     5          Texte    TEXT  5028052147238787802  5394410243594912680  5394410243594912680            30                12
-   83     5          Texte    TEXT  5036153631350515544  5394410243594912680  5394410243594912680            31                13
-   84     5          Texte    TEXT  5054433315422452796  5394410243594912680  5394410243594912680            32                14
-   85     5          Texte    TEXT  5108336975548011049  5394410243594912680  5394410243594912680            33                15
-   86     5          Texte    TEXT  5262441422409836340  5394410243594912680  5394410243594912680            34                16
-   87     5          Texte    TEXT  5297832234834839298  5394410243594912680  5394410243594912680            35                17
-   88     5          Texte    TEXT  5370727463979416592  5394410243594912680  5394410243594912680            36                18
-   89     5          Texte    TEXT  5421223289472778073  5394410243594912680  5394410243594912680            37                19
-   90     5          Texte    TEXT  5501963349880613918  5394410243594912680  5394410243594912680            38                20
-   91     5          Texte    TEXT  5502619581048467908  5394410243594912680  5394410243594912680            39                21
-   92     5          Texte    TEXT  5540395812045688781  5394410243594912680  5394410243594912680            40                22
-   93     5          Texte    TEXT  5550982489075668484  5394410243594912680  5394410243594912680            41                23
-   94     5          Texte    TEXT  5610916400841895317  5394410243594912680  5394410243594912680            42                24
-   95     5          Texte    TEXT  5646820849868629537  5394410243594912680  5394410243594912680            43                25
-   96     5          Texte    TEXT  5696590398594231893  5394410243594912680  5394410243594912680            44                26
-   97     5          Texte    TEXT  5697088036451277538  5394410243594912680  5394410243594912680            45                27'''
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.39',1,'New',"vNRCV: pXYLB")) 
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vNRCV'].sort_values(['OBJTYPE','fkOBJTYPE','ATTRTYPE','cRefLfdNr'],ascending=True)).replace('\\n','\\n   ')))
-'''   cRefLfdNr                                      CONT CONT_ID CONT_LFDNR         DPGR OBJTYPE            fkOBJTYPE ATTRTYPE              pk_ROWS              tk_ROWS                   pk                   tk                                  pXYLB
-   0          1                                      BHKW    1002         -1  UserDefined    FWES  5638756766880678918        W  5762106696740202356  5762106696740202356  4857294696992797631  4857294696992797631                           (90.0, 65.0)
-   1          1                                      BHKW    1002         -1  UserDefined    KNOT  5049461676240771430        T  4723443975311885965  4723443975311885965  5097127385155151127  5097127385155151127                           (90.0, 95.0)
-   2          1                                      BHKW    1002         -1  UserDefined    KNOT  5219230031772497417        T  5602301870151014230  5602301870151014230  5557806245003742769  5557806245003742769                           (90.0, 35.0)
-   3          1                                      BHKW    1002         -1  UserDefined    KNOT  5356267303828212700       PH  5000989080893535213  5000989080893535213  4968703141722117357  4968703141722117357                          (220.0, 25.0)
-   4          1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5397990465339071638       QM  5134531789044068877  5134531789044068877  5410059595276504750  5410059595276504750                          (91.0, -94.0)
-   5          2                                      BHKW    1002         -1  UserDefined    KNOT  5397990465339071638       QM  5134531789044068877  5134531789044068877  5357021981944933535  5357021981944933535  (184.999999464624, 57.99999953107601)
-   6          1                                      BHKW    1002         -1  UserDefined    KNOT  5736262931552588702       PH  4754881272083464445  4754881272083464445  4681213816714574464  4681213816714574464                          (220.0, 85.0)
-   7          1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5741235692335544560       DP  4949183695502554728  4949183695502554728  4914949875368816179  4914949875368816179                         (1234.0, 83.0)
-   8          1                                      BHKW    1002         -1  UserDefined    PUMP  5481331875203087055        N  5563842594211689762  5563842594211689762  5091374651838464239  5091374651838464239                          (170.0, 45.0)
-   9          1                                      BHKW    1002         -1  UserDefined    VENT  4678923650983295610       QM  5126307362398248950  5126307362398248950  5410904806390050339  5410904806390050339                         (200.0, 110.0)
-   10         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    WBLZ  4694700216019268978      WVB  4778244458749966216  4778244458749966216  4991097791264453745  4991097791264453745                        (354.0, -225.0)
-   11         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WES  5690691957596882133  5690691957596882133  5179988968597313889  5179988968597313889                          (90.0, 155.0)
-   12         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WSPEI  5153847813311339683  5153847813311339683  4946584950744559030  4946584950744559030                          (90.0, 140.0)
-   13         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WVB  5214984699859365639  5214984699859365639  5281885868749421521  5281885868749421521                          (90.0, 150.0)
-   14         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WVERL  4722863010266870887  4722863010266870887  5476262878682325254  5476262878682325254                          (90.0, 145.0)'''
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.37',1,'New',"Mx(),__Mx2() and ReOrg __Mx1()")) 
->>> vROHR=xm.dataFrames['vROHR']
->>> vROHR.shape
-(16, 73)
->>> 'vNRCV_Mx1' in xm.dataFrames
-False
->>> xm.Mx()
->>> 'vNRCV_Mx1' in xm.dataFrames
-True
->>> vROHR.shape
-(16, 75)
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vROHR']).replace('\\n','\\n   ')))
-'''   BESCHREIBUNG IDREFERENZ BAUJAHR HAL IPLANUNG KENNUNG       L LZU  RAU ZAUS ZEIN ZUML JLAMBS LAMBDA0 ASOLL INDSCHALL             fk2LROHR KVR  AUSFALLZEIT     DA     DI   DN     KT  PN  REHABILITATION  REPARATUR    S WSTEIG WTIEFE LTGR_NAME            LTGR_BESCHREIBUNG SICHTBARKEIT VERLEGEART DTRO_NAME                        DTRO_BESCHREIBUNG        E fkSTRASSE fkSRAT                   pk                   tk IRTRENN LECKSTART LECKEND LECKMENGE LECKORT LECKSTATUS QSVB ZVLIMPTNZ KANTENZV                                      CONT CONT_ID CONT_LFDNR  NAME_i KVR_i TM_i   XKOR_i   YKOR_i ZKOR_i  NAME_k KVR_k TM_k   XKOR_k   YKOR_k ZKOR_k  pXCor_i  pYCor_i  pXCor_k  pYCor_k            pXCors          pYCors                        pWAYPXCors                      pWAYPYCors                                               WAYP  mx2Idx  mx2NofPts
-   0          None         -1    None   0        1       0   88.02   0  0.1    0    0    0      1   0.025  1000         0  4713733238627697042   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4613782368750024999  4613782368750024999       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K004     2   60  2541539  5706361     20  R-K005     2   60  2541627  5706363     20    799.0    152.0    887.0    154.0    [799.0, 887.0]  [152.0, 154.0]                   [807.9, 895.95]                 [140.1, 142.05]  [(2541547.9, 5706349.1), (2541635.95, 5706351....       0          2
-   1          None         -1    None   0        1       0  405.96   0  0.1    0    0    0      1   0.025  1000         0  5379365049009065623   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4614949065966596185  4614949065966596185       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K002     1   90  2541059  5706265     20  V-K003     1   90  2541457  5706345     20    319.0     56.0    717.0    136.0    [319.0, 717.0]   [56.0, 136.0]                   [319.0, 716.95]          [56.0499999998, 136.0]  [(2541059.0, 5706265.05), (2541456.95, 5706345...       1          2
-   2          None         -1    None   0        1       0   83.55   0  0.1    0    0    0      1   0.025  1000         0  5037777106796980248   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4637102239750163477  4637102239750163477       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K003     2   60  2541457  5706345     20  R-K004     2   60  2541539  5706361     20    717.0    136.0    799.0    152.0    [717.0, 799.0]  [136.0, 152.0]                   [725.85, 807.9]                 [124.05, 140.1]  [(2541465.85, 5706333.05), (2541547.9, 5706349...       2          2
-   3          None         -1    None   0        1       0   88.02   0  0.1    0    0    0      1   0.025  1000         0  4613782368750024999   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4713733238627697042  4713733238627697042       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K004     1   90  2541539  5706361     20  V-K005     1   90  2541627  5706363     20    799.0    152.0    887.0    154.0    [799.0, 887.0]  [152.0, 154.0]                   [799.0, 887.05]                  [152.0, 154.0]  [(2541539.0, 5706361.0), (2541627.05, 5706363.0)]       3          2
-   4          None         -1    None   0        1       0  195.53   0  0.1    0    0    0      1   0.025  1000         0  5266224553324203132   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4789218195240364437  4789218195240364437       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K001     1   90  2540867  5706228     20  V-K002     1   90  2541059  5706265     20    127.0     19.0    319.0     56.0    [127.0, 319.0]    [19.0, 56.0]                    [127.0, 319.0]           [19.0, 56.0499999998]  [(2540867.0, 5706228.0), (2541059.0, 5706265.05)]       5          2
-   5          None         -1    None   0        1       0  109.77   0  0.1    0    0    0      1   0.025  1000         0  5620197984230756681   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4945727430885351042  4945727430885351042       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K006     2   60  2541790  5706338     20  R-K007     2   60  2541899  5706325     20   1050.0    129.0   1159.0    116.0  [1050.0, 1159.0]  [129.0, 116.0]                 [1058.85, 1167.9]                  [117.0, 104.1]  [(2541798.85, 5706326.0), (2541907.9, 5706313.1)]       7          2
-   6          None         -1    None   0        1       0    76.4   0  0.1    0    0    0      1   0.025  1000         0  5647213228462830353   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4984202422877610920  4984202422877610920       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K000     1   90  2540793  5706209     20  V-K001     1   90  2540867  5706228     20     53.0      0.0    127.0     19.0     [53.0, 127.0]     [0.0, 19.0]            [53.0499999998, 127.0]        [-0.0499999998137, 19.0]  [(2540793.05, 5706208.95), (2540867.0, 5706228...       8          2
-   7          None         -1    None   0        1       0   83.55   0  0.1    0    0    0      1   0.025  1000         0  4637102239750163477   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5037777106796980248  5037777106796980248       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K003     1   90  2541457  5706345     20  V-K004     1   90  2541539  5706361     20    717.0    136.0    799.0    152.0    [717.0, 799.0]  [136.0, 152.0]                   [716.95, 799.0]                  [136.0, 152.0]  [(2541456.95, 5706345.0), (2541539.0, 5706361.0)]       9          2
-   8          None         -1    None   0        1       0  164.91   0  0.1    0    0    0      1   0.025  1000         0  5611703699850694889   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5123819811204259837  5123819811204259837       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K005     1   90  2541627  5706363     20  V-K006     1   90  2541790  5706338     20    887.0    154.0   1050.0    129.0   [887.0, 1050.0]  [154.0, 129.0]                 [887.05, 1049.95]                 [154.0, 128.95]  [(2541627.05, 5706363.0), (2541789.95, 5706337...      10          2
-   9          None         -1    None   0        1       0  195.53   0  0.1    0    0    0      1   0.025  1000         0  4789218195240364437   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5266224553324203132  5266224553324203132       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K001     2   60  2540867  5706228     20  R-K002     2   60  2541059  5706265     20    127.0     19.0    319.0     56.0    [127.0, 319.0]    [19.0, 56.0]                    [135.9, 327.9]  [7.04999999981, 44.0999999996]  [(2540875.9, 5706216.05), (2541067.9, 5706253.1)]      11          2
-   10         None         -1    None   0        1       0  405.96   0  0.1    0    0    0      1   0.025  1000         0  4614949065966596185   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5379365049009065623  5379365049009065623       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K002     2   60  2541059  5706265     20  R-K003     2   60  2541457  5706345     20    319.0     56.0    717.0    136.0    [319.0, 717.0]   [56.0, 136.0]                   [327.9, 725.85]         [44.0999999996, 124.05]  [(2541067.9, 5706253.1), (2541465.85, 5706333....      12          2
-   11         None         -1    None   0        1       0  164.91   0  0.1    0    0    0      1   0.025  1000         0  5123819811204259837   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5611703699850694889  5611703699850694889       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K005     2   60  2541627  5706363     20  R-K006     2   60  2541790  5706338     20    887.0    154.0   1050.0    129.0   [887.0, 1050.0]  [154.0, 129.0]                 [895.95, 1058.85]                 [142.05, 117.0]  [(2541635.95, 5706351.05), (2541798.85, 570632...      13          2
-   12         None         -1    None   0        1       0  109.77   0  0.1    0    0    0      1   0.025  1000         0  4945727430885351042   1          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5620197984230756681  5620197984230756681       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  V-K006     1   90  2541790  5706338     20  V-K007     1   90  2541899  5706325     20   1050.0    129.0   1159.0    116.0  [1050.0, 1159.0]  [129.0, 116.0]                 [1049.95, 1159.0]                [128.95, 116.05]  [(2541789.95, 5706337.95), (2541899.0, 5706325...      14          2
-   13         None         -1    None   0        1       0    76.4   0  0.1    0    0    0      1   0.025  1000         0  4984202422877610920   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5647213228462830353  5647213228462830353       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K000     2   60  2540793  5706209     20  R-K001     2   60  2540867  5706228     20     53.0      0.0    127.0     19.0     [53.0, 127.0]     [0.0, 19.0]            [61.9500000002, 135.9]          [-12.0, 7.04999999981]  [(2540801.95, 5706197.0), (2540875.9, 5706216....      15          2
-   14         None         -1    None   0        1       0   73.42   0  0.1    0    0    0      1   0.025  1000         0  4939422678063487923   2          NaN  168.3  160.3  150   0.45 NaN             NaN        NaN    4    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4769996343148550485  4769996343148550485       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1     R-L     2   60  2540740  5706225     20  R-K000     2   60  2540793  5706209     20      0.0     16.0     53.0      0.0       [0.0, 53.0]     [16.0, 0.0]  [0.0, 24.0, 45.0, 61.9500000002]      [16.0, 16.0, -12.0, -12.0]  [(2540740.0, 5706225.0), (2540764.0, 5706225.0...       4          2
-   15         None         -1    None   0        1       0    68.6   0  0.1    0    0    0      1   0.025  1000         0  4769996343148550485   1          NaN  168.3  160.3  150   0.45 NaN             NaN        NaN    4    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4939422678063487923  4939422678063487923       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1     V-L     1   90  2540740  5706240     20  V-K000     1   90  2540793  5706209     20      0.0     31.0     53.0      0.0       [0.0, 53.0]     [31.0, 0.0]        [0.0, 30.0, 53.0499999998]  [31.0, 31.0, -0.0499999998137]  [(2540740.0, 5706240.0), (2540770.0, 5706240.0...       6          2'''
->>> xmlFile=os.path.join(path,'testdata\LocalHeatingNetwork.XML')
->>> xm=Xm(xmlFile=xmlFile)
->>> vROHR=xm.dataFrames['vROHR']
->>> (wDir,modelDir,modelName)=xm.getWDirModelDirModelName()
->>> mx1File=os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'    
->>> mx=Mx.Mx(mx1File=mx1File)
->>> vROHR.shape
-(16, 73)
->>> 'vNRCV_Mx1' in xm.dataFrames
-False
->>> xm.Mx(mx=mx)
->>> vROHR.shape
-(16, 75)
->>> 'vNRCV_Mx1' in xm.dataFrames
-True
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.39',2,'New',"vGTXT")) 
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vGTXT']).replace('\\n','\\n   ')))
-'''                                        CONT CONT_ID CONT_LFDNR                                     GRAFTEXT                   pk                   tk               pXYLB
-   0   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           Georeferenzpunkt 2  4628671704393700430  4628671704393700430   (1115.95, -323.0)
-   1   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                                        Block  4666644549022031339  4666644549022031339      (-58.0, -77.0)
-   2   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           numerische Anzeige  4693143208412077585  4693143208412077585      (1211.0, -9.0)
-   3   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                             Knoten und Rohre  4995961504641886710  4995961504641886710      (570.0, -49.0)
-   4   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                                Vorlaufstrang  5017907661719368413  5017907661719368413  (358.207, 220.395)
-   5   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                          LocalHeatingNetwork  5028052147238787802  5028052147238787802     (1163.0, 536.0)
-   6   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1   Tel. 05131 - 4980-0 ; Fax. 05131 - 4980-15  5054433315422452796  5054433315422452796   (-230.0, -1143.0)
-   7   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  eMail. info@3SConsult.de ; www.3SConsult.de  5370727463979416592  5370727463979416592   (-230.0, -1204.0)
-   8   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                Differenzdruck VL-/ RL-Knoten  5502619581048467908  5502619581048467908     (1211.0, -49.0)
-   9   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                                 Kundenanlage  5540395812045688781  5540395812045688781   (1131.95, 283.95)
-   10  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                         Fernwärmeverbraucher  5550982489075668484  5550982489075668484     (1050.0, 239.0)
-   11  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                               Rücklaufstrang  5610916400841895317  5610916400841895317       (570.0, -9.0)
-   12  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                             Knoten und Rohre  5646820849868629537  5646820849868629537  (358.207, 174.395)
-   13  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                          numerische Anzeige:  4614148870174765680  4614148870174765680     (219.0, -278.0)
-   14  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                        Wärmebilanz: 3 Kunden  5150752151066924202  5150752151066924202     (219.0, -318.0)
-   15  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                    Kontrolle: DH-Massenstrom  5100960407865990868  5100960407865990868     (-60.0, -160.0)
-   16                                      BHKW    1002         -1                          Fernwärmeeinspeiser  4654104397990769217  4654104397990769217       (115.0, 80.0)
-   17                                      BHKW    1002         -1                                        Pumpe  4768731522550494423  4768731522550494423       (175.0, 25.0)
-   18                                      BHKW    1002         -1                            Wärmebilanz Netz:  4770844990228490264  4770844990228490264       (90.0, 160.0)
-   19                                      BHKW    1002         -1                                  Speicherung  4782197969172967134  4782197969172967134      (110.0, 140.0)
-   20                                      BHKW    1002         -1                               Richtungspfeil  4855692488683645764  4855692488683645764      (220.0, 105.0)
-   21                                      BHKW    1002         -1                                     Verluste  4965628942555351751  4965628942555351751      (110.0, 145.0)
-   22                                      BHKW    1002         -1                          (Element verbinden)  5036153631350515544  5036153631350515544       (150.0, 90.0)
-   23                                      BHKW    1002         -1                    BHKW Modul 1000 kW therm.  5056836766824229789  5056836766824229789        (35.0, 55.0)
-   24                                      BHKW    1002         -1                                       Ventil  5108336975548011049  5108336975548011049       (205.0, 25.0)
-   25                                      BHKW    1002         -1                                    Verbrauch  5262441422409836340  5262441422409836340      (110.0, 150.0)
-   26                                      BHKW    1002         -1                                  Einspeisung  5297832234834839298  5297832234834839298      (110.0, 155.0)
-   27                                      BHKW    1002         -1                           Druckhaltung 2 bar  5329748935118523443  5329748935118523443       (180.0, 65.0)
-   28                                      BHKW    1002         -1                           Numerische Anzeige  5421223289472778073  5421223289472778073      (190.0, 115.0)
-   29                                      BHKW    1002         -1                             Verbindungslinie  5501963349880613918  5501963349880613918       (150.0, 95.0)
-   30                                      BHKW    1002         -1                                       (Text)  5696590398594231893  5696590398594231893        (35.0, 50.0)
-   31                                      BHKW    1002         -1                                       Klappe  5697088036451277538  5697088036451277538       (145.0, 25.0)'''
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.40',1,'New',"vNRCV_Mx1: pXYLB")) 
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vNRCV_Mx1'].sort_values(['Sir3sID'],ascending=True)).replace('\\n','\\n   ')))
-'''                                         Sir3sID cRefLfdNr                                      CONT CONT_ID CONT_LFDNR         DPGR OBJTYPE            fkOBJTYPE ATTRTYPE              pk_ROWS              tk_ROWS                   pk                   tk            pXYLB
-   0              FWES~R3~V-1~5638756766880678918~W         1                                      BHKW    1002         -1  UserDefined    FWES  5638756766880678918        W  5762106696740202356  5762106696740202356  4857294696992797631  4857294696992797631     (90.0, 65.0)
-   1       KNOT~PKON-Knoten~~5397990465339071638~QM         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5397990465339071638       QM  5134531789044068877  5134531789044068877  5410059595276504750  5410059595276504750    (91.0, -94.0)
-   2               KNOT~R-L~~5356267303828212700~PH         1                                      BHKW    1002         -1  UserDefined    KNOT  5356267303828212700       PH  5000989080893535213  5000989080893535213  4968703141722117357  4968703141722117357    (220.0, 25.0)
-   3                 KNOT~R3~~5219230031772497417~T         1                                      BHKW    1002         -1  UserDefined    KNOT  5219230031772497417        T  5602301870151014230  5602301870151014230  5557806245003742769  5557806245003742769     (90.0, 35.0)
-   4                KNOT~V-1~~5049461676240771430~T         1                                      BHKW    1002         -1  UserDefined    KNOT  5049461676240771430        T  4723443975311885965  4723443975311885965  5097127385155151127  5097127385155151127     (90.0, 95.0)
-   5            KNOT~V-K007~~5741235692335544560~DP         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5741235692335544560       DP  4949183695502554728  4949183695502554728  4914949875368816179  4914949875368816179   (1234.0, 83.0)
-   6               KNOT~V-L~~5736262931552588702~PH         1                                      BHKW    1002         -1  UserDefined    KNOT  5736262931552588702       PH  4754881272083464445  4754881272083464445  4681213816714574464  4681213816714574464    (220.0, 85.0)
-   7              PUMP~R-1~R2~5481331875203087055~N         1                                      BHKW    1002         -1  UserDefined    PUMP  5481331875203087055        N  5563842594211689762  5563842594211689762  5091374651838464239  5091374651838464239    (170.0, 45.0)
-   8            VENT~V-1~V-L~4678923650983295610~QM         1                                      BHKW    1002         -1  UserDefined    VENT  4678923650983295610       QM  5126307362398248950  5126307362398248950  5410904806390050339  5410904806390050339   (200.0, 110.0)
-   9        WBLZ~BLNZ1u5u7~~4694700216019268978~WVB         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    WBLZ  4694700216019268978      WVB  4778244458749966216  4778244458749966216  4991097791264453745  4991097791264453745  (354.0, -225.0)
-   10    WBLZ~WärmeblnzGes~~5262603207038486299~WES         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WES  5690691957596882133  5690691957596882133  5179988968597313889  5179988968597313889    (90.0, 155.0)
-   11  WBLZ~WärmeblnzGes~~5262603207038486299~WSPEI         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WSPEI  5153847813311339683  5153847813311339683  4946584950744559030  4946584950744559030    (90.0, 140.0)
-   12    WBLZ~WärmeblnzGes~~5262603207038486299~WVB         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WVB  5214984699859365639  5214984699859365639  5281885868749421521  5281885868749421521    (90.0, 150.0)
-   13  WBLZ~WärmeblnzGes~~5262603207038486299~WVERL         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WVERL  4722863010266870887  4722863010266870887  5476262878682325254  5476262878682325254    (90.0, 145.0)'''
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.41',1,'Change',"Mx Import")) 
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.42',1,'Change',"mx not Xm-Attribute: (Mx(), __Mx1(), __Mx2() changed")) 
->>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.45',1,'New',"vFWVB: W0LFK, DPHAUS")) 
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vFWVB']).replace('\\n','\\n   ')))
-'''  BESCHREIBUNG IDREFERENZ   W0  LFK  W0LFK  TVL0  TRS0  LFKT      W  W_min  W_max  INDTR  TRSK  VTYP  DPHAUS  IMBG  IRFV                   pk                   tk  NAME_i KVR_i TM_i   XKOR_i   YKOR_i ZKOR_i  pXCor_i  pYCor_i  NAME_k KVR_k TM_k   XKOR_k   YKOR_k ZKOR_k  pXCor_k  pYCor_k                                      CONT CONT_ID CONT_LFDNR                         WBLZ
-   0            1         -1  200  0.8  160.0    90    50  LFKT  160.0  160.0  160.0      1    55    14     0.7     0   0.0  4643800032883366034  4643800032883366034  V-K002     1   90  2541059  5706265     20    319.0     56.0  R-K002     2   60  2541059  5706265     20    319.0     56.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  [BLNZ1, BLNZ1u5, BLNZ1u5u7]
-   1            3         -1  200  1.0  200.0    90    65  LFKT  200.0  200.0  200.0      1    65    14     0.7     0   0.0  4704603947372595298  4704603947372595298  V-K004     1   90  2541539  5706361     20    799.0    152.0  R-K004     2   60  2541539  5706361     20    799.0    152.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           []
-   2            4         -1  200  0.8  160.0    90    60  LFKT  160.0  160.0  160.0      1    60    14     0.7     0   0.0  5121101823283893406  5121101823283893406  V-K005     1   90  2541627  5706363     20    887.0    154.0  R-K005     2   60  2541627  5706363     20    887.0    154.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  [BLNZ1u5, BLNZ1u5u7, BLNZ5]
-   3            5         -1  200  0.8  160.0    90    55  LFKT  160.0  160.0  160.0      1    55    14     0.7     0   0.0  5400405917816384862  5400405917816384862  V-K007     1   90  2541899  5706325     20   1159.0    116.0  R-K007     2   60  2541899  5706325     20   1159.0    116.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                  [BLNZ1u5u7]
-   4            2         -1  200  0.6  120.0    90    60  LFKT  120.0  120.0  120.0      1    62    14     0.7     0   0.0  5695730293103267172  5695730293103267172  V-K003     1   90  2541457  5706345     20    717.0    136.0  R-K003     2   60  2541457  5706345     20    717.0    136.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           []'''
-"""
