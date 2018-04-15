@@ -1,16 +1,21 @@
 """
----------------------------
-DOCTEST
----------------------------
 >>> # ---
->>> # Imports
+>>> # SETUP
 >>> # ---
+>>> import os
+>>> try:
+...   path = os.path.dirname(__file__)
+... except NameError:
+...   path = '.'
+...   import PT3S
+...   import Mx
+...   import Xm
+...   from Rm import Rm
 >>> import logging
 >>> logger = logging.getLogger('PT3S.Rm')  
->>> import os
 >>> import pandas as pd
 >>> import matplotlib.pyplot as plt
->>> path = os.path.dirname(__file__)
+>>> #
 >>> # ---
 >>> # LocalHeatingNetwork
 >>> # ---
@@ -60,9 +65,7 @@ True
 import os
 import sys
 import logging
-import argparse
-import unittest
-import doctest
+
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
@@ -96,6 +99,13 @@ import Xm
 import Mx
 
 logger = logging.getLogger('PT3S.Rm')  
+
+# ---
+# --- main Imports
+# ---
+import argparse
+import unittest
+import doctest
 
 DINA4_x=8.2677165354
 DINA4_y=11.6929133858
@@ -915,12 +925,13 @@ def pltNetFigAx(
 
 class Rm():
     """
-      
+    Args:
+        xm: Xm.Xm Object
+
+        mx: Mx.Mx Object
     """
     def __init__(self,xm=None,mx=None): 
-        """
-          
-        """
+
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
@@ -956,10 +967,12 @@ class Rm():
     def pltNetDHUS(self
                    # TIME ----------------------------------------------------------------------------------------
                    ,timeDeltaToRef=pd.to_timedelta('0 seconds') # Referenzzeit als TIMEDELTA zu Szenariumbeginn 
+
                    ,timeDeltaToT=None # Zeit als TIMEDELTA zu Szenariumbeginn                    
                   
                    # FILTER  (haben ggf. Einfluss auf die Abmessungen der Darstellung) ---------------------------
                    ,KVRisIn=[2]
+                   
                    ,CONT_IDisIn=[1001]                  
              
                    # SELECT (haben KEINEN Einfluss auf die Abmessungen der Darstellung) --------------------------                   

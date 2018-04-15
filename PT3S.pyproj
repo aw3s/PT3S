@@ -27,7 +27,11 @@
     <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="index.rst" />
     <Content Include="Mx.rst" />
+    <Content Include="Rm.rst">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="Xm.rst" />
     <Content Include="LICENSE" />
     <Content Include="PT3S.html" />

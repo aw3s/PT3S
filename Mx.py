@@ -27,14 +27,19 @@ SIR 3S MX-Interface (short: MX)
     For Vectorchannels (including Pipevectorchannels) the sequence of Objects is defined in the .MX2-File.
 
 >>> # ---
->>> # Imports
+>>> # SETUP
 >>> # ---
+>>> import os
+>>> try:
+...    path = os.path.dirname(__file__)
+... except NameError:
+...    path = '.'
+...    import PT3S
+...    from Mx import Mx
 >>> import logging
 >>> logger = logging.getLogger('PT3S.Mx')  
->>> import os
 >>> import zipfile
 >>> import pandas as pd
->>> path = os.path.dirname(__file__)
 >>> # ---
 >>> # Init
 >>> # ---
@@ -385,26 +390,13 @@ True
 import os
 import sys
 import logging
-import argparse
-import unittest
-import doctest
-
-import nbformat
-from nbconvert.preprocessors import ExecutePreprocessor
-from nbconvert.preprocessors.execute import CellExecutionError
-
-import timeit
 
 import xml.etree.ElementTree as ET
 import re
 import struct
-import collections
 import zipfile
 import pandas as pd
 import h5py
-
-import subprocess
-
 import warnings
 import tables
 import math
@@ -415,6 +407,13 @@ import math
 import PT3S
 
 logger = logging.getLogger('PT3S.Mx')  
+
+# ---
+# --- main Imports
+# ---
+import argparse
+import unittest
+import doctest
 
 # Sir3sID regExp
 reSir3sID='(\S+)~([\S ]+)~(\S*)~(\S+)~(\S+)'

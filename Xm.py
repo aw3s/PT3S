@@ -1,15 +1,18 @@
 """
----------------------------
-DOCTEST
----------------------------
 >>> # ---
 >>> # Imports
 >>> # ---
 >>> import os
+>>> try:
+...     path = os.path.dirname(__file__)
+... except NameError:
+...     path = '.'
+...     import PT3S 
+...     import Mx
+...     from Xm import Xm
 >>> import pandas as pd
 >>> import logging
 >>> logger = logging.getLogger('PT3S.Xm')  
->>> path = os.path.dirname(__file__)
 >>> # ---
 >>> # Clean Up
 >>> # ---
@@ -390,10 +393,6 @@ True
 import os
 import sys
 import logging
-import argparse
-
-import unittest
-import doctest
 
 import xml.etree.ElementTree as ET
 import re
@@ -403,6 +402,7 @@ import warnings
 import tables
 
 import h5py
+import time
 
 import base64
 import struct
@@ -413,8 +413,15 @@ import struct
 import PT3S
 import Mx
 
-logger = logging.getLogger('PT3S.Xm')     
+logger = logging.getLogger('PT3S.Xm')  
 
+# ---
+# --- main Imports
+# ---
+import argparse
+import unittest
+import doctest
+   
 class XmError(Exception):
     def __init__(self, value):
         self.value = value
@@ -475,8 +482,18 @@ class Xm():
 
             if NoH5Read: 
                 if os.path.exists(self.h5File):  
+                    if os.access(self.h5File,os.W_OK):
+                        pass
+                    else:
+                        logger.debug("{0:s}{1:s}: not os.W_OK ... sleep(1) ...".format(logStr,self.h5File))     
+                        time.sleep(1)
                     logger.debug("{0:s}{1:s}: Delete ...".format(logStr,self.h5File))     
-                    os.remove(self.h5File)
+                    try:
+                        os.remove(self.h5File)
+                    except PermissionError:
+                        logger.debug("{0:s}{1:s}: PermissionError ... sleep(1) ...".format(logStr,self.h5File))     
+                        time.sleep(1)
+                        os.remove(self.h5File)
 
             if os.path.exists(self.xmlFile):  
                 xmlFileTime=os.path.getmtime(self.xmlFile) 
@@ -1829,6 +1846,7 @@ class Xm():
                         * NAME_k
                         * KVR_k, TM_k
                         * XKOR_k, YKOR_k, ZKOR_k
+                    
                     pXCor_i, pYCor_i
                     pXCor_k, pYCor_k
                 PLOT

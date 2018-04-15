@@ -1,7 +1,6 @@
 import os
 import sys
 import logging
-logger = logging.getLogger('PT3S')     
 import pandas as pd
 import warnings
 import tables
@@ -17,7 +16,12 @@ try:
                         ,level=loglevel
                         ,format="%(asctime)s ; %(name)-60s ; %(levelname)-7s ; %(message)s")    
 
-    fileHandler = logging.FileHandler(logFileName)        
+    fileHandler = logging.FileHandler(logFileName)     
+    
+    # -------------------------------------- 
+    logger = logging.getLogger('PT3S')      
+    # -------------------------------------- 
+    
     logger.addHandler(fileHandler)
 
     consoleHandler = logging.StreamHandler()
