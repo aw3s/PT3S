@@ -1105,8 +1105,8 @@ class Rm():
         ,pFWVBMeasureCBFixedLimitHigh=.95 
 
         # FWVB ----------------------------------------------------------------------------------------
-        ,pFWVBAttribute='W0LFK' 
-        ,pFWVBAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")
+      #  ,pFWVBAttribute='W0LFK' 
+      #  ,pFWVBAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")
         ,pFWVBMeasure='FWVB~*~*~*~W' 
 
         ,pFWVBGCategory=['BLNZ1u5u7'] # ['Süd','Nord','Innenstadt','Nord PWS','NordOst BHW','Ost HWV','Ost PWF/PSE','Nord Rest'] # NAMEn von WBLZ
@@ -1201,17 +1201,23 @@ class Rm():
 
         Keyword Args (optional):
 
-            Attribute > Size
-                * pFWVBAttributeRefSize=10**2  (Sy-Area in pts^2 of Fwvb with RefSizeValue)      
-                * RefSizeValue is Attribute.std()
-                * or Attribute.mean() if Attribute.std() is < 1
+            Attribute
+                * pFWVBAttribute (default: 'W0LFK') 
+
+                    * .astype(float) must be possible
+                    * only >0 Values are displayed 
+
+                * pFWVBAttributeAsc (default: False d.h. "kleine auf große")
+                * pFWVBAttributeRefSize (default: 10**2)  (Sy-Area in pts^2 of Fwvb with RefSizeValue)
+                      
+                    * RefSizeValue is Attribute.std()
+                    * or Attribute.mean() if Attribute.std() is < 1
 
             CBLegend (3Classes) - Parameterization of the representative Symbols
                 * CBLe3cTopVPad (default: 1+1*1/4)
                 * CBLe3cMiddleVPad (default: .5)                                                                         
                 * CBLe3cBottomVPad (default: 0-1*1/4)
-
-                Explanations:
+                
                     * 1 is the height of the Colorbar                                                                   
                     * the VPads (the vertical Sy-Positions) are defined in cax.transAxes Coordinates    
                     * cax is the Colorbar Axes               
@@ -1253,7 +1259,11 @@ class Rm():
         try:
             keys = sorted(kwds.keys())
 
-            # Attribute - Size
+            # Attribute
+            if 'pFWVBAttribute' not in keys:
+                kwds['pFWVBAttribute']='W0LFK'
+            if 'pFWVBAttributeAsc' not in keys:
+                kwds['pFWVBAttributeAsc']=False
             if 'pFWVBAttributeRefSize' not in keys:
                 kwds['pFWVBAttributeRefSize']=10**2
 
@@ -1421,16 +1431,16 @@ class Rm():
             pltFWVB=pltFWVB[(pltFWVB['CONT_ID'].astype(int).isin(CONT_IDisIn))]
 
             # =========================================             
-            pltFWVB[pFWVBAttribute]=pltFWVB[pFWVBAttribute].astype(float)
+            pltFWVB[ kwds['pFWVBAttribute']]=pltFWVB[ kwds['pFWVBAttribute']].astype(float)
             pltROHR[pROHRAttribute]=pltROHR[pROHRAttribute].astype(float)
             
             # Selektionen ===============================================
-            pltFWVB=pltFWVB[pltFWVB[pFWVBAttribute]>0] 
+            pltFWVB=pltFWVB[pltFWVB[kwds['pFWVBAttribute']]>0] 
             pltROHR=pltROHR[pltROHR[pROHRAttribute]>0] 
-
-            pltFWVB=pltFWVB[(pltFWVB[pFWVBAttribute]<=pltFWVB[pFWVBAttribute].quantile(quantil_pFWVBAttributeHigh))
+            
+            pltFWVB=pltFWVB[(pltFWVB[kwds['pFWVBAttribute']]<=pltFWVB[kwds['pFWVBAttribute']].quantile(quantil_pFWVBAttributeHigh))
                             &
-                            (pltFWVB[pFWVBAttribute]>=pltFWVB[pFWVBAttribute].quantile(quantil_pFWVBAttributeLow))
+                            (pltFWVB[kwds['pFWVBAttribute']]>=pltFWVB[kwds['pFWVBAttribute']].quantile(quantil_pFWVBAttributeLow))
                            ]
 
             pltROHR=pltROHR[(pltROHR[pROHRAttribute]<=pltROHR[pROHRAttribute].quantile(quantil_pROHRAttributeHigh))
@@ -1442,7 +1452,7 @@ class Rm():
             logger.debug("{:s}pltROHR nach selektieren: {:d}".format(logStr,row))     
 
             # Grundsortierung z-Order
-            pltFWVB=pltFWVB.sort_values(by=[pFWVBAttribute],ascending=pFWVBAttributeAsc) 
+            pltFWVB=pltFWVB.sort_values(by=[kwds['pFWVBAttribute']],ascending=kwds['pFWVBAttributeAsc']) 
             pltROHR=pltROHR.sort_values(by=[pROHRAttribute],ascending=pROHRAttributeAsc) 
            
             # ############################################################
@@ -1469,9 +1479,9 @@ class Rm():
             fig = plt.gcf()  
             ax=plt.gca()
 
-            pFWVBrefSizeValue=pltFWVB[pFWVBAttribute].std()
+            pFWVBrefSizeValue=pltFWVB[kwds['pFWVBAttribute']].std()
             if pFWVBrefSizeValue < 1:
-                pFWVBrefSizeValue=pltFWVB[pFWVBAttribute].mean()
+                pFWVBrefSizeValue=pltFWVB[kwds['pFWVBAttribute']].mean()
             logger.debug("{:s}pFWVBrefSizeValue (Attributwert): {:6.2f}".format(logStr,pFWVBrefSizeValue)) 
             pFWVBSizeFactor=kwds['pFWVBAttributeRefSize']/pFWVBrefSizeValue
             
@@ -1485,7 +1495,7 @@ class Rm():
                 ,CBFixedLimitHigh=pFWVBMeasureCBFixedLimitHigh 
                 # FWVB
                 ,pMeasure='Measure' 
-                ,pAttribute=pFWVBAttribute 
+                ,pAttribute=kwds['pFWVBAttribute']
                                              
                 ,pSizeFactor=pFWVBSizeFactor
                    
@@ -1542,7 +1552,7 @@ class Rm():
                 ,CBAnchorVertical=CBAnchorVertical 
 
                 # Legend 3 Classes
-                ,pAttribute=pFWVBAttribute  
+                ,pAttribute=kwds['pFWVBAttribute'] 
                 ,pSizeFactor=pFWVBSizeFactor                   
                 ,pMCategory='MCategory' 
                 ,pMCatTopTxt=limitTopText     
