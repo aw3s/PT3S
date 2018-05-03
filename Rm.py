@@ -964,127 +964,166 @@ class Rm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
-    def pltNetDHUS(self
-                   # TIME ----------------------------------------------------------------------------------------
-                   ,timeDeltaToRef=pd.to_timedelta('0 seconds') # Referenzzeit als TIMEDELTA zu Szenariumbeginn 
+    def pltNetDHUS(
+        self
+        # TIME ----------------------------------------------------------------------------------------
+        ,timeDeltaToRef=pd.to_timedelta('0 seconds') # Referenzzeit als TIMEDELTA zu Szenariumbeginn 
 
-                   ,timeDeltaToT=None # Zeit als TIMEDELTA zu Szenariumbeginn                    
+        ,timeDeltaToT=None # Zeit als TIMEDELTA zu Szenariumbeginn                    
                   
-                   # FILTER  (haben ggf. Einfluss auf die Abmessungen der Darstellung) ---------------------------
-                   ,KVRisIn=[2]
+        # FILTER  (haben ggf. Einfluss auf die Abmessungen der Darstellung) ---------------------------
+        ,KVRisIn=[2]
                    
-                   ,CONT_IDisIn=[1001]                  
+        ,CONT_IDisIn=[1001]                  
              
-                   # SELECT (haben KEINEN Einfluss auf die Abmessungen der Darstellung) --------------------------                   
-                   ,quantil_pROHRAttributeHigh=1. # die 25% gößten hier 'DI' also
-                   ,quantil_pROHRAttributeLow=.75 
-                   ,quantil_pFWVBAttributeHigh=1. # alle 'W0LFK' also
-                   ,quantil_pFWVBAttributeLow=0. 
+        # SELECT (haben KEINEN Einfluss auf die Abmessungen der Darstellung) --------------------------                   
+        ,quantil_pROHRAttributeHigh=1. # die 25% gößten hier 'DI' also
+        ,quantil_pROHRAttributeLow=.75 
+        ,quantil_pFWVBAttributeHigh=1. # alle 'W0LFK' also
+        ,quantil_pFWVBAttributeLow=0. 
                    
-                   # ALLG ----------------------------------------------------------------------------------------
-                   ,pFWVBMeasureInRefPerc=True # Measure wird verarbeitet in Prozent T zu Ref 
-                   ,pFWVBMeasure3Classes=False # Measure wird dargestellt in 3 Klassen
+        # ALLG ----------------------------------------------------------------------------------------
+        ,pFWVBMeasureInRefPerc=True # Measure wird verarbeitet in Prozent T zu Ref 
+        ,pFWVBMeasure3Classes=False # Measure wird dargestellt in 3 Klassen
 
-                   ,pFWVBMeasureCBFixedLimits=False
-                   ,pFWVBMeasureCBFixedLimitLow=.10 
-                   ,pFWVBMeasureCBFixedLimitHigh=.95 
+        ,pFWVBMeasureCBFixedLimits=False
+        ,pFWVBMeasureCBFixedLimitLow=.10 
+        ,pFWVBMeasureCBFixedLimitHigh=.95 
 
-                   # FWVB ----------------------------------------------------------------------------------------
-                   ,pFWVBAttribute='W0LFK' 
-                   ,pFWVBAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")
-                   ,pFWVBMeasure='FWVB~*~*~*~W' 
+        # FWVB ----------------------------------------------------------------------------------------
+        ,pFWVBAttribute='W0LFK' 
+        ,pFWVBAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")
+        ,pFWVBMeasure='FWVB~*~*~*~W' 
 
-                   ,pFWVBGCategory=['BLNZ1u5u7'] # ['Süd','Nord','Innenstadt','Nord PWS','NordOst BHW','Ost HWV','Ost PWF/PSE','Nord Rest'] # NAMEn von WBLZ
-                   ,pFWVBGCategoryUnit='[kW]'
-                   ,pFWVBGCategoryXStart=.1
-                   ,pFWVBGCategoryYStart=.9
-                   ,pFWVBGCategoryYSpace=-.1
+        ,pFWVBGCategory=['BLNZ1u5u7'] # ['Süd','Nord','Innenstadt','Nord PWS','NordOst BHW','Ost HWV','Ost PWF/PSE','Nord Rest'] # NAMEn von WBLZ
+        ,pFWVBGCategoryUnit='[kW]'
+        ,pFWVBGCategoryXStart=.1
+        ,pFWVBGCategoryYStart=.9
+        ,pFWVBGCategoryYSpace=-.1
 
-                   ,pFWVBAttributeRefSize=10                   
+        ,pFWVBAttributeRefSize=10                   
                    
-                   ,pFWVBMeasureColorMap=plt.cm.autumn 
-                   ,pFWVBMeasureAlpha=0.9 
-                   ,pFWVBMeasureClip=False    
+        ,pFWVBMeasureColorMap=plt.cm.autumn 
+        ,pFWVBMeasureAlpha=0.9 
+        ,pFWVBMeasureClip=False    
                 
-                   ,limitTopColor='palegreen'
-                   ,limitTopAlpha=0.9 
-                   ,limitTopClip=False            
-                   ,limitTopText='Top' 
+        ,limitTopColor='palegreen'
+        ,limitTopAlpha=0.9 
+        ,limitTopClip=False            
+        ,limitTopText='Top' 
                                                     
-                   ,limitBottomColor='violet'
-                   ,limitBottomAlpha=0.9 
-                   ,limitBottomClip=False    
-                   ,limitBottomText='Bottom' 
+        ,limitBottomColor='violet'
+        ,limitBottomAlpha=0.9 
+        ,limitBottomClip=False    
+        ,limitBottomText='Bottom' 
 
-                   ,limitMiddleColorMap=plt.cm.autumn 
-                   ,limitMiddleAlpha=0.9 
-                   ,limitMiddleClip=False    
-                   ,limitMiddleText='Middle'     
+        ,limitMiddleColorMap=plt.cm.autumn 
+        ,limitMiddleAlpha=0.9 
+        ,limitMiddleClip=False    
+        ,limitMiddleText='Middle'     
                    
-                   # CB   -----------------------------------------------------------------------------------------
-                   ,CBFraction=0.05  # fraction of original axes to use for colorbar
-                   ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
-                   ,CBLabelPad=-50         
-                   ,CBTicklabelsHPad=0.      
-                   ,CBAspect=10. # ratio of long to short dimension
-                   ,CBShrink=0.3 # fraction by which to shrink the colorbar
-                   ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-%
-                   ,CBAnchorVertical=0.2 # vertikaler Fußpunkt der colorbar in Plot-%                                
+        # CB   -----------------------------------------------------------------------------------------
+        ,CBFraction=0.05  # fraction of original axes to use for colorbar
+        ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
+        ,CBLabelPad=-50         
+        ,CBTicklabelsHPad=0.      
+        ,CBAspect=10. # ratio of long to short dimension
+        ,CBShrink=0.3 # fraction by which to shrink the colorbar
+        ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-%
+        ,CBAnchorVertical=0.2 # vertikaler Fußpunkt der colorbar in Plot-%                                
 
-                   # ROHR -----------------------------------------------------------------------------------------
-                   ,pROHRAttribute='DI'              
-                   ,pROHRAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")                                      
-                   ,pROHRMeasure='ROHR~*~*~*~QMAV' 
-                   ,pROHRMeasureAbs=True #  Measure wird verarbeitet als Absolutwert 
+        # ROHR -----------------------------------------------------------------------------------------
+        ,pROHRAttribute='DI'              
+        ,pROHRAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")                                      
+        ,pROHRMeasure='ROHR~*~*~*~QMAV' 
+        ,pROHRMeasureAbs=True #  Measure wird verarbeitet als Absolutwert 
 
-                   ,pROHRClip=False
-                   ,pROHRAttributeLs='-'
-                   ,pROHRMeasureMarker='.'              
+        ,pROHRClip=False
+        ,pROHRAttributeLs='-'
+        ,pROHRMeasureMarker='.'              
                                             
-                   ,pROHRAttributeColorMap=plt.cm.binary   
-                   ,pROHRAttríbuteColorMapUsageStart=1./3        
-                   ,pROHRAttributeRefSize=1.0 
+        ,pROHRAttributeColorMap=plt.cm.binary   
+        ,pROHRAttríbuteColorMapUsageStart=1./3        
+        ,pROHRAttributeRefSize=1.0 
                                                                                                                                                               
-                   ,pROHRMeasureColorMap=plt.cm.cool 
-                   ,pROHRMeasureColorMapUsageStart=0.        
-                   ,pROHRMeasureRefSize=1.0 
+        ,pROHRMeasureColorMap=plt.cm.cool 
+        ,pROHRMeasureColorMapUsageStart=0.        
+        ,pROHRMeasureRefSize=1.0 
                                                    
-                   # CBLegend (3Classes) --------------------------------------------------------------------------
-                   # Position der Repräsentantensymbole             
-                   ,CBLe3cTopVPad=1+1*1/4
-                   # "1"
-                   ,CBLe3cMiddleVPad=.5                                                                         
-                   ,CBLe3cBottomVPad=0-1*1/4  
+        # CBLegend (3Classes) --------------------------------------------------------------------------
+        # Position der Repräsentantensymbole             
+        ,CBLe3cTopVPad=1+1*1/4
+        # "1"
+        ,CBLe3cMiddleVPad=.5                                                                         
+        ,CBLe3cBottomVPad=0-1*1/4  
                  
-                   # TB --------------------------------------------------------------------------------------------
-                   ,TBVSpace=0.2 
-                   ,TBHSpace=0.4 
+        # TB --------------------------------------------------------------------------------------------
+        ,TBVSpace=0.2 
+        ,TBHSpace=0.4 
 
-                   # FIG -------------------------------------------------------------------------------------------                  
-                   ,pltTitle='pltNetDHUS' 
-                   ,figFrameon=True                    
-                   ,figEdgecolor='black' 
-                   ,figFacecolor='white' 
+        # FIG -------------------------------------------------------------------------------------------                  
+        ,pltTitle='pltNetDHUS' 
+        ,figFrameon=True                    
+        ,figEdgecolor='black' 
+        ,figFacecolor='white' 
                    
-                   # NUMANZ
-                   ,pFIGNrcv=['KNOT~PKON-Knoten~\S*~\S+~QM']       
-                   ,pFIGNrcvTxt=['Kontrollwert DH']                  
-                   ,pFIGNrcvXStart=.5
-                   ,pFIGNrcvYStart=.5
-                   ,pFIGNrcvYSpace=-.1
+        # NUMANZ
+        ,pFIGNrcv=['KNOT~PKON-Knoten~\S*~\S+~QM']       
+        ,pFIGNrcvTxt=['Kontrollwert DH']                  
+        ,pFIGNrcvXStart=.5
+        ,pFIGNrcvYStart=.5
+        ,pFIGNrcvYSpace=-.1
                  
-                   # VICs 
-                   ,pVICsDf=pd.DataFrame({'Kundenname': ['VIC1'],'Knotenname': ['V-K007']})
-                   ,pVICsXStart=.8
-                   ,pVICsYStart=.5
-                   ,pVICsYSpace=-.1
+        # VICs 
+        #,pVICsDf=pd.DataFrame({'Kundenname': ['VIC1'],'Knotenname': ['V-K007']})
+        #,pVICsXStart=.8
+        #,pVICsYStart=.5 # Fehler: es wurde pVICsXStart benutzt
+        #,pVICsYSpace=-.1
+
+        ,**kwds
                                                    
-                   ): 
-        """
-          
+        ): 
+        """Plot Net: DistrictHeatingUnderSupply. 
+
+        Keyword Args (optional):
+
+            NRCVs - NumneRiCal Values
+                * pFIGNrcv: 
+                * pFIGNrcvTxt
+                * pFIGNrcvXStart
+                * pFIGNrcvYStart
+                * pFIGNrcvYSpace
+            VICs - VeryImportantCustomers
+                * pVICsDf: DataFrame with VeryImportantCustomers (Specification & Data)
+                    columns expected:
+                        * Kundenname (i.e. 'VIC1')
+                        * Knotenname (i.e. 'V-K007')
+                * pVICsXStart (.8 default)
+                * pVICsYStart (.8 default)
+                * pVICsYSpace (-.1 default)
+
         """
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try:
+            pass
+            keys = sorted(kwds.keys())
+
+            # VICs
+            if 'pVICsDf' not in keys:
+                kwds['pVICsDf']=pd.DataFrame({'Kundenname': ['VIC1'],'Knotenname': ['V-K007']})
+            if 'pVICsXStart' not in keys:
+                kwds['pVICsXStart']=.8
+            if 'pVICsYStart' not in keys:
+                kwds['pVICsYStart']=.8
+            if 'pVICsYSpace' not in keys:
+                kwds['pVICsYSpace']=-.1
+
+
+
+        except:
+            pass
         
         try: 
             # 2 Szenrariumzeiten ermitteln ===============================================
@@ -1116,8 +1155,8 @@ class Rm():
             vFWVB=self.xm.dataFrames['vFWVB']
             vNRCV_Mx1=self.xm.dataFrames['vNRCV_Mx1']
 
-            if isinstance(pVICsDf,pd.core.frame.DataFrame):
-                vFWVB=vFWVB.merge(pVICsDf,left_on='NAME_i',right_on='Knotenname',how='left')
+            if isinstance(kwds['pVICsDf'],pd.core.frame.DataFrame):
+                vFWVB=vFWVB.merge(kwds['pVICsDf'],left_on='NAME_i',right_on='Knotenname',how='left')
                 vFWVB.rename(columns={'Kundenname':'VIC'},inplace=True)
                 vFWVB.drop('Knotenname',axis=1,inplace=True)
            
@@ -1560,10 +1599,10 @@ class Rm():
             ## ---------------------------------------------------------------------
             ## VICs 
 
-            if isinstance(pVICsDf,pd.core.frame.DataFrame):
+            if isinstance(kwds['pVICsDf'],pd.core.frame.DataFrame):
                 fig.sca(ax)
-                xStart=pVICsXStart
-                yStart=pVICsXStart
+                xStart=kwds['pVICsXStart']
+                yStart=kwds['pVICsYStart']
                 fontsize=8
                 distance=50
                 idx=0
@@ -1574,7 +1613,7 @@ class Rm():
                             txt="{:30s} {:3.0f}%".format(kunde,v*100)      
                         else:                           
                             txt="{:30s} {:6.2f} {:s}".format(kunde,v,pFWVBMeasureUNIT)    
-                        x,y=pVICsXStart,pVICsYStart+pVICsYSpace*idx                  
+                        x,y=kwds['pVICsXStart'],kwds['pVICsYStart']+kwds['pVICsYSpace']*idx                  
                         a=plt.annotate(txt                                
                                 ,xy=(x,y)
                                 ,family='monospace'
