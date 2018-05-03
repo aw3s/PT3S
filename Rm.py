@@ -50,6 +50,7 @@
 >>> plt.savefig(plotFileName,dpi=300)
 >>> os.path.exists(plotFileName)
 True
+>>> pFWVB=rm.pltNetDHUS(timeDeltaToT=timeDeltaToT,pFWVBMeasure3Classes=True,pFWVBMeasureCBFixedLimits=True)
 >>> # ---
 >>> # Clean Up
 >>> # ---
@@ -115,6 +116,73 @@ class RmError(Exception):
         self.value = value
     def __str__(self):
         return repr(self.value)
+
+from matplotlib import markers
+from matplotlib.path import Path
+
+def align_marker(marker, halign='center', valign='middle',):
+    """
+    create markers with specified alignment.
+
+    Parameters
+    ----------
+
+    marker : a valid marker specification.
+      See mpl.markers
+
+    halign : string, float {'left', 'center', 'right'}
+      Specifies the horizontal alignment of the marker. *float* values
+      specify the alignment in units of the markersize/2 (0 is 'center',
+      -1 is 'right', 1 is 'left').
+
+    valign : string, float {'top', 'middle', 'bottom'}
+      Specifies the vertical alignment of the marker. *float* values
+      specify the alignment in units of the markersize/2 (0 is 'middle',
+      -1 is 'top', 1 is 'bottom').
+
+    Returns
+    -------
+
+    marker_array : numpy.ndarray
+      A Nx2 array that specifies the marker path relative to the
+      plot target point at (0, 0).
+
+    Notes
+    -----
+    The mark_array can be passed directly to ax.plot and ax.scatter, e.g.::
+
+        ax.plot(1, 1, marker=align_marker('>', 'left'))
+
+    """
+
+    if isinstance(halign,str):
+        halign = {'right': -1.,
+                  'middle': 0.,
+                  'center': 0.,
+                  'left': 1.,
+                  }[halign]
+
+    if isinstance(valign,str):
+        valign = {'top': -1.,
+                  'middle': 0.,
+                  'center': 0.,
+                  'bottom': 1.,
+                  }[valign]
+
+    # Define the base marker
+    bm = markers.MarkerStyle(marker)
+
+    # Get the marker path and apply the marker transform to get the
+    # actual marker vertices (they should all be in a unit-square
+    # centered at (0, 0))
+    m_arr = bm.get_path().transformed(bm.get_transform()).vertices
+
+    # Shift the marker vertices for the specified alignment.
+    m_arr[:, 0] += halign / 2
+    m_arr[:, 1] += valign / 2
+
+    return Path(m_arr, bm.get_path().codes)
+
 
 def pltNetNodes( 
                 # ALLG
@@ -315,6 +383,9 @@ def pltNetColorbar(
                 ,CBLe3cTopVPad=1+1*1/4                 
                 ,CBLe3cMiddleVPad=.5                                                                         
                 ,CBLe3cBottomVPad=0-1*1/4  
+
+                ,CBLe3cSySize=1./10. 
+                ,CBLe3cSyType='o' 
                                                                     
                 ):
     """
@@ -380,7 +451,12 @@ def pltNetColorbar(
                
                ,CBLe3cTopVPad=CBLe3cTopVPad #1+1*1/4                 
                ,CBLe3cMiddleVPad=CBLe3cMiddleVPad #.5                                                                         
-               ,CBLe3cBottomVPad=CBLe3cBottomVPad #0-1*1/4                                                                                                                     
+               ,CBLe3cBottomVPad=CBLe3cBottomVPad #0-1*1/4        
+               
+               ,CBLe3cSySize=CBLe3cSySize
+               ,CBLe3cSyType=CBLe3cSyType
+               
+                                                                                                                            
              )
              if bbTop != None:
                 TBAnchorVertical=bbTop.y1
@@ -530,7 +606,10 @@ def pltNetColorbarLegend3Classes(
                                   
                ,CBLe3cTopVPad=1+1*1/4                 
                ,CBLe3cMiddleVPad=.5                                                                         
-               ,CBLe3cBottomVPad=0-1*1/4                          
+               ,CBLe3cBottomVPad=0-1*1/4          
+               
+               ,CBLe3cSySize=1./10. 
+               ,CBLe3cSyType='o'                               
                 ):
     """
     zeichnet die Legende bei 3 Klassen     
@@ -554,11 +633,20 @@ def pltNetColorbarLegend3Classes(
         logger.debug("{:s} pDf_bot_Anz={:d}  pDf_mid_Anz={:d} pDf_top_Anz={:d}".format(logStr,pDf_bot_Anz,pDf_mid_Anz,pDf_top_Anz))
 
         logger.debug("{:s} pDf[pAttribute].max()={:10.3f}".format(logStr,pDf[pAttribute].max()))
-        legendSymbolSize=pSizeFactor*pDf[pAttribute].max()
+        #legendSymbolSize=pSizeFactor*pDf[pAttribute].max()
+
+        legendSymbolSize=CBLe3cSySize
+
+        logger.debug("{:s} legendSymbolSize={:10.3f} CBLe3cSyType={:s}".format(logStr,legendSymbolSize,CBLe3cSyType))
         
         bbBot=None
         bbMid=None
         bbTop=None
+
+        #print(dir(cax))
+        #print(dir(cax.transData))
+        #print(cax.get_xlim()) #   (0.0, 1.0)
+        #print(cax.get_ylim()) #   (0.0, 1.0)
 
         if pDf_bot_Anz >= 0:
             po=cax.scatter( CBAnchorHorizontal,CBLe3cBottomVPad                   
@@ -567,6 +655,7 @@ def pltNetColorbarLegend3Classes(
                             ,alpha=0.9
                             ,edgecolors='face'             
                             ,clip_on=False
+                            ,marker=align_marker(CBLe3cSyType, halign='left')                                     
                             )
             # Text dazu
             o=po.findobj(match=None) 
@@ -598,9 +687,10 @@ def pltNetColorbarLegend3Classes(
                             ,c=limitTopColor
                             ,alpha=0.9
                             ,edgecolors='face'             
-                            ,clip_on=False                                 
+                            ,clip_on=False     
+                            ,marker=align_marker(CBLe3cSyType, halign='left')                                      
                             )
-            # Text dazu
+           
             o=po.findobj(match=None) 
             p=o[0]           
             bbTop=p.get_datalim(cax.transAxes)      
@@ -639,8 +729,10 @@ def pltNetColorbarLegend3Classes(
                             ,edgecolors='face'             
                             ,clip_on=False
                             ,visible=False # es erden nur die Koordinaten benoetigt
+                            ,marker=align_marker(CBLe3cSyType, halign='left')             
+
                             )
-            # Text dazu
+           
             o=po.findobj(match=None) 
             p=o[0]           
             bbMid=p.get_datalim(cax.transAxes)  
@@ -699,6 +791,7 @@ def pltNetTitleblock(
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
     try: 
+        return
         cax=plt.gca()
             
         a=plt.annotate(Projekt, xy=(0.-1*TBHSpace,TBAnchorVertical)
@@ -891,8 +984,29 @@ def pltNetFigAx(
         ylimBottom=0
         xlimRight=dx
         ylimTop=dy
+        
+        # plt.figure(dpi=, facecolor=, edgecolor=, linewidth=, frameon=True)
+        fig = plt.gcf()  # This will return an existing figure if one is open, or it will make a new one if there is no active figure.
 
-        fig = plt.gcf()  
+        # https://stackoverflow.com/questions/14827650/pyplot-scatter-plot-marker-size
+
+        # Size in pts:
+        # the argument markersize in plot    denotes the markersize (i.e. diameter) in points
+        # the argument s          in scatter denotes the markersize**2              in points^2
+        # so a given plot-marker with markersize=x needs a scatter-marker with s=x**2 if the scatter-marker shall cover the same "area" in points^2
+        # the "area" of the scatter-marker is proportional to the s param
+
+        # What are points - pts:
+        # the standard size of points in matplotlib is 72 ppi
+        # 1 point is hence 1/72 inches (1 inch = 1 Zoll = 2.54 cm)
+        # 1 point = 0.352777.... mm
+
+        # points and pixels - px:
+        # 1 point = dpi/ppi
+        # the standard dpi in matplotlib is 100
+        # a scatter-marker whos "area" covers always 10 pixel:
+        # s=(10*ppi/dpi)**2       
+
         fig.set_figwidth(figwidth)
         fig.set_figheight(figheight)
 
@@ -1001,7 +1115,7 @@ class Rm():
         ,pFWVBGCategoryYStart=.9
         ,pFWVBGCategoryYSpace=-.1
 
-        ,pFWVBAttributeRefSize=10                   
+        #,pFWVBAttributeRefSize=10                   
                    
         ,pFWVBMeasureColorMap=plt.cm.autumn 
         ,pFWVBMeasureAlpha=0.9 
@@ -1052,10 +1166,10 @@ class Rm():
                                                    
         # CBLegend (3Classes) --------------------------------------------------------------------------
         # Position der Repräsentantensymbole             
-        ,CBLe3cTopVPad=1+1*1/4
-        # "1"
-        ,CBLe3cMiddleVPad=.5                                                                         
-        ,CBLe3cBottomVPad=0-1*1/4  
+        #,CBLe3cTopVPad=1+1*1/4
+        ## "1"
+        #,CBLe3cMiddleVPad=.5                                                                         
+        #,CBLe3cBottomVPad=0-1*1/4  
                  
         # TB --------------------------------------------------------------------------------------------
         ,TBVSpace=0.2 
@@ -1068,11 +1182,11 @@ class Rm():
         ,figFacecolor='white' 
                    
         # NUMANZ
-        ,pFIGNrcv=['KNOT~PKON-Knoten~\S*~\S+~QM']       
-        ,pFIGNrcvTxt=['Kontrollwert DH']                  
-        ,pFIGNrcvXStart=.5
-        ,pFIGNrcvYStart=.5
-        ,pFIGNrcvYSpace=-.1
+        #,pFIGNrcv=['KNOT~PKON-Knoten~\S*~\S+~QM']       
+        #,pFIGNrcvTxt=['Kontrollwert DH']                  
+        #,pFIGNrcvXStart=.5
+        #,pFIGNrcvYStart=.5
+        #,pFIGNrcvYSpace=-.1
                  
         # VICs 
         #,pVICsDf=pd.DataFrame({'Kundenname': ['VIC1'],'Knotenname': ['V-K007']})
@@ -1087,17 +1201,47 @@ class Rm():
 
         Keyword Args (optional):
 
-            NRCVs - NumneRiCal Values
-                * pFIGNrcv: 
-                * pFIGNrcvTxt
-                * pFIGNrcvXStart
-                * pFIGNrcvYStart
-                * pFIGNrcvYSpace
-            VICs - VeryImportantCustomers
-                * pVICsDf: DataFrame with VeryImportantCustomers (Specification & Data)
+            Attribute > Size
+                * pFWVBAttributeRefSize=10**2  (Sy-Area in pts^2 of Fwvb with RefSizeValue)      
+                * RefSizeValue is Attribute.std()
+                * or Attribute.mean() if Attribute.std() is < 1
+
+            CBLegend (3Classes) - Parameterization of the representative Symbols
+                * CBLe3cTopVPad (default: 1+1*1/4)
+                * CBLe3cMiddleVPad (default: .5)                                                                         
+                * CBLe3cBottomVPad (default: 0-1*1/4)
+
+                Explanations:
+                    * 1 is the height of the Colorbar                                                                   
+                    * the VPads (the vertical Sy-Positions) are defined in cax.transAxes Coordinates    
+                    * cax is the Colorbar Axes               
+
+                * CBLe3cSySize=10**2 (Sy-Area in pts^2)
+                * CBLe3cSyType='o' 
+
+            NRCVs - NumeRiCal Values to be displayed
+                * pFIGNrcv: List of Sir3sID RegExps to be displayed (i.e. ['KNOT~PKON-Knoten~\S*~\S+~QM'])
+                    the 1st Match is used if a RegExp matches more than 1 Channel
+                    
+                    further Examples for RegExps (and corresponding Texts):
+                        * WBLZ~WärmeblnzGes~\S*~\S+~WES (Generation)
+                        * WBLZ~WärmeblnzGes~\S*~\S+~WVB (Load)
+                        * WBLZ~WärmeblnzGes~\S*~\S+~WVERL (Loss)
+                    WBLZ~[\S ]+~\S*~\S+~\S+: Example for a RegExp matching all Channels with OBJTYPE WBLZ  
+                * pFIGNrcvTxt: corresponding List of Texts (i.e. ['Kontrollwert DH'])
+                * pFIGNrcvFmt (i.e. '{:12s}: {:8.2f} {:4s} {:6.1f}%')
+                    * Text (from pFIGNrcvTxt)
+                    * Value
+                    * UNIT (determined from Channel-Data)
+                    * ValueInPercent (use i.e. '{:12s}: {:8.2f} {:4s}' to prevent display)
+                * pFIGNrcvXStart (.5 default)
+                * pFIGNrcvYStart (.5 default)
+                * pFIGNrcvYSpace (-.1 default)
+            VICs - VeryImportantCustomers whose Values to be displayed
+                * pVICsDf: DataFrame with VeryImportantCustomers (Text & Specification)
                     columns expected:
-                        * Kundenname (i.e. 'VIC1')
-                        * Knotenname (i.e. 'V-K007')
+                        * Kundenname (i.e. 'VIC1') - Text
+                        * Knotenname (i.e. 'V-K007') - Specification by Supply-Node
                 * pVICsXStart (.8 default)
                 * pVICsYStart (.8 default)
                 * pVICsYSpace (-.1 default)
@@ -1107,8 +1251,37 @@ class Rm():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
         try:
-            pass
             keys = sorted(kwds.keys())
+
+            # Attribute - Size
+            if 'pFWVBAttributeRefSize' not in keys:
+                kwds['pFWVBAttributeRefSize']=10**2
+
+            # CBLegend (3Classes) 
+            if 'CBLe3cTopVPad' not in keys:
+                kwds['CBLe3cTopVPad']=1+1*1/4  
+            if 'CBLe3cMiddleVPad' not in keys:
+                kwds['CBLe3cMiddleVPad']=.5    
+            if 'CBLe3cBottomVPad' not in keys:
+                kwds['CBLe3cBottomVPad']=0-1*1/4    
+            if 'CBLe3cSySize' not in keys:
+                kwds['CBLe3cSySize']=10**2
+            if 'CBLe3cSyType' not in keys:
+                kwds['CBLe3cSyType']='o'
+
+            # NRCVs
+            if 'pFIGNrcv' not in keys:
+                kwds['pFIGNrcv']=['KNOT~PKON-Knoten~\S*~\S+~QM']  
+            if 'pFIGNrcvTxt' not in keys:
+                kwds['pFIGNrcvTxt']=['Kontrollwert DH']
+            if 'pFIGNrcvFmt' not in keys:
+                kwds['pFIGNrcvFmt']='{:12s}: {:8.2f} {:4s} {:6.1f}%'
+            if 'pFIGNrcvXStart' not in keys:
+                kwds['pFIGNrcvXStart']=.5
+            if 'pFIGNrcvYStart' not in keys:
+                kwds['pFIGNrcvYStart']=.5
+            if 'pFIGNrcvYSpace' not in keys:
+                kwds['pFIGNrcvYSpace']=-.1
 
             # VICs
             if 'pVICsDf' not in keys:
@@ -1120,10 +1293,10 @@ class Rm():
             if 'pVICsYSpace' not in keys:
                 kwds['pVICsYSpace']=-.1
 
-
-
-        except:
-            pass
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise RmError(logStrFinal)                     
         
         try: 
             # 2 Szenrariumzeiten ermitteln ===============================================
@@ -1131,13 +1304,13 @@ class Rm():
             if isinstance(timeDeltaToRef,pd.Timedelta):
                 timeRef=firstTime+timeDeltaToRef
             else:
-                logStrFinal="{:s}{:s} not {:s}.".format(logStr,'xm','Xm-Type')
+                logStrFinal="{:s}{:s} not Type {:s}.".format(logStr,'timeDeltaToRef','pd.Timedelta')
                 logger.error(logStrFinal) 
                 raise RmError(logStrFinal)  
             if isinstance(timeDeltaToT,pd.Timedelta):
                 timeT=firstTime+timeDeltaToT
             else:
-                logStrFinal="{:s}{:s} not {:s}.".format(logStr,'xm','Xm-Type')
+                logStrFinal="{:s}{:s} not Type {:s}.".format(logStr,'timeDeltaToT','pd.Timedelta')
                 logger.error(logStrFinal) 
                 raise RmError(logStrFinal)  
            
@@ -1300,7 +1473,7 @@ class Rm():
             if pFWVBrefSizeValue < 1:
                 pFWVBrefSizeValue=pltFWVB[pFWVBAttribute].mean()
             logger.debug("{:s}pFWVBrefSizeValue (Attributwert): {:6.2f}".format(logStr,pFWVBrefSizeValue)) 
-            pFWVBSizeFactor=pFWVBAttributeRefSize/pFWVBrefSizeValue
+            pFWVBSizeFactor=kwds['pFWVBAttributeRefSize']/pFWVBrefSizeValue
             
             pcFWVB, CBLimitLow, CBLimitHigh = pltNetNodes(
                 # ALLG
@@ -1379,9 +1552,11 @@ class Rm():
                 ,limitBottomColor=limitBottomColor 
                 ,limitTopColor=limitTopColor 
 
-                ,CBLe3cTopVPad=CBLe3cTopVPad #1+1*1/4                 
-                ,CBLe3cMiddleVPad=CBLe3cMiddleVPad #.5                                                                         
-                ,CBLe3cBottomVPad=CBLe3cBottomVPad #0-1*1/4  
+                ,CBLe3cTopVPad=kwds['CBLe3cTopVPad'] #1+1*1/4                 
+                ,CBLe3cMiddleVPad=kwds['CBLe3cMiddleVPad'] #.5                                                                         
+                ,CBLe3cBottomVPad=kwds['CBLe3cBottomVPad'] #0-1*1/4  
+                ,CBLe3cSySize=kwds['CBLe3cSySize'] 
+                ,CBLe3cSyType=kwds['CBLe3cSyType'] 
 
 
             )
@@ -1441,16 +1616,16 @@ class Rm():
             x,y=pFWVBGCategoryXStart,pFWVBGCategoryYStart            
 
             txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(sCh.NAME1,v,pFWVBGCategoryUnit,vp)
-            a=plt.annotate(txt
-                            ,xy=(x,y)
-                            ,family='monospace'
-                            ,size='smaller'                   
-                            ,xycoords=ax.transAxes #'data'  
-                            ,rotation='horizontal'
-                            ,va='bottom'
-                            ,ha='left'   
-                            ,clip_on=False
-            )     
+            #a=plt.annotate(txt
+            #                ,xy=(x,y)
+            #                ,family='monospace'
+            #                ,size='smaller'                   
+            #                ,xycoords=ax.transAxes #'data'  
+            #                ,rotation='horizontal'
+            #                ,va='bottom'
+            #                ,ha='left'   
+            #                ,clip_on=False
+            #)     
 
 
             # Userbilanzen-----------------------------------------------------------------------
@@ -1560,29 +1735,29 @@ class Rm():
                     )     
                                   
             # ---------------------------------------------------------------------
-            # Nrcv
+            # NRCVs
             fig.sca(ax)
 
-            if isinstance(pFIGNrcv,list) and isinstance(pFIGNrcvTxt,list):
-                if len(pFIGNrcv) == len(pFIGNrcvTxt):
+            if isinstance(kwds['pFIGNrcv'],list) and isinstance(kwds['pFIGNrcvTxt'],list):
+                if len(kwds['pFIGNrcv']) == len(kwds['pFIGNrcvTxt']):
                     idxTxt=0
-                    for idx,Sir3sIDRexp in  enumerate(pFIGNrcv):                           
+                    for idx,Sir3sIDRexp in  enumerate(kwds['pFIGNrcv']):                           
                         try:
                             sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.contains(Sir3sIDRexp)].iloc[0]
                         except:
                             logger.debug("{:s} Sir3sIDRexp {:s} nicht in .MX1".format(logStr,Sir3sIDRexp))
                             continue
 
-                        x,y=pFIGNrcvXStart,pFIGNrcvYStart+pFIGNrcvYSpace*idxTxt
+                        x,y=kwds['pFIGNrcvXStart'],kwds['pFIGNrcvYStart']+kwds['pFIGNrcvYSpace']*idxTxt
                         idxTxt=idxTxt+1
                 
                         s=self.mx.df[sCh.Sir3sID]                
-                        v=s[timeT]          
-                        txt="{:15s}: {:6.1f}".format(pFIGNrcvTxt[idx] #         sCh.NAME1
-                                                           ,v
-                                                                 #,sCh.ATTRTYPE
-                                                                 #,sCh.UNIT
-                                                                 )
+                        v=s[timeT]  
+                        vp=v/v0*100     
+                                              
+                        # '{:12s}: {:8.2f} {:4s} {:6.1f}%'
+                        txt=kwds['pFIGNrcvFmt'].format(kwds['pFIGNrcvTxt'][idx],v,sCh.UNIT,vp) 
+                       
                         a=plt.annotate(txt
                                         ,xy=(x,y)
                                         ,family='monospace'
