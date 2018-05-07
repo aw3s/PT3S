@@ -7,6 +7,4 @@ Rm
    :members:
    :private-members:
 
-.. autofunction:: Rm.pltNetNodes
-
 .. autoexception:: Rm.RmError

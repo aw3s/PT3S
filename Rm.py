@@ -187,12 +187,12 @@ def align_marker(marker, halign='center', valign='middle',):
 def pltNetNodes( 
                 # ALLG
                  pDf 
-                ,pMeasure3Classes=True # 
+                ,pMeasure3Classes=True 
 
                 ,CBFixedLimits=True
                 ,CBFixedLimitLow=0. 
                 ,CBFixedLimitHigh=1. 
-                # FWVB 
+                
                 ,pMeasure='Measure'  # colName                                                                                                                       
                 ,pAttribute='Attrib' # colName 
 
@@ -210,17 +210,17 @@ def pltNetNodes(
                 ,pMCatMidTxt='Middle'             
                 ,pMCatBotTxt='Bottom'    
                              
-                ,limitTopColor='palegreen'
-                ,limitTopAlpha=0.9 
-                ,limitTopClip=False            
+                ,pMCatTopColor='palegreen'
+                ,pMCatTopAlpha=0.9 
+                ,pMCatTopClip=False            
 
-                ,limitMiddleColorMap=plt.cm.autumn 
-                ,limitMiddleAlpha=0.9 
-                ,limitMiddleClip=False  
+                ,pMCatMiddleColorMap=plt.cm.autumn 
+                ,pMCatMiddleAlpha=0.9 
+                ,pMCatMiddleClip=False  
                                                                         
-                ,limitBottomColor='violet' 
-                ,limitBottomAlpha=0.9 
-                ,limitBottomClip=False                                                 
+                ,pMCatBottomColor='violet' 
+                ,pMCatBottomAlpha=0.9 
+                ,pMCatBottomClip=False                                                 
                 ):
     """
     zeichnet Symbole auf gca()
@@ -255,10 +255,10 @@ def pltNetNodes(
             pcN_top=ax.scatter(    
                     pN_top[pXCor],pN_top[pYCor]                 
                 ,s=pSizeFactor*pN_top[pAttribute]
-                ,color=limitTopColor
-                ,alpha=limitTopAlpha
+                ,color=pMCatTopColor
+                ,alpha=pMCatTopAlpha
                 ,edgecolors='face'             
-                ,clip_on=limitTopClip)        
+                ,clip_on=pMCatTopClip)        
             logger.debug("{:s}Anzahl mit fester Farbe Top gezeichneter Symbole={:d}".format(logStr,pN_top_Anz))                        
 
             if not CBFixedLimits:
@@ -272,25 +272,25 @@ def pltNetNodes(
                     pN_mid[pXCor],pN_mid[pYCor]       
                 ,s=pSizeFactor*pN_mid[pAttribute]
                 # Farbskala
-                ,cmap=limitMiddleColorMap
+                ,cmap=pMCatMiddleColorMap
                 # Normierung Farbe
                 ,vmin=vmin
                 ,vmax=vmax
                 # Farbwert
                 ,c=pN_mid[pMeasure] 
-                ,alpha=limitMiddleAlpha
+                ,alpha=pMCatMiddleAlpha
                 ,edgecolors='face'
-                ,clip_on=limitMiddleClip
+                ,clip_on=pMCatMiddleClip
                 )
             logger.debug("{:s}Anzahl mit Farbskala gezeichneter Symbole={:d}".format(logStr,pN_mid_Anz))    
 
             pcN_bot=ax.scatter(    
                     pN_bot[pXCor],pN_bot[pYCor]                 
                 ,s=pSizeFactor*pN_bot[pAttribute]
-                ,color=limitBottomColor
-                ,alpha=limitBottomAlpha
+                ,color=pMCatBottomColor
+                ,alpha=pMCatBottomAlpha
                 ,edgecolors='face'             
-                ,clip_on=limitBottomClip)              
+                ,clip_on=pMCatBottomClip)              
             logger.debug("{:s}Anzahl mit fester Farbe Bot gezeichneter Symbole={:d}".format(logStr,pN_bot_Anz))     
                           
         else:
@@ -370,15 +370,15 @@ def pltNetColorbar(
                 
                 # Legend 3Classes
                 ,pAttribute='Attrib' 
-                ,pSizeFactor=1.
+                #,pSizeFactor=1.
 
                 ,pMCategory='MCategory'
                 ,pMCatTopTxt='Top'
                 ,pMCatMidTxt='Middle'
                 ,pMCatBotTxt='Bottom'
 
-                ,limitBottomColor='violet'                 
-                ,limitTopColor='palegreen' 
+                ,pMCatBottomColor='violet'                 
+                ,pMCatTopColor='palegreen' 
 
                 ,CBLe3cTopVPad=1+1*1/4                 
                 ,CBLe3cMiddleVPad=.5                                                                         
@@ -439,15 +439,15 @@ def pltNetColorbar(
                ,CBAnchorVertical=CBAnchorVertical     
                
                ,pAttribute=pAttribute  
-               ,pSizeFactor=pSizeFactor
+               #,pSizeFactor=pSizeFactor
 
                ,pMCategory=pMCategory
                ,pMCatTopTxt=pMCatTopTxt
                ,pMCatMidTxt=pMCatMidTxt
                ,pMCatBotTxt=pMCatBotTxt
 
-               ,limitBottomColor=limitBottomColor                 
-               ,limitTopColor=limitTopColor    
+               ,pMCatBottomColor=pMCatBottomColor                 
+               ,pMCatTopColor=pMCatTopColor    
                
                ,CBLe3cTopVPad=CBLe3cTopVPad #1+1*1/4                 
                ,CBLe3cMiddleVPad=CBLe3cMiddleVPad #.5                                                                         
@@ -594,15 +594,15 @@ def pltNetColorbarLegend3Classes(
                ,CBAnchorVertical=0.
 
                ,pAttribute='Attrib' # colName 
-               ,pSizeFactor=1.
+             #  ,pSizeFactor=1.
 
                ,pMCategory='MCategory'
                ,pMCatTopTxt='Top'
                ,pMCatMidTxt='Middle'
                ,pMCatBotTxt='Bottom'
 
-               ,limitBottomColor='violet' 
-               ,limitTopColor='palegreen'           
+               ,pMCatBottomColor='violet' 
+               ,pMCatTopColor='palegreen'           
                                   
                ,CBLe3cTopVPad=1+1*1/4                 
                ,CBLe3cMiddleVPad=.5                                                                         
@@ -651,7 +651,7 @@ def pltNetColorbarLegend3Classes(
         if pDf_bot_Anz >= 0:
             po=cax.scatter( CBAnchorHorizontal,CBLe3cBottomVPad                   
                             ,s=legendSymbolSize
-                            ,c=limitBottomColor
+                            ,c=pMCatBottomColor
                             ,alpha=0.9
                             ,edgecolors='face'             
                             ,clip_on=False
@@ -663,13 +663,13 @@ def pltNetColorbarLegend3Classes(
             bbBot=p.get_datalim(cax.transAxes)      
             logger.debug("{:s} bbBot={!s:s}".format(logStr,bbBot))                         
 
-        #    a=plt.annotate(limitBottomText                                     
+        #    a=plt.annotate(pMCatBottomText                                     
         #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cBottomVpad)
         #                    ,xycoords=cax.transAxes 
         #                    ,rotation='vertical' #90
         #                    ,va='center'
         #                    ,ha='center'  
-        #                    ,color=limitBottomColor 
+        #                    ,color=pMCatBottomColor 
         #                    )
         #    # weiterer Text dazu
         #    a=plt.annotate("Anz HA: {:6d}".format(pDf_bot_Anz)                                
@@ -678,13 +678,13 @@ def pltNetColorbarLegend3Classes(
         #                    ,rotation='vertical' #90
         #                    ,va='center'
         #                    ,ha='center'  
-        #                    ,color=limitBottomColor 
+        #                    ,color=pMCatBottomColor 
         #                    )
 
         if pDf_top_Anz >= 0:
             po=cax.scatter( CBAnchorHorizontal,CBLe3cTopVPad                          
                             ,s=legendSymbolSize
-                            ,c=limitTopColor
+                            ,c=pMCatTopColor
                             ,alpha=0.9
                             ,edgecolors='face'             
                             ,clip_on=False     
@@ -701,13 +701,13 @@ def pltNetColorbarLegend3Classes(
         #    p=o[0]           
         #    bb=p.get_datalim(cax.transAxes)     
         #    bbTop=bb      
-        #    a=plt.annotate(limitTopText                                
+        #    a=plt.annotate(pMCatTopText                                
         #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cTopVpad)
         #                    ,xycoords=cax.transAxes 
         #                    ,rotation='vertical' #90
         #                    ,va='center'
         #                    ,ha='center'    
-        #                    ,color=limitTopColor                            
+        #                    ,color=pMCatTopColor                            
         #                    )
 
         #        #weiterer Text dazu                  
@@ -717,7 +717,7 @@ def pltNetColorbarLegend3Classes(
         #                    ,rotation='vertical' #90
         #                    ,va='center'
         #                    ,ha='center'    
-        #                    ,color=limitTopColor                            
+        #                    ,color=pMCatTopColor                            
         #                    )
 
 
@@ -742,13 +742,13 @@ def pltNetColorbarLegend3Classes(
         #    o=po.findobj(match=None) 
         #    p=o[0]
         #    bb=p.get_datalim(cax.transAxes)
-        #    a=plt.annotate(limitMiddleText                                    
+        #    a=plt.annotate(pMCatMiddleText                                    
         #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cMiddleVpad)                                                                                 
         #                    ,xycoords=cax.transAxes 
         #                    ,rotation='vertical' #90
         #                    ,va='center'
         #                    ,ha='center'
-        #                    ,color=limitMiddleColor   
+        #                    ,color=pMCatMiddleColor   
         #                        ,visible=False
         #    )
         #        #weiterer Text dazu                
@@ -758,7 +758,7 @@ def pltNetColorbarLegend3Classes(
         #                    ,rotation='vertical' #90
         #                    ,va='center'
         #                    ,ha='center'
-        #                    ,color=limitMiddleColor   
+        #                    ,color=pMCatMiddleColor   
         #                        ,visible=False
         #    )        
       
@@ -1097,17 +1097,11 @@ class Rm():
         ,quantil_pFWVBAttributeLow=0. 
                    
         # ALLG ----------------------------------------------------------------------------------------
-        ,pFWVBMeasureInRefPerc=True # Measure wird verarbeitet in Prozent T zu Ref 
-        ,pFWVBMeasure3Classes=False # Measure wird dargestellt in 3 Klassen
-
-        ,pFWVBMeasureCBFixedLimits=False
-        ,pFWVBMeasureCBFixedLimitLow=.10 
-        ,pFWVBMeasureCBFixedLimitHigh=.95 
+     
 
         # FWVB ----------------------------------------------------------------------------------------
-      #  ,pFWVBAttribute='W0LFK' 
-      #  ,pFWVBAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")
-        ,pFWVBMeasure='FWVB~*~*~*~W' 
+     
+      
 
         ,pFWVBGCategory=['BLNZ1u5u7'] # ['Süd','Nord','Innenstadt','Nord PWS','NordOst BHW','Ost HWV','Ost PWF/PSE','Nord Rest'] # NAMEn von WBLZ
         ,pFWVBGCategoryUnit='[kW]'
@@ -1115,26 +1109,26 @@ class Rm():
         ,pFWVBGCategoryYStart=.9
         ,pFWVBGCategoryYSpace=-.1
 
-        #,pFWVBAttributeRefSize=10                   
+        
                    
         ,pFWVBMeasureColorMap=plt.cm.autumn 
         ,pFWVBMeasureAlpha=0.9 
         ,pFWVBMeasureClip=False    
                 
-        ,limitTopColor='palegreen'
-        ,limitTopAlpha=0.9 
-        ,limitTopClip=False            
-        ,limitTopText='Top' 
+        ,pMCatTopColor='palegreen'
+        ,pMCatTopAlpha=0.9 
+        ,pMCatTopClip=False            
+        ,pMCatTopText='Top' 
                                                     
-        ,limitBottomColor='violet'
-        ,limitBottomAlpha=0.9 
-        ,limitBottomClip=False    
-        ,limitBottomText='Bottom' 
+        ,pMCatBottomColor='violet'
+        ,pMCatBottomAlpha=0.9 
+        ,pMCatBottomClip=False    
+        ,pMCatBottomText='Bottom' 
 
-        ,limitMiddleColorMap=plt.cm.autumn 
-        ,limitMiddleAlpha=0.9 
-        ,limitMiddleClip=False    
-        ,limitMiddleText='Middle'     
+        ,pMCatMiddleColorMap=plt.cm.autumn 
+        ,pMCatMiddleAlpha=0.9 
+        ,pMCatMiddleClip=False    
+        ,pMCatMiddleText='Middle'     
                    
         # CB   -----------------------------------------------------------------------------------------
         ,CBFraction=0.05  # fraction of original axes to use for colorbar
@@ -1164,12 +1158,7 @@ class Rm():
         ,pROHRMeasureColorMapUsageStart=0.        
         ,pROHRMeasureRefSize=1.0 
                                                    
-        # CBLegend (3Classes) --------------------------------------------------------------------------
-        # Position der Repräsentantensymbole             
-        #,CBLe3cTopVPad=1+1*1/4
-        ## "1"
-        #,CBLe3cMiddleVPad=.5                                                                         
-        #,CBLe3cBottomVPad=0-1*1/4  
+     
                  
         # TB --------------------------------------------------------------------------------------------
         ,TBVSpace=0.2 
@@ -1181,18 +1170,7 @@ class Rm():
         ,figEdgecolor='black' 
         ,figFacecolor='white' 
                    
-        # NUMANZ
-        #,pFIGNrcv=['KNOT~PKON-Knoten~\S*~\S+~QM']       
-        #,pFIGNrcvTxt=['Kontrollwert DH']                  
-        #,pFIGNrcvXStart=.5
-        #,pFIGNrcvYStart=.5
-        #,pFIGNrcvYSpace=-.1
-                 
-        # VICs 
-        #,pVICsDf=pd.DataFrame({'Kundenname': ['VIC1'],'Knotenname': ['V-K007']})
-        #,pVICsXStart=.8
-        #,pVICsYStart=.5 # Fehler: es wurde pVICsXStart benutzt
-        #,pVICsYSpace=-.1
+       
 
         ,**kwds
                                                    
@@ -1201,7 +1179,7 @@ class Rm():
 
         Keyword Args (optional):
 
-            Attribute
+            FWVB Attribute (Size)
                 * pFWVBAttribute (default: 'W0LFK') 
 
                     * .astype(float) must be possible
@@ -1212,6 +1190,25 @@ class Rm():
                       
                     * RefSizeValue is Attribute.std()
                     * or Attribute.mean() if Attribute.std() is < 1
+
+            FWVB Measure (Color)
+                * pFWVBMeasure (default: 'FWVB~*~*~*~W') 
+
+                    * float() must be possible                
+
+                * pFWVBMeasureInRefPerc (default: True d.h. Measure wird verarbeitet in Prozent T zu Ref) 
+
+                    * 0-1
+                    * if refValue is 0 than refPerc is set to 1 
+
+                * pFWVBMeasure3Classes (default: False d.h. Measure wird nicht in 3 Klassen dargestellt)
+                * pFWVBMeasureCBFixedLimits (default: False d.h. Farbskala nach vorh. min./max. Wert)
+
+                    * muss Wahr gesetzt sein, wenn 3Classes Wahr gesetzt ist
+
+                * pFWVBMeasureCBFixedLimitLow (default: .10) 
+                * pFWVBMeasureCBFixedLimitHigh (default: .95) 
+
 
             CBLegend (3Classes) - Parameterization of the representative Symbols
                 * CBLe3cTopVPad (default: 1+1*1/4)
@@ -1252,6 +1249,13 @@ class Rm():
                 * pVICsYStart (.8 default)
                 * pVICsYSpace (-.1 default)
 
+            Returns:
+                pFWVB
+                    columns 
+                        * Measure: float 
+                        * MCategory: str (meaningfull only if Measure3Classes True)
+                        * GCategory: list (non-empty only if req. GCategories are a subset of the available Categories and FWVB belongs to a req. Category)
+                    
         """
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -1259,13 +1263,27 @@ class Rm():
         try:
             keys = sorted(kwds.keys())
 
-            # Attribute
+            # FWVB Attribute (Size)
             if 'pFWVBAttribute' not in keys:
                 kwds['pFWVBAttribute']='W0LFK'
             if 'pFWVBAttributeAsc' not in keys:
                 kwds['pFWVBAttributeAsc']=False
             if 'pFWVBAttributeRefSize' not in keys:
                 kwds['pFWVBAttributeRefSize']=10**2
+
+            # FWVB Measure (Color)
+            if 'pFWVBMeasure' not in keys:
+                kwds['pFWVBMeasure']='FWVB~*~*~*~W'
+            if 'pFWVBMeasureInRefPerc' not in keys:
+                kwds['pFWVBMeasureInRefPerc']=True
+            if 'pFWVBMeasure3Classes' not in keys:
+                kwds['pFWVBMeasure3Classes']=False
+            if 'pFWVBMeasureCBFixedLimits' not in keys:
+                kwds['pFWVBMeasureCBFixedLimits']=False
+            if 'pFWVBMeasureCBFixedLimitLow' not in keys:
+                kwds['pFWVBMeasureCBFixedLimitLow']=.10
+            if 'pFWVBMeasureCBFixedLimitHigh' not in keys:
+                kwds['pFWVBMeasureCBFixedLimitHigh']=.95
 
             # CBLegend (3Classes) 
             if 'CBLe3cTopVPad' not in keys:
@@ -1344,7 +1362,7 @@ class Rm():
                 vFWVB.drop('Knotenname',axis=1,inplace=True)
            
             # Einheit der Measures ermitteln (fuer Annotationen)
-            pFWVBMeasureCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(pFWVBMeasure)]
+            pFWVBMeasureCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(kwds['pFWVBMeasure'])]
             pFWVBMeasureUNIT=pFWVBMeasureCh.iloc[0].UNIT
             pFWVBMeasureATTRTYPE=pFWVBMeasureCh.iloc[0].ATTRTYPE
 
@@ -1355,10 +1373,9 @@ class Rm():
             # Sachdaten annotieren mit Spalte Measure >pXXXX ===============================================
 
             # FWVB            
-            pFWVBMeasureValue=plotTimeDfs[timeTIdx][pFWVBMeasure].iloc[0] 
-            pFWVBMeasureValueRef=plotTimeDfs[timeRefIdx][pFWVBMeasure].iloc[0] 
-            if pFWVBMeasureInRefPerc:  # auch in diesem Fall trägt die Spalte Measure das Ergebnis               
-                #pFWVBMeasureValueRef=plotTimeDfs[timeRefIdx][pFWVBMeasure].iloc[0] 
+            pFWVBMeasureValue=plotTimeDfs[timeTIdx][kwds['pFWVBMeasure']].iloc[0] 
+            pFWVBMeasureValueRef=plotTimeDfs[timeRefIdx][kwds['pFWVBMeasure']].iloc[0] 
+            if kwds['pFWVBMeasureInRefPerc']:  # auch in diesem Fall trägt die Spalte Measure das Ergebnis                               
                 pFWVBMeasureValuePerc=[float(m)/float(mRef) if float(mRef) >0 else 1 for m,mRef in zip(pFWVBMeasureValue,pFWVBMeasureValueRef)]
                 pFWVB=vFWVB.assign(Measure=pd.Series(pFWVBMeasureValuePerc)) #!                                
             else:
@@ -1368,17 +1385,17 @@ class Rm():
             pFWVB=pFWVB.assign(MeasureRef=pd.Series(pFWVBMeasureValueRef)) 
 
             # Sachdaten annotieren mit Spalte MCategory           
-            if  not pFWVBMeasureCBFixedLimits and pFWVBMeasure3Classes:
+            if  not kwds['pFWVBMeasureCBFixedLimits'] and kwds['pFWVBMeasure3Classes']:
                 logger.error("Bei 3-Klassendarstellung Wahr muss FixedLimits Wahr sein.")
 
             pFWVBCat=[]
             for index, row in pFWVB.iterrows():
-                if row.Measure >= pFWVBMeasureCBFixedLimitHigh:
-                    pFWVBCat.append(limitTopText)
-                elif row.Measure <= pFWVBMeasureCBFixedLimitLow:
-                    pFWVBCat.append(limitBottomText)
+                if row.Measure >= kwds['pFWVBMeasureCBFixedLimitHigh']:
+                    pFWVBCat.append(pMCatTopText)
+                elif row.Measure <= kwds['pFWVBMeasureCBFixedLimitLow']:
+                    pFWVBCat.append(pMCatBottomText)
                 else:
-                    pFWVBCat.append(limitMiddleText)
+                    pFWVBCat.append(pMCatMiddleText)
             pFWVB=pFWVB.assign(MCategory=pd.Series(pFWVBCat)) 
 
             # Sachdaten annotieren mit Spalte GCategory      
@@ -1488,11 +1505,11 @@ class Rm():
             pcFWVB, CBLimitLow, CBLimitHigh = pltNetNodes(
                 # ALLG
                  pDf=pltFWVB   
-                ,pMeasure3Classes=pFWVBMeasure3Classes 
+                ,pMeasure3Classes=kwds['pFWVBMeasure3Classes'] 
 
-                ,CBFixedLimits=pFWVBMeasureCBFixedLimits
-                ,CBFixedLimitLow=pFWVBMeasureCBFixedLimitLow 
-                ,CBFixedLimitHigh=pFWVBMeasureCBFixedLimitHigh 
+                ,CBFixedLimits=kwds['pFWVBMeasureCBFixedLimits']
+                ,CBFixedLimitLow=kwds['pFWVBMeasureCBFixedLimitLow'] 
+                ,CBFixedLimitHigh=kwds['pFWVBMeasureCBFixedLimitHigh'] 
                 # FWVB
                 ,pMeasure='Measure' 
                 ,pAttribute=kwds['pFWVBAttribute']
@@ -1504,34 +1521,34 @@ class Rm():
                 ,pMeasureClip=pFWVBMeasureClip    
    
                 ,pMCategory='MCategory' 
-                ,pMCatTopTxt=limitTopText # 'Top'     
-                ,pMCatBotTxt=limitBottomText # 'Bottom'    
-                ,pMCatMidTxt=limitMiddleText # 'Middle'             
+                ,pMCatTopTxt=pMCatTopText # 'Top'     
+                ,pMCatBotTxt=pMCatBottomText # 'Bottom'    
+                ,pMCatMidTxt=pMCatMiddleText # 'Middle'             
                
-                ,limitTopColor=limitTopColor
-                ,limitTopAlpha=limitTopAlpha
-                ,limitTopClip=limitTopClip   
+                ,pMCatTopColor=pMCatTopColor
+                ,pMCatTopAlpha=pMCatTopAlpha
+                ,pMCatTopClip=pMCatTopClip   
                                                                         
-                ,limitBottomColor=limitBottomColor 
-                ,limitBottomAlpha=limitBottomAlpha
-                ,limitBottomClip=limitBottomClip
+                ,pMCatBottomColor=pMCatBottomColor 
+                ,pMCatBottomAlpha=pMCatBottomAlpha
+                ,pMCatBottomClip=pMCatBottomClip
                   
-                ,limitMiddleColorMap=limitMiddleColorMap
-                ,limitMiddleAlpha=limitMiddleAlpha
-                ,limitMiddleClip=limitMiddleClip
+                ,pMCatMiddleColorMap=pMCatMiddleColorMap
+                ,pMCatMiddleAlpha=pMCatMiddleAlpha
+                ,pMCatMiddleClip=pMCatMiddleClip
             )
 
             cax,TBAnchorVertical=pltNetColorbar(
                 # ALLG
                  pc=pcFWVB # PathCollection aus pltNetNodes                                        
                 ,pDf=pltFWVB 
-                ,pMeasureInPerc=pFWVBMeasureInRefPerc 
-                ,pMeasure3Classes=pFWVBMeasure3Classes      
+                ,pMeasureInPerc=kwds['pFWVBMeasureInRefPerc'] 
+                ,pMeasure3Classes=kwds['pFWVBMeasure3Classes']      
                 
                 # Ticks (TickLabels und TickValues)
-                ,CBFixedLimits=pFWVBMeasureCBFixedLimits
-                ,CBFixedLimitLow=pFWVBMeasureCBFixedLimitLow
-                ,CBFixedLimitHigh=pFWVBMeasureCBFixedLimitHigh                       
+                ,CBFixedLimits=kwds['pFWVBMeasureCBFixedLimits']
+                ,CBFixedLimitLow=kwds['pFWVBMeasureCBFixedLimitLow']
+                ,CBFixedLimitHigh=kwds['pFWVBMeasureCBFixedLimitHigh']                       
 
                 #
                 ,pMeasure='Measure'           
@@ -1553,14 +1570,14 @@ class Rm():
 
                 # Legend 3 Classes
                 ,pAttribute=kwds['pFWVBAttribute'] 
-                ,pSizeFactor=pFWVBSizeFactor                   
+                #,pSizeFactor=pFWVBSizeFactor                   
                 ,pMCategory='MCategory' 
-                ,pMCatTopTxt=limitTopText     
-                ,pMCatBotTxt=limitBottomText       
-                ,pMCatMidTxt=limitMiddleText     
+                ,pMCatTopTxt=pMCatTopText     
+                ,pMCatBotTxt=pMCatBottomText       
+                ,pMCatMidTxt=pMCatMiddleText     
 
-                ,limitBottomColor=limitBottomColor 
-                ,limitTopColor=limitTopColor 
+                ,pMCatBottomColor=pMCatBottomColor 
+                ,pMCatTopColor=pMCatTopColor 
 
                 ,CBLe3cTopVPad=kwds['CBLe3cTopVPad'] #1+1*1/4                 
                 ,CBLe3cMiddleVPad=kwds['CBLe3cMiddleVPad'] #.5                                                                         
@@ -1692,17 +1709,17 @@ class Rm():
                         continue
 
                     try:                                       
-                        topAnz=int(vAggWblzMCat.loc[NAME,limitTopText]['Measure']['size'])                                                                                
+                        topAnz=int(vAggWblzMCat.loc[NAME,pMCatTopText]['Measure']['size'])                                                                                
                     except:
                         topAnz=0
                    
                     try:                                                          
-                        midAnz=int(vAggWblzMCat.loc[NAME,limitMiddleText]['Measure']['size'])                                                                             
+                        midAnz=int(vAggWblzMCat.loc[NAME,pMCatMiddleText]['Measure']['size'])                                                                             
                     except:                 
                         midAnz=0
                   
                     try:                                                         
-                        botAnz=int(vAggWblzMCat.loc[NAME,limitBottomText]['Measure']['size'])                                                                 
+                        botAnz=int(vAggWblzMCat.loc[NAME,pMCatBottomText]['Measure']['size'])                                                                 
                     except:                   
                         botAnz=0                   
 
@@ -1729,7 +1746,7 @@ class Rm():
                     if pFWVBGCategoryUnit=='[MW]':
                         vIst=vIst/1000.
 
-                    if pFWVBMeasure3Classes:
+                    if kwds['pFWVBMeasure3Classes']:
                         txt="{:12s}: {:6.1f} {:4s} {:6.1f}% {:5d}/{:5d}/{:5d}".format(NAME,vIst,pFWVBGCategoryUnit,vpIstZuvSoll*100,topAnz,midAnz,botAnz)
                     else:
                         txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(NAME,vIst,pFWVBGCategoryUnit,vpIstZuvSoll*100)
@@ -1794,7 +1811,7 @@ class Rm():
                 for index, row in pFWVB[pd.isnull(pFWVB['VIC'])==False].sort_values(['VIC'],ascending=False).iterrows():      
                         kunde=row.VIC                         
                         v=row.Measure
-                        if pFWVBMeasureInRefPerc:
+                        if kwds['pFWVBMeasureInRefPerc']:
                             txt="{:30s} {:3.0f}%".format(kunde,v*100)      
                         else:                           
                             txt="{:30s} {:6.2f} {:s}".format(kunde,v,pFWVBMeasureUNIT)    
