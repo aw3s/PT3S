@@ -1285,6 +1285,24 @@ class Rm():
             if 'pFWVBMeasureCBFixedLimitHigh' not in keys:
                 kwds['pFWVBMeasureCBFixedLimitHigh']=.95
 
+            # CB
+            if 'CBFraction' not in keys:
+                kwds['CBFraction']=0.05
+            if 'CBHpad' not in keys:
+                kwds['CBHpad']=0.0275
+            if 'CBLabelPad' not in keys:
+                kwds['CBLabelPad']=-50
+            if 'CBTicklabelsHPad' not in keys:
+                kwds['CBTicklabelsHPad']=0
+            if 'CBAspect' not in keys:
+                kwds['CBAspect']=10.
+            if 'CBShrink' not in keys:
+                kwds['CBShrink']=0.3
+            if 'CBAnchorHorizontal' not in keys:
+                kwds['CBAnchorHorizontal=']=0.
+            if 'CBAnchorVertical' not in keys:
+                kwds['CBAnchorVertical=']=0.2
+                      
             # CBLegend (3Classes) 
             if 'CBLe3cTopVPad' not in keys:
                 kwds['CBLe3cTopVPad']=1+1*1/4  
