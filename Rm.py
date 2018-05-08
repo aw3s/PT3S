@@ -356,12 +356,13 @@ def pltNetColorbar(
                 ,pMeasureUNIT='[]'
                 ,pMeasureTYPE=''
 
-                ,CBTicklabelsHPad=0.
+
 
                 # Geometrie
                 ,CBFraction=0.05  # fraction of original axes to use for colorbar
                 ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
                 ,CBLabelPad=0. # Label unmittelbar rechts neben der Colorbar
+                ,CBTicklabelsHPad=0.
                
                 ,CBAspect=10. # ratio of long to short dimension
                 ,CBShrink=1. # Colorbar füllt dann y von ax ganz aus 
@@ -415,12 +416,13 @@ def pltNetColorbar(
                 ,CBFixedLimitLow=CBFixedLimitLow
                 ,CBFixedLimitHigh=CBFixedLimitHigh
 
-                ,CBTicklabelsHPad=CBTicklabelsHPad
+
 
                 # Geometrie
                 ,CBFraction=CBFraction
                 ,CBHpad=CBHpad              
-                ,CBLabelPad=CBLabelPad                
+                ,CBLabelPad=CBLabelPad  
+                ,CBTicklabelsHPad=CBTicklabelsHPad                              
                 ,CBAspect=CBAspect 
                 ,CBShrink=CBShrink 
                 ,CBAnchorHorizontal=CBAnchorHorizontal 
@@ -495,12 +497,11 @@ def pltNetColorbarBar(
                 ,CBFixedLimitLow=0 
                 ,CBFixedLimitHigh=1        
                 
-                ,CBTicklabelsHPad=0        
-
                 # Geometrie
                 ,CBFraction=0.05  # fraction of original axes to use for colorbar
                 ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
-                ,CBLabelPad=0. # Label unmittelbar rechts neben der Colorbar               
+                ,CBLabelPad=0. # Label unmittelbar rechts neben der Colorbar        
+                ,CBTicklabelsHPad=0                               
                 ,CBAspect=10. # ratio of long to short dimension
                 ,CBShrink=1. # Colorbar füllt dann y von ax ganz aus 
                 ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-% von ax
@@ -1111,34 +1112,34 @@ class Rm():
 
         
                    
-        ,pFWVBMeasureColorMap=plt.cm.autumn 
-        ,pFWVBMeasureAlpha=0.9 
-        ,pFWVBMeasureClip=False    
+    #    ,pFWVBMeasureColorMap=plt.cm.autumn 
+    #    ,pFWVBMeasureAlpha=0.9 
+    #    ,pFWVBMeasureClip=False    
                 
-        ,pMCatTopColor='palegreen'
-        ,pMCatTopAlpha=0.9 
-        ,pMCatTopClip=False            
-        ,pMCatTopText='Top' 
+    #    ,pMCatTopColor='palegreen'
+    #    ,pMCatTopAlpha=0.9 
+    #    ,pMCatTopClip=False            
+    #    ,pMCatTopText='Top' 
                                                     
-        ,pMCatBottomColor='violet'
-        ,pMCatBottomAlpha=0.9 
-        ,pMCatBottomClip=False    
-        ,pMCatBottomText='Bottom' 
+     #   ,pMCatBottomColor='violet'
+     #   ,pMCatBottomAlpha=0.9 
+     #   ,pMCatBottomClip=False    
+     #   ,pMCatBottomText='Bottom' 
 
-        ,pMCatMiddleColorMap=plt.cm.autumn 
-        ,pMCatMiddleAlpha=0.9 
-        ,pMCatMiddleClip=False    
-        ,pMCatMiddleText='Middle'     
+     #   ,pMCatMiddleColorMap=plt.cm.autumn 
+     #   ,pMCatMiddleAlpha=0.9 
+     #   ,pMCatMiddleClip=False    
+     #   ,pMCatMiddleText='Middle'     
                    
         # CB   -----------------------------------------------------------------------------------------
-        ,CBFraction=0.05  # fraction of original axes to use for colorbar
-        ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
-        ,CBLabelPad=-50         
-        ,CBTicklabelsHPad=0.      
-        ,CBAspect=10. # ratio of long to short dimension
-        ,CBShrink=0.3 # fraction by which to shrink the colorbar
-        ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-%
-        ,CBAnchorVertical=0.2 # vertikaler Fußpunkt der colorbar in Plot-%                                
+      #  ,CBFraction=0.05  # fraction of original axes to use for colorbar
+      #  ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
+      #  ,CBLabelPad=-50         
+      #  ,CBTicklabelsHPad=0.      
+      #  ,CBAspect=10. # ratio of long to short dimension
+      #  ,CBShrink=0.3 # fraction by which to shrink the colorbar
+      #  ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-%
+      #  ,CBAnchorVertical=0.2 # vertikaler Fußpunkt der colorbar in Plot-%                                
 
         # ROHR -----------------------------------------------------------------------------------------
         ,pROHRAttribute='DI'              
@@ -1201,14 +1202,48 @@ class Rm():
                     * 0-1
                     * if refValue is 0 than refPerc is set to 1 
 
-                * pFWVBMeasure3Classes (default: False d.h. Measure wird nicht in 3 Klassen dargestellt)
-                * pFWVBMeasureCBFixedLimits (default: False d.h. Farbskala nach vorh. min./max. Wert)
+                * pFWVBMeasureAlpha/Colormap/Clip
 
-                    * muss Wahr gesetzt sein, wenn 3Classes Wahr gesetzt ist
+                * 3Classes
 
-                * pFWVBMeasureCBFixedLimitLow (default: .10) 
-                * pFWVBMeasureCBFixedLimitHigh (default: .95) 
+                    * pFWVBMeasure3Classes (default: False d.h. Measure wird nicht in 3 Klassen dargestellt)
 
+                    * CatTexts (werden verwendet wenn 3Classes Wahr gesetzt ist)
+
+                        * für CBLegend (3Classes) als _zusätzliche Beschriftung rechts
+                        * als Texte für die Spalte MCategory in return pFWVB
+
+                        * pMCatTopText
+                        * pMCatMiddleText
+                        * pMCatBottomText
+
+                    * CatAttribs (werden verwendet wenn 3Classes Wahr gesetzt ist)
+
+                        * für die Knotendarstellung                        
+
+                        * pMCatTopAlpha/Color/Clip
+                        * pMCatMidAlpha/Colormap/Clip
+                        * pMCatBotAlpha/Color/Clip
+                                   
+                * CBFixedLimits 
+                
+                    * pFWVBMeasureCBFixedLimits (default: False d.h. Farbskala nach vorh. min./max. Wert)
+
+                        * muss Wahr gesetzt sein, wenn 3Classes Wahr gesetzt ist
+                        * in diesem Fall werden zwingend die nachfolgenden Limits für die Klasseneinteilung verwendet
+
+                    * pFWVBMeasureCBFixedLimitLow (default: .10) 
+                    * pFWVBMeasureCBFixedLimitHigh (default: .95) 
+
+            CB
+                * CBFraction: fraction of original axes to use for colorbar (default: 0.05)
+                * CBHpad: fraction of original axes between colorbar and new image axes (default: 0.0275)               
+                * CBLabelPad (default: -50)         
+                * CBTicklabelsHPad (default: 0.)      
+                * CBAspect: ratio of long to short dimension (default: 10.)
+                * CBShrink: fraction by which to shrink the colorbar (default: .3)
+                * CBAnchorHorizontal: horizontaler Fußpunkt der colorbar in Plot-% (default: 0.)
+                * CBAnchorVertical: vertikaler Fußpunkt der colorbar in Plot-% (default: 0.2)     
 
             CBLegend (3Classes) - Parameterization of the representative Symbols
                 * CBLe3cTopVPad (default: 1+1*1/4)
@@ -1253,7 +1288,13 @@ class Rm():
                 pFWVB
                     columns 
                         * Measure: float 
-                        * MCategory: str (meaningfull only if Measure3Classes True)
+                        * MCategory: str (meaningfull only if Measure3Classes True):
+
+                            str:
+                            * TopText or
+                            * MiddleText or
+                            * BottomText
+
                         * GCategory: list (non-empty only if req. GCategories are a subset of the available Categories and FWVB belongs to a req. Category)
                     
         """
@@ -1276,8 +1317,49 @@ class Rm():
                 kwds['pFWVBMeasure']='FWVB~*~*~*~W'
             if 'pFWVBMeasureInRefPerc' not in keys:
                 kwds['pFWVBMeasureInRefPerc']=True
+
+            if 'pFWVBMeasureAlpha' not in keys:
+                kwds['pFWVBMeasureAlpha']=0.9
+            if 'pFWVBMeasureColorMap' not in keys:
+                kwds['pFWVBMeasureColorMap']=plt.cm.autumn
+            if 'pFWVBMeasureClip' not in keys:
+                kwds['pFWVBMeasureClip']=False
+
+            # 3Classes
             if 'pFWVBMeasure3Classes' not in keys:
                 kwds['pFWVBMeasure3Classes']=False
+
+            # CatTexts (werden verwendet wenn 3Classes Wahr gesetzt ist)
+            if 'pMCatTopText' not in keys:
+                kwds['pMCatTopText']='Top'
+            if 'pMCatMiddleText' not in keys:
+                kwds['pMCatMiddleText']='Middle'
+            if 'pMCatBottomText' not in keys:
+                kwds['pMCatBottomText']='Bottom'
+
+            # CatAttribs (werden verwendet wenn 3Classes Wahr gesetzt ist)
+            if 'pMCatTopAlpha' not in keys:
+                kwds['pMCatTopAlpha']=0.9
+            if 'pMCatTopColor' not in keys:
+                kwds['pMCatTopColor']='palegreen'
+            if 'pMCatTopClip' not in keys:
+                kwds['pMCatTopClip']=False
+
+            if 'pMCatMidAlpha' not in keys:
+                kwds['pMCatMidAlpha']=0.9
+            if 'pMCatMidColorMap' not in keys:
+                kwds['pMCatMidColorMap']=plt.cm.autumn
+            if 'pMCatMidClip' not in keys:
+                kwds['pMCatMidClip']=False
+
+            if 'pMCatBotAlpha' not in keys:
+                kwds['pMCatBotAlpha']=0.9
+            if 'pMCatBotColor' not in keys:
+                kwds['pMCatBotColor']='violet'
+            if 'pMCatBotClip' not in keys:
+                kwds['pMCatBotClip']=False
+
+            # CBFixedLimits 
             if 'pFWVBMeasureCBFixedLimits' not in keys:
                 kwds['pFWVBMeasureCBFixedLimits']=False
             if 'pFWVBMeasureCBFixedLimitLow' not in keys:
@@ -1299,9 +1381,9 @@ class Rm():
             if 'CBShrink' not in keys:
                 kwds['CBShrink']=0.3
             if 'CBAnchorHorizontal' not in keys:
-                kwds['CBAnchorHorizontal=']=0.
+                kwds['CBAnchorHorizontal']=0.
             if 'CBAnchorVertical' not in keys:
-                kwds['CBAnchorVertical=']=0.2
+                kwds['CBAnchorVertical']=0.2
                       
             # CBLegend (3Classes) 
             if 'CBLe3cTopVPad' not in keys:
@@ -1409,11 +1491,11 @@ class Rm():
             pFWVBCat=[]
             for index, row in pFWVB.iterrows():
                 if row.Measure >= kwds['pFWVBMeasureCBFixedLimitHigh']:
-                    pFWVBCat.append(pMCatTopText)
+                    pFWVBCat.append(kwds['pMCatTopText'])
                 elif row.Measure <= kwds['pFWVBMeasureCBFixedLimitLow']:
-                    pFWVBCat.append(pMCatBottomText)
+                    pFWVBCat.append(kwds['pMCatBottomText'])
                 else:
-                    pFWVBCat.append(pMCatMiddleText)
+                    pFWVBCat.append(kwds['pMCatMiddleText'])
             pFWVB=pFWVB.assign(MCategory=pd.Series(pFWVBCat)) 
 
             # Sachdaten annotieren mit Spalte GCategory      
@@ -1502,8 +1584,8 @@ class Rm():
                ,pXCor_k='pXCor_k'  # colName 
                ,pYCor_k='pYCor_k'  # colName   
 
-               ,CBFraction=CBFraction 
-               ,CBHpad=CBHpad              
+               ,CBFraction=kwds['CBFraction'] 
+               ,CBHpad=kwds['CBHpad']              
 
                ,pltTitle=pltTitle
                ,figFrameon=figFrameon
@@ -1534,26 +1616,26 @@ class Rm():
                                              
                 ,pSizeFactor=pFWVBSizeFactor
                    
-                ,pMeasureColorMap=pFWVBMeasureColorMap 
-                ,pMeasureAlpha=pFWVBMeasureAlpha
-                ,pMeasureClip=pFWVBMeasureClip    
+                ,pMeasureColorMap=kwds['pFWVBMeasureColorMap'] 
+                ,pMeasureAlpha=kwds['pFWVBMeasureAlpha']
+                ,pMeasureClip=kwds['pFWVBMeasureClip']    
    
                 ,pMCategory='MCategory' 
-                ,pMCatTopTxt=pMCatTopText # 'Top'     
-                ,pMCatBotTxt=pMCatBottomText # 'Bottom'    
-                ,pMCatMidTxt=pMCatMiddleText # 'Middle'             
+                ,pMCatTopTxt=kwds['pMCatTopText'] # 'Top'     
+                ,pMCatBotTxt=kwds['pMCatBottomText'] # 'Bottom'    
+                ,pMCatMidTxt=kwds['pMCatMiddleText'] # 'Middle'             
                
-                ,pMCatTopColor=pMCatTopColor
-                ,pMCatTopAlpha=pMCatTopAlpha
-                ,pMCatTopClip=pMCatTopClip   
+                ,pMCatTopColor=kwds['pMCatTopColor']
+                ,pMCatTopAlpha=kwds['pMCatTopAlpha']
+                ,pMCatTopClip=kwds['pMCatTopClip']   
                                                                         
-                ,pMCatBottomColor=pMCatBottomColor 
-                ,pMCatBottomAlpha=pMCatBottomAlpha
-                ,pMCatBottomClip=pMCatBottomClip
+                ,pMCatBottomColor=kwds['pMCatBotColor'] 
+                ,pMCatBottomAlpha=kwds['pMCatBotAlpha']
+                ,pMCatBottomClip=kwds['pMCatBotClip']
                   
-                ,pMCatMiddleColorMap=pMCatMiddleColorMap
-                ,pMCatMiddleAlpha=pMCatMiddleAlpha
-                ,pMCatMiddleClip=pMCatMiddleClip
+                ,pMCatMiddleColorMap=kwds['pMCatMidColorMap']
+                ,pMCatMiddleAlpha=kwds['pMCatMidAlpha']
+                ,pMCatMiddleClip=kwds['pMCatMidClip']
             )
 
             cax,TBAnchorVertical=pltNetColorbar(
@@ -1575,27 +1657,26 @@ class Rm():
                 ,pMeasureUNIT=pFWVBMeasureUNIT
                 ,pMeasureTYPE=pFWVBMeasureATTRTYPE
 
-                ,CBTicklabelsHPad=CBTicklabelsHPad
-
                 # Geometrie
-                ,CBFraction=CBFraction  
-                ,CBHpad=CBHpad          
-                ,CBLabelPad=CBLabelPad              
-                ,CBAspect=CBAspect 
-                ,CBShrink=CBShrink 
-                ,CBAnchorHorizontal=CBAnchorHorizontal 
-                ,CBAnchorVertical=CBAnchorVertical 
+                ,CBFraction=kwds['CBFraction']  
+                ,CBHpad=kwds['CBHpad']          
+                ,CBLabelPad=kwds['CBLabelPad']    
+                ,CBTicklabelsHPad=kwds['CBTicklabelsHPad']                          
+                ,CBAspect=kwds['CBAspect'] 
+                ,CBShrink=kwds['CBShrink'] 
+                ,CBAnchorHorizontal=kwds['CBAnchorHorizontal'] 
+                ,CBAnchorVertical=kwds['CBAnchorVertical'] 
 
                 # Legend 3 Classes
                 ,pAttribute=kwds['pFWVBAttribute'] 
                 #,pSizeFactor=pFWVBSizeFactor                   
                 ,pMCategory='MCategory' 
-                ,pMCatTopTxt=pMCatTopText     
-                ,pMCatBotTxt=pMCatBottomText       
-                ,pMCatMidTxt=pMCatMiddleText     
+                ,pMCatTopTxt=kwds['pMCatTopText']     
+                ,pMCatBotTxt=kwds['pMCatBottomText']       
+                ,pMCatMidTxt=kwds['pMCatMiddleText']     
 
-                ,pMCatBottomColor=pMCatBottomColor 
-                ,pMCatTopColor=pMCatTopColor 
+                ,pMCatBottomColor=kwds['pMCatBotColor'] 
+                ,pMCatTopColor=kwds['pMCatTopColor'] 
 
                 ,CBLe3cTopVPad=kwds['CBLe3cTopVPad'] #1+1*1/4                 
                 ,CBLe3cMiddleVPad=kwds['CBLe3cMiddleVPad'] #.5                                                                         
@@ -1727,17 +1808,17 @@ class Rm():
                         continue
 
                     try:                                       
-                        topAnz=int(vAggWblzMCat.loc[NAME,pMCatTopText]['Measure']['size'])                                                                                
+                        topAnz=int(vAggWblzMCat.loc[NAME,kwds['pMCatTopText']]['Measure']['size'])                                                                                
                     except:
                         topAnz=0
                    
                     try:                                                          
-                        midAnz=int(vAggWblzMCat.loc[NAME,pMCatMiddleText]['Measure']['size'])                                                                             
+                        midAnz=int(vAggWblzMCat.loc[NAME,kwds['pMCatMiddleText']]['Measure']['size'])                                                                             
                     except:                 
                         midAnz=0
                   
                     try:                                                         
-                        botAnz=int(vAggWblzMCat.loc[NAME,pMCatBottomText]['Measure']['size'])                                                                 
+                        botAnz=int(vAggWblzMCat.loc[NAME,kwds['pMCatBottomText']]['Measure']['size'])                                                                 
                     except:                   
                         botAnz=0                   
 
