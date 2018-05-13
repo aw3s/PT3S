@@ -331,134 +331,7 @@ def pltNetNodes(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))            
         return (pcN, vmin, vmax)
 
-def pltNetColorbar( 
-                pc # (eingefaerbte) PathCollection (/aus pltNetNodes); werden für die Erzeugung der colorbar zwingend benoetigt   
-                 
-                # wird nur benötigt wenn CBFixedLimitLow/High _nicht gelten:
-                #>...                     
-                ,pDf=None # df            
-                ,pMeasure='Measure'  # colName                 
-                # pMeasure3Classes True: CBFixedLimitLow/High gelten; CBFixedLimits spielt keine Rolle
-                # False: CBFixedLimitLow/High gelten wenn CBFixedLimits
-                # sonst: pDf[pMeasure].min()/.max() sind die Limits 
-                 #...<
-
-                ,pMeasureInPerc=True # Measure wird interpretiert in Prozent [0-1] 
-                ,pMeasure3Classes=True 
-
-                # Ticks (TickLabels und TickValues)
-                ,CBFixedLimits=False
-                ,CBFixedLimitLow=0 
-                ,CBFixedLimitHigh=1        
-                
-                # Label
-                ,pMeasureUNIT='[]'
-                ,pMeasureTYPE=''
-
-                # Geometrie
-                ,CBFraction=0.05  # fraction of original axes to use for colorbar
-                ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
-                ,CBLabelPad=0. # Label unmittelbar rechts neben der Colorbar
-                ,CBTicklabelsHPad=0.
-               
-                ,CBAspect=10. # ratio of long to short dimension
-                ,CBShrink=1. # Colorbar füllt dann y von ax ganz aus 
-                ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-% von ax
-                ,CBAnchorVertical=0. # vertikaler Fußpunkt der colorbar in Plot-% von ax       
-                
-                # Legend 3Classes --------------------------------------------------------------------
-                ,pMCategory='MCategory'
-
-                ,pMCatTopTxt='Top'
-                ,pMCatMidTxt='Middle'
-                ,pMCatBotTxt='Bottom'
-
-                ,pMCatBotColor='violet'                 
-                ,pMCatTopColor='palegreen' 
-
-                ,CBLe3cTopVPad=1+1*1/4                 
-                ,CBLe3cMidVPad=.5                                                                         
-                ,CBLe3cBotVPad=0-1*1/4  
-
-                ,CBLe3cSySize=10**2 # (Sy-Area in pts^2)
-                ,CBLe3cSyType='o'                                                                     
-                ):
-    """
-    Ablauf:
-        * pltNetColorbarBar: Eerzeugt und zeichnet die Farbskala
-        * pltNetColorbarLegend3Classes: Zeichnet bei 3 Klassen die ergänzenden Legendeninformationen   
-    Return:
-        * cax 
-        * TBAnchorVertical: Ende des Farbskakla 
-    """
-    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-        
-    try: 
-        cax=None
-        cax=pltNetColorbarBar(
-                 pc                  
-                
-                ,pDf=pDf                                                                                                       
-                ,pMeasure=pMeasure 
-                
-                ,pMeasureInPerc=pMeasureInPerc
-                ,pMeasure3Classes=pMeasure3Classes         
-                              
-                ,pMeasureUNIT=pMeasureUNIT
-                ,pMeasureTYPE=pMeasureTYPE
-                
-                ,CBFixedLimits=CBFixedLimits
-                ,CBFixedLimitLow=CBFixedLimitLow
-                ,CBFixedLimitHigh=CBFixedLimitHigh
-
-                # Geometrie
-                ,CBFraction=CBFraction
-                ,CBHpad=CBHpad              
-                ,CBLabelPad=CBLabelPad  
-                ,CBTicklabelsHPad=CBTicklabelsHPad                              
-                ,CBAspect=CBAspect 
-                ,CBShrink=CBShrink 
-                ,CBAnchorHorizontal=CBAnchorHorizontal 
-                ,CBAnchorVertical=CBAnchorVertical                    
-            )
-        
-        TBAnchorVertical=1.                         
-        if pMeasure3Classes:                                                                   
-             bbTop, bbMid, bbBot = pltNetColorbarLegend3Classes( 
-                pDf
-
-               ,pMCategory=pMCategory
-
-               ,pMCatTopTxt=pMCatTopTxt
-               ,pMCatMidTxt=pMCatMidTxt
-               ,pMCatBotTxt=pMCatBotTxt
-
-               ,pMCatBotColor=pMCatBotColor                 
-               ,pMCatTopColor=pMCatTopColor    
-               
-               ,CBLe3cTopVPad=CBLe3cTopVPad                
-               ,CBLe3cMidVPad=CBLe3cMidVPad                                                                       
-               ,CBLe3cBotVPad=CBLe3cBotVPad       
-               
-               ,CBLe3cSySize=CBLe3cSySize
-               ,CBLe3cSyType=CBLe3cSyType
-                                                                                                                   
-             )
-             if bbTop != None:
-                TBAnchorVertical=bbTop.y1
-                                                                                                                
-    except RmError:
-        raise            
-    except Exception as e:
-        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-        logger.error(logStrFinal) 
-        raise RmError(logStrFinal)                       
-    finally:
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
-        return (cax,TBAnchorVertical)
-
-def pltNetColorbarBar( 
+def pltNetLegendColorbar( 
                 pc # (eingefaerbte) PathCollection (aus pltNetNodes); werden für die Erzeugung der colorbar zwingend benoetigt  
                  
                 # wird nur benötigt wenn CBFixedLimitLow/High _nicht gelten:
@@ -493,7 +366,7 @@ def pltNetColorbarBar(
                 ,CBAnchorVertical=0. # vertikaler Fußpunkt der colorbar in Plot-% von ax                     
                 ):
     """
-    Erzeugt und zeichnet die Farbskala.
+    Erzeugt die Farbskala-Axes und zeichnet die Farbskala.
 
         Ablauf
     
@@ -585,10 +458,8 @@ def pltNetColorbarBar(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
         return cax
 
-def pltNetColorbarLegend3Classes( 
+def pltNetLegendColorbar3Classes( 
                 pDf
-
-            #   ,CBAnchorHorizontal=0.
 
                ,pMCategory='MCategory' # colName 
 
@@ -1604,7 +1475,26 @@ class Rm():
                 ,pMCatMidClip=kwds['pMCatMidClip']
             )
 
-            cax,TBAnchorVertical=pltNetColorbar(
+            #fig.sca(ax)
+            pltNetPipes(
+                pltROHR
+               ,pAttribute=pROHRAttribute  # Line
+               ,pMeasure='Measure'  # Marker
+
+               ,pClip=pROHRClip
+               ,pAttributeLs=pROHRAttributeLs 
+               ,pMeasureMarker=pROHRMeasureMarker
+
+               ,pAttríbuteColorMap=pROHRAttributeColorMap 
+               ,pAttríbuteColorMapUsageStart=pROHRAttríbuteColorMapUsageStart 
+               ,pAttributeSizeFactor=pROHRAttributeRefSize/pltROHR[pROHRAttribute].max()              
+
+               ,pMeasureColorMap=pROHRMeasureColorMap 
+               ,pMeasureColorMapUsageStart=pROHRMeasureColorMapUsageStart             
+               ,pMeasureSizeFactor=pROHRMeasureRefSize/pltROHR['Measure'].max()        
+            )
+
+            cax=pltNetLegendColorbar(
                 # ALLG
                  pc=pcFWVB # PathCollection aus pltNetNodes                                        
                 ,pDf=pltFWVB 
@@ -1632,51 +1522,36 @@ class Rm():
                 ,CBShrink=kwds['CBShrink'] 
                 ,CBAnchorHorizontal=kwds['CBAnchorHorizontal'] 
                 ,CBAnchorVertical=kwds['CBAnchorVertical'] 
-
-                # Legend 3 Classes -------------------------------------------------------
-               # ,pAttribute=kwds['pFWVBAttribute'] 
-                #,pSizeFactor=pFWVBSizeFactor                   
-                ,pMCategory='MCategory' 
-                ,pMCatTopTxt=kwds['pMCatTopText']     
-                ,pMCatBotTxt=kwds['pMCatBotText']       
-                ,pMCatMidTxt=kwds['pMCatMidText']     
-
-                ,pMCatBotColor=kwds['pMCatBotColor'] 
-                ,pMCatTopColor=kwds['pMCatTopColor'] 
-
-                ,CBLe3cTopVPad=kwds['CBLe3cTopVPad'] 
-                ,CBLe3cMidVPad=kwds['CBLe3cMidVPad']                                                                     
-                ,CBLe3cBotVPad=kwds['CBLe3cBotVPad'] 
-                ,CBLe3cSySize=kwds['CBLe3cSySize'] 
-                ,CBLe3cSyType=kwds['CBLe3cSyType'] 
-
-
             )
+    
+            if kwds['pFWVBMeasure3Classes']:                                                                   
+                 bbTop, bbMid, bbBot = pltNetLegendColorbar3Classes(                 
+                     pDf=pltFWVB          
+                    ,pMCategory='MCategory' 
+                    ,pMCatTopTxt=kwds['pMCatTopText']     
+                    ,pMCatBotTxt=kwds['pMCatBotText']       
+                    ,pMCatMidTxt=kwds['pMCatMidText']     
 
-            fig.sca(ax)
-            pltNetPipes(
-                pltROHR
-               ,pAttribute=pROHRAttribute  # Line
-               ,pMeasure='Measure'  # Marker
+                    ,pMCatBotColor=kwds['pMCatBotColor'] 
+                    ,pMCatTopColor=kwds['pMCatTopColor'] 
 
-               ,pClip=pROHRClip
-               ,pAttributeLs=pROHRAttributeLs 
-               ,pMeasureMarker=pROHRMeasureMarker
+                    ,CBLe3cTopVPad=kwds['CBLe3cTopVPad'] 
+                    ,CBLe3cMidVPad=kwds['CBLe3cMidVPad']                                                                     
+                    ,CBLe3cBotVPad=kwds['CBLe3cBotVPad'] 
+                    ,CBLe3cSySize=kwds['CBLe3cSySize'] 
+                    ,CBLe3cSyType=kwds['CBLe3cSyType']                                                                                                    
+                 )
+                 TBAV=bbTop.y1
+            else:
+                 TBAV=1.
+            
 
-               ,pAttríbuteColorMap=pROHRAttributeColorMap 
-               ,pAttríbuteColorMapUsageStart=pROHRAttríbuteColorMapUsageStart 
-               ,pAttributeSizeFactor=pROHRAttributeRefSize/pltROHR[pROHRAttribute].max()              
 
-               ,pMeasureColorMap=pROHRMeasureColorMap 
-               ,pMeasureColorMapUsageStart=pROHRMeasureColorMapUsageStart             
-               ,pMeasureSizeFactor=pROHRMeasureRefSize/pltROHR['Measure'].max()        
-            )
-
-            fig.sca(cax)
+#            fig.sca(cax)
             xmFileName,ext = os.path.splitext(os.path.basename(self.xm.xmlFile))
             (wDir,modelDir,modelName)=self.xm.getWDirModelDirModelName()
             pltNetTitleblock( 
-              TBAnchorVertical=TBAnchorVertical+TBVSpace
+              TBAnchorVertical=TBAV+TBVSpace
              ,TBHSpace=TBHSpace  
              ,Projekt=self.xm.dataFrames['MODELL']['PROJEKT'].iloc[0]
              ,Planer=self.xm.dataFrames['MODELL']['PLANER'].iloc[0]
