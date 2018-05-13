@@ -120,7 +120,7 @@ class RmError(Exception):
 from matplotlib import markers
 from matplotlib.path import Path
 
-def align_marker(marker, halign='center', valign='middle',):
+def pltHlpAlignMarker(marker, halign='center', valign='middle',):
     """
     create markers with specified alignment.
 
@@ -182,6 +182,108 @@ def align_marker(marker, halign='center', valign='middle',):
     m_arr[:, 1] += valign / 2
 
     return Path(m_arr, bm.get_path().codes)
+
+def pltNetFigAx(
+                pDf
+               ,pXCor_i='pXCor_i'  # colName 
+               ,pYCor_i='pYCor_i'  # colName          
+               ,pXCor_k='pXCor_k'  # colName 
+               ,pYCor_k='pYCor_k'  # colName   
+
+               ,CBFraction=0.05  # fraction of original axes to use for colorbar
+               ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes            
+
+               # Plot
+               ,pltTitle='pltNetFigAx' # plt.title not f.suptitle
+               ,figFrameon=True # set whether the figure frame (background) is displayed or invisible
+               #,figLinewidth=1.
+               ,figEdgecolor='black' # set the edge color of the Figure rectangle
+               ,figFacecolor='white' # set the face color of the Figure rectangle
+                                                                                           
+               ):
+    """
+    Fig- und Ax-Parametrierungen
+    ax wird erzeugt
+    """
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+    try:         
+        dx=max(pDf[pXCor_i].max(),pDf[pXCor_k].max())
+        dy=max(pDf[pYCor_i].max(),pDf[pYCor_k].max())
+
+        # erf. Verhältnis bei verzerrungsfreier Darstellung
+        dydx=dy/dx 
+
+        if(dydx>=1):
+            dxInch=DINA4_x # Hochformat
+        else:
+            dxInch=DINA4_y # Querformat
+    
+        figwidth=dxInch
+
+        #verzerrungsfrei: Blattkoordinatenverhaeltnis = Weltkoordinatenverhaeltnis
+        factor=1-(CBFraction+CBHpad)
+        # verzerrungsfreie Darstellung sicherstellen
+        figheight=figwidth*dydx*factor
+
+        # Weltkoordinatenbereich
+        xlimLeft=0
+        ylimBottom=0
+        xlimRight=dx
+        ylimTop=dy
+        
+        # plt.figure(dpi=, facecolor=, edgecolor=, linewidth=, frameon=True)
+        fig = plt.gcf()  # This will return an existing figure if one is open, or it will make a new one if there is no active figure.
+
+        # https://stackoverflow.com/questions/14827650/pyplot-scatter-plot-marker-size
+
+        # Size in pts:
+        # the argument markersize in plot    denotes the markersize (i.e. diameter) in points
+        # the argument s          in scatter denotes the markersize**2              in points^2
+        # so a given plot-marker with markersize=x needs a scatter-marker with s=x**2 if the scatter-marker shall cover the same "area" in points^2
+        # the "area" of the scatter-marker is proportional to the s param
+
+        # What are points - pts:
+        # the standard size of points in matplotlib is 72 ppi
+        # 1 point is hence 1/72 inches (1 inch = 1 Zoll = 2.54 cm)
+        # 1 point = 0.352777.... mm
+
+        # points and pixels - px:
+        # 1 point = dpi/ppi
+        # the standard dpi in matplotlib is 100
+        # a scatter-marker whos "area" covers always 10 pixel:
+        # s=(10*ppi/dpi)**2       
+
+        fig.set_figwidth(figwidth)
+        fig.set_figheight(figheight)
+
+        logger.debug("{:s}dx={:10.2f} dy={:10.2f}".format(logStr,dx,dy))     
+        logger.debug("{:s}figwidth={:10.2f} figheight={:10.2f}".format(logStr,figwidth,figheight))   
+
+        ax=plt.subplot()
+        ax.set_xlim(left=xlimLeft)
+        ax.set_ylim(bottom=ylimBottom)
+        ax.set_xlim(right=xlimRight)
+        ax.set_ylim(top=ylimTop)
+
+        xTicks=ax.get_xticks()
+        dxTick = xTicks[1]-xTicks[0]
+        yTicks=ax.set_yticks([idx*dxTick for idx in range(math.floor(dy/dxTick)+1)])
+
+        plt.title(pltTitle)              
+        fig.set_frameon(figFrameon) 
+        fig.set_edgecolor(figEdgecolor)
+        fig.set_facecolor(figFacecolor)
+                                                                                          
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))               
 
 def pltNetNodes( 
                 # ALLG
@@ -330,6 +432,83 @@ def pltNetNodes(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))            
         return (pcN, vmin, vmax)
+
+def pltNetPipes(
+                pDf
+               ,pAttribute='DI'  # Line
+               ,pMeasure='Measure'  # Marker
+
+               ,pClip=False
+               ,pAttributeLs='-'  
+               ,pMeasureMarker='.' 
+
+               ,pAttríbuteColorMap=plt.cm.binary    
+               ,pAttríbuteColorMapUsageStart=1./3                           
+               ,pAttributeSizeFactor=1. # in diesem Fall ist die Linienbreite in Pts = dem pAttribute-Wert         
+
+               ,pMeasureColorMap=plt.cm.binary    
+               ,pMeasureColorMapUsageStart=1./3
+               ,pMeasureSizeFactor=1. # in diesem Fall ist die Symbolgröße in Pts = dem pMeasure-Wert                                                                          
+               ):
+    """
+    plottet Lines mit Marker auf gca()
+    """
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+    try: 
+        ax=plt.gca()
+
+        minLine=pDf[pAttribute].min()
+        maxLine=pDf[pAttribute].max()
+        logger.debug("{:s}minLine (Attribute): {:6.2f}".format(logStr,minLine))
+        logger.debug("{:s}maxLine (Attribute): {:6.2f}".format(logStr,maxLine))
+        normLine=colors.Normalize(minLine,maxLine)
+        usageLineValue=minLine+pAttríbuteColorMapUsageStart*(maxLine-minLine)
+        usageLineColor=pAttríbuteColorMap(normLine(usageLineValue)) 
+
+        minMarker=pDf[pMeasure].min()
+        maxMarker=pDf[pMeasure].max()
+        normMarker=colors.Normalize(minMarker,maxMarker)
+        usageMarkerValue=minMarker+pMeasureColorMapUsageStart*(maxMarker-minMarker)
+        usageMarkerColor=pMeasureColorMap(normMarker(usageMarkerValue)) 
+
+        for xs,ys,vLine,vMarker in zip(pDf['pWAYPXCors'],pDf['pWAYPYCors'],pDf[pAttribute],pDf[pMeasure]):        
+            if vLine >= usageLineValue:
+                colorLine=pAttríbuteColorMap(normLine(vLine)) 
+            else:
+                colorLine=usageLineColor
+            if vMarker >= usageMarkerValue:
+                colorMarker=pMeasureColorMap(normMarker(vMarker))
+            else:
+                colorMarker=usageMarkerColor
+
+            colorMarker=pMeasureColorMap(normMarker(vMarker))
+            pcLines=ax.plot(xs,ys
+                            ,color=colorLine
+                            ,linewidth=pAttributeSizeFactor*vLine 
+                            ,ls=pAttributeLs
+                            ,marker=pMeasureMarker
+                            ,mfc=colorMarker 
+                            ,mec=colorMarker  
+                            ,mfcalt=colorMarker  
+                            ,mew=0
+                            ,ms=pMeasureSizeFactor*vMarker                                                    
+                            ,markevery=[0,len(xs)-1]
+                            ,aa=True
+                            ,clip_on=pClip
+                           )            
+            #logger.debug("{:s}pcLines: {!s:s}".format(logStr,pcLines))
+      
+                                                                                          
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                   
 
 def pltNetLegendColorbar( 
                 pc # (eingefaerbte) PathCollection (aus pltNetNodes); werden für die Erzeugung der colorbar zwingend benoetigt  
@@ -496,22 +675,11 @@ def pltNetLegendColorbar3Classes(
         pDf_bot_Anz,col=pDf_bot.shape
 
         logger.debug("{:s} pDf_bot_Anz={:d}  pDf_mid_Anz={:d} pDf_top_Anz={:d}".format(logStr,pDf_bot_Anz,pDf_mid_Anz,pDf_top_Anz))
+        logger.debug("{:s} CBLe3cBotVPad={:f}  CBLe3cMidVPad={:f} CBLe3cTopVPad={:f}".format(logStr,CBLe3cBotVPad,CBLe3cMidVPad,CBLe3cTopVPad))
 
-        #logger.debug("{:s} pDf[pAttribute].max()={:10.3f}".format(logStr,pDf[pAttribute].max()))
-        #legendSymbolSize=pSizeFactor*pDf[pAttribute].max()
-
-        #legendSymbolSize=CBLe3cSySize
-
-        #logger.debug("{:s} legendSymbolSize={:10.3f} CBLe3cSyType={:s}".format(logStr,legendSymbolSize,CBLe3cSyType))
-        
         bbBot=None
         bbMid=None
         bbTop=None
-
-        #print(dir(cax))
-        #print(dir(cax.transData))
-        #print(cax.get_xlim()) #   (0.0, 1.0)
-        #print(cax.get_ylim()) #   (0.0, 1.0)
 
         if pDf_bot_Anz >= 0:
             po=cax.scatter( 0.,CBLe3cBotVPad                   
@@ -520,7 +688,7 @@ def pltNetLegendColorbar3Classes(
                             ,alpha=0.9
                             ,edgecolors='face'             
                             ,clip_on=False
-                            ,marker=align_marker(CBLe3cSyType, halign='left')                                     
+                            ,marker=pltHlpAlignMarker(CBLe3cSyType, halign='left')                                     
                             )
             # Text dazu
             o=po.findobj(match=None) 
@@ -553,7 +721,7 @@ def pltNetLegendColorbar3Classes(
                             ,alpha=0.9
                             ,edgecolors='face'             
                             ,clip_on=False     
-                            ,marker=align_marker(CBLe3cSyType, halign='left')                                      
+                            ,marker=pltHlpAlignMarker(CBLe3cSyType, halign='left')                                      
                             )
            
             o=po.findobj(match=None) 
@@ -594,7 +762,7 @@ def pltNetLegendColorbar3Classes(
                             ,edgecolors='face'             
                             ,clip_on=False
                             ,visible=False # es erden nur die Koordinaten benoetigt
-                            ,marker=align_marker(CBLe3cSyType, halign='left')             
+                            ,marker=pltHlpAlignMarker(CBLe3cSyType, halign='left')             
 
                             )
            
@@ -639,81 +807,26 @@ def pltNetLegendColorbar3Classes(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
         return (bbTop, bbMid, bbBot)  
 
-def pltNetTitleblock( 
-              TBAnchorVertical=1.
-             ,TBHSpace=0.4 
-             ,Projekt='Projekt' 
-             ,Planer='Planer' 
-             ,Inst='Inst' 
-             ,Model='M: ...'   
-             ,Result='E: ...'    
-             ,Times='TRef: ... T: ...'                                       
-                ):
+def pltNetLegendTitleblock(text='',anchorVertical=1.):
     """
-    zeichnet das Schriftfeld      
+    Zeichnet das Schriftfeld auf gca().      
     """
+
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-        
-    try: 
-        return
-        cax=plt.gca()
-            
-        a=plt.annotate(Projekt, xy=(0.-1*TBHSpace,TBAnchorVertical)
-                        ,family='monospace'
-                        ,size='smaller'                    
-                        ,xycoords=cax.transAxes 
-                        ,rotation='vertical'
-                        ,va='bottom'
-                        ,ha='left'
-        )
-       
 
-        a=plt.annotate(Planer, xy=(0.+0*TBHSpace,TBAnchorVertical)
-                        ,family='monospace'
-                        ,size='smaller'                  
-                        ,xycoords=cax.transAxes 
-                        ,rotation='vertical'
-                        ,va='bottom'
-                        ,ha='left'   
-        )
-
-        a=plt.annotate(Inst, xy=(0.+1*TBHSpace,TBAnchorVertical)
-                        ,family='monospace'
-                        ,size='smaller'                   
-                        ,xycoords=cax.transAxes 
-                        ,rotation='vertical'
-                        ,va='bottom'
-                        ,ha='left'   
-        )        
-
-        a=plt.annotate(Model, xy=(0.+2*TBHSpace,TBAnchorVertical)
-                        ,family='monospace'
-                        ,size='smaller'                  
-                        ,xycoords=cax.transAxes 
-                        ,rotation='vertical'
-                        ,va='bottom'
-                        ,ha='left'   
-        )  
-        
-        a=plt.annotate(Result, xy=(0.+3*TBHSpace,TBAnchorVertical)
-                        ,family='monospace'
-                        ,size='smaller'                   
-                        ,xycoords=cax.transAxes 
-                        ,rotation='vertical'
-                        ,va='bottom'
-                        ,ha='left'   
-        )        
-        
-        a=plt.annotate(Times, xy=(0.+4*TBHSpace,TBAnchorVertical)
-                        ,family='monospace'
-                        ,size='smaller'                  
-                        ,xycoords=cax.transAxes 
-                        ,rotation='vertical'
-                        ,va='bottom'
-                        ,ha='left'   
-        )                              
-                                                                                                                      
+    cax=plt.gca()
+    try:         
+        a=plt.text( 0.
+                   ,anchorVertical
+                   ,text
+                   ,transform=cax.transAxes
+                   ,family='monospace'
+                   ,size='smaller'                    
+                   ,rotation='vertical'
+                   ,va='bottom'
+                   ,ha='left'
+                  )                                                                                                                      
     except RmError:
         raise            
     except Exception as e:
@@ -723,184 +836,34 @@ def pltNetTitleblock(
     finally:
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
-def pltNetPipes(
-                pDf
-               ,pAttribute='DI'  # Line
-               ,pMeasure='Measure'  # Marker
-
-               ,pClip=False
-               ,pAttributeLs='-'  
-               ,pMeasureMarker='.' 
-
-               ,pAttríbuteColorMap=plt.cm.binary    
-               ,pAttríbuteColorMapUsageStart=1./3                           
-               ,pAttributeSizeFactor=1. # in diesem Fall ist die Linienbreite in Pts = dem pAttribute-Wert         
-
-               ,pMeasureColorMap=plt.cm.binary    
-               ,pMeasureColorMapUsageStart=1./3
-               ,pMeasureSizeFactor=1. # in diesem Fall ist die Symbolgröße in Pts = dem pMeasure-Wert                                                                          
-               ):
+def pltNetTextblock(text='',x=0.,y=1.):
     """
-    plottet Lines mit Marker auf gca()
+    Zeichnet einen Textblock auf gca().      
     """
+
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-        
-    try: 
-        ax=plt.gca()
 
-        minLine=pDf[pAttribute].min()
-        maxLine=pDf[pAttribute].max()
-        logger.debug("{:s}minLine (Attribute): {:6.2f}".format(logStr,minLine))
-        logger.debug("{:s}maxLine (Attribute): {:6.2f}".format(logStr,maxLine))
-        normLine=colors.Normalize(minLine,maxLine)
-        usageLineValue=minLine+pAttríbuteColorMapUsageStart*(maxLine-minLine)
-        usageLineColor=pAttríbuteColorMap(normLine(usageLineValue)) 
-
-        minMarker=pDf[pMeasure].min()
-        maxMarker=pDf[pMeasure].max()
-        normMarker=colors.Normalize(minMarker,maxMarker)
-        usageMarkerValue=minMarker+pMeasureColorMapUsageStart*(maxMarker-minMarker)
-        usageMarkerColor=pMeasureColorMap(normMarker(usageMarkerValue)) 
-
-        for xs,ys,vLine,vMarker in zip(pDf['pWAYPXCors'],pDf['pWAYPYCors'],pDf[pAttribute],pDf[pMeasure]):        
-            if vLine >= usageLineValue:
-                colorLine=pAttríbuteColorMap(normLine(vLine)) 
-            else:
-                colorLine=usageLineColor
-            if vMarker >= usageMarkerValue:
-                colorMarker=pMeasureColorMap(normMarker(vMarker))
-            else:
-                colorMarker=usageMarkerColor
-
-            colorMarker=pMeasureColorMap(normMarker(vMarker))
-            pcLines=ax.plot(xs,ys
-                            ,color=colorLine
-                            ,linewidth=pAttributeSizeFactor*vLine 
-                            ,ls=pAttributeLs
-                            ,marker=pMeasureMarker
-                            ,mfc=colorMarker 
-                            ,mec=colorMarker  
-                            ,mfcalt=colorMarker  
-                            ,mew=0
-                            ,ms=pMeasureSizeFactor*vMarker                                                    
-                            ,markevery=[0,len(xs)-1]
-                            ,aa=True
-                            ,clip_on=pClip
-                           )            
-            #logger.debug("{:s}pcLines: {!s:s}".format(logStr,pcLines))
-      
-                                                                                          
-    except RmError:
-        raise            
-    except Exception as e:
-        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-        logger.error(logStrFinal) 
-        raise RmError(logStrFinal)                       
-    finally:       
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                   
-
-def pltNetFigAx(
-                pDf
-               ,pXCor_i='pXCor_i'  # colName 
-               ,pYCor_i='pYCor_i'  # colName          
-               ,pXCor_k='pXCor_k'  # colName 
-               ,pYCor_k='pYCor_k'  # colName   
-
-               ,CBFraction=0.05  # fraction of original axes to use for colorbar
-               ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes            
-
-               # Plot
-               ,pltTitle='pltNetFigAx' # plt.title not f.suptitle
-               ,figFrameon=True # set whether the figure frame (background) is displayed or invisible
-               #,figLinewidth=1.
-               ,figEdgecolor='black' # set the edge color of the Figure rectangle
-               ,figFacecolor='white' # set the face color of the Figure rectangle
-                                                                                           
-               ):
-    """
-    Fig- und Ax-Parametrierungen
-    ax wird erzeugt
-    """
-    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-        
+    ax=plt.gca()
     try:         
-        dx=max(pDf[pXCor_i].max(),pDf[pXCor_k].max())
-        dy=max(pDf[pYCor_i].max(),pDf[pYCor_k].max())
-
-        # erf. Verhältnis bei verzerrungsfreier Darstellung
-        dydx=dy/dx 
-
-        if(dydx>=1):
-            dxInch=DINA4_x # Hochformat
-        else:
-            dxInch=DINA4_y # Querformat
-    
-        figwidth=dxInch
-
-        #verzerrungsfrei: Blattkoordinatenverhaeltnis = Weltkoordinatenverhaeltnis
-        factor=1-(CBFraction+CBHpad)
-        # verzerrungsfreie Darstellung sicherstellen
-        figheight=figwidth*dydx*factor
-
-        # Weltkoordinatenbereich
-        xlimLeft=0
-        ylimBottom=0
-        xlimRight=dx
-        ylimTop=dy
-        
-        # plt.figure(dpi=, facecolor=, edgecolor=, linewidth=, frameon=True)
-        fig = plt.gcf()  # This will return an existing figure if one is open, or it will make a new one if there is no active figure.
-
-        # https://stackoverflow.com/questions/14827650/pyplot-scatter-plot-marker-size
-
-        # Size in pts:
-        # the argument markersize in plot    denotes the markersize (i.e. diameter) in points
-        # the argument s          in scatter denotes the markersize**2              in points^2
-        # so a given plot-marker with markersize=x needs a scatter-marker with s=x**2 if the scatter-marker shall cover the same "area" in points^2
-        # the "area" of the scatter-marker is proportional to the s param
-
-        # What are points - pts:
-        # the standard size of points in matplotlib is 72 ppi
-        # 1 point is hence 1/72 inches (1 inch = 1 Zoll = 2.54 cm)
-        # 1 point = 0.352777.... mm
-
-        # points and pixels - px:
-        # 1 point = dpi/ppi
-        # the standard dpi in matplotlib is 100
-        # a scatter-marker whos "area" covers always 10 pixel:
-        # s=(10*ppi/dpi)**2       
-
-        fig.set_figwidth(figwidth)
-        fig.set_figheight(figheight)
-
-        logger.debug("{:s}dx={:10.2f} dy={:10.2f}".format(logStr,dx,dy))     
-        logger.debug("{:s}figwidth={:10.2f} figheight={:10.2f}".format(logStr,figwidth,figheight))   
-
-        ax=plt.subplot()
-        ax.set_xlim(left=xlimLeft)
-        ax.set_ylim(bottom=ylimBottom)
-        ax.set_xlim(right=xlimRight)
-        ax.set_ylim(top=ylimTop)
-
-        xTicks=ax.get_xticks()
-        dxTick = xTicks[1]-xTicks[0]
-        yTicks=ax.set_yticks([idx*dxTick for idx in range(math.floor(dy/dxTick)+1)])
-
-        plt.title(pltTitle)              
-        fig.set_frameon(figFrameon) 
-        fig.set_edgecolor(figEdgecolor)
-        fig.set_facecolor(figFacecolor)
-                                                                                          
+        a=plt.text( x
+                   ,y
+                   ,text
+                   ,transform=ax.transAxes
+                   ,family='monospace'
+                   ,size='smaller'                    
+                   ,rotation='horizontal'
+                   ,va='bottom'
+                   ,ha='left'
+                  )                                                                                                                      
     except RmError:
         raise            
     except Exception as e:
         logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
         logger.error(logStrFinal) 
         raise RmError(logStrFinal)                       
-    finally:       
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))               
+    finally:
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
 class Rm():
     """
@@ -968,11 +931,11 @@ class Rm():
      
       
 
-        ,pFWVBGCategory=['BLNZ1u5u7'] # ['Süd','Nord','Innenstadt','Nord PWS','NordOst BHW','Ost HWV','Ost PWF/PSE','Nord Rest'] # NAMEn von WBLZ
-        ,pFWVBGCategoryUnit='[kW]'
-        ,pFWVBGCategoryXStart=.1
-        ,pFWVBGCategoryYStart=.9
-        ,pFWVBGCategoryYSpace=-.1
+        #,pFWVBGCategory=['BLNZ1u5u7'] # ['Süd','Nord','Innenstadt','Nord PWS','NordOst BHW','Ost HWV','Ost PWF/PSE','Nord Rest'] # NAMEn von WBLZ
+        #,pFWVBGCategoryUnit='[kW]'
+        #,pFWVBGCategoryXStart=.1
+        #,pFWVBGCategoryYStart=.9
+        #,pFWVBGCategoryYSpace=-.1
 
         
                    
@@ -995,13 +958,7 @@ class Rm():
         ,pROHRMeasureColorMap=plt.cm.cool 
         ,pROHRMeasureColorMapUsageStart=0.        
         ,pROHRMeasureRefSize=1.0 
-                                                   
-     
-                 
-        # TB --------------------------------------------------------------------------------------------
-        ,TBVSpace=0.2 
-        ,TBHSpace=0.4 
-
+                                                                      
         # FIG -------------------------------------------------------------------------------------------                  
         ,pltTitle='pltNetDHUS' 
         ,figFrameon=True                    
@@ -1102,16 +1059,26 @@ class Rm():
                         * WBLZ~WärmeblnzGes~\S*~\S+~WES (Generation)
                         * WBLZ~WärmeblnzGes~\S*~\S+~WVB (Load)
                         * WBLZ~WärmeblnzGes~\S*~\S+~WVERL (Loss)
+
                     WBLZ~[\S ]+~\S*~\S+~\S+: Example for a RegExp matching all Channels with OBJTYPE WBLZ  
-                * pFIGNrcvTxt: corresponding List of Texts (i.e. ['Kontrollwert DH'])
+
+                * pFIGNrcvTxt: corresponding (same length required!) List of Texts (i.e. ['Kontrollwert DH'])
+                    
                 * pFIGNrcvFmt (i.e. '{:12s}: {:8.2f} {:4s} {:6.1f}%')
                     * Text (from pFIGNrcvTxt)
                     * Value
                     * UNIT (determined from Channel-Data)
                     * ValueInPercent (use i.e. '{:12s}: {:8.2f} {:4s}' to prevent display)
+
                 * pFIGNrcvXStart (.5 default)
                 * pFIGNrcvYStart (.5 default)
-                * pFIGNrcvYSpace (-.1 default)
+
+            User Heat Balances to be displayed
+                * pFWVBGCategory: List of Heat Balances to be displayed (i.e. ['BLNZ1u5u7'])
+                * pFWVBGCategoryUnit: Unit of these Balances (default: '[kW]')                  
+                * pFWVBGCategoryXStart (.1 default)
+                * pFWVBGCategoryYStart (.9 default)
+                                       
             VICs - VeryImportantCustomers whose Values to be displayed
                 * pVICsDf: DataFrame with VeryImportantCustomers (Text & Specification)
                     columns expected:
@@ -1234,7 +1201,7 @@ class Rm():
             if 'CBLe3cSyType' not in keys:
                 kwds['CBLe3cSyType']='o'
 
-            # NRCVs
+            # NRCVs to be displayed
             if 'pFIGNrcv' not in keys:
                 kwds['pFIGNrcv']=['KNOT~PKON-Knoten~\S*~\S+~QM']  
             if 'pFIGNrcvTxt' not in keys:
@@ -1245,8 +1212,16 @@ class Rm():
                 kwds['pFIGNrcvXStart']=.5
             if 'pFIGNrcvYStart' not in keys:
                 kwds['pFIGNrcvYStart']=.5
-            if 'pFIGNrcvYSpace' not in keys:
-                kwds['pFIGNrcvYSpace']=-.1
+
+            # User Heat Balances to be displayed
+            if 'pFWVBGCategory' not in keys:
+                kwds['pFWVBGCategory']=['BLNZ1u5u7']  
+            if 'pFWVBGCategoryUnit' not in keys:
+                kwds['pFWVBGCategoryUnit']='[kW]'  
+            if 'pFWVBGCategoryXStart' not in keys:
+                kwds['pFWVBGCategoryXStart']=.1
+            if 'pFWVBGCategoryYStart' not in keys:
+                kwds['pFWVBGCategoryYStart']=.9
 
             # VICs
             if 'pVICsDf' not in keys:
@@ -1336,8 +1311,8 @@ class Rm():
             pFWVB=pFWVB.assign(MCategory=pd.Series(pFWVBCat)) 
 
             # Sachdaten annotieren mit Spalte GCategory      
-            if isinstance(pFWVBGCategory,list):         
-                sCatReq=set(pFWVBGCategory)       
+            if isinstance(kwds['pFWVBGCategory'],list):         
+                sCatReq=set(kwds['pFWVBGCategory'])       
                 pFWVBCat=[]
                 for index, row in pFWVB.iterrows():
                     gCat=row.WBLZ
@@ -1494,6 +1469,10 @@ class Rm():
                ,pMeasureSizeFactor=pROHRMeasureRefSize/pltROHR['Measure'].max()        
             )
 
+            # ============================================================
+            # Legend
+            # ============================================================
+
             cax=pltNetLegendColorbar(
                 # ALLG
                  pc=pcFWVB # PathCollection aus pltNetNodes                                        
@@ -1545,58 +1524,52 @@ class Rm():
             else:
                  TBAV=1.
             
-
-
-#            fig.sca(cax)
             xmFileName,ext = os.path.splitext(os.path.basename(self.xm.xmlFile))
             (wDir,modelDir,modelName)=self.xm.getWDirModelDirModelName()
-            pltNetTitleblock( 
-              TBAnchorVertical=TBAV+TBVSpace
-             ,TBHSpace=TBHSpace  
-             ,Projekt=self.xm.dataFrames['MODELL']['PROJEKT'].iloc[0]
-             ,Planer=self.xm.dataFrames['MODELL']['PLANER'].iloc[0]
-             ,Inst=self.xm.dataFrames['MODELL']['INST'].iloc[0]       
-             ,Model="M: {:s}".format(xmFileName)   
-             ,Result="E: {:s}".format(os.path.join(os.path.basename(wDir),os.path.join(modelDir,modelName))+'.MX1')   
-             ,Times="TRef: {!s:s} T: {!s:s}".format(timeDeltaToRef,timeDeltaToT).replace('days','Tage')             
+            Projekt=self.xm.dataFrames['MODELL']['PROJEKT'].iloc[0]
+            Planer=self.xm.dataFrames['MODELL']['PLANER'].iloc[0]
+            Inst=self.xm.dataFrames['MODELL']['INST'].iloc[0]       
+            Model="M: {:s}".format(xmFileName)   
+            Result="E: {:s}".format(os.path.join(os.path.basename(wDir),os.path.join(modelDir,modelName))+'.MX1')   
+            Times="TRef: {!s:s} T: {!s:s}".format(timeDeltaToRef,timeDeltaToT).replace('days','Tage')       
+            pltNetLegendTitleblock(
+               text=Projekt+'\n'+Planer+'\n'+Inst+'\n'+Model+'\n'+Result+'\n'+Times 
+              ,anchorVertical=TBAV                    
             )
-                                               
-            # ---------------------------------------------------------------------
-            # Bilanzwerte
-            fig.sca(ax)
+                   
+            # ============================================================
+            # NRCVs
+            # ============================================================
+            text=None
+            if isinstance(kwds['pFIGNrcv'],list) and isinstance(kwds['pFIGNrcvTxt'],list):
+                if len(kwds['pFIGNrcv']) == len(kwds['pFIGNrcvTxt']):                    
+                    for idx,Sir3sIDRexp in  enumerate(kwds['pFIGNrcv']):                           
+                        try:
+                            sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.contains(Sir3sIDRexp)].iloc[0]
+                        except:
+                            logger.debug("{:s} Sir3sIDRexp {:s} nicht in .MX1".format(logStr,Sir3sIDRexp))
+                            continue # NRCV wird ausgelassen
+                    
+                        s=self.mx.df[sCh.Sir3sID]                
+                        v=s[timeT]  
+                        v0=s[timeRef]
+                        vp=v/v0*100     
+                                              
+                        # '{:12s}: {:8.2f} {:4s} {:6.1f}%'
+                        txt=kwds['pFIGNrcvFmt'].format(kwds['pFIGNrcvTxt'][idx],v,sCh.UNIT,vp) 
 
-            # Gesamtbilanz-----------------------------------------------------------------------
-            patWBLZ='WBLZ~[\S ]+~\S*~\S+~\S+'
-            patWBLZ_WVB='WBLZ~[\S ]+~\S*~\S+~WVB' # Verbrauch
-            patWBLZ_WES='WBLZ~[\S ]+~\S*~\S+~WES' # Einspeisung
-
-            patWBLZ_WVB_GES='WBLZ~WärmeblnzGes~\S*~\S+~WVB' # Verbrauch Gesamt
-            #patWBLZ_WES_GES='WBLZ~WärmeblnzGes+~\S*~\S+~WES' # Einspeisung Gesamt
-
-            sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.contains(patWBLZ_WVB_GES)].iloc[0]
-            s=self.mx.df[sCh.Sir3sID]
-                
-            v=s[timeT]                
-            v0=s[timeRef]
-            vp=v/v0*100               
-                                                              
-            x,y=pFWVBGCategoryXStart,pFWVBGCategoryYStart            
-
-            txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(sCh.NAME1,v,pFWVBGCategoryUnit,vp)
-            #a=plt.annotate(txt
-            #                ,xy=(x,y)
-            #                ,family='monospace'
-            #                ,size='smaller'                   
-            #                ,xycoords=ax.transAxes #'data'  
-            #                ,rotation='horizontal'
-            #                ,va='bottom'
-            #                ,ha='left'   
-            #                ,clip_on=False
-            #)     
-
-
-            # Userbilanzen-----------------------------------------------------------------------
-            #vKNOT=xm.dataFrames['vKNOT']
+                        if text==None:
+                            text=txt
+                        else:
+                            text=text+'\n'+txt
+                    
+            fig.sca(ax)            
+            pltNetTextblock(text=text,x=kwds['pFIGNrcvXStart'],y=kwds['pFIGNrcvYStart'])         
+                      
+            # ============================================================
+            # User Heat Balances to be displayed
+            # ============================================================            
+                                         
             vWBLZ=self.xm.dataFrames['vWBLZ']
             vWBLZ_vKNOT=pd.merge(vWBLZ,vKNOT,left_on='OBJID',right_on='pk')
             vWBLZ_vKNOT_pFWVB=pd.merge(vWBLZ_vKNOT,pFWVB,left_on='NAME_y',right_on='NAME_i')
@@ -1615,11 +1588,7 @@ class Rm():
             vWBLZ_vKNOT_pFWVB_vNRCV_Mx1=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1[vWBLZ_vKNOT_pFWVB_vNRCV_Mx1['cRefLfdNr']==1]
             vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.drop('cRefLfdNr',axis=1,inplace=True)
             
-            #vWBLZ_vKNOT_pFWVB_vNRCV_Mx1['WIst']=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.apply(lambda row: row.Measure    * row.MeasureRef   , axis=1)
-
-            vAggNumAnz=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.groupby(['NAME','Sir3sID']).size()
-            #vAggNumAnz.loc['BLNZ1u5u7'].index[0] liefert Sir3sID
-
+            vAggNumAnz=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.groupby(['NAME','Sir3sID']).size()            
 
             vAggWblzMCat=vWBLZ_vKNOT_pFWVB_vNRCV_Mx1.groupby(['NAME','MCategory']).agg(
             {
@@ -1637,9 +1606,9 @@ class Rm():
                ,'MeasureRef': ['size','min', 'max', 'sum']
             })
 
-            if isinstance(pFWVBGCategory,list):    
-                idx=1
-                for NAME in pFWVBGCategory: # verlangte Wärmebilanzen       
+            if isinstance(kwds['pFWVBGCategory'],list):    
+                text=None
+                for NAME in kwds['pFWVBGCategory']: # verlangte Wärmebilanzen       
                     try: 
                         vSoll=vAggWblz.loc[NAME]['MeasureRef']['sum']
                         vIst=vAggWblz.loc[NAME]['MeasureOrig']['sum']                                     
@@ -1675,69 +1644,26 @@ class Rm():
                             logger.error("{:s} für verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist das NumAnz Ergebnis verschieden vom Agg Ergebnis!".format(logStr,NAME))  
                                                                                                                                         
                     except:
-                        logger.debug("{:s} für verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist keine NumAnz definiert.".format(logStr,NAME))                        
+                        logger.debug("{:s} für verlangte Wärmebilanz (aus pFWVBGCategory)={:s} ist keine NumAnz definiert.".format(logStr,NAME))  
+                        continue                      
                                                                                     
-                    x,y=pFWVBGCategoryXStart,pFWVBGCategoryYStart+pFWVBGCategoryYSpace*idx
-                    idx=idx+1
-
-                    #  txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(sCh.NAME1,v,pFWVBGCategoryUnit,vp)
-
                     vpIstZuvSoll=vIst/vSoll
-                    if pFWVBGCategoryUnit=='[MW]':
+                    if kwds['pFWVBGCategoryUnit']=='[MW]':
                         vIst=vIst/1000.
 
                     if kwds['pFWVBMeasure3Classes']:
-                        txt="{:12s}: {:6.1f} {:4s} {:6.1f}% {:5d}/{:5d}/{:5d}".format(NAME,vIst,pFWVBGCategoryUnit,vpIstZuvSoll*100,topAnz,midAnz,botAnz)
+                        txt="{:12s}: {:6.1f} {:4s} {:6.1f}% {:5d}/{:5d}/{:5d}".format(NAME,vIst,kwds['pFWVBGCategoryUnit'],vpIstZuvSoll*100,topAnz,midAnz,botAnz)
                     else:
-                        txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(NAME,vIst,pFWVBGCategoryUnit,vpIstZuvSoll*100)
-                    a=plt.annotate(txt
-                                  ,xy=(x,y)
-                                  ,family='monospace'
-                                  ,size='smaller'                   
-                                  ,xycoords=ax.transAxes #'data'  
-                                  ,rotation='horizontal'
-                                  ,va='bottom'
-                                  ,ha='left'   
-                                  ,clip_on=False
-                    )     
-                                  
-            # ---------------------------------------------------------------------
-            # NRCVs
-            fig.sca(ax)
+                        txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(NAME,vIst,kwds['pFWVBGCategoryUnit'],vpIstZuvSoll*100)
 
-            if isinstance(kwds['pFIGNrcv'],list) and isinstance(kwds['pFIGNrcvTxt'],list):
-                if len(kwds['pFIGNrcv']) == len(kwds['pFIGNrcvTxt']):
-                    idxTxt=0
-                    for idx,Sir3sIDRexp in  enumerate(kwds['pFIGNrcv']):                           
-                        try:
-                            sCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.contains(Sir3sIDRexp)].iloc[0]
-                        except:
-                            logger.debug("{:s} Sir3sIDRexp {:s} nicht in .MX1".format(logStr,Sir3sIDRexp))
-                            continue
-
-                        x,y=kwds['pFIGNrcvXStart'],kwds['pFIGNrcvYStart']+kwds['pFIGNrcvYSpace']*idxTxt
-                        idxTxt=idxTxt+1
+                    if text==None:
+                            text=txt
+                    else:
+                            text=text+'\n'+txt
                 
-                        s=self.mx.df[sCh.Sir3sID]                
-                        v=s[timeT]  
-                        vp=v/v0*100     
-                                              
-                        # '{:12s}: {:8.2f} {:4s} {:6.1f}%'
-                        txt=kwds['pFIGNrcvFmt'].format(kwds['pFIGNrcvTxt'][idx],v,sCh.UNIT,vp) 
-                       
-                        a=plt.annotate(txt
-                                        ,xy=(x,y)
-                                        ,family='monospace'
-                                        ,size='smaller'                   
-                                        ,xycoords=ax.transAxes #'data'  
-                                        ,rotation='horizontal'
-                                        ,va='bottom'
-                                        ,ha='left'   
-                                        ,clip_on=False   
-                                      )             
-                
-                                   
-
+            fig.sca(ax)            
+            pltNetTextblock(text=text,x=kwds['pFWVBGCategoryXStart'],y=kwds['pFWVBGCategoryYStart'])         
+                                
             ## ---------------------------------------------------------------------
             ## VICs 
 
