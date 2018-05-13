@@ -183,7 +183,6 @@ def align_marker(marker, halign='center', valign='middle',):
 
     return Path(m_arr, bm.get_path().codes)
 
-
 def pltNetNodes( 
                 # ALLG
                  pDf 
@@ -214,13 +213,13 @@ def pltNetNodes(
                 ,pMCatTopAlpha=0.9 
                 ,pMCatTopClip=False            
 
-                ,pMCatMiddleColorMap=plt.cm.autumn 
-                ,pMCatMiddleAlpha=0.9 
-                ,pMCatMiddleClip=False  
+                ,pMCatMidColorMap=plt.cm.autumn 
+                ,pMCatMidAlpha=0.9 
+                ,pMCatMidClip=False  
                                                                         
-                ,pMCatBottomColor='violet' 
-                ,pMCatBottomAlpha=0.9 
-                ,pMCatBottomClip=False                                                 
+                ,pMCatBotColor='violet' 
+                ,pMCatBotAlpha=0.9 
+                ,pMCatBotClip=False                                                 
                 ):
     """
     zeichnet Symbole auf gca()
@@ -272,25 +271,25 @@ def pltNetNodes(
                     pN_mid[pXCor],pN_mid[pYCor]       
                 ,s=pSizeFactor*pN_mid[pAttribute]
                 # Farbskala
-                ,cmap=pMCatMiddleColorMap
+                ,cmap=pMCatMidColorMap
                 # Normierung Farbe
                 ,vmin=vmin
                 ,vmax=vmax
                 # Farbwert
                 ,c=pN_mid[pMeasure] 
-                ,alpha=pMCatMiddleAlpha
+                ,alpha=pMCatMidAlpha
                 ,edgecolors='face'
-                ,clip_on=pMCatMiddleClip
+                ,clip_on=pMCatMidClip
                 )
             logger.debug("{:s}Anzahl mit Farbskala gezeichneter Symbole={:d}".format(logStr,pN_mid_Anz))    
 
             pcN_bot=ax.scatter(    
                     pN_bot[pXCor],pN_bot[pYCor]                 
                 ,s=pSizeFactor*pN_bot[pAttribute]
-                ,color=pMCatBottomColor
-                ,alpha=pMCatBottomAlpha
+                ,color=pMCatBotColor
+                ,alpha=pMCatBotAlpha
                 ,edgecolors='face'             
-                ,clip_on=pMCatBottomClip)              
+                ,clip_on=pMCatBotClip)              
             logger.debug("{:s}Anzahl mit fester Farbe Bot gezeichneter Symbole={:d}".format(logStr,pN_bot_Anz))     
                           
         else:
@@ -333,7 +332,7 @@ def pltNetNodes(
         return (pcN, vmin, vmax)
 
 def pltNetColorbar( 
-                pc # die einzufaerbenden Objekte; werden für die Erzeugung der colorbar zwingend benoetigt   
+                pc # (eingefaerbte) PathCollection (/aus pltNetNodes); werden für die Erzeugung der colorbar zwingend benoetigt   
                  
                 # wird nur benötigt wenn CBFixedLimitLow/High _nicht gelten:
                 #>...                     
@@ -356,8 +355,6 @@ def pltNetColorbar(
                 ,pMeasureUNIT='[]'
                 ,pMeasureTYPE=''
 
-
-
                 # Geometrie
                 ,CBFraction=0.05  # fraction of original axes to use for colorbar
                 ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
@@ -369,54 +366,51 @@ def pltNetColorbar(
                 ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-% von ax
                 ,CBAnchorVertical=0. # vertikaler Fußpunkt der colorbar in Plot-% von ax       
                 
-                # Legend 3Classes
-                ,pAttribute='Attrib' 
-                #,pSizeFactor=1.
-
+                # Legend 3Classes --------------------------------------------------------------------
                 ,pMCategory='MCategory'
+
                 ,pMCatTopTxt='Top'
                 ,pMCatMidTxt='Middle'
                 ,pMCatBotTxt='Bottom'
 
-                ,pMCatBottomColor='violet'                 
+                ,pMCatBotColor='violet'                 
                 ,pMCatTopColor='palegreen' 
 
                 ,CBLe3cTopVPad=1+1*1/4                 
-                ,CBLe3cMiddleVPad=.5                                                                         
-                ,CBLe3cBottomVPad=0-1*1/4  
+                ,CBLe3cMidVPad=.5                                                                         
+                ,CBLe3cBotVPad=0-1*1/4  
 
-                ,CBLe3cSySize=1./10. 
-                ,CBLe3cSyType='o' 
-                                                                    
+                ,CBLe3cSySize=10**2 # (Sy-Area in pts^2)
+                ,CBLe3cSyType='o'                                                                     
                 ):
     """
-    pltNetColorbarBar:
-        erzeugt aus ax=gca() cax für die Colorbar
-        zeichnet die Colorbar     
+    Ablauf:
+        * pltNetColorbarBar: Eerzeugt und zeichnet die Farbskala
+        * pltNetColorbarLegend3Classes: Zeichnet bei 3 Klassen die ergänzenden Legendeninformationen   
+    Return:
+        * cax 
+        * TBAnchorVertical: Ende des Farbskakla 
     """
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
     try: 
-        ax=plt.gca()
-        pltNetColorbarBar(
-                #
-                 pc # PathCollection aus pltNetNodes                     
-                #
+        cax=None
+        cax=pltNetColorbarBar(
+                 pc                  
+                
                 ,pDf=pDf                                                                                                       
                 ,pMeasure=pMeasure 
-                #
+                
                 ,pMeasureInPerc=pMeasureInPerc
                 ,pMeasure3Classes=pMeasure3Classes         
-                # Label                
+                              
                 ,pMeasureUNIT=pMeasureUNIT
                 ,pMeasureTYPE=pMeasureTYPE
-                # Ticks (TickLabels und TickValues)
+                
                 ,CBFixedLimits=CBFixedLimits
                 ,CBFixedLimitLow=CBFixedLimitLow
                 ,CBFixedLimitHigh=CBFixedLimitHigh
-
-
 
                 # Geometrie
                 ,CBFraction=CBFraction
@@ -429,36 +423,27 @@ def pltNetColorbar(
                 ,CBAnchorVertical=CBAnchorVertical                    
             )
         
-        cax=plt.gca()
-        
         TBAnchorVertical=1.                         
         if pMeasure3Classes:                                                                   
-             bbTop, bbMid, bbBot  = pltNetColorbarLegend3Classes( 
+             bbTop, bbMid, bbBot = pltNetColorbarLegend3Classes( 
                 pDf
 
-               ,CBShrink=CBShrink 
-               ,CBAnchorHorizontal=CBAnchorHorizontal 
-               ,CBAnchorVertical=CBAnchorVertical     
-               
-               ,pAttribute=pAttribute  
-               #,pSizeFactor=pSizeFactor
-
                ,pMCategory=pMCategory
+
                ,pMCatTopTxt=pMCatTopTxt
                ,pMCatMidTxt=pMCatMidTxt
                ,pMCatBotTxt=pMCatBotTxt
 
-               ,pMCatBottomColor=pMCatBottomColor                 
+               ,pMCatBotColor=pMCatBotColor                 
                ,pMCatTopColor=pMCatTopColor    
                
-               ,CBLe3cTopVPad=CBLe3cTopVPad #1+1*1/4                 
-               ,CBLe3cMiddleVPad=CBLe3cMiddleVPad #.5                                                                         
-               ,CBLe3cBottomVPad=CBLe3cBottomVPad #0-1*1/4        
+               ,CBLe3cTopVPad=CBLe3cTopVPad                
+               ,CBLe3cMidVPad=CBLe3cMidVPad                                                                       
+               ,CBLe3cBotVPad=CBLe3cBotVPad       
                
                ,CBLe3cSySize=CBLe3cSySize
                ,CBLe3cSyType=CBLe3cSyType
-               
-                                                                                                                            
+                                                                                                                   
              )
              if bbTop != None:
                 TBAnchorVertical=bbTop.y1
@@ -474,7 +459,7 @@ def pltNetColorbar(
         return (cax,TBAnchorVertical)
 
 def pltNetColorbarBar( 
-                pc # die einzufaerbenden Objekte; werden für die Erzeugung der colorbar zwingend benoetigt   
+                pc # (eingefaerbte) PathCollection (aus pltNetNodes); werden für die Erzeugung der colorbar zwingend benoetigt  
                  
                 # wird nur benötigt wenn CBFixedLimitLow/High _nicht gelten:
                 #>...                     
@@ -505,13 +490,25 @@ def pltNetColorbarBar(
                 ,CBAspect=10. # ratio of long to short dimension
                 ,CBShrink=1. # Colorbar füllt dann y von ax ganz aus 
                 ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-% von ax
-                ,CBAnchorVertical=0. # vertikaler Fußpunkt der colorbar in Plot-% von ax
-                                           
+                ,CBAnchorVertical=0. # vertikaler Fußpunkt der colorbar in Plot-% von ax                     
                 ):
     """
-    erzeugt cax (Colorbar-Axes) aus ax (gca()) und positioniert darauf (gca() steht auf cax nach return)
-        zeichnet die Colorbar 
-        mit Ticks, TickLabels, Label          
+    Erzeugt und zeichnet die Farbskala.
+
+        Ablauf
+    
+            * erzeugt cax (Colorbar-Axes) aus ax (gca()) 
+            * und positioniert darauf (gca() steht auf cax nach return)
+            * Position der Farblegende: rechts
+            * zeichnet die Farblegende 
+        
+                * Ticks
+                * TickLabels
+                * Label (90°)
+
+        Return
+            cax
+                  
     """
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -521,7 +518,8 @@ def pltNetColorbarBar(
         ax=plt.gca()
         fig=plt.gcf()   
 
-        # cax              
+        # cax   
+        cax=None           
         cax,kw=make_axes(ax
                         ,location='right'
                         ,fraction=CBFraction # fraction of original axes to use for colorbar
@@ -568,8 +566,7 @@ def pltNetColorbarBar(
         logger.debug("{:s}minCBtickLabel={:s} maxCBtickLabel={:s}".format(logStr,minCBtickLabel,maxCBtickLabel))    
         colorBar.set_ticklabels([minCBtickLabel,'',maxCBtickLabel])        
         colorBar.ax.yaxis.set_tick_params(pad=CBTicklabelsHPad)     
-                         
-        
+                                 
         # Label
         if pMeasureInPerc:
                 CBLabelText="{:s} in [%]".format(pMeasureTYPE)                                                                
@@ -586,41 +583,37 @@ def pltNetColorbarBar(
         raise RmError(logStrFinal)                       
     finally:
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+        return cax
 
 def pltNetColorbarLegend3Classes( 
                 pDf
 
-               ,CBShrink=1.
-               ,CBAnchorHorizontal=0.
-               ,CBAnchorVertical=0.
+            #   ,CBAnchorHorizontal=0.
 
-               ,pAttribute='Attrib' # colName 
-             #  ,pSizeFactor=1.
+               ,pMCategory='MCategory' # colName 
 
-               ,pMCategory='MCategory'
                ,pMCatTopTxt='Top'
                ,pMCatMidTxt='Middle'
                ,pMCatBotTxt='Bottom'
 
-               ,pMCatBottomColor='violet' 
+               ,pMCatBotColor='violet' 
                ,pMCatTopColor='palegreen'           
                                   
                ,CBLe3cTopVPad=1+1*1/4                 
-               ,CBLe3cMiddleVPad=.5                                                                         
-               ,CBLe3cBottomVPad=0-1*1/4          
+               ,CBLe3cMidVPad=.5                                                                         
+               ,CBLe3cBotVPad=0-1*1/4          
                
-               ,CBLe3cSySize=1./10. 
+               ,CBLe3cSySize=10**2 # (Sy-Area in pts^2)
                ,CBLe3cSyType='o'                               
                 ):
     """
-    zeichnet die Legende bei 3 Klassen     
+    Zeichnet die ergänzenden Legendeninformationen bei 3 Klassen.  
     """
+
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
     try: 
-        pass
-
         cax=plt.gca()
         
         pDf_top=pDf[(pDf[pMCategory]==pMCatTopTxt)] 
@@ -633,12 +626,12 @@ def pltNetColorbarLegend3Classes(
 
         logger.debug("{:s} pDf_bot_Anz={:d}  pDf_mid_Anz={:d} pDf_top_Anz={:d}".format(logStr,pDf_bot_Anz,pDf_mid_Anz,pDf_top_Anz))
 
-        logger.debug("{:s} pDf[pAttribute].max()={:10.3f}".format(logStr,pDf[pAttribute].max()))
+        #logger.debug("{:s} pDf[pAttribute].max()={:10.3f}".format(logStr,pDf[pAttribute].max()))
         #legendSymbolSize=pSizeFactor*pDf[pAttribute].max()
 
-        legendSymbolSize=CBLe3cSySize
+        #legendSymbolSize=CBLe3cSySize
 
-        logger.debug("{:s} legendSymbolSize={:10.3f} CBLe3cSyType={:s}".format(logStr,legendSymbolSize,CBLe3cSyType))
+        #logger.debug("{:s} legendSymbolSize={:10.3f} CBLe3cSyType={:s}".format(logStr,legendSymbolSize,CBLe3cSyType))
         
         bbBot=None
         bbMid=None
@@ -650,9 +643,9 @@ def pltNetColorbarLegend3Classes(
         #print(cax.get_ylim()) #   (0.0, 1.0)
 
         if pDf_bot_Anz >= 0:
-            po=cax.scatter( CBAnchorHorizontal,CBLe3cBottomVPad                   
-                            ,s=legendSymbolSize
-                            ,c=pMCatBottomColor
+            po=cax.scatter( 0.,CBLe3cBotVPad                   
+                            ,s=CBLe3cSySize
+                            ,c=pMCatBotColor
                             ,alpha=0.9
                             ,edgecolors='face'             
                             ,clip_on=False
@@ -664,27 +657,27 @@ def pltNetColorbarLegend3Classes(
             bbBot=p.get_datalim(cax.transAxes)      
             logger.debug("{:s} bbBot={!s:s}".format(logStr,bbBot))                         
 
-        #    a=plt.annotate(pMCatBottomText                                     
-        #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cBottomVpad)
+        #    a=plt.annotate(pMCatBotText                                     
+        #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cBotVpad)
         #                    ,xycoords=cax.transAxes 
         #                    ,rotation='vertical' #90
         #                    ,va='center'
         #                    ,ha='center'  
-        #                    ,color=pMCatBottomColor 
+        #                    ,color=pMCatBotColor 
         #                    )
         #    # weiterer Text dazu
         #    a=plt.annotate("Anz HA: {:6d}".format(pDf_bot_Anz)                                
-        #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0)+.5,CBLe3cBottomVpad)
+        #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0)+.5,CBLe3cBotVpad)
         #                    ,xycoords=cax.transAxes 
         #                    ,rotation='vertical' #90
         #                    ,va='center'
         #                    ,ha='center'  
-        #                    ,color=pMCatBottomColor 
+        #                    ,color=pMCatBotColor 
         #                    )
 
         if pDf_top_Anz >= 0:
-            po=cax.scatter( CBAnchorHorizontal,CBLe3cTopVPad                          
-                            ,s=legendSymbolSize
+            po=cax.scatter( 0.,CBLe3cTopVPad                          
+                            ,s=CBLe3cSySize
                             ,c=pMCatTopColor
                             ,alpha=0.9
                             ,edgecolors='face'             
@@ -723,8 +716,8 @@ def pltNetColorbarLegend3Classes(
 
 
         if pDf_mid_Anz >= 0:           
-            po=cax.scatter( CBAnchorHorizontal,CBLe3cMiddleVPad                                    
-                            ,s=legendSymbolSize
+            po=cax.scatter( 0.,CBLe3cMidVPad                                    
+                            ,s=CBLe3cSySize
                             ,c='lightgrey'
                             ,alpha=0.9
                             ,edgecolors='face'             
@@ -743,23 +736,23 @@ def pltNetColorbarLegend3Classes(
         #    o=po.findobj(match=None) 
         #    p=o[0]
         #    bb=p.get_datalim(cax.transAxes)
-        #    a=plt.annotate(pMCatMiddleText                                    
-        #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cMiddleVpad)                                                                                 
+        #    a=plt.annotate(pMCatMidText                                    
+        #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0),CBLe3cMidVpad)                                                                                 
         #                    ,xycoords=cax.transAxes 
         #                    ,rotation='vertical' #90
         #                    ,va='center'
         #                    ,ha='center'
-        #                    ,color=pMCatMiddleColor   
+        #                    ,color=pMCatMidColor   
         #                        ,visible=False
         #    )
         #        #weiterer Text dazu                
         #    a=plt.annotate("Anz HA: {:6d}".format(pDf_mid_Anz)                                              
-        #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0)+.5,CBLe3cMiddleVpad)                                                                                 
+        #                    ,xy=(CBHpad+CBLe3cHpadSymbol+CBLe3cHpad+CBLe3cTextSpaceFactor*(bb.x1-bb.x0)+.5,CBLe3cMidVpad)                                                                                 
         #                    ,xycoords=cax.transAxes 
         #                    ,rotation='vertical' #90
         #                    ,va='center'
         #                    ,ha='center'
-        #                    ,color=pMCatMiddleColor   
+        #                    ,color=pMCatMidColor   
         #                        ,visible=False
         #    )        
       
@@ -1112,34 +1105,7 @@ class Rm():
 
         
                    
-    #    ,pFWVBMeasureColorMap=plt.cm.autumn 
-    #    ,pFWVBMeasureAlpha=0.9 
-    #    ,pFWVBMeasureClip=False    
-                
-    #    ,pMCatTopColor='palegreen'
-    #    ,pMCatTopAlpha=0.9 
-    #    ,pMCatTopClip=False            
-    #    ,pMCatTopText='Top' 
-                                                    
-     #   ,pMCatBottomColor='violet'
-     #   ,pMCatBottomAlpha=0.9 
-     #   ,pMCatBottomClip=False    
-     #   ,pMCatBottomText='Bottom' 
-
-     #   ,pMCatMiddleColorMap=plt.cm.autumn 
-     #   ,pMCatMiddleAlpha=0.9 
-     #   ,pMCatMiddleClip=False    
-     #   ,pMCatMiddleText='Middle'     
-                   
-        # CB   -----------------------------------------------------------------------------------------
-      #  ,CBFraction=0.05  # fraction of original axes to use for colorbar
-      #  ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
-      #  ,CBLabelPad=-50         
-      #  ,CBTicklabelsHPad=0.      
-      #  ,CBAspect=10. # ratio of long to short dimension
-      #  ,CBShrink=0.3 # fraction by which to shrink the colorbar
-      #  ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-%
-      #  ,CBAnchorVertical=0.2 # vertikaler Fußpunkt der colorbar in Plot-%                                
+                           
 
         # ROHR -----------------------------------------------------------------------------------------
         ,pROHRAttribute='DI'              
@@ -1214,8 +1180,8 @@ class Rm():
                         * als Texte für die Spalte MCategory in return pFWVB
 
                         * pMCatTopText
-                        * pMCatMiddleText
-                        * pMCatBottomText
+                        * pMCatMidText
+                        * pMCatBotText
 
                     * CatAttribs (werden verwendet wenn 3Classes Wahr gesetzt ist)
 
@@ -1247,8 +1213,8 @@ class Rm():
 
             CBLegend (3Classes) - Parameterization of the representative Symbols
                 * CBLe3cTopVPad (default: 1+1*1/4)
-                * CBLe3cMiddleVPad (default: .5)                                                                         
-                * CBLe3cBottomVPad (default: 0-1*1/4)
+                * CBLe3cMidVPad (default: .5)                                                                         
+                * CBLe3cBotVPad (default: 0-1*1/4)
                 
                     * 1 is the height of the Colorbar                                                                   
                     * the VPads (the vertical Sy-Positions) are defined in cax.transAxes Coordinates    
@@ -1292,8 +1258,8 @@ class Rm():
 
                             str:
                             * TopText or
-                            * MiddleText or
-                            * BottomText
+                            * MidText or
+                            * BotText
 
                         * GCategory: list (non-empty only if req. GCategories are a subset of the available Categories and FWVB belongs to a req. Category)
                     
@@ -1332,10 +1298,10 @@ class Rm():
             # CatTexts (werden verwendet wenn 3Classes Wahr gesetzt ist)
             if 'pMCatTopText' not in keys:
                 kwds['pMCatTopText']='Top'
-            if 'pMCatMiddleText' not in keys:
-                kwds['pMCatMiddleText']='Middle'
-            if 'pMCatBottomText' not in keys:
-                kwds['pMCatBottomText']='Bottom'
+            if 'pMCatMidText' not in keys:
+                kwds['pMCatMidText']='Middle'
+            if 'pMCatBotText' not in keys:
+                kwds['pMCatBotText']='Bottom'
 
             # CatAttribs (werden verwendet wenn 3Classes Wahr gesetzt ist)
             if 'pMCatTopAlpha' not in keys:
@@ -1388,10 +1354,10 @@ class Rm():
             # CBLegend (3Classes) 
             if 'CBLe3cTopVPad' not in keys:
                 kwds['CBLe3cTopVPad']=1+1*1/4  
-            if 'CBLe3cMiddleVPad' not in keys:
-                kwds['CBLe3cMiddleVPad']=.5    
-            if 'CBLe3cBottomVPad' not in keys:
-                kwds['CBLe3cBottomVPad']=0-1*1/4    
+            if 'CBLe3cMidVPad' not in keys:
+                kwds['CBLe3cMidVPad']=.5    
+            if 'CBLe3cBotVPad' not in keys:
+                kwds['CBLe3cBotVPad']=0-1*1/4    
             if 'CBLe3cSySize' not in keys:
                 kwds['CBLe3cSySize']=10**2
             if 'CBLe3cSyType' not in keys:
@@ -1493,9 +1459,9 @@ class Rm():
                 if row.Measure >= kwds['pFWVBMeasureCBFixedLimitHigh']:
                     pFWVBCat.append(kwds['pMCatTopText'])
                 elif row.Measure <= kwds['pFWVBMeasureCBFixedLimitLow']:
-                    pFWVBCat.append(kwds['pMCatBottomText'])
+                    pFWVBCat.append(kwds['pMCatBotText'])
                 else:
-                    pFWVBCat.append(kwds['pMCatMiddleText'])
+                    pFWVBCat.append(kwds['pMCatMidText'])
             pFWVB=pFWVB.assign(MCategory=pd.Series(pFWVBCat)) 
 
             # Sachdaten annotieren mit Spalte GCategory      
@@ -1622,20 +1588,20 @@ class Rm():
    
                 ,pMCategory='MCategory' 
                 ,pMCatTopTxt=kwds['pMCatTopText'] # 'Top'     
-                ,pMCatBotTxt=kwds['pMCatBottomText'] # 'Bottom'    
-                ,pMCatMidTxt=kwds['pMCatMiddleText'] # 'Middle'             
+                ,pMCatBotTxt=kwds['pMCatBotText'] # 'Bottom'    
+                ,pMCatMidTxt=kwds['pMCatMidText'] # 'Middle'             
                
                 ,pMCatTopColor=kwds['pMCatTopColor']
                 ,pMCatTopAlpha=kwds['pMCatTopAlpha']
                 ,pMCatTopClip=kwds['pMCatTopClip']   
                                                                         
-                ,pMCatBottomColor=kwds['pMCatBotColor'] 
-                ,pMCatBottomAlpha=kwds['pMCatBotAlpha']
-                ,pMCatBottomClip=kwds['pMCatBotClip']
+                ,pMCatBotColor=kwds['pMCatBotColor'] 
+                ,pMCatBotAlpha=kwds['pMCatBotAlpha']
+                ,pMCatBotClip=kwds['pMCatBotClip']
                   
-                ,pMCatMiddleColorMap=kwds['pMCatMidColorMap']
-                ,pMCatMiddleAlpha=kwds['pMCatMidAlpha']
-                ,pMCatMiddleClip=kwds['pMCatMidClip']
+                ,pMCatMidColorMap=kwds['pMCatMidColorMap']
+                ,pMCatMidAlpha=kwds['pMCatMidAlpha']
+                ,pMCatMidClip=kwds['pMCatMidClip']
             )
 
             cax,TBAnchorVertical=pltNetColorbar(
@@ -1667,20 +1633,20 @@ class Rm():
                 ,CBAnchorHorizontal=kwds['CBAnchorHorizontal'] 
                 ,CBAnchorVertical=kwds['CBAnchorVertical'] 
 
-                # Legend 3 Classes
-                ,pAttribute=kwds['pFWVBAttribute'] 
+                # Legend 3 Classes -------------------------------------------------------
+               # ,pAttribute=kwds['pFWVBAttribute'] 
                 #,pSizeFactor=pFWVBSizeFactor                   
                 ,pMCategory='MCategory' 
                 ,pMCatTopTxt=kwds['pMCatTopText']     
-                ,pMCatBotTxt=kwds['pMCatBottomText']       
-                ,pMCatMidTxt=kwds['pMCatMiddleText']     
+                ,pMCatBotTxt=kwds['pMCatBotText']       
+                ,pMCatMidTxt=kwds['pMCatMidText']     
 
-                ,pMCatBottomColor=kwds['pMCatBotColor'] 
+                ,pMCatBotColor=kwds['pMCatBotColor'] 
                 ,pMCatTopColor=kwds['pMCatTopColor'] 
 
-                ,CBLe3cTopVPad=kwds['CBLe3cTopVPad'] #1+1*1/4                 
-                ,CBLe3cMiddleVPad=kwds['CBLe3cMiddleVPad'] #.5                                                                         
-                ,CBLe3cBottomVPad=kwds['CBLe3cBottomVPad'] #0-1*1/4  
+                ,CBLe3cTopVPad=kwds['CBLe3cTopVPad'] 
+                ,CBLe3cMidVPad=kwds['CBLe3cMidVPad']                                                                     
+                ,CBLe3cBotVPad=kwds['CBLe3cBotVPad'] 
                 ,CBLe3cSySize=kwds['CBLe3cSySize'] 
                 ,CBLe3cSyType=kwds['CBLe3cSyType'] 
 
@@ -1813,12 +1779,12 @@ class Rm():
                         topAnz=0
                    
                     try:                                                          
-                        midAnz=int(vAggWblzMCat.loc[NAME,kwds['pMCatMiddleText']]['Measure']['size'])                                                                             
+                        midAnz=int(vAggWblzMCat.loc[NAME,kwds['pMCatMidText']]['Measure']['size'])                                                                             
                     except:                 
                         midAnz=0
                   
                     try:                                                         
-                        botAnz=int(vAggWblzMCat.loc[NAME,kwds['pMCatBottomText']]['Measure']['size'])                                                                 
+                        botAnz=int(vAggWblzMCat.loc[NAME,kwds['pMCatBotText']]['Measure']['size'])                                                                 
                     except:                   
                         botAnz=0                   
 
