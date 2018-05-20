@@ -15,9 +15,10 @@
 >>> logger = logging.getLogger('PT3S.Rm')  
 >>> import pandas as pd
 >>> import matplotlib.pyplot as plt
->>> #
+>>> pd.set_option('display.max_columns',None)
+>>> pd.set_option('display.width',666666)
 >>> # ---
->>> # LocalHeatingNetwork
+>>> # LocalHeatingNetwork SETUP
 >>> # ---
 >>> xmlFile=os.path.join(path,'testdata\LocalHeatingNetwork.XML')
 >>> xm=Xm.Xm(xmlFile=xmlFile)
@@ -26,33 +27,45 @@
 >>> mx.setResultsToMxsFile(NewH5Vec=True)
 >>> xm.Mx(mx=mx)
 >>> rm=Rm(xm=xm,mx=mx)
+>>> # ---
+>>> # Plot 3Classes False
+>>> # ---
 >>> plt.close('all')
->>> fig=plt.figure(
-...  frameon=True
-... ,linewidth=1.
-... ,edgecolor='k') # black
->>> timeDeltaToT=mx.df.index[1]-mx.df.index[0]
->>> pd.set_option('display.max_columns',None)
->>> pd.set_option('display.width',666666)
->>> pFWVB=rm.pltNetDHUS(timeDeltaToT=timeDeltaToT)
+>>> ppi=72 # matplotlib default
+>>> dpi_screen=2*ppi
+>>> fig=plt.figure(dpi=dpi_screen,linewidth=1.)
+>>> timeDeltaToT=mx.df.index[2]-mx.df.index[0]
+>>> # 3Classes und FixedLimits sind standardmaessig Falsch; RefPerc ist standardmaessig Wahr
+>>> # die Belegung von MCategory gemaess FixedLimitsHigh/Low erfolgt immer ... 
+>>> pFWVB=rm.pltNetDHUS(timeDeltaToT=timeDeltaToT,pFWVBMeasureCBFixedLimitHigh=0.80,pFWVBMeasureCBFixedLimitLow=0.66)
+>>> # ---
+>>> # Check pFWVB Return
+>>> # ---
 >>> print("'''{:s}'''".format(repr(pFWVB[['Measure','MCategory','GCategory']]).replace('\\n','\\n   ')))
 '''    Measure MCategory  GCategory
-   0  1.000000       Top  BLNZ1u5u7
-   1  0.941650    Middle           
-   2  0.932884    Middle  BLNZ1u5u7
-   3  0.926353    Middle  BLNZ1u5u7
-   4  0.967076       Top           '''
+   0  0.809706       Top  BLNZ1u5u7
+   1  0.666924    Middle           
+   2  0.660432    Middle  BLNZ1u5u7
+   3  0.655515    Bottom  BLNZ1u5u7
+   4  0.685479    Middle           '''
+>>> # ---
+>>> # Print 
+>>> # ---
 >>> (wD,fileName)=os.path.split(xm.xmlFile)
 >>> (base,ext)=os.path.splitext(fileName)
 >>> plotFileName=wD+os.path.sep+base+'.'+'pdf'
 >>> if os.path.exists(plotFileName):                        
 ...    os.remove(plotFileName)
->>> plt.savefig(plotFileName,dpi=300)
+>>> plt.savefig(plotFileName,dpi=2*dpi_screen)
 >>> os.path.exists(plotFileName)
 True
->>> pFWVB=rm.pltNetDHUS(timeDeltaToT=timeDeltaToT,pFWVBMeasure3Classes=True,pFWVBMeasureCBFixedLimits=True)
 >>> # ---
->>> # Clean Up
+>>> # Plot 3Classes True
+>>> # ---
+>>> # FixedLimits wird automatisch auf Wahr gesetzt wenn 3Classes Wahr ... 
+>>> pFWVB=rm.pltNetDHUS(timeDeltaToT=timeDeltaToT,pFWVBMeasure3Classes=True,pFWVBMeasureCBFixedLimitHigh=0.80,pFWVBMeasureCBFixedLimitLow=0.66)
+>>> # ---
+>>> # LocalHeatingNetwork Clean Up
 >>> # ---
 >>> if os.path.exists(mx.h5File):                        
 ...    os.remove(mx.h5File)
@@ -120,7 +133,7 @@ class RmError(Exception):
 from matplotlib import markers
 from matplotlib.path import Path
 
-def pltHlpAlignMarker(marker, halign='center', valign='middle',):
+def pltHlpAlignMarker(marker,halign='center',valign='middle'):
     """
     create markers with specified alignment.
 
@@ -183,34 +196,74 @@ def pltHlpAlignMarker(marker, halign='center', valign='middle',):
 
     return Path(m_arr, bm.get_path().codes)
 
-def pltNetFigAx(
-                pDf
-               ,pXCor_i='pXCor_i'  # colName 
-               ,pYCor_i='pYCor_i'  # colName          
-               ,pXCor_k='pXCor_k'  # colName 
-               ,pYCor_k='pYCor_k'  # colName   
-
-               ,CBFraction=0.05  # fraction of original axes to use for colorbar
-               ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes            
-
-               # Plot
-               ,pltTitle='pltNetFigAx' # plt.title not f.suptitle
-               ,figFrameon=True # set whether the figure frame (background) is displayed or invisible
-               #,figLinewidth=1.
-               ,figEdgecolor='black' # set the edge color of the Figure rectangle
-               ,figFacecolor='white' # set the face color of the Figure rectangle
-                                                                                           
-               ):
+def pltNetFigAx(pDf,**kwds):
     """
-    Fig- und Ax-Parametrierungen
-    ax wird erzeugt
+    Erzeugt eine für die Netzdarstellung verzerrungsfreie Axes-Instanz.
+
+        * verwendet gcf() (will return an existing figure if one is open, or it will make a new one if there is no active figure)
+        * an already existing figure might be created this way: fig=plt.figure(dpi=2*72,linewidth=1.) 
+        * errechnet die verzerrungsfreie Darstellung unter Berücksichtigung einer zukünftigen horizontalen Farblegende
+        * erzeugt eine Axes-Instanz
+        * setzt Attribute der Axes-Instanz
+        * setzt Attribute der Figure-Instanz
+
+    Args:
+        pDf: dataFrame
+
+        Coordinates:
+            * pXCor_i: colName in pDf (default: 'pXCor_i'): x-Start Coordinate of all Edges to be plotted  
+            * pYCor_i: colName in pDf (default: 'pYCor_i'): y-Start Coordinate of all Edges to be plotted  
+            * pXCor_k: colName in pDf (default: 'pXCor_k'): x-End   Coordinate of all Edges to be plotted  
+            * pYCor_k: colName in pDf (default: 'pYCor_k'): y-End   Coordinate of all Edges to be plotted  
+
+        Colorlegend:
+            * CBFraction: fraction of original axes to use for colorbar (default: 0.05)
+            * CBHpad: fraction of original axes between colorbar and new image axes (default: 0.0275)
+
+        Figure:
+            * pltTitle: title [not suptitle] (default: 'pltNetFigAx') 
+            * figFrameon: figure frame (background): displayed or invisible (default: True)
+            * figEdgecolor: edge color of the Figure rectangle (default: 'black')
+            * figFacecolor: face color of the Figure rectangle (default: 'white')
     """
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-        
+
+    try:
+        keys = sorted(kwds.keys())
+
+        # Coordinates
+        if 'pXCor_i' not in keys:
+            kwds['pXCor_i']='pXCor_i'
+        if 'pYCor_i' not in keys:
+            kwds['pYCor_i']='pYCor_i'
+        if 'pXCor_k' not in keys:
+            kwds['pXCor_k']='pXCor_k'
+        if 'pYCor_k' not in keys:
+            kwds['pYCor_k']='pYCor_k'
+
+        # Colorlegend
+        if 'CBFraction' not in keys:
+            kwds['CBFraction']=0.05
+        if 'CBHpad' not in keys:
+            kwds['CBHpad']=0.0275
+
+        # Figure
+        if 'pltTitle' not in keys:
+            kwds['pltTitle']='pltNetFigAx'
+        if 'figFrameon' not in keys:
+            kwds['figFrameon']=True
+        if 'figEdgecolor' not in keys:
+            kwds['figEdgecolor']='black'
+        if 'figFacecolor' not in keys:
+            kwds['figFacecolor']='white'
+
+    except:
+        pass
+    
     try:         
-        dx=max(pDf[pXCor_i].max(),pDf[pXCor_k].max())
-        dy=max(pDf[pYCor_i].max(),pDf[pYCor_k].max())
+        dx=max(pDf[kwds['pXCor_i']].max(),pDf[kwds['pXCor_k']].max())
+        dy=max(pDf[kwds['pYCor_i']].max(),pDf[kwds['pYCor_k']].max())
 
         # erf. Verhältnis bei verzerrungsfreier Darstellung
         dydx=dy/dx 
@@ -223,7 +276,7 @@ def pltNetFigAx(
         figwidth=dxInch
 
         #verzerrungsfrei: Blattkoordinatenverhaeltnis = Weltkoordinatenverhaeltnis
-        factor=1-(CBFraction+CBHpad)
+        factor=1-(kwds['CBFraction']+kwds['CBHpad'])
         # verzerrungsfreie Darstellung sicherstellen
         figheight=figwidth*dydx*factor
 
@@ -235,6 +288,30 @@ def pltNetFigAx(
         
         # plt.figure(dpi=, facecolor=, edgecolor=, linewidth=, frameon=True)
         fig = plt.gcf()  # This will return an existing figure if one is open, or it will make a new one if there is no active figure.
+
+
+
+        fig.set_figwidth(figwidth)
+        fig.set_figheight(figheight)
+
+        logger.debug("{:s}dx={:10.2f} dy={:10.2f}".format(logStr,dx,dy))     
+        logger.debug("{:s}figwidth={:10.2f} figheight={:10.2f}".format(logStr,figwidth,figheight))   
+
+        ax=plt.subplot()
+        ax.set_xlim(left=xlimLeft)
+        ax.set_ylim(bottom=ylimBottom)
+        ax.set_xlim(right=xlimRight)
+        ax.set_ylim(top=ylimTop)
+
+        xTicks=ax.get_xticks()
+        dxTick = xTicks[1]-xTicks[0]
+        yTicks=ax.set_yticks([idx*dxTick for idx in range(math.floor(dy/dxTick)+1)])
+
+        plt.title(kwds['pltTitle'])              
+        fig.set_frameon(kwds['figFrameon']) 
+        fig.set_edgecolor(kwds['figEdgecolor'])
+        fig.set_facecolor(kwds['figFacecolor'])
+
 
         # https://stackoverflow.com/questions/14827650/pyplot-scatter-plot-marker-size
 
@@ -254,27 +331,6 @@ def pltNetFigAx(
         # the standard dpi in matplotlib is 100
         # a scatter-marker whos "area" covers always 10 pixel:
         # s=(10*ppi/dpi)**2       
-
-        fig.set_figwidth(figwidth)
-        fig.set_figheight(figheight)
-
-        logger.debug("{:s}dx={:10.2f} dy={:10.2f}".format(logStr,dx,dy))     
-        logger.debug("{:s}figwidth={:10.2f} figheight={:10.2f}".format(logStr,figwidth,figheight))   
-
-        ax=plt.subplot()
-        ax.set_xlim(left=xlimLeft)
-        ax.set_ylim(bottom=ylimBottom)
-        ax.set_xlim(right=xlimRight)
-        ax.set_ylim(top=ylimTop)
-
-        xTicks=ax.get_xticks()
-        dxTick = xTicks[1]-xTicks[0]
-        yTicks=ax.set_yticks([idx*dxTick for idx in range(math.floor(dy/dxTick)+1)])
-
-        plt.title(pltTitle)              
-        fig.set_frameon(figFrameon) 
-        fig.set_edgecolor(figEdgecolor)
-        fig.set_facecolor(figFacecolor)
                                                                                           
     except RmError:
         raise            
@@ -285,139 +341,210 @@ def pltNetFigAx(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))               
 
-def pltNetNodes( 
-                # ALLG
-                 pDf 
-                ,pMeasure3Classes=True 
-
-                ,CBFixedLimits=True
-                ,CBFixedLimitLow=0. 
-                ,CBFixedLimitHigh=1. 
-                
-                ,pMeasure='Measure'  # colName                                                                                                                       
-                ,pAttribute='Attrib' # colName 
-
-                ,pXCor='pXCor_i'  # colName 
-                ,pYCor='pYCor_i'  # colName 
-             
-                ,pSizeFactor=1. 
-                                 
-                ,pMeasureColorMap=plt.cm.autumn 
-                ,pMeasureAlpha=0.9 
-                ,pMeasureClip=False    
-
-                ,pMCategory='MCategory' # colName                    
-                ,pMCatTopTxt='Top'     
-                ,pMCatMidTxt='Middle'             
-                ,pMCatBotTxt='Bottom'    
-                             
-                ,pMCatTopColor='palegreen'
-                ,pMCatTopAlpha=0.9 
-                ,pMCatTopClip=False            
-
-                ,pMCatMidColorMap=plt.cm.autumn 
-                ,pMCatMidAlpha=0.9 
-                ,pMCatMidClip=False  
-                                                                        
-                ,pMCatBotColor='violet' 
-                ,pMCatBotAlpha=0.9 
-                ,pMCatBotClip=False                                                 
-                ):
+def pltNetNodes(pDf,**kwds):
     """
-    zeichnet Symbole auf gca()
-    Größenskalierung mit pSizeFactor * pAttribute in Pts
-    Farbe nach pMeasure und pMeasureColorMap      
-    return:
+    Scatters NODEs on gca().
+
+    Args:
+            pDf: dataFrame
+
+            NODE: Size (Attribute)
+                * pAttribute: colName (default: 'Attribute') in pDf  
+                * pSizeFactor: scatter Sy-Area in pts^2 = pSizeFactor (default: 1.) * Attribute   
+
+            NODE: Color (Measure)
+                * pMeasure: colName (default: 'Measure') in pDf  
+                * pMeasureColorMap (default: plt.cm.autumn)
+                * pMeasureAlpha (default: 0.9)
+                * pMeasureClip (default: False)
+
+                * CBFixedLimits (default: True)
+                * CBFixedLimitLow (default: 0.) 
+                * CBFixedLimitHigh (default: 1.) 
+
+            NODE: 3Classes
+                * pMeasure3Classes (default: True) 
+
+                * pMCategory: colName (default: 'MCategory') in pDf                    
+                * pMCatTopTxt (default: 'Top')     
+                * pMCatMidTxt (default: 'Middle')             
+                * pMCatBotTxt (default: 'Bottom')    
+
+                * pMCatTopColor (default: 'palegreen')
+                * pMCatTopAlpha (default: 0.9) 
+                * pMCatTopClip (default: False)            
+
+                * pMCatMidColorMap (default: plt.cm.autumn) 
+                * pMCatMidAlpha (default: 0.9) 
+                * pMCatMidClip (default: False)  
+                                                                        
+                * pMCatBotColor (default: 'violet') 
+                * pMCatBotAlpha (default: 0.9) 
+                * pMCatBotClip (default: False)     
+            
+            NODE:
+                * pXCor: colName (default: 'pXCor_i') in pDf 
+                * pYCor: colName (default: 'pYCor_i') in pDf 
+
+    Returns:
             (pcN, vmin, vmax)
-            pcN sind die mit pMeasureColorMap gezeichneten Symbole
-            vmin/vmax sind die für die Farbskala verwendeten Extremalwerte
+
+                * pcN: die mit Farbskala gezeichneten Symbole
+                * vmin/vmax: die für die Farbskala verwendeten Extremalwerte
     """
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:
+            keys = sorted(kwds.keys())
+
+            # NODE: Size (Attribute)
+            if 'pAttribute' not in keys:
+                kwds['pAttribute']='Attribute'
+            if 'pSizeFactor' not in keys:
+                kwds['pSizeFactor']=1.
+
+            # NODE: Color (Measure)
+            if 'pMeasure' not in keys:
+                kwds['pMeasure']='Measure'
+            if 'pMeasureColorMap' not in keys:
+                kwds['pMeasureColorMap']=plt.cm.autumn
+            if 'pMeasureAlpha' not in keys:
+                kwds['pMeasureAlpha']=0.9
+            if 'pMeasureClip' not in keys:
+                kwds['pMeasureClip']=False
+
+            if 'CBFixedLimits' not in keys:
+                kwds['CBFixedLimits']=True
+            if 'CBFixedLimitLow' not in keys:
+                kwds['CBFixedLimitLow']=0.
+            if 'CBFixedLimitHigh' not in keys:
+                kwds['CBFixedLimitHigh']=1.
+
+            # NODE: 3Classes
+            if 'pMeasure3Classes' not in keys:
+                kwds['pMeasure3Classes']=True
+
+            if 'pMCategory' not in keys:
+                kwds['pMCategory']='MCategory'
+            if 'pMCatTopTxt' not in keys:
+                kwds['pMCatTopTxt']='Top'
+            if 'pMCatMidTxt' not in keys:
+                kwds['pMCatMidTxt']='Middle'
+            if 'pMCatBotTxt' not in keys:
+                kwds['pMCatBotTxt']='Bottom'
+
+            if 'pMCatTopColor' not in keys:
+                kwds['pMCatTopColor']='palegreen'
+            if 'pMCatTopAlpha' not in keys:
+                kwds['pMCatTopAlpha']=0.9
+            if 'pMCatTopClip' not in keys:
+                kwds['pMCatTopClip']=False
+
+            if 'pMCatMidColorMap' not in keys:
+                kwds['pMCatMidColorMap']=plt.cm.autumn
+            if 'pMCatMidAlpha' not in keys:
+                kwds['pMCatMidAlpha']=0.9
+            if 'pMCatMidClip' not in keys:
+                kwds['pMCatMidClip']=False
+
+            if 'pMCatBotColor' not in keys:
+                kwds['pMCatBotColor']='violet'
+            if 'pMCatBotAlpha' not in keys:
+                kwds['pMCatBotAlpha']=0.9
+            if 'pMCatBotClip' not in keys:
+                kwds['pMCatBotClip']=False
+
+            # NODE:
+            if 'pXCor' not in keys:
+                kwds['pXCor']='pXCor_i'
+            if 'pYCor' not in keys:
+                kwds['pYCor']='pYCor_i'
+
+    except:
+        pass 
         
     try: 
 
-        logger.debug("{:s}pAttribute={:s} pMeasure={:s}".format(logStr,pAttribute,pMeasure)) 
-        logger.debug("{:s}pSizeFactor={:10.3f}".format(logStr,pSizeFactor)) 
-        logger.debug("{:s}pMeasure3Classes={!s:s}".format(logStr,pMeasure3Classes)) 
+
  
         ax=plt.gca()
                      
-        if pMeasure3Classes:
+        if kwds['pMeasure3Classes']:
 
-            pN_top=pDf[(pDf[pMCategory]==pMCatTopTxt)] 
-            pN_mid=pDf[(pDf[pMCategory]==pMCatMidTxt)]     
-            pN_bot=pDf[(pDf[pMCategory]==pMCatBotTxt)] 
+            pN_top=pDf[(pDf[kwds['pMCategory']]==kwds['pMCatTopTxt'])] 
+            pN_mid=pDf[(pDf[kwds['pMCategory']]==kwds['pMCatMidTxt'])]     
+            pN_bot=pDf[(pDf[kwds['pMCategory']]==kwds['pMCatBotTxt'])] 
 
             pN_top_Anz,col=pN_top.shape
             pN_mid_Anz,col=pN_mid.shape
             pN_bot_Anz,col=pN_bot.shape
 
             pcN_top=ax.scatter(    
-                    pN_top[pXCor],pN_top[pYCor]                 
-                ,s=pSizeFactor*pN_top[pAttribute]
-                ,color=pMCatTopColor
-                ,alpha=pMCatTopAlpha
+                    pN_top[kwds['pXCor']],pN_top[kwds['pYCor']]                 
+                ,s=kwds['pSizeFactor']*pN_top[kwds['pAttribute']]
+                ,color=kwds['pMCatTopColor']
+                ,alpha=kwds['pMCatTopAlpha']
                 ,edgecolors='face'             
-                ,clip_on=pMCatTopClip)        
+                ,clip_on=kwds['pMCatTopClip'])        
             logger.debug("{:s}Anzahl mit fester Farbe Top gezeichneter Symbole={:d}".format(logStr,pN_top_Anz))                        
 
-            if not CBFixedLimits:
-                vmin=pN_mid[pMeasure].min()
-                vmax=pN_mid[pMeasure].max()
+            if not kwds['CBFixedLimits']:
+                vmin=pN_mid[kwds['pMeasure']].min()
+                vmax=pN_mid[kwds['pMeasure']].max()
             else:
-                vmin=CBFixedLimitLow
-                vmax=CBFixedLimitHigh
+                vmin=kwds['CBFixedLimitLow']
+                vmax=kwds['CBFixedLimitHigh']
 
             pcN=ax.scatter(    
-                    pN_mid[pXCor],pN_mid[pYCor]       
-                ,s=pSizeFactor*pN_mid[pAttribute]
+                    pN_mid[kwds['pXCor']],pN_mid[kwds['pYCor']]       
+                ,s=kwds['pSizeFactor']*pN_mid[kwds['pAttribute']]
                 # Farbskala
-                ,cmap=pMCatMidColorMap
+                ,cmap=kwds['pMCatMidColorMap']
                 # Normierung Farbe
                 ,vmin=vmin
                 ,vmax=vmax
                 # Farbwert
-                ,c=pN_mid[pMeasure] 
-                ,alpha=pMCatMidAlpha
+                ,c=pN_mid[kwds['pMeasure']] 
+                ,alpha=kwds['pMCatMidAlpha']
                 ,edgecolors='face'
-                ,clip_on=pMCatMidClip
+                ,clip_on=kwds['pMCatMidClip']
                 )
             logger.debug("{:s}Anzahl mit Farbskala gezeichneter Symbole={:d}".format(logStr,pN_mid_Anz))    
 
             pcN_bot=ax.scatter(    
-                    pN_bot[pXCor],pN_bot[pYCor]                 
-                ,s=pSizeFactor*pN_bot[pAttribute]
-                ,color=pMCatBotColor
-                ,alpha=pMCatBotAlpha
+                    pN_bot[kwds['pXCor']],pN_bot[kwds['pYCor']]                 
+                ,s=kwds['pSizeFactor']*pN_bot[kwds['pAttribute']]
+                ,color=kwds['pMCatBotColor']
+                ,alpha=kwds['pMCatBotAlpha']
                 ,edgecolors='face'             
-                ,clip_on=pMCatBotClip)              
+                ,clip_on=kwds['pMCatBotClip'])              
             logger.debug("{:s}Anzahl mit fester Farbe Bot gezeichneter Symbole={:d}".format(logStr,pN_bot_Anz))     
                           
         else:
 
             pN_Anz,col=pDf.shape
 
-            if not CBFixedLimits:
-                vmin=pDf[pMeasure].min()
-                vmax=pDf[pMeasure].max()
+            if not kwds['CBFixedLimits']:
+                vmin=pDf[kwds['pMeasure']].min()
+                vmax=pDf[kwds['pMeasure']].max()
             else:
-                vmin=CBFixedLimitLow
-                vmax=CBFixedLimitHigh
+                vmin=kwds['CBFixedLimitLow']
+                vmax=kwds['CBFixedLimitHigh']
                                          
             pcN=ax.scatter(    
-                    pDf[pXCor],pDf[pYCor]       
-                ,s=pSizeFactor*pDf[pAttribute]
+                    pDf[kwds['pXCor']],pDf[kwds['pYCor']]       
+                ,s=kwds['pSizeFactor']*pDf[kwds['pAttribute']]
                 # Farbskala
-                ,cmap=pMeasureColorMap
+                ,cmap=kwds['pMeasureColorMap']
                 # Normierung Farbe
                 ,vmin=vmin
                 ,vmax=vmax
                 # Farbwert
-                ,c=pDf[pMeasure] 
-                ,alpha=pMeasureAlpha
+                ,c=pDf[kwds['pMeasure']] 
+                ,alpha=kwds['pMeasureAlpha']
                 ,edgecolors='face'
-                ,clip_on=pMeasureClip
+                ,clip_on=kwds['pMeasureClip']
                 )            
             logger.debug("{:s}Anzahl mit Farbskala gezeichneter Symbole={:d}".format(logStr,pN_Anz))                           
         
@@ -433,74 +560,129 @@ def pltNetNodes(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))            
         return (pcN, vmin, vmax)
 
-def pltNetPipes(
-                pDf
-               ,pAttribute='DI'  # Line
-               ,pMeasure='Measure'  # Marker
-
-               ,pClip=False
-               ,pAttributeLs='-'  
-               ,pMeasureMarker='.' 
-
-               ,pAttríbuteColorMap=plt.cm.binary    
-               ,pAttríbuteColorMapUsageStart=1./3                           
-               ,pAttributeSizeFactor=1. # in diesem Fall ist die Linienbreite in Pts = dem pAttribute-Wert         
-
-               ,pMeasureColorMap=plt.cm.binary    
-               ,pMeasureColorMapUsageStart=1./3
-               ,pMeasureSizeFactor=1. # in diesem Fall ist die Symbolgröße in Pts = dem pMeasure-Wert                                                                          
-               ):
+def pltNetPipes(pDf,**kwds):
     """
-    plottet Lines mit Marker auf gca()
+    Plots Lines with Marker on gca().
+
+    Args:
+            pDf: dataFrame
+
+            PIPE-Line:
+                * pAttribute: column in pDf (default: 'Attribute')                                                       
+                * pAttributeLs (default: '-')
+                * pAttributeSizeFactor: plot linewidth in pts = pAttributeSizeFactor (default: 1.0) * Attribute       
+                * pAttributeColorMap (default: plt.cm.binary)    
+                * pAttributeColorMapUsageStart (default: 1./3; Wertebereich: [0,1])   
+                     
+                    * Farbskala nach vorh. min./max. Wert
+                    * die Farbskala wird nur ab UsageStart genutzt
+                    * d.h. Werte die eine "kleinere" Farbe hätten, bekommen die Farbe von UsageStart
+
+            PIPE-Marker:
+                * pMeasure: column in pDf  (default: 'Measure')                                  
+                * pMeasureMarker (default: '.')
+                * pMeasureSizeFactor: plot markersize in pts = pMeasureSizeFactor (default: 1.0) * Measure       
+                * pMeasureColorMap (default: plt.cm.cool) 
+                * pMeasureColorMapUsageStart (default: 0.; Wertebereich: [0,1])        
+
+                    * Farbskala nach vorh. min./max. Wert
+                    * die Farbskala wird nur ab UsageStart genutzt
+                    * d.h. Werte die eine "kleinere" Farbe hätten, bekommen die Farbe von UsageStart
+
+            PIPE:
+                * pWAYPXCors: column in pDf (default: 'pWAYPXCors')     
+                * pWAYPYCors: column in pDf (default: 'pWAYPYCors')     
+                * pClip (default: False)
     """
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:
+            keys = sorted(kwds.keys())
+
+            # PIPE-Line
+            if 'pAttribute' not in keys:
+                kwds['pAttribute']='Attribute'
+            if 'pAttributeSizeFactor' not in keys:
+                kwds['pAttributeSizeFactor']=1.           
+            if 'pAttributeLs' not in keys:
+                kwds['pAttributeLs']='-'           
+            if 'pAttributeColorMap' not in keys:
+                kwds['pAttributeColorMap']=plt.cm.binary
+            if 'pAttributeColorMapUsageStart' not in keys:
+                kwds['pAttributeColorMapUsageStart']=1./3.                  
+
+            # PIPE-Marker
+            if 'pMeasure' not in keys:
+                kwds['pMeasure']='Measure'
+            if 'pMeasureSizeFactor' not in keys:
+                kwds['pMeasureSizeFactor']=1.
+            if 'pMeasureMarker' not in keys:
+                kwds['pMeasureMarker']='.'
+            if 'pMeasureColorMap' not in keys:
+                kwds['pMeasureColorMap']=plt.cm.cool
+            if 'pMeasureColorMapUsageStart' not in keys:
+                kwds['pMeasureColorMapUsageStart']=0.
+
+            # PIPE
+            if 'pWAYPXCors' not in keys:
+                kwds['pWAYPXCors']='pWAYPXCors'
+            if 'pWAYPYCors' not in keys:
+                kwds['pWAYPYCors']='pWAYPYCors'
+            if 'pClip' not in keys:
+                kwds['pClip']=False
+
+    except:
+        pass 
         
     try: 
-        ax=plt.gca()
-
-        minLine=pDf[pAttribute].min()
-        maxLine=pDf[pAttribute].max()
+       
+        # Line
+        minLine=pDf[kwds['pAttribute']].min()
+        maxLine=pDf[kwds['pAttribute']].max()
         logger.debug("{:s}minLine (Attribute): {:6.2f}".format(logStr,minLine))
         logger.debug("{:s}maxLine (Attribute): {:6.2f}".format(logStr,maxLine))
         normLine=colors.Normalize(minLine,maxLine)
-        usageLineValue=minLine+pAttríbuteColorMapUsageStart*(maxLine-minLine)
-        usageLineColor=pAttríbuteColorMap(normLine(usageLineValue)) 
+        usageLineValue=minLine+kwds['pAttributeColorMapUsageStart']*(maxLine-minLine)
+        usageLineColor=kwds['pAttributeColorMap'](normLine(usageLineValue)) 
 
-        minMarker=pDf[pMeasure].min()
-        maxMarker=pDf[pMeasure].max()
+        # Marker
+        minMarker=pDf[kwds['pMeasure']].min()
+        maxMarker=pDf[kwds['pMeasure']].max()
+        logger.debug("{:s}minMarker (Measure): {:6.2f}".format(logStr,minMarker))
+        logger.debug("{:s}maxMarker (Measure): {:6.2f}".format(logStr,maxMarker))
         normMarker=colors.Normalize(minMarker,maxMarker)
-        usageMarkerValue=minMarker+pMeasureColorMapUsageStart*(maxMarker-minMarker)
-        usageMarkerColor=pMeasureColorMap(normMarker(usageMarkerValue)) 
+        usageMarkerValue=minMarker+kwds['pMeasureColorMapUsageStart']*(maxMarker-minMarker)
+        usageMarkerColor=kwds['pMeasureColorMap'](normMarker(usageMarkerValue)) 
 
-        for xs,ys,vLine,vMarker in zip(pDf['pWAYPXCors'],pDf['pWAYPYCors'],pDf[pAttribute],pDf[pMeasure]):        
+        ax=plt.gca()
+        for xs,ys,vLine,vMarker in zip(pDf[kwds['pWAYPXCors']],pDf[kwds['pWAYPYCors']],pDf[kwds['pAttribute']],pDf[kwds['pMeasure']]):        
+
             if vLine >= usageLineValue:
-                colorLine=pAttríbuteColorMap(normLine(vLine)) 
+                colorLine=kwds['pAttributeColorMap'](normLine(vLine)) 
             else:
                 colorLine=usageLineColor
+
             if vMarker >= usageMarkerValue:
-                colorMarker=pMeasureColorMap(normMarker(vMarker))
+                colorMarker=kwds['pMeasureColorMap'](normMarker(vMarker))
             else:
                 colorMarker=usageMarkerColor
 
-            colorMarker=pMeasureColorMap(normMarker(vMarker))
             pcLines=ax.plot(xs,ys
                             ,color=colorLine
-                            ,linewidth=pAttributeSizeFactor*vLine 
-                            ,ls=pAttributeLs
-                            ,marker=pMeasureMarker
+                            ,linewidth=kwds['pAttributeSizeFactor']*vLine 
+                            ,ls=kwds['pAttributeLs']
+                            ,marker=kwds['pMeasureMarker']
                             ,mfc=colorMarker 
                             ,mec=colorMarker  
                             ,mfcalt=colorMarker  
                             ,mew=0
-                            ,ms=pMeasureSizeFactor*vMarker                                                    
+                            ,ms=kwds['pMeasureSizeFactor']*vMarker                                                    
                             ,markevery=[0,len(xs)-1]
                             ,aa=True
-                            ,clip_on=pClip
+                            ,clip_on=kwds['pClip']
                            )            
-            #logger.debug("{:s}pcLines: {!s:s}".format(logStr,pcLines))
-      
-                                                                                          
+                                                        
     except RmError:
         raise            
     except Exception as e:
@@ -510,60 +692,92 @@ def pltNetPipes(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                   
 
-def pltNetLegendColorbar( 
-                pc # (eingefaerbte) PathCollection (aus pltNetNodes); werden für die Erzeugung der colorbar zwingend benoetigt  
-                 
-                # wird nur benötigt wenn CBFixedLimitLow/High _nicht gelten:
-                #>...                     
-                ,pDf=None # df            
-                ,pMeasure='Measure'  # colName   
-                # pMeasure3Classes True: CBFixedLimitLow/High gelten; CBFixedLimits spielt keine Rolle
-                # False: CBFixedLimitLow/High gelten wenn CBFixedLimits
-                # sonst: pDf[pMeasure].min()/.max() sind die Limits 
-                 #...<
-
-                ,pMeasureInPerc=True # Measure wird interpretiert in Prozent [0-1] 
-                ,pMeasure3Classes=True 
-                
-                # Label
-                ,pMeasureUNIT='[]'
-                ,pMeasureTYPE=''
-
-                # Ticks (TickLabels und TickValues)
-                ,CBFixedLimits=False
-                ,CBFixedLimitLow=0 
-                ,CBFixedLimitHigh=1        
-                
-                # Geometrie
-                ,CBFraction=0.05  # fraction of original axes to use for colorbar
-                ,CBHpad=0.0275 # 0.05 # fraction of original axes between colorbar and new image axes              
-                ,CBLabelPad=0. # Label unmittelbar rechts neben der Colorbar        
-                ,CBTicklabelsHPad=0                               
-                ,CBAspect=10. # ratio of long to short dimension
-                ,CBShrink=1. # Colorbar füllt dann y von ax ganz aus 
-                ,CBAnchorHorizontal=0. # horizontaler Fußpunkt der colorbar in Plot-% von ax
-                ,CBAnchorVertical=0. # vertikaler Fußpunkt der colorbar in Plot-% von ax                     
-                ):
+def pltNetLegendColorbar(pc,pDf,**kwds): 
     """
-    Erzeugt die Farbskala-Axes und zeichnet die Farbskala.
+    Erzeugt eine Axes cax für den Legendenbereich aus ax (=gca()) und zeichnet auf cax die Farblegende (die Farbskala mit allen Eigenschaften).
 
-        Ablauf
-    
-            * erzeugt cax (Colorbar-Axes) aus ax (gca()) 
-            * und positioniert darauf (gca() steht auf cax nach return)
-            * Position der Farblegende: rechts
-            * zeichnet die Farblegende 
-        
-                * Ticks
-                * TickLabels
-                * Label (90°)
+        Args:
+            pc: (eingefaerbte) PathCollection (aus pltNetNodes); wird für die Erzeugung der Farbskala zwingend benoetigt  
+            pDf: dataFrame (default: None)
 
-        Return
+            Measure:
+                * pMeasure: colName in pDf (default: 'Measure') 
+                * pMeasureInPerc: Measure wird interpretiert in Prozent [0-1] (default: True)
+                * pMeasure3Classes (default: False d.h. Measure wird nicht in 3 Klassen dargestellt)
+
+            CBFixedLimits (Ticks):
+                * CBFixedLimits (default: False d.h. Farbskala nach vorh. min./max. Wert)
+                * CBFixedLimitLow (default: .10) 
+                * CBFixedLimitHigh (default: .95) 
+
+            Label:
+                * pMeasureUNIT (default: '[]')
+                * pMeasureTYPE (default: '')
+
+            CB
+                * CBFraction: fraction of original axes to use for colorbar (default: 0.05)
+                * CBHpad: fraction of original axes between colorbar and new image axes (default: 0.0275)               
+                * CBLabelPad (default: -50)         
+                * CBTicklabelsHPad (default: 0.)      
+                * CBAspect: ratio of long to short dimension (default: 10.)
+                * CBShrink: fraction by which to shrink the colorbar (default: 0.3)
+                * CBAnchorHorizontal: horizontaler Fußpunkt der colorbar in Plot-% (default: 0.)
+                * CBAnchorVertical: vertikaler Fußpunkt der colorbar in Plot-% (default: 0.2)     
+
+        Return:
             cax
                   
     """
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:
+            keys = sorted(kwds.keys())
+
+            # Measure
+            if 'pMeasure' not in keys:
+                kwds['pMeasure']='Measure'
+            if 'pMeasureInPerc' not in keys:
+                kwds['pMeasureInPerc']=True
+            if 'pMeasure3Classes' not in keys:
+                kwds['pMeasure3Classes']=False
+
+            # Label
+            if 'pMeasureUNIT' not in keys:
+                kwds['pMeasureUNIT']='[]'
+            if 'pMeasureTYPE' not in keys:
+                kwds['pMeasureTYPE']=''
+
+            # CBFixedLimits 
+            if 'CBFixedLimits' not in keys:
+                kwds['CBFixedLimits']=False
+            if 'CBFixedLimitLow' not in keys:
+                kwds['CBFixedLimitLow']=.10
+            if 'CBFixedLimitHigh' not in keys:
+                kwds['CBFixedLimitHigh']=.95
+
+            # CB
+            if 'CBFraction' not in keys:
+                kwds['CBFraction']=0.05
+            if 'CBHpad' not in keys:
+                kwds['CBHpad']=0.0275
+            if 'CBLabelPad' not in keys:
+                kwds['CBLabelPad']=-50
+            if 'CBTicklabelsHPad' not in keys:
+                kwds['CBTicklabelsHPad']=0
+            if 'CBAspect' not in keys:
+                kwds['CBAspect']=10.
+            if 'CBShrink' not in keys:
+                kwds['CBShrink']=0.3
+            if 'CBAnchorHorizontal' not in keys:
+                kwds['CBAnchorHorizontal']=0.
+            if 'CBAnchorVertical' not in keys:
+                kwds['CBAnchorVertical']=0.2
+
+
+    except:
+            pass
+
         
     try: 
           
@@ -574,11 +788,11 @@ def pltNetLegendColorbar(
         cax=None           
         cax,kw=make_axes(ax
                         ,location='right'
-                        ,fraction=CBFraction # fraction of original axes to use for colorbar
-                        ,pad=CBHpad # fraction of original axes between colorbar and new image axes
-                        ,anchor=(CBAnchorHorizontal,CBAnchorVertical) # the anchor point of the colorbar axes
-                        ,aspect=CBAspect # ratio of long to short dimension
-                        ,shrink=CBShrink # fraction by which to shrink the colorbar
+                        ,fraction=kwds['CBFraction'] # fraction of original axes to use for colorbar
+                        ,pad=kwds['CBHpad'] # fraction of original axes between colorbar and new image axes
+                        ,anchor=(kwds['CBAnchorHorizontal'],kwds['CBAnchorVertical']) # the anchor point of the colorbar axes
+                        ,aspect=kwds['CBAspect'] # ratio of long to short dimension
+                        ,shrink=kwds['CBShrink'] # fraction by which to shrink the colorbar
                         )         
 
         # colorbar
@@ -588,28 +802,28 @@ def pltNetLegendColorbar(
                     )        
 
         # tick Values  
-        if pMeasure3Classes:
-            minCBtickValue=CBFixedLimitLow
-            maxCBtickValue=CBFixedLimitHigh             
+        if kwds['pMeasure3Classes']: # FixedLimits should be True and FixedLimitHigh/Low should be set ...
+            minCBtickValue=kwds['CBFixedLimitLow']
+            maxCBtickValue=kwds['CBFixedLimitHigh']             
         else:
-            if CBFixedLimits and isinstance(CBFixedLimitHigh,float) and isinstance(CBFixedLimitLow,float):
-                minCBtickValue=CBFixedLimitLow
-                maxCBtickValue=CBFixedLimitHigh                      
+            if kwds['CBFixedLimits'] and isinstance(kwds['CBFixedLimitHigh'],float) and isinstance(kwds['CBFixedLimitLow'],float):
+                minCBtickValue=kwds['CBFixedLimitLow']
+                maxCBtickValue=kwds['CBFixedLimitHigh']                      
             else:
-                minCBtickValue=pDf[pMeasure].min()
-                maxCBtickValue=pDf[pMeasure].max()           
+                minCBtickValue=pDf[kwds['pMeasure']].min()
+                maxCBtickValue=pDf[kwds['pMeasure']].max()           
         colorBar.set_ticks([minCBtickValue,minCBtickValue+.5*(maxCBtickValue-minCBtickValue),maxCBtickValue])  
 
         # tick Labels
-        if pMeasureInPerc:
-            if pMeasure3Classes:
+        if kwds['pMeasureInPerc']:
+            if kwds['pMeasure3Classes']:
                 minCBtickLabel=">{:3.0f}%".format(minCBtickValue*100)
                 maxCBtickLabel="<{:3.0f}%".format(maxCBtickValue*100)                             
             else:
-                minCBtickLabel="{:3.0f}%".format(minCBtickValue*100)
-                maxCBtickLabel="{:3.0f}%".format(maxCBtickValue*100) 
+                minCBtickLabel="{:6.2f}%".format(minCBtickValue*100)
+                maxCBtickLabel="{:6.2f}%".format(maxCBtickValue*100) 
         else:
-            if pMeasure3Classes:
+            if kwds['pMeasure3Classes']:
                 minCBtickLabel=">{:6.2f}".format(minCBtickValue)
                 maxCBtickLabel="<{:6.2f}".format(maxCBtickValue)    
             else:
@@ -617,15 +831,15 @@ def pltNetLegendColorbar(
                 maxCBtickLabel="{:6.2f}".format(maxCBtickValue)    
         logger.debug("{:s}minCBtickLabel={:s} maxCBtickLabel={:s}".format(logStr,minCBtickLabel,maxCBtickLabel))    
         colorBar.set_ticklabels([minCBtickLabel,'',maxCBtickLabel])        
-        colorBar.ax.yaxis.set_tick_params(pad=CBTicklabelsHPad)     
+        colorBar.ax.yaxis.set_tick_params(pad=kwds['CBTicklabelsHPad'])     
                                  
         # Label
-        if pMeasureInPerc:
-                CBLabelText="{:s} in [%]".format(pMeasureTYPE)                                                                
+        if kwds['pMeasureInPerc']:
+                CBLabelText="{:s} in [%]".format(kwds['pMeasureTYPE'])                                                                
         else:
-                CBLabelText="{:s} in {:s}".format(pMeasureTYPE,pMeasureUNIT)
+                CBLabelText="{:s} in {:s}".format(kwds['pMeasureTYPE'],kwds['pMeasureUNIT'])
          
-        colorBar.set_label(CBLabelText,labelpad=CBLabelPad)
+        colorBar.set_label(CBLabelText,labelpad=kwds['CBLabelPad'])
                                                                                                                 
     except RmError:
         raise            
@@ -637,58 +851,109 @@ def pltNetLegendColorbar(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
         return cax
 
-def pltNetLegendColorbar3Classes( 
-                pDf
-
-               ,pMCategory='MCategory' # colName 
-
-               ,pMCatTopTxt='Top'
-               ,pMCatMidTxt='Middle'
-               ,pMCatBotTxt='Bottom'
-
-               ,pMCatBotColor='violet' 
-               ,pMCatTopColor='palegreen'           
-                                  
-               ,CBLe3cTopVPad=1+1*1/4                 
-               ,CBLe3cMidVPad=.5                                                                         
-               ,CBLe3cBotVPad=0-1*1/4          
-               
-               ,CBLe3cSySize=10**2 # (Sy-Area in pts^2)
-               ,CBLe3cSyType='o'                               
-                ):
+def pltNetLegendColorbar3Classes(pDf,**kwds):               
     """
-    Zeichnet die ergänzenden Legendeninformationen bei 3 Klassen.  
+    Zeichnet auf gca() die ergaenzenden Legendeninformationen bei 3 Klassen.  
+
+    * scatters the Top-Symbol
+    * scatters the Bot-Symbol
+    * the "Mid-Symbol" is the (already existing) colorbar with (already existing) ticks and ticklabels 
+
+    Args:
+
+            pDf: dataFrame
+
+            Category:
+                * pMCategory: colName in pDf (default: 'MCategory')
+                * pMCatTopText
+                * pMCatMidText
+                * pMCatBotText
+
+            CBLegend (3Classes) - Parameterization of the representative Symbols
+                * CBLe3cTopVPad (default: 1+1*1/4)
+                * CBLe3cMidVPad (default: .5)                                                                         
+                * CBLe3cBotVPad (default: 0-1*1/4)
+                
+                    * 1 is the height of the Colorbar                                                                   
+                    * the VPads (the vertical Sy-Positions) are defined in cax.transAxes Coordinates    
+                    * cax is the Colorbar Axes               
+
+                * CBLe3cSySize=10**2 (Sy-Area in pts^2)
+                * CBLe3cSyType='o' 
+
+            Color:
+                * pMCatBotColor='violet' 
+                * pMCatTopColor='palegreen'    
+
+    Returns:
+            (bbTop, bbMid, bbBot): the boundingBoxes of the 3Classes-Symbols  
+
     """
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:
+            keys = sorted(kwds.keys())
+
+            # Cats
+            if 'pMCategory' not in keys:
+                kwds['pMCategory']='MCategory'
+
+            if 'pMCatTopText' not in keys:
+                kwds['pMCatTopText']='Top'
+            if 'pMCatMidText' not in keys:
+                kwds['pMCatMidText']='Middle'
+            if 'pMCatBotText' not in keys:
+                kwds['pMCatBotText']='Bottom'
+
+            # CBLegend3Cats 
+            if 'CBLe3cTopVPad' not in keys:
+                kwds['CBLe3cTopVPad']=1+1*1/4  
+            if 'CBLe3cMidVPad' not in keys:
+                kwds['CBLe3cMidVPad']=.5    
+            if 'CBLe3cBotVPad' not in keys:
+                kwds['CBLe3cBotVPad']=0-1*1/4    
+            if 'CBLe3cSySize' not in keys:
+                kwds['CBLe3cSySize']=10**2
+            if 'CBLe3cSyType' not in keys:
+                kwds['CBLe3cSyType']='o'
+
+            # CatAttribs 
+            if 'pMCatTopColor' not in keys:
+                kwds['pMCatTopColor']='palegreen'
+            if 'pMCatBotColor' not in keys:
+                kwds['pMCatBotColor']='violet'
+
+    except:
+            pass
         
     try: 
         cax=plt.gca()
         
-        pDf_top=pDf[(pDf[pMCategory]==pMCatTopTxt)] 
-        pDf_mid=pDf[(pDf[pMCategory]==pMCatMidTxt)]     
-        pDf_bot=pDf[(pDf[pMCategory]==pMCatBotTxt)] 
+        pDf_top=pDf[(pDf[kwds['pMCategory']]==kwds['pMCatTopTxt'])] 
+        pDf_mid=pDf[(pDf[kwds['pMCategory']]==kwds['pMCatMidTxt'])]     
+        pDf_bot=pDf[(pDf[kwds['pMCategory']]==kwds['pMCatBotTxt'])] 
 
         pDf_top_Anz,col=pDf_top.shape
         pDf_mid_Anz,col=pDf_mid.shape
         pDf_bot_Anz,col=pDf_bot.shape
 
         logger.debug("{:s} pDf_bot_Anz={:d}  pDf_mid_Anz={:d} pDf_top_Anz={:d}".format(logStr,pDf_bot_Anz,pDf_mid_Anz,pDf_top_Anz))
-        logger.debug("{:s} CBLe3cBotVPad={:f}  CBLe3cMidVPad={:f} CBLe3cTopVPad={:f}".format(logStr,CBLe3cBotVPad,CBLe3cMidVPad,CBLe3cTopVPad))
+        logger.debug("{:s} CBLe3cBotVPad={:f}  CBLe3cMidVPad={:f} CBLe3cTopVPad={:f}".format(logStr,kwds['CBLe3cBotVPad'],kwds['CBLe3cMidVPad'],kwds['CBLe3cTopVPad']))
 
         bbBot=None
         bbMid=None
         bbTop=None
 
         if pDf_bot_Anz >= 0:
-            po=cax.scatter( 0.,CBLe3cBotVPad                   
-                            ,s=CBLe3cSySize
-                            ,c=pMCatBotColor
+            po=cax.scatter( 0.,kwds['CBLe3cBotVPad']                   
+                            ,s=kwds['CBLe3cSySize']
+                            ,c=kwds['pMCatBotColor']
                             ,alpha=0.9
                             ,edgecolors='face'             
                             ,clip_on=False
-                            ,marker=pltHlpAlignMarker(CBLe3cSyType, halign='left')                                     
+                            ,marker=pltHlpAlignMarker(kwds['CBLe3cSyType'], halign='left')                                     
                             )
             # Text dazu
             o=po.findobj(match=None) 
@@ -715,13 +980,13 @@ def pltNetLegendColorbar3Classes(
         #                    )
 
         if pDf_top_Anz >= 0:
-            po=cax.scatter( 0.,CBLe3cTopVPad                          
-                            ,s=CBLe3cSySize
-                            ,c=pMCatTopColor
+            po=cax.scatter( 0.,kwds['CBLe3cTopVPad']                          
+                            ,s=kwds['CBLe3cSySize']
+                            ,c=kwds['pMCatTopColor']
                             ,alpha=0.9
                             ,edgecolors='face'             
                             ,clip_on=False     
-                            ,marker=pltHlpAlignMarker(CBLe3cSyType, halign='left')                                      
+                            ,marker=pltHlpAlignMarker(kwds['CBLe3cSyType'], halign='left')                                      
                             )
            
             o=po.findobj(match=None) 
@@ -755,14 +1020,14 @@ def pltNetLegendColorbar3Classes(
 
 
         if pDf_mid_Anz >= 0:           
-            po=cax.scatter( 0.,CBLe3cMidVPad                                    
-                            ,s=CBLe3cSySize
+            po=cax.scatter( 0.,kwds['CBLe3cMidVPad']                                    
+                            ,s=kwds['CBLe3cSySize']
                             ,c='lightgrey'
                             ,alpha=0.9
                             ,edgecolors='face'             
                             ,clip_on=False
                             ,visible=False # es erden nur die Koordinaten benoetigt
-                            ,marker=pltHlpAlignMarker(CBLe3cSyType, halign='left')             
+                            ,marker=pltHlpAlignMarker(kwds['CBLe3cSyType'], halign='left')             
 
                             )
            
@@ -807,18 +1072,33 @@ def pltNetLegendColorbar3Classes(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
         return (bbTop, bbMid, bbBot)  
 
-def pltNetLegendTitleblock(text='',anchorVertical=1.):
+def pltNetLegendTitleblock(text='',**kwds):
     """
-    Zeichnet das Schriftfeld auf gca().      
+    Zeichnet auf gca() ergaenzende Schriftfeldinformationen.    
+
+    Args:
+
+        text    
+        
+        Parametrierung:
+            * anchorVertical
     """
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
+    try:
+            keys = sorted(kwds.keys())
+            
+            if 'anchorVertical' not in keys:
+                kwds['anchorVertical']=1.
+    except:
+            pass
+
     cax=plt.gca()
     try:         
         a=plt.text( 0.
-                   ,anchorVertical
+                   ,kwds['anchorVertical']
                    ,text
                    ,transform=cax.transAxes
                    ,family='monospace'
@@ -836,7 +1116,7 @@ def pltNetLegendTitleblock(text='',anchorVertical=1.):
     finally:
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
-def pltNetTextblock(text='',x=0.,y=1.):
+def pltNetTextblock(text='',**kwds):
     """
     Zeichnet einen Textblock auf gca().      
     """
@@ -844,10 +1124,22 @@ def pltNetTextblock(text='',x=0.,y=1.):
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
+    try:
+            keys = sorted(kwds.keys())
+            
+            if 'x' not in keys:
+                kwds['x']=0.
+            if 'y' not in keys:
+                kwds['y']=1.
+
+
+    except:
+            pass
+
     ax=plt.gca()
     try:         
-        a=plt.text( x
-                   ,y
+        a=plt.text( kwds['x']
+                   ,kwds['y']
                    ,text
                    ,transform=ax.transAxes
                    ,family='monospace'
@@ -906,85 +1198,31 @@ class Rm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
-    def pltNetDHUS(
-        self
-        # TIME ----------------------------------------------------------------------------------------
-        ,timeDeltaToRef=pd.to_timedelta('0 seconds') # Referenzzeit als TIMEDELTA zu Szenariumbeginn 
+    def pltNetDHUS(self,**kwds):
+        """Plot: Net: DistrictHeatingUnderSupply. 
 
-        ,timeDeltaToT=None # Zeit als TIMEDELTA zu Szenariumbeginn                    
-                  
-        # FILTER  (haben ggf. Einfluss auf die Abmessungen der Darstellung) ---------------------------
-        ,KVRisIn=[2]
-                   
-        ,CONT_IDisIn=[1001]                  
-             
-        # SELECT (haben KEINEN Einfluss auf die Abmessungen der Darstellung) --------------------------                   
-        ,quantil_pROHRAttributeHigh=1. # die 25% gößten hier 'DI' also
-        ,quantil_pROHRAttributeLow=.75 
-        ,quantil_pFWVBAttributeHigh=1. # alle 'W0LFK' also
-        ,quantil_pFWVBAttributeLow=0. 
-                   
-        # ALLG ----------------------------------------------------------------------------------------
-     
+        Args (optional):
 
-        # FWVB ----------------------------------------------------------------------------------------
-     
-      
+            TIMEs (als TIMEDELTA zu Szenariumbeginn):
+                * timeDeltaToRef: Reference Scenariotime (for MeasureInRefPerc-Calculations) (default: pd.to_timedelta('0 seconds'))
+                * timeDeltaToT: Scenariotime (default: pd.to_timedelta('0 seconds'))
 
-        #,pFWVBGCategory=['BLNZ1u5u7'] # ['Süd','Nord','Innenstadt','Nord PWS','NordOst BHW','Ost HWV','Ost PWF/PSE','Nord Rest'] # NAMEn von WBLZ
-        #,pFWVBGCategoryUnit='[kW]'
-        #,pFWVBGCategoryXStart=.1
-        #,pFWVBGCategoryYStart=.9
-        #,pFWVBGCategoryYSpace=-.1
-
-        
-                   
-                           
-
-        # ROHR -----------------------------------------------------------------------------------------
-        ,pROHRAttribute='DI'              
-        ,pROHRAttributeAsc=False # False: je größer Attribute, desto niedriger die z-Order ("kleine" auf "großen")                                      
-        ,pROHRMeasure='ROHR~*~*~*~QMAV' 
-        ,pROHRMeasureAbs=True #  Measure wird verarbeitet als Absolutwert 
-
-        ,pROHRClip=False
-        ,pROHRAttributeLs='-'
-        ,pROHRMeasureMarker='.'              
-                                            
-        ,pROHRAttributeColorMap=plt.cm.binary   
-        ,pROHRAttríbuteColorMapUsageStart=1./3        
-        ,pROHRAttributeRefSize=1.0 
-                                                                                                                                                              
-        ,pROHRMeasureColorMap=plt.cm.cool 
-        ,pROHRMeasureColorMapUsageStart=0.        
-        ,pROHRMeasureRefSize=1.0 
-                                                                      
-        # FIG -------------------------------------------------------------------------------------------                  
-        ,pltTitle='pltNetDHUS' 
-        ,figFrameon=True                    
-        ,figEdgecolor='black' 
-        ,figFacecolor='white' 
-                   
-       
-
-        ,**kwds
-                                                   
-        ): 
-        """Plot Net: DistrictHeatingUnderSupply. 
-
-        Keyword Args (optional):
-
-            FWVB Attribute (Size)
+            FWVB Attribute (Size, z-Order)
                 * pFWVBAttribute (default: 'W0LFK') 
 
                     * .astype(float) must be possible
-                    * only >0 Values are displayed 
+                    * only >0 Values are plotted
 
-                * pFWVBAttributeAsc (default: False d.h. "kleine auf große")
-                * pFWVBAttributeRefSize (default: 10**2)  (Sy-Area in pts^2 of Fwvb with RefSizeValue)
+                * pFWVBAttributeAsc: z-Order (default: False d.h. "kleine auf große")
+                * pFWVBAttributeRefSize: scatter Sy-Area in pts^2 of for RefSizeValue (default: 10**2)  
                       
-                    * RefSizeValue is Attribute.std()
-                    * or Attribute.mean() if Attribute.std() is < 1
+                    * corresponding RefSizeValue is Attribute.std() or Attribute.mean() if Attribute.std() is < 1
+
+            FWVB (plot only large (small, medium) FWVB ...)
+               * quantil_pFWVBAttributeHigh <= (default: 1.) 
+               * quantil_pFWVBAttributeLow >= (default: .0)
+               * default: all FWVB are plotted 
+               * note that Attribute >0 is a precondition 
 
             FWVB Measure (Color)
                 * pFWVBMeasure (default: 'FWVB~*~*~*~W') 
@@ -994,13 +1232,16 @@ class Rm():
                 * pFWVBMeasureInRefPerc (default: True d.h. Measure wird verarbeitet in Prozent T zu Ref) 
 
                     * 0-1
-                    * if refValue is 0 than refPerc is set to 1 
+                    * if refValue is 0 than refPerc-Result is set to 1 
 
                 * pFWVBMeasureAlpha/Colormap/Clip
 
                 * 3Classes
 
-                    * pFWVBMeasure3Classes (default: False d.h. Measure wird nicht in 3 Klassen dargestellt)
+                    * pFWVBMeasure3Classes (default: False)
+                        * False:
+                            * Measure wird nicht in 3 Klassen dargestellt
+                            * die Belegung von MCategory gemaess FixedLimitsHigh/Low erfolgt dennoch
 
                     * CatTexts (werden verwendet wenn 3Classes Wahr gesetzt ist)
 
@@ -1023,8 +1264,8 @@ class Rm():
                 
                     * pFWVBMeasureCBFixedLimits (default: False d.h. Farbskala nach vorh. min./max. Wert)
 
-                        * muss Wahr gesetzt sein, wenn 3Classes Wahr gesetzt ist
-                        * in diesem Fall werden zwingend die nachfolgenden Limits für die Klasseneinteilung verwendet
+                        * wird Wahr gesetzt sein, wenn 3Classes Wahr gesetzt ist
+                        * damit die mittlere Farbskala den Klassengrenzen "gehorcht"
 
                     * pFWVBMeasureCBFixedLimitLow (default: .10) 
                     * pFWVBMeasureCBFixedLimitHigh (default: .95) 
@@ -1051,6 +1292,58 @@ class Rm():
                 * CBLe3cSySize=10**2 (Sy-Area in pts^2)
                 * CBLe3cSyType='o' 
 
+            ROHR
+               * KVRisIn (default: [2])
+                    * 1: supply-line
+                    * 2: return-line
+                                       
+               * CONT_IDisIn (default: [1001])
+                    * um zu vermeiden, dass Rohre aus Bloecken gezeichnet werden (deren Koordinaten nicht zu den Koordinaten von Rohren aus dem Ansichtsblock passen) 
+                    * das Kriterium wird auch angewendet auf FWVB um den Fall zu behandeln, dass ein anderer als der "0-te" Block das Netz enthaelt           
+
+            ROHR (PIPE-Line: Size and Color, z-Order)
+                * pROHRAttribute (default: 'DI')
+
+                    * .astype(float) must be possible
+                    * only >0 Values are plotted        
+
+                * pROHRAttributeAsc: z-Order (default: False d.h. "kleine auf grosse")                                               
+
+                * pROHRAttributeLs (default: '-')
+                * pROHRAttributeRefSize: plot linewidth in pts for RefSizeValue (default: 1.0)      
+
+                    * corresponding RefSizeValue is Attribute.std() or Attribute.mean() if Attribute.std() is < 1
+
+                * pROHRAttributeColorMap (default: plt.cm.binary)    
+                * pROHRAttributeColorMapUsageStart (default: 1./3; Wertebereich: [0,1])        
+
+                    * Farbskala nach vorh. min./max. Wert
+                    * die Farbskala wird nur ab UsageStart genutzt
+                    * d.h. Werte die eine "kleinere" Farbe haetten, bekommen die Farbe von UsageStart
+
+            ROHR (plot only large (small, medium) pipes ...)
+               * quantil_pROHRAttributeHigh <= (default: 1.) 
+               * quantil_pROHRAttributeLow >= (default: .75)
+               * default: only the largest 25% are plotted 
+               * note that Attribute >0 is a precondition 
+
+            ROHR (PIPE-Marker: Size and Color)
+                * pROHRMeasure (default: 'ROHR~*~*~*~QMAV') 
+                * pROHRMeasureAbs (default: True)  
+                
+                * pROHRMeasureMarker (default: '.')
+                * pROHRMeasureRefSize: plot markersize for RefSizeValue in pts (default: 1.0)
+                    
+                        * corresponding RefSizeValue is Measure.std() or Measure.mean() if Measure.std() is < 1                        
+                        * if pROHRMeasureRefSize is None: plot markersize will be plot linewidth
+
+                * pROHRMeasureColorMap (default: plt.cm.cool) 
+                * pROHRMeasureColorMapUsageStart (default: 0.; Wertebereich: [0,1])        
+
+                    * Farbskala nach vorh. min./max. Wert
+                    * die Farbskala wird nur ab UsageStart genutzt
+                    * d.h. Werte die eine "kleinere" Farbe hätten, bekommen die Farbe von UsageStart
+               
             NRCVs - NumeRiCal Values to be displayed
                 * pFIGNrcv: List of Sir3sID RegExps to be displayed (i.e. ['KNOT~PKON-Knoten~\S*~\S+~QM'])
                     the 1st Match is used if a RegExp matches more than 1 Channel
@@ -1062,51 +1355,105 @@ class Rm():
 
                     WBLZ~[\S ]+~\S*~\S+~\S+: Example for a RegExp matching all Channels with OBJTYPE WBLZ  
 
-                * pFIGNrcvTxt: corresponding (same length required!) List of Texts (i.e. ['Kontrollwert DH'])
+                * pFIGNrcvTxt: corresponding (same length required!) List of Texts (i.e. ['Kontrolle DH'])
                     
-                * pFIGNrcvFmt (i.e. '{:12s}: {:8.2f} {:4s} {:6.1f}%')
+                * pFIGNrcvFmt (i.e. '{:12s}: {:8.2f} {:6s}')
                     * Text (from pFIGNrcvTxt)
                     * Value
                     * UNIT (determined from Channel-Data)
-                    * ValueInPercent (use i.e. '{:12s}: {:8.2f} {:4s}' to prevent display)
+
+                * pFIGNrcvPercFmt (i.e. ' {:6.1f}%')                   
+                    * ValueInRefPercent
+                    * if refValue==0: 100% 
 
                 * pFIGNrcvXStart (.5 default)
                 * pFIGNrcvYStart (.5 default)
 
-            User Heat Balances to be displayed
+            Category - User Heat Balances to be displayed
                 * pFWVBGCategory: List of Heat Balances to be displayed (i.e. ['BLNZ1u5u7'])
                 * pFWVBGCategoryUnit: Unit of these Balances (default: '[kW]')                  
                 * pFWVBGCategoryXStart (.1 default)
                 * pFWVBGCategoryYStart (.9 default)
+
+                * pFWVBGCategoryCatFmt (i.e. '{:12s}: {:6.1f} {:4s}')
+                    * Category NAME
+                    * Category Load
+                    * pFWVBGCategoryUnit                   
+
+                * pFWVBGCategoryPercFmt (i.e. ' {:6.1f}%')                   
+                    * Last Ist/Soll
+                    
+                * pFWVBGCategory3cFmt (i.e. ' {:5d}/{:5d}/{:5d}')
+                    * NOfTops
+                    * NOfMids
+                    * NOfBots                
                                        
             VICs - VeryImportantCustomers whose Values to be displayed
                 * pVICsDf: DataFrame with VeryImportantCustomers (Text & Specification)
                     columns expected:
                         * Kundenname (i.e. 'VIC1') - Text
                         * Knotenname (i.e. 'V-K007') - Specification by Supply-Node
-                * pVICsXStart (.8 default)
-                * pVICsYStart (.8 default)
-                * pVICsYSpace (-.1 default)
+
+                    default: pd.DataFrame({'Kundenname': ['VIC1'],'Knotenname': ['V-K007']})
+
+                 * pVICsPercFmt (i.e. '{:12s}: {:6.1f}%')
+                    * Kundenname
+                    * Load in Percent to Reference
+
+                 * pVICsFmt (i.e. '{:12s}: {:6.1f} {:6s}')
+                    * Kundenname
+                    * Load
+                    * pFWVBGCategoryUnit
+
+                * pVICsXStart (.5 default)
+                * pVICsYStart (.1 default)              
+
+            Figure:
+                * pltTitle: title [not suptitle] (default: 'pltNetFigAx') 
+                * figFrameon: figure frame (background): displayed or invisible (default: True)
+                * figEdgecolor: edge color of the Figure rectangle (default: 'black')
+                * figFacecolor: face color of the Figure rectangle (default: 'white')
 
             Returns:
                 pFWVB
-                    columns 
-                        * Measure: float 
-                        * MCategory: str (meaningfull only if Measure3Classes True):
+                    * columns added (compared to vFWVB):
+                        * Measure (in % zu Ref wenn pFWVBMeasureInRefPer=True) 
+                        * MeasureRef (Referenz-Wert von Measure im Referenzzustand)
+                        * MeasureOrig (Wert von Measure)
+
+                        * MCategory: Kategorisierung von Measure mit FixedLimitHigh/Low-Werten 
 
                             str:
                             * TopText or
                             * MidText or
                             * BotText
-
+                            
                         * GCategory: list (non-empty only if req. GCategories are a subset of the available Categories and FWVB belongs to a req. Category)
-                    
+
+                    * pFWVB enthaelt dieselben Objekte wie vFWVB
+                    * aber: die geplotteten Objekte sind ggf. nur eine Teilmenge (wg. z.B.  Attribute > 0) 
         """
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
         try:
-            keys = sorted(kwds.keys())
+            
+            keysDefined=['CBAnchorHorizontal', 'CBAnchorVertical', 'CBAspect', 'CBFraction', 'CBHpad', 'CBLabelPad', 'CBLe3cBotVPad', 'CBLe3cMidVPad', 'CBLe3cSySize', 'CBLe3cSyType', 'CBLe3cTopVPad', 'CBShrink', 'CBTicklabelsHPad', 'CONT_IDisIn', 'KVRisIn', 'figEdgecolor', 'figFacecolor', 'figFrameon', 'pFIGNrcv', 'pFIGNrcvFmt', 'pFIGNrcvPercFmt','pFIGNrcvTxt', 'pFIGNrcvXStart', 'pFIGNrcvYStart', 'pFWVBAttribute', 'pFWVBAttributeAsc', 'pFWVBAttributeRefSize', 'pFWVBGCategory', 'pFWVBGCategoryUnit','pFWVBGCategory3cFmt','pFWVBGCategoryCatFmt', 'pFWVBGCategoryPercFmt', 'pFWVBGCategoryXStart', 'pFWVBGCategoryYStart', 'pFWVBMeasure', 'pFWVBMeasure3Classes', 'pFWVBMeasureAlpha', 'pFWVBMeasureCBFixedLimitHigh', 'pFWVBMeasureCBFixedLimitLow', 'pFWVBMeasureCBFixedLimits', 'pFWVBMeasureClip', 'pFWVBMeasureColorMap', 'pFWVBMeasureInRefPerc', 'pMCatBotAlpha', 'pMCatBotClip', 'pMCatBotColor', 'pMCatBotText', 'pMCatMidAlpha', 'pMCatMidClip', 'pMCatMidColorMap', 'pMCatMidText', 'pMCatTopAlpha', 'pMCatTopClip', 'pMCatTopColor', 'pMCatTopText', 'pROHRAttribute', 'pROHRAttributeAsc', 'pROHRAttributeColorMap', 'pROHRAttributeColorMapUsageStart', 'pROHRAttributeLs', 'pROHRAttributeRefSize', 'pROHRMeasure', 'pROHRMeasureAbs', 'pROHRMeasureColorMap', 'pROHRMeasureColorMapUsageStart', 'pROHRMeasureMarker', 'pROHRMeasureRefSize', 'pVICsDf','pVICsPercFmt','pVICsFmt','pVICsXStart', 'pVICsYStart', 'pltTitle', 'quantil_pFWVBAttributeHigh', 'quantil_pFWVBAttributeLow', 'quantil_pROHRAttributeHigh', 'quantil_pROHRAttributeLow', 'timeDeltaToRef', 'timeDeltaToT']
+
+            keys=sorted(kwds.keys())
+            for key in keys:
+                if key in keysDefined:
+                    value=kwds[key]
+                    logger.debug("{0:s}kwd {1:s}: {2:s}".format(logStr,key,str(value))) 
+                else:
+                    logger.warning("{0:s}kwd {1:s} NOT defined!".format(logStr,key)) 
+                    del kwds[key]
+
+            # TIMEs
+            if 'timeDeltaToRef' not in keys:
+                kwds['timeDeltaToRef']=pd.to_timedelta('0 seconds')
+            if 'timeDeltaToT' not in keys:
+                kwds['timeDeltaToT']=pd.to_timedelta('0 seconds')
 
             # FWVB Attribute (Size)
             if 'pFWVBAttribute' not in keys:
@@ -1115,6 +1462,11 @@ class Rm():
                 kwds['pFWVBAttributeAsc']=False
             if 'pFWVBAttributeRefSize' not in keys:
                 kwds['pFWVBAttributeRefSize']=10**2
+
+            if 'quantil_pFWVBAttributeHigh' not in keys:
+                kwds['quantil_pFWVBAttributeHigh']=1.
+            if 'quantil_pFWVBAttributeLow' not in keys:
+                kwds['quantil_pFWVBAttributeLow']=.0
 
             # FWVB Measure (Color)
             if 'pFWVBMeasure' not in keys:
@@ -1201,13 +1553,56 @@ class Rm():
             if 'CBLe3cSyType' not in keys:
                 kwds['CBLe3cSyType']='o'
 
+            # ROHR 
+            if 'KVRisIn' not in keys:
+                kwds['KVRisIn']=[2]
+            if 'CONT_IDisIn' not in keys:
+                kwds['CONT_IDisIn']=[1001]
+
+            # pROHR (PIPE-Line: Size and Color)
+            if 'pROHRAttribute' not in keys:
+                kwds['pROHRAttribute']='DI'
+            if 'pROHRAttributeAsc' not in keys:
+                kwds['pROHRAttributeAsc']=False
+
+            if 'pROHRAttributeLs' not in keys:
+                kwds['pROHRAttributeLs']='-'
+            if 'pROHRAttributeRefSize' not in keys:
+                kwds['pROHRAttributeRefSize']=1.
+            if 'pROHRAttributeColorMap' not in keys:
+                kwds['pROHRAttributeColorMap']=plt.cm.binary
+            if 'pROHRAttributeColorMapUsageStart' not in keys:
+                kwds['pROHRAttributeColorMapUsageStart']=1./3.
+
+            if 'quantil_pROHRAttributeHigh' not in keys:
+                kwds['quantil_pROHRAttributeHigh']=1.
+            if 'quantil_pROHRAttributeLow' not in keys:
+                kwds['quantil_pROHRAttributeLow']=.75
+
+            # pROHR (PIPE-Marker: Size and Color)
+            if 'pROHRMeasure' not in keys:
+                kwds['pROHRMeasure']='ROHR~*~*~*~QMAV'
+            if 'pROHRMeasureAbs' not in keys:
+                kwds['pROHRMeasureAbs']=True
+
+            if 'pROHRMeasureMarker' not in keys:
+                kwds['pROHRMeasureMarker']='.'
+            if 'pROHRMeasureRefSize' not in keys:
+                kwds['pROHRMeasureRefSize']=1.0
+            if 'pROHRMeasureColorMap' not in keys:
+                kwds['pROHRMeasureColorMap']=plt.cm.cool
+            if 'pROHRMeasureColorMapUsageStart' not in keys:
+                kwds['pROHRMeasureColorMapUsageStart']=0.
+
             # NRCVs to be displayed
             if 'pFIGNrcv' not in keys:
                 kwds['pFIGNrcv']=['KNOT~PKON-Knoten~\S*~\S+~QM']  
             if 'pFIGNrcvTxt' not in keys:
-                kwds['pFIGNrcvTxt']=['Kontrollwert DH']
+                kwds['pFIGNrcvTxt']=['Kontrolle DH']
             if 'pFIGNrcvFmt' not in keys:
-                kwds['pFIGNrcvFmt']='{:12s}: {:8.2f} {:4s} {:6.1f}%'
+                kwds['pFIGNrcvFmt']='{:12s}: {:8.2f} {:6s}'
+            if 'pFIGNrcvPercFmt' not in keys:
+                kwds['pFIGNrcvPercFmt']=' {:6.1f}%'
             if 'pFIGNrcvXStart' not in keys:
                 kwds['pFIGNrcvXStart']=.5
             if 'pFIGNrcvYStart' not in keys:
@@ -1218,6 +1613,14 @@ class Rm():
                 kwds['pFWVBGCategory']=['BLNZ1u5u7']  
             if 'pFWVBGCategoryUnit' not in keys:
                 kwds['pFWVBGCategoryUnit']='[kW]'  
+
+            if 'pFWVBGCategoryCatFmt' not in keys:
+                kwds['pFWVBGCategoryCatFmt']='{:12s}: {:6.1f} {:4s}'
+            if 'pFWVBGCategoryPercFmt' not in keys:
+                kwds['pFWVBGCategoryPercFmt']=' {:6.1f}%'
+            if 'pFWVBGCategory3cFmt' not in keys:
+                kwds['pFWVBGCategory3cFmt']=' {:5d}/{:5d}/{:5d}'  
+
             if 'pFWVBGCategoryXStart' not in keys:
                 kwds['pFWVBGCategoryXStart']=.1
             if 'pFWVBGCategoryYStart' not in keys:
@@ -1226,12 +1629,35 @@ class Rm():
             # VICs
             if 'pVICsDf' not in keys:
                 kwds['pVICsDf']=pd.DataFrame({'Kundenname': ['VIC1'],'Knotenname': ['V-K007']})
+            if 'pVICsPercFmt' not in keys:
+                kwds['pVICsPercFmt']='{:12s}: {:6.1f}%'
+            if 'pVICsFmt' not in keys:
+                kwds['pVICsFmt']='{:12s}: {:6.1f} {:6s}'                
             if 'pVICsXStart' not in keys:
-                kwds['pVICsXStart']=.8
+                kwds['pVICsXStart']=.5
             if 'pVICsYStart' not in keys:
-                kwds['pVICsYStart']=.8
-            if 'pVICsYSpace' not in keys:
-                kwds['pVICsYSpace']=-.1
+                kwds['pVICsYStart']=.1        
+                
+            # Figure
+            if 'pltTitle' not in keys:
+                kwds['pltTitle']='pltNetDHUS'
+            if 'figFrameon' not in keys:
+                kwds['figFrameon']=True
+            if 'figEdgecolor' not in keys:
+                kwds['figEdgecolor']='black'
+            if 'figFacecolor' not in keys:
+                kwds['figFacecolor']='white'      
+                
+            # Plausis
+            if kwds['pFWVBMeasure3Classes'] and not kwds['pFWVBMeasureCBFixedLimits']:
+                kwds['pFWVBMeasureCBFixedLimits']=True
+                logger.debug("{0:s}kwd {1:s} set to {2:s} because kwd {3:s}={4:s}".format(logStr,'pFWVBMeasureCBFixedLimits',str(kwds['pFWVBMeasureCBFixedLimits']),'pFWVBMeasure3Classes',str(kwds['pFWVBMeasure3Classes']))) 
+                      
+            keys = sorted(kwds.keys())
+            logger.debug("{0:s}keys: {1:s}".format(logStr,str(keys))) 
+            for key in keys:
+                value=kwds[key]
+                logger.debug("{0:s}kwd {1:s}: {2:s}".format(logStr,key,str(value))) 
 
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -1241,14 +1667,14 @@ class Rm():
         try: 
             # 2 Szenrariumzeiten ermitteln ===============================================
             firstTime=self.mx.df.index[0]
-            if isinstance(timeDeltaToRef,pd.Timedelta):
-                timeRef=firstTime+timeDeltaToRef
+            if isinstance(kwds['timeDeltaToRef'],pd.Timedelta):
+                timeRef=firstTime+kwds['timeDeltaToRef']
             else:
                 logStrFinal="{:s}{:s} not Type {:s}.".format(logStr,'timeDeltaToRef','pd.Timedelta')
                 logger.error(logStrFinal) 
                 raise RmError(logStrFinal)  
-            if isinstance(timeDeltaToT,pd.Timedelta):
-                timeT=firstTime+timeDeltaToT
+            if isinstance(kwds['timeDeltaToT'],pd.Timedelta):
+                timeT=firstTime+kwds['timeDeltaToT']
             else:
                 logStrFinal="{:s}{:s} not Type {:s}.".format(logStr,'timeDeltaToT','pd.Timedelta')
                 logger.error(logStrFinal) 
@@ -1278,16 +1704,16 @@ class Rm():
             pFWVBMeasureUNIT=pFWVBMeasureCh.iloc[0].UNIT
             pFWVBMeasureATTRTYPE=pFWVBMeasureCh.iloc[0].ATTRTYPE
 
-            pROHRMeasureCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(pROHRMeasure)]
+            pROHRMeasureCh=self.mx.mx1Df[self.mx.mx1Df['Sir3sID'].str.startswith(kwds['pROHRMeasure'])]
             pROHRMeasureUNIT=pROHRMeasureCh.iloc[0].UNIT
             pROHRMeasureATTRTYPE=pROHRMeasureCh.iloc[0].ATTRTYPE
 
-            # Sachdaten annotieren mit Spalte Measure >pXXXX ===============================================
+            # Sachdaten annotieren mit Spalte Measure 
 
             # FWVB            
             pFWVBMeasureValue=plotTimeDfs[timeTIdx][kwds['pFWVBMeasure']].iloc[0] 
             pFWVBMeasureValueRef=plotTimeDfs[timeRefIdx][kwds['pFWVBMeasure']].iloc[0] 
-            if kwds['pFWVBMeasureInRefPerc']:  # auch in diesem Fall trägt die Spalte Measure das Ergebnis                               
+            if kwds['pFWVBMeasureInRefPerc']:  # auch in diesem Fall traegt die Spalte Measure das Ergebnis                               
                 pFWVBMeasureValuePerc=[float(m)/float(mRef) if float(mRef) >0 else 1 for m,mRef in zip(pFWVBMeasureValue,pFWVBMeasureValueRef)]
                 pFWVB=vFWVB.assign(Measure=pd.Series(pFWVBMeasureValuePerc)) #!                                
             else:
@@ -1297,9 +1723,6 @@ class Rm():
             pFWVB=pFWVB.assign(MeasureRef=pd.Series(pFWVBMeasureValueRef)) 
 
             # Sachdaten annotieren mit Spalte MCategory           
-            if  not kwds['pFWVBMeasureCBFixedLimits'] and kwds['pFWVBMeasure3Classes']:
-                logger.error("Bei 3-Klassendarstellung Wahr muss FixedLimits Wahr sein.")
-
             pFWVBCat=[]
             for index, row in pFWVB.iterrows():
                 if row.Measure >= kwds['pFWVBMeasureCBFixedLimitHigh']:
@@ -1310,7 +1733,7 @@ class Rm():
                     pFWVBCat.append(kwds['pMCatMidText'])
             pFWVB=pFWVB.assign(MCategory=pd.Series(pFWVBCat)) 
 
-            # Sachdaten annotieren mit Spalte GCategory      
+            # Sachdaten annotieren mit Spalte GCategory (mit den verlangten Waermebilanzen zu denen ein FWVB gehoert)     
             if isinstance(kwds['pFWVBGCategory'],list):         
                 sCatReq=set(kwds['pFWVBGCategory'])       
                 pFWVBCat=[]
@@ -1329,52 +1752,60 @@ class Rm():
                 pFWVB=pFWVB.assign(GCategory=pd.Series()) 
 
             # ROHR
-            pROHRMeasureValueRaw=plotTimeDfs[timeTIdx][pROHRMeasure].iloc[0]   
+            pROHRMeasureValueRaw=plotTimeDfs[timeTIdx][kwds['pROHRMeasure']].iloc[0]   
             pROHRMeasureValue=[None for m in pROHRMeasureValueRaw]
             for idx in range(len(pROHRMeasureValueRaw)):                   
                 mx2Idx=vROHR['mx2Idx'].iloc[idx]
                 m=pROHRMeasureValueRaw[mx2Idx]
                 m=float(m)
-                if pROHRMeasureAbs:
+                if kwds['pROHRMeasureAbs']:
                     pROHRMeasureValue[idx]=math.fabs(m)
                 else:
                     pROHRMeasureValue[idx]=m
             pROHR=vROHR.assign(Measure=pd.Series(pROHRMeasureValue)) #!
 
             # ========================================
-            # Return pFWVB enthält die ungefilterte und unselektierte menge
+            # Return pFWVB enthaelt die ungefilterte und unselektierte Menge
             # ========================================
-
-            # Filtern >pltXXXX ===============================================
-            # (haben ggf. Einfluss auf die Abmessungen der Darstellung)
             pltROHR=pROHR
             pltFWVB=pFWVB
 
-            # ROHR
-            pltROHR=pltROHR[(pltROHR['CONT_ID'].astype(int).isin(CONT_IDisIn))]
-            pltROHR=pltROHR[(pltROHR['KVR'].astype(int).isin(KVRisIn))]
+            # ROHRe filtern
+            pltROHR=pltROHR[(pltROHR['CONT_ID'].astype(int).isin(kwds['CONT_IDisIn']))]
+            pltROHR=pltROHR[(pltROHR['KVR'].astype(int).isin(kwds['KVRisIn']))]
             row,col=pltROHR.shape
             logger.debug("{:s}pltROHR nach filtern: {:d}".format(logStr,row))     
 
-            # FWVB
-            pltFWVB=pltFWVB[(pltFWVB['CONT_ID'].astype(int).isin(CONT_IDisIn))]
-
-            # =========================================             
-            pltFWVB[ kwds['pFWVBAttribute']]=pltFWVB[ kwds['pFWVBAttribute']].astype(float)
-            pltROHR[pROHRAttribute]=pltROHR[pROHRAttribute].astype(float)
+            # FWVB filtern
+            pltFWVB=pltFWVB[(pltFWVB['CONT_ID'].astype(int).isin(kwds['CONT_IDisIn']))]
             
-            # Selektionen ===============================================
+            # Selektionen (Attribute)
+            pltFWVB[kwds['pFWVBAttribute']]=pltFWVB[kwds['pFWVBAttribute']].astype(float)
+            pltROHR[kwds['pROHRAttribute']]=pltROHR[kwds['pROHRAttribute']].astype(float)            
+                         
             pltFWVB=pltFWVB[pltFWVB[kwds['pFWVBAttribute']]>0] 
-            pltROHR=pltROHR[pltROHR[pROHRAttribute]>0] 
+            pltROHR=pltROHR[pltROHR[kwds['pROHRAttribute']]>0] 
+
+
             
-            pltFWVB=pltFWVB[(pltFWVB[kwds['pFWVBAttribute']]<=pltFWVB[kwds['pFWVBAttribute']].quantile(quantil_pFWVBAttributeHigh))
+            pltFWVB=pltFWVB[(pltFWVB[kwds['pFWVBAttribute']]<=pltFWVB[kwds['pFWVBAttribute']].quantile(kwds['quantil_pFWVBAttributeHigh']))
                             &
-                            (pltFWVB[kwds['pFWVBAttribute']]>=pltFWVB[kwds['pFWVBAttribute']].quantile(quantil_pFWVBAttributeLow))
+                            (pltFWVB[kwds['pFWVBAttribute']]>=pltFWVB[kwds['pFWVBAttribute']].quantile(kwds['quantil_pFWVBAttributeLow']))
                            ]
 
-            pltROHR=pltROHR[(pltROHR[pROHRAttribute]<=pltROHR[pROHRAttribute].quantile(quantil_pROHRAttributeHigh))
+            logger.debug("{:s}pltROHR: quantil_pROHRAttributeHigh: {:f} f(): {:f}".format(logStr
+                                                                                          ,kwds['quantil_pROHRAttributeHigh']
+                                                                                          ,pltROHR[kwds['pROHRAttribute']].quantile(kwds['quantil_pROHRAttributeHigh'])
+                                                                                          ))
+            logger.debug("{:s}pltROHR: quantil_pROHRAttributeLow: {:f} f(): {:f}".format(logStr
+                                                                                          ,kwds['quantil_pROHRAttributeLow']
+                                                                                          ,pltROHR[kwds['pROHRAttribute']].quantile(kwds['quantil_pROHRAttributeLow'])
+                                                                                          ))                              
+
+
+            pltROHR=pltROHR[(pltROHR[kwds['pROHRAttribute']]<=pltROHR[kwds['pROHRAttribute']].quantile(kwds['quantil_pROHRAttributeHigh']))
                             &
-                            (pltROHR[pROHRAttribute]>=pltROHR[pROHRAttribute].quantile(quantil_pROHRAttributeLow))
+                            (pltROHR[kwds['pROHRAttribute']]>=pltROHR[kwds['pROHRAttribute']].quantile(kwds['quantil_pROHRAttributeLow']))
                            ]
 
             row,col=pltROHR.shape
@@ -1382,7 +1813,7 @@ class Rm():
 
             # Grundsortierung z-Order
             pltFWVB=pltFWVB.sort_values(by=[kwds['pFWVBAttribute']],ascending=kwds['pFWVBAttributeAsc']) 
-            pltROHR=pltROHR.sort_values(by=[pROHRAttribute],ascending=pROHRAttributeAsc) 
+            pltROHR=pltROHR.sort_values(by=[kwds['pROHRAttribute']],ascending=kwds['pROHRAttributeAsc']) 
            
             # ############################################################
             # ============================================================
@@ -1399,11 +1830,11 @@ class Rm():
                ,CBFraction=kwds['CBFraction'] 
                ,CBHpad=kwds['CBHpad']              
 
-               ,pltTitle=pltTitle
-               ,figFrameon=figFrameon
+               ,pltTitle=kwds['pltTitle']
+               ,figFrameon=kwds['figFrameon']
                #,figLinewidth=1.
-               ,figEdgecolor=figEdgecolor 
-               ,figFacecolor=figFacecolor                                                                                            
+               ,figEdgecolor=kwds['figEdgecolor'] 
+               ,figFacecolor=kwds['figFacecolor']                                                                                            
             )
             fig = plt.gcf()  
             ax=plt.gca()
@@ -1451,22 +1882,35 @@ class Rm():
             )
 
             #fig.sca(ax)
+
+            pROHRMeasureRefSizeValue=pltROHR['Measure'].std()
+            if pROHRMeasureRefSizeValue < 1:
+                pROHRMeasureRefSizeValue=pltROHR['Measure'].mean()
+            logger.debug("{:s}pROHRMeasureRefSizeValue: {:6.2f}".format(logStr,pROHRMeasureRefSizeValue)) 
+            pROHRMeasureSizeFactor=kwds['pROHRMeasureRefSize']/pROHRMeasureRefSizeValue
+
+            pROHRAttributeRefSizeValue=pltROHR[kwds['pROHRAttribute']].std()
+            if pROHRAttributeRefSizeValue < 1:
+                pROHRAttributeRefSizeValue=pltROHR[kwds['pROHRAttribute']].mean()
+            logger.debug("{:s}pROHRAttributeRefSizeValue: {:6.2f}".format(logStr,pROHRAttributeRefSizeValue)) 
+            pROHRAttributeSizeFactor=kwds['pROHRAttributeRefSize']/pROHRAttributeRefSizeValue
+
             pltNetPipes(
                 pltROHR
-               ,pAttribute=pROHRAttribute  # Line
+               ,pAttribute=kwds['pROHRAttribute']  # Line
                ,pMeasure='Measure'  # Marker
 
-               ,pClip=pROHRClip
-               ,pAttributeLs=pROHRAttributeLs 
-               ,pMeasureMarker=pROHRMeasureMarker
+               ,pClip=False
+               ,pAttributeLs=kwds['pROHRAttributeLs'] 
+               ,pMeasureMarker=kwds['pROHRMeasureMarker']
 
-               ,pAttríbuteColorMap=pROHRAttributeColorMap 
-               ,pAttríbuteColorMapUsageStart=pROHRAttríbuteColorMapUsageStart 
-               ,pAttributeSizeFactor=pROHRAttributeRefSize/pltROHR[pROHRAttribute].max()              
+               ,pAttributeColorMap=kwds['pROHRAttributeColorMap'] 
+               ,pAttributeColorMapUsageStart=kwds['pROHRAttributeColorMapUsageStart'] 
+               ,pAttributeSizeFactor=pROHRAttributeSizeFactor            
 
-               ,pMeasureColorMap=pROHRMeasureColorMap 
-               ,pMeasureColorMapUsageStart=pROHRMeasureColorMapUsageStart             
-               ,pMeasureSizeFactor=pROHRMeasureRefSize/pltROHR['Measure'].max()        
+               ,pMeasureColorMap=kwds['pROHRMeasureColorMap'] 
+               ,pMeasureColorMapUsageStart=kwds['pROHRMeasureColorMapUsageStart']             
+               ,pMeasureSizeFactor=pROHRMeasureSizeFactor     
             )
 
             # ============================================================
@@ -1520,9 +1964,9 @@ class Rm():
                     ,CBLe3cSySize=kwds['CBLe3cSySize'] 
                     ,CBLe3cSyType=kwds['CBLe3cSyType']                                                                                                    
                  )
-                 TBAV=bbTop.y1
+                 TBAV=1.15*bbTop.y1
             else:
-                 TBAV=1.
+                 TBAV=1.15
             
             xmFileName,ext = os.path.splitext(os.path.basename(self.xm.xmlFile))
             (wDir,modelDir,modelName)=self.xm.getWDirModelDirModelName()
@@ -1531,14 +1975,14 @@ class Rm():
             Inst=self.xm.dataFrames['MODELL']['INST'].iloc[0]       
             Model="M: {:s}".format(xmFileName)   
             Result="E: {:s}".format(os.path.join(os.path.basename(wDir),os.path.join(modelDir,modelName))+'.MX1')   
-            Times="TRef: {!s:s} T: {!s:s}".format(timeDeltaToRef,timeDeltaToT).replace('days','Tage')       
+            Times="TRef: {!s:s} T: {!s:s}".format(kwds['timeDeltaToRef'],kwds['timeDeltaToT']).replace('days','Tage')       
             pltNetLegendTitleblock(
                text=Projekt+'\n'+Planer+'\n'+Inst+'\n'+Model+'\n'+Result+'\n'+Times 
               ,anchorVertical=TBAV                    
             )
                    
             # ============================================================
-            # NRCVs
+            # NRCVs to be displayed in Net
             # ============================================================
             text=None
             if isinstance(kwds['pFIGNrcv'],list) and isinstance(kwds['pFIGNrcvTxt'],list):
@@ -1553,10 +1997,17 @@ class Rm():
                         s=self.mx.df[sCh.Sir3sID]                
                         v=s[timeT]  
                         v0=s[timeRef]
-                        vp=v/v0*100     
+                        if v0==0:                            
+                            vp=100.
+                        else:
+                            vp=v/v0*100     
                                               
-                        # '{:12s}: {:8.2f} {:4s} {:6.1f}%'
-                        txt=kwds['pFIGNrcvFmt'].format(kwds['pFIGNrcvTxt'][idx],v,sCh.UNIT,vp) 
+                        fmtStr=kwds['pFIGNrcvFmt']
+                        if kwds['pFWVBMeasureInRefPerc']:
+                            fmtStr=fmtStr+kwds['pFIGNrcvPercFmt']                                                  
+                            txt=fmtStr.format(kwds['pFIGNrcvTxt'][idx],v,sCh.UNIT,vp) 
+                        else:
+                            txt=fmtStr.format(kwds['pFIGNrcvTxt'][idx],v,sCh.UNIT)                        
 
                         if text==None:
                             text=txt
@@ -1567,7 +2018,7 @@ class Rm():
             pltNetTextblock(text=text,x=kwds['pFIGNrcvXStart'],y=kwds['pFIGNrcvYStart'])         
                       
             # ============================================================
-            # User Heat Balances to be displayed
+            # User Heat Balances to be displayed in Net
             # ============================================================            
                                          
             vWBLZ=self.xm.dataFrames['vWBLZ']
@@ -1651,10 +2102,16 @@ class Rm():
                     if kwds['pFWVBGCategoryUnit']=='[MW]':
                         vIst=vIst/1000.
 
-                    if kwds['pFWVBMeasure3Classes']:
-                        txt="{:12s}: {:6.1f} {:4s} {:6.1f}% {:5d}/{:5d}/{:5d}".format(NAME,vIst,kwds['pFWVBGCategoryUnit'],vpIstZuvSoll*100,topAnz,midAnz,botAnz)
-                    else:
-                        txt="{:12s}: {:6.1f} {:4s} {:6.1f}%".format(NAME,vIst,kwds['pFWVBGCategoryUnit'],vpIstZuvSoll*100)
+                    fmtStr=kwds['pFWVBGCategoryCatFmt']
+                    if kwds['pFWVBMeasureInRefPerc'] and kwds['pFWVBMeasure3Classes']:
+                        fmtStr=fmtStr+kwds['pFWVBGCategoryPercFmt']+kwds['pFWVBGCategory3cFmt']
+                        txt=fmtStr.format(NAME,vIst,kwds['pFWVBGCategoryUnit'],vpIstZuvSoll*100,topAnz,midAnz,botAnz)
+                    if kwds['pFWVBMeasureInRefPerc'] and not kwds['pFWVBMeasure3Classes']:
+                        fmtStr=fmtStr+kwds['pFWVBGCategoryPercFmt']
+                        txt=fmtStr.format(NAME,vIst,kwds['pFWVBGCategoryUnit'],vpIstZuvSoll*100)
+                    if not kwds['pFWVBMeasureInRefPerc'] and kwds['pFWVBMeasure3Classes']:
+                        fmtStr=fmtStr+kwds['pFWVBGCategory3cFmt']
+                        txt=fmtStr.format(NAME,vIst,kwds['pFWVBGCategoryUnit'],topAnz,midAnz,botAnz)
 
                     if text==None:
                             text=txt
@@ -1663,36 +2120,28 @@ class Rm():
                 
             fig.sca(ax)            
             pltNetTextblock(text=text,x=kwds['pFWVBGCategoryXStart'],y=kwds['pFWVBGCategoryYStart'])         
-                                
-            ## ---------------------------------------------------------------------
-            ## VICs 
+
+            # ============================================================
+            # VICs to be displayed in Net
+            # ============================================================                                    
 
             if isinstance(kwds['pVICsDf'],pd.core.frame.DataFrame):
-                fig.sca(ax)
-                xStart=kwds['pVICsXStart']
-                yStart=kwds['pVICsYStart']
-                fontsize=8
-                distance=50
-                idx=0
+                text=None
                 for index, row in pFWVB[pd.isnull(pFWVB['VIC'])==False].sort_values(['VIC'],ascending=False).iterrows():      
                         kunde=row.VIC                         
                         v=row.Measure
                         if kwds['pFWVBMeasureInRefPerc']:
-                            txt="{:30s} {:3.0f}%".format(kunde,v*100)      
+                            txt=kwds['pVICsPercFmt'].format(kunde,v*100)      
                         else:                           
-                            txt="{:30s} {:6.2f} {:s}".format(kunde,v,pFWVBMeasureUNIT)    
-                        x,y=kwds['pVICsXStart'],kwds['pVICsYStart']+kwds['pVICsYSpace']*idx                  
-                        a=plt.annotate(txt                                
-                                ,xy=(x,y)
-                                ,family='monospace'
-                                ,size='smaller'                   
-                                ,xycoords=ax.transAxes #'data'  
-                                ,rotation='horizontal'
-                                ,va='bottom'
-                                ,ha='left'   
-                                ,clip_on=False                                                                                                                                                                         
-                                    )
-                        idx=idx+1
+                            txt=kwds['pVICsFmt'].format(kunde,v,pFWVBMeasureUNIT)    
+                        
+                        if text==None:
+                            text=txt
+                        else:
+                            text=text+'\n'+txt
+                
+                fig.sca(ax)            
+                pltNetTextblock(text=text,x=kwds['pVICsXStart'],y=kwds['pVICsYStart'])   
                                                                            
         except RmError:
             raise            
