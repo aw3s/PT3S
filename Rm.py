@@ -1838,7 +1838,7 @@ class Rm():
             )
             fig = plt.gcf()  
             ax=plt.gca()
-
+            #
             pFWVBrefSizeValue=pltFWVB[kwds['pFWVBAttribute']].std()
             if pFWVBrefSizeValue < 1:
                 pFWVBrefSizeValue=pltFWVB[kwds['pFWVBAttribute']].mean()
