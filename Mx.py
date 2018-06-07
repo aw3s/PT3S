@@ -450,13 +450,13 @@ class Mx():
     """Reading SIR 3S' MX-Files. 
 
     Args:
-        * mx1File (str): .MX1-File (an XML-File)
+        * mx1File (str): base.MX1-File (an XML-File) (base.1.MX1-File for 90-10)
         * NoH5Read (bool): 
             False (default): 
-                * If a .h5-File 
+                * If a base.h5-File 
                     * exists 
-                    * and is newer (>) than an .MX1-File 
-                    * and is newer (>) than an .MXS-File:
+                    * and is newer (>) than an .MX1-File (base.1.Mx1-File for 90-10) 
+                    * and is newer (>) than an .MXS-File (base.1.MXS-File for 90-10:
 
                         * The .h5-File is read instead of the .MX1-File.
 
@@ -521,6 +521,10 @@ class Mx():
             #Determine corresponding .MX2 Filename
             (wD,fileName)=os.path.split(self.mx1File)
             (base,ext)=os.path.splitext(fileName)
+
+            # wenn 90-10, dann ist base im Sinne des folgenden Codes um .1 zu strippen
+            # bei MXS allerdings ist .1 wieder zu ergaenzen
+
             self.mx2File=wD+os.path.sep+base+'.'+'MX2'   
                                                      
             #Determine corresponding .h5 Filename(s)
