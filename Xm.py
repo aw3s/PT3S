@@ -1039,12 +1039,14 @@ class Xm():
                     * IDIM
                     * NAME
 
-                    OBJS (BLOB) 
+                    from OBJS (BLOB): 
                         * OBJID: pk (or tk?!) of a WBLZ OBJ  
                         * OBJTYPE: type (always KNOT?!) of a WBLZ OBJ
 
                 WBLZ IDs
-                    * pk              
+                    * pk     
+                    
+            if no WBLZ defined: an empty DataFrame with the same columns is returned         
                     
         Raises:
             XmError                                
@@ -1190,7 +1192,7 @@ class Xm():
                         * OBJTYPE
                         * fkOBJTYPE
                         * ATTRTYPE                    
-                    Datapoint IDs
+                    Datapoint IDs (of DPGR_ROW 90-09 / DPGR_DPKT 90-10)
                         * pk_ROWS
                         * tk_ROWS
                 NRCV IDs
@@ -1209,12 +1211,19 @@ class Xm():
         try: 
             vNRCV=None
             vNRCV=self.dataFrames['NRCV']
-            vNRCV=vNRCV.merge(self.dataFrames['DPGR_ROWS'],left_on='fkDPGR_ROWS',right_on='pk',suffixes=['_NR','_DR'])
-            vNRCV=vNRCV.merge(self.dataFrames['DPGR'],left_on='fk',right_on='pk',suffixes=['_DR2','_DG'])
+            if 'DPGR_ROWS' in self.dataFrames.keys():
+                # 90-09
+                vNRCV=vNRCV.merge(self.dataFrames['DPGR_ROWS'],left_on='fkDPGR_ROWS',right_on='pk',suffixes=['_NR','_DR'])                
+                vNRCV=vNRCV.merge(self.dataFrames['DPGR'],left_on='fk',right_on='pk',suffixes=['_DR2','_DG'])
+            else:
+                # 90-10                
+                vNRCV=vNRCV.merge(self.dataFrames['DPGR_DPKT'],left_on='fkDPGR_DPKT',right_on='pk',suffixes=['_NR','_DR'])
+                vNRCV=vNRCV.merge(self.dataFrames['DPKT'],left_on='fkDPKT',right_on='pk',suffixes=['_NR','_DR'])
+                vNRCV=vNRCV.merge(self.dataFrames['DPGR'],left_on='fkDPGR',right_on='pk',suffixes=['_DR2','_DG'])
+            
             vNRCV=vNRCV.merge(self.dataFrames['CONT'],left_on='fkCONT',right_on='pk',suffixes=['_DR3','_CONT'])
 
-
-            # GRAF ###
+            # GRAF
             xyLeftBottom=[]
             for index,row in vNRCV.iterrows():
                 if pd.isnull(row.GRAF_DR3):                 
@@ -1223,7 +1232,6 @@ class Xm():
                 geomBytes=base64.b64decode(row.GRAF_DR3)               
                 XYLeftBottom=struct.unpack('2d',geomBytes[8:24]) 
                 xyLeftBottom.append(XYLeftBottom)
-
          
             pXyLeftBottom=[]
             for index,row in vNRCV.iterrows():
@@ -1243,13 +1251,18 @@ class Xm():
               ,'LFDNR'              
               # DPGR
               ,'NAME_DR3'
-               # Data (of the DPGR_ROW)
+               # Data (of the DPGR_ROW / DPKT)
               ,'OBJTYPE'
               ,'fkOBJTYPE'
               ,'ATTRTYPE'
-              # IDs (of the DPGR_ROW)
+              # IDs (of the DPGR_ROW / DPGR_DPKT)
               ,'pk_DR'
-              ,'tk_DR'       
+              ,'tk_DR'     
+              # IDs (of DPKT)
+              #,'pk_DR2'
+              #,'rk_DR2',
+              #,'rkDPKT'
+              #,'tk_DR'
               # IDs (of the NRCV)
               ,'pk_NR'
               ,'tk_NR'
@@ -2298,7 +2311,9 @@ class Xm():
                 vWBLZ
                     * ['BLZ1','BLZ2',...]
                         list of the WBLZ-Names of the FWVB in alphabetical Order;  
-                        empty list, if FWVB is not a WBLZ-Member      
+                        empty list, if FWVB is not a WBLZ-Member     
+                        
+            if no FWVB defined: an empty DataFrame is returned   
         Raises:
             XmError
         """
