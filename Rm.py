@@ -1207,11 +1207,25 @@ class Rm():
                 * timeDeltaToRef: Reference Scenariotime (for MeasureInRefPerc-Calculations) (default: pd.to_timedelta('0 seconds'))
                 * timeDeltaToT: Scenariotime (default: pd.to_timedelta('0 seconds'))
 
-            FWVB Attribute (Size, z-Order)
-                * pFWVBAttribute (default: 'W0LFK') 
+            FWVB
+               * pFWVBFilterFunction: Filterfunction to be applied to FWVB to determine the FWVB to be plotted
+                    * default: lambda df: (df.CONT_ID.astype(int).isin([1001])) & (df.W0LFK>0)
+                        * CONT_IDisIn: [1001]
+                            * um zu vermeiden, dass FWVB aus Bloecken gezeichnet werden (unwahrscheinlich, dass es solche gibt)    
+                        * W0LFK>0:
+                            * um zu vermeiden, dass versucht wird, FWVB mit der Soll-Leistung 0 zu zeichnen (pFWVBAttribute default is 'W0LFK')              
 
-                    * .astype(float) must be possible
-                    * only >0 Values are plotted
+            FWVB Attribute (Size, z-Order)
+                * pFWVBAttribute: columnName (default: 'W0LFK') 
+
+                    * the column must be able to be converted to a float
+                    * the conversion is done before FilterFunction 
+                    * see ApplyFunction and NaNValue for conversion details:
+                        * pFWVBAttributeApplyFunction: Function to be applied to column pFWVBAttribute 
+                                            * default: lambda x: pd.to_numeric(x,errors='coerce')                                    
+                        * pFWVBAttributeApplyFunctionNaNValue: Value for NaN-Values produced by pFWVBAttributeApplyFunction if any  
+                                            * default: 0
+                                            * .fillna(pFWVBAttributeApplyFunktionNaNValue).astype(float) is called after ApplyFunction
 
                 * pFWVBAttributeAsc: z-Order (default: False d.h. "kleine auf große")
                 * pFWVBAttributeRefSize: scatter Sy-Area in pts^2 of for RefSizeValue (default: 10**2)  
@@ -1293,20 +1307,27 @@ class Rm():
                 * CBLe3cSyType='o' 
 
             ROHR
-               * KVRisIn (default: [2])
-                    * 1: supply-line
-                    * 2: return-line
-                                       
-               * CONT_IDisIn (default: [1001])
-                    * um zu vermeiden, dass Rohre aus Bloecken gezeichnet werden (deren Koordinaten nicht zu den Koordinaten von Rohren aus dem Ansichtsblock passen) 
-                    * das Kriterium wird auch angewendet auf FWVB um den Fall zu behandeln, dass ein anderer als der "0-te" Block das Netz enthaelt           
+               * pROHRFilterFunction: Filterfunction to be applied to PIPEs to determine the PIPEs to be plotted
+                    * default: lambda df: (df.KVR.astype(int).isin([2])) & (df.CONT_ID.astype(int).isin([1001])) & (df.DI>0)
+                        * KVRisIn: [2]
+                            * 1: supply-line
+                            * 2: return-line                                       
+                        * CONT_IDisIn: [1001]
+                            * um zu vermeiden, dass Rohre aus Bloecken gezeichnet werden (deren Koordinaten nicht zu den Koordinaten von Rohren aus dem Ansichtsblock passen)    
+                        * DI>0:
+                            * um zu vermeiden, dass versucht wird, Rohre mit dem Innendurchmesser 0 zu zeichnen (pROHRAttribute default is 'DI')              
 
-            ROHR (PIPE-Line: Size and Color, z-Order)
-                * pROHRAttribute (default: 'DI')
-
-                    * .astype(float) must be possible
-                    * only >0 Values are plotted        
-
+            ROHR (PIPE-Line: Size and Color, z-Order)   
+                * pROHRAttribute: columnName (default: 'DI')
+                    * the column must be able to be converted to a float
+                    * the conversion is done before FilterFunction 
+                    * see ApplyFunction and NaNValue for conversion details:
+                        * pROHRAttributeApplyFunction: Function to be applied to column pROHRAttribute 
+                                            * default: lambda x: pd.to_numeric(x,errors='coerce')                                    
+                        * pROHRAttributeApplyFunctionNaNValue: Value for NaN-Values produced by pROHRAttributeApplyFunction if any  
+                                            * default: 0
+                                            * .fillna(pROHRAttributeApplyFunktionNaNValue).astype(float) is called after ApplyFunction
+      
                 * pROHRAttributeAsc: z-Order (default: False d.h. "kleine auf grosse")                                               
 
                 * pROHRAttributeLs (default: '-')
@@ -1328,8 +1349,8 @@ class Rm():
                * note that Attribute >0 is a precondition 
 
             ROHR (PIPE-Marker: Size and Color)
-                * pROHRMeasure (default: 'ROHR~*~*~*~QMAV') 
-                * pROHRMeasureAbs (default: True)  
+                * pROHRMeasure columnName (default: 'ROHR~*~*~*~QMAV') 
+                * pROHRMeasureApplyFunction: Function to be applied to column pROHRMeasure (default: lambda x: math.fabs(x))  
                 
                 * pROHRMeasureMarker (default: '.')
                 * pROHRMeasureRefSize: plot markersize for RefSizeValue in pts (default: 1.0)
@@ -1416,29 +1437,65 @@ class Rm():
 
             Returns:
                 pFWVB
+                    * columns changed (compared to vFWVB):
+                        * pFWVBAttribute (wg. z.B. pFWVBAttributeApplyFunction und .astype(float))
+
                     * columns added (compared to vFWVB):
                         * Measure (in % zu Ref wenn pFWVBMeasureInRefPer=True) 
-                        * MeasureRef (Referenz-Wert von Measure im Referenzzustand)
+                        * MeasureRef (Wert von Measure im Referenzzustand)
                         * MeasureOrig (Wert von Measure)
 
-                        * MCategory: Kategorisierung von Measure mit FixedLimitHigh/Low-Werten 
-
-                            str:
-                            * TopText or
-                            * MidText or
-                            * BotText
+                        * MCategory: str (Kategorisierung von Measure mit FixedLimitHigh/Low-Werten):                           
+                                * TopText or
+                                * MidText or
+                                * BotText
                             
-                        * GCategory: list (non-empty only if req. GCategories are a subset of the available Categories and FWVB belongs to a req. Category)
+                        * GCategory: list (non-empty only if req. GCategories are a subset of the available Categories and object belongs to a req. Category)
 
-                    * pFWVB enthaelt dieselben Objekte wie vFWVB
-                    * aber: die geplotteten Objekte sind ggf. nur eine Teilmenge (wg. z.B.  Attribute > 0) 
+                    * rows (compared to vFWVB):
+                        * pFWVB enthaelt dieselben Objekte wie vFWVB
+                        * aber: die geplotteten Objekte sind ggf. nur eine Teilmenge (wg. z.B. pFWVBFilterFunction) 
         """
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
         try:
             
-            keysDefined=['CBAnchorHorizontal', 'CBAnchorVertical', 'CBAspect', 'CBFraction', 'CBHpad', 'CBLabelPad', 'CBLe3cBotVPad', 'CBLe3cMidVPad', 'CBLe3cSySize', 'CBLe3cSyType', 'CBLe3cTopVPad', 'CBShrink', 'CBTicklabelsHPad', 'CONT_IDisIn', 'KVRisIn', 'figEdgecolor', 'figFacecolor', 'figFrameon', 'pFIGNrcv', 'pFIGNrcvFmt', 'pFIGNrcvPercFmt','pFIGNrcvTxt', 'pFIGNrcvXStart', 'pFIGNrcvYStart', 'pFWVBAttribute', 'pFWVBAttributeAsc', 'pFWVBAttributeRefSize', 'pFWVBGCategory', 'pFWVBGCategoryUnit','pFWVBGCategory3cFmt','pFWVBGCategoryCatFmt', 'pFWVBGCategoryPercFmt', 'pFWVBGCategoryXStart', 'pFWVBGCategoryYStart', 'pFWVBMeasure', 'pFWVBMeasure3Classes', 'pFWVBMeasureAlpha', 'pFWVBMeasureCBFixedLimitHigh', 'pFWVBMeasureCBFixedLimitLow', 'pFWVBMeasureCBFixedLimits', 'pFWVBMeasureClip', 'pFWVBMeasureColorMap', 'pFWVBMeasureInRefPerc', 'pMCatBotAlpha', 'pMCatBotClip', 'pMCatBotColor', 'pMCatBotText', 'pMCatMidAlpha', 'pMCatMidClip', 'pMCatMidColorMap', 'pMCatMidText', 'pMCatTopAlpha', 'pMCatTopClip', 'pMCatTopColor', 'pMCatTopText', 'pROHRAttribute', 'pROHRAttributeAsc', 'pROHRAttributeColorMap', 'pROHRAttributeColorMapUsageStart', 'pROHRAttributeLs', 'pROHRAttributeRefSize', 'pROHRMeasure', 'pROHRMeasureAbs', 'pROHRMeasureColorMap', 'pROHRMeasureColorMapUsageStart', 'pROHRMeasureMarker', 'pROHRMeasureRefSize', 'pVICsDf','pVICsPercFmt','pVICsFmt','pVICsXStart', 'pVICsYStart', 'pltTitle', 'quantil_pFWVBAttributeHigh', 'quantil_pFWVBAttributeLow', 'quantil_pROHRAttributeHigh', 'quantil_pROHRAttributeLow', 'timeDeltaToRef', 'timeDeltaToT']
+            keysDefined=['CBAnchorHorizontal', 'CBAnchorVertical', 'CBAspect', 'CBFraction', 'CBHpad', 'CBLabelPad'
+                         ,'CBLe3cBotVPad', 'CBLe3cMidVPad', 'CBLe3cSySize', 'CBLe3cSyType', 'CBLe3cTopVPad'
+                         ,'CBShrink', 'CBTicklabelsHPad'
+
+                         ,'figEdgecolor', 'figFacecolor', 'figFrameon'
+                         
+                         ,'pFIGNrcv','pFIGNrcvFmt', 'pFIGNrcvPercFmt','pFIGNrcvTxt', 'pFIGNrcvXStart', 'pFIGNrcvYStart'
+                         
+                         ,'pFWVBFilterFunction'
+                         ,'pFWVBAttribute'
+                         ,'pFWVBAttributeApplyFunction','pFWVBAttributeApplyFunctionNaNValue'
+                         ,'pFWVBAttributeAsc'
+                         ,'pFWVBAttributeRefSize'
+                         
+                         ,'pFWVBGCategory', 'pFWVBGCategoryUnit','pFWVBGCategory3cFmt','pFWVBGCategoryCatFmt', 'pFWVBGCategoryPercFmt', 'pFWVBGCategoryXStart', 'pFWVBGCategoryYStart'
+                         
+                         ,'pFWVBMeasure', 'pFWVBMeasure3Classes', 'pFWVBMeasureAlpha', 'pFWVBMeasureCBFixedLimitHigh', 'pFWVBMeasureCBFixedLimitLow', 'pFWVBMeasureCBFixedLimits', 'pFWVBMeasureClip', 'pFWVBMeasureColorMap', 'pFWVBMeasureInRefPerc'
+                         ,'pMCatBotAlpha', 'pMCatBotClip', 'pMCatBotColor', 'pMCatBotText', 'pMCatMidAlpha', 'pMCatMidClip', 'pMCatMidColorMap', 'pMCatMidText', 'pMCatTopAlpha', 'pMCatTopClip', 'pMCatTopColor', 'pMCatTopText'
+                         
+                         ,'pROHRFilterFunction'                        
+                         ,'pROHRAttribute'
+                         ,'pROHRAttributeApplyFunction','pROHRAttributeApplyFunctionNaNValue'
+                         ,'pROHRAttributeAsc', 'pROHRAttributeColorMap', 'pROHRAttributeColorMapUsageStart', 'pROHRAttributeLs', 'pROHRAttributeRefSize'
+                         
+                         ,'pROHRMeasure','pROHRMeasureApplyFunction'
+                         ,'pROHRMeasureColorMap', 'pROHRMeasureColorMapUsageStart', 'pROHRMeasureMarker', 'pROHRMeasureRefSize'
+
+                         ,'pVICsDf','pVICsPercFmt','pVICsFmt','pVICsXStart', 'pVICsYStart'
+                         ,'pltTitle'
+                         
+                         ,'quantil_pFWVBAttributeHigh', 'quantil_pFWVBAttributeLow'
+                         
+                         ,'quantil_pROHRAttributeHigh', 'quantil_pROHRAttributeLow'
+                         
+                         ,'timeDeltaToRef', 'timeDeltaToT']
 
             keys=sorted(kwds.keys())
             for key in keys:
@@ -1455,11 +1512,21 @@ class Rm():
             if 'timeDeltaToT' not in keys:
                 kwds['timeDeltaToT']=pd.to_timedelta('0 seconds')
 
+            # FWVB
+            if 'pFWVBFilterFunction' not in keys:
+                kwds['pFWVBFilterFunction']=lambda df: (df.CONT_ID.astype(int).isin([1001])) & (df.W0LFK.astype(float)>0)
+
             # FWVB Attribute (Size)
             if 'pFWVBAttribute' not in keys:
                 kwds['pFWVBAttribute']='W0LFK'
+            if 'pFWVBAttributeApplyFunction' not in keys:
+                kwds['pFWVBAttributeApplyFunction']=lambda x: pd.to_numeric(x,errors='coerce') # .apply(kwds['pFWVBAttributeApplyFunktion'])
+            if 'pFWVBAttributeApplyFunctionNaNValue' not in keys:
+                kwds['pFWVBAttributeApplyFunctionNaNValue']=0 # .fillna(kwds['pFWVBAttributeApplyFunktionNaNValue']).astype(float)
+
             if 'pFWVBAttributeAsc' not in keys:
                 kwds['pFWVBAttributeAsc']=False
+
             if 'pFWVBAttributeRefSize' not in keys:
                 kwds['pFWVBAttributeRefSize']=10**2
 
@@ -1553,15 +1620,18 @@ class Rm():
             if 'CBLe3cSyType' not in keys:
                 kwds['CBLe3cSyType']='o'
 
-            # ROHR 
-            if 'KVRisIn' not in keys:
-                kwds['KVRisIn']=[2]
-            if 'CONT_IDisIn' not in keys:
-                kwds['CONT_IDisIn']=[1001]
+            # ROHR             
+            if 'pROHRFilterFunction' not in keys:
+                kwds['pROHRFilterFunction']=lambda df: (df.KVR.astype(int).isin([2])) & (df.CONT_ID.astype(int).isin([1001])) & (df.DI>0)
 
             # pROHR (PIPE-Line: Size and Color)
             if 'pROHRAttribute' not in keys:
                 kwds['pROHRAttribute']='DI'
+            if 'pROHRAttributeApplyFunction' not in keys:
+                kwds['pROHRAttributeApplyFunction']=lambda x: pd.to_numeric(x,errors='coerce') # .apply(kwds['pROHRAttributeApplyFunktion'])
+            if 'pROHRAttributeApplyFunctionNaNValue' not in keys:
+                kwds['pROHRAttributeApplyFunctionNaNValue']=0 # .fillna(kwds['pROHRAttributeApplyFunktionNaNValue']).astype(float)
+
             if 'pROHRAttributeAsc' not in keys:
                 kwds['pROHRAttributeAsc']=False
 
@@ -1582,8 +1652,8 @@ class Rm():
             # pROHR (PIPE-Marker: Size and Color)
             if 'pROHRMeasure' not in keys:
                 kwds['pROHRMeasure']='ROHR~*~*~*~QMAV'
-            if 'pROHRMeasureAbs' not in keys:
-                kwds['pROHRMeasureAbs']=True
+            if 'pROHRMeasureApplyFunction' not in keys:
+                kwds['pROHRMeasureApplyFunction']=lambda x: math.fabs(x)
 
             if 'pROHRMeasureMarker' not in keys:
                 kwds['pROHRMeasureMarker']='.'
@@ -1752,40 +1822,46 @@ class Rm():
                 pFWVB=pFWVB.assign(GCategory=pd.Series()) 
 
             # ROHR
-            pROHRMeasureValueRaw=plotTimeDfs[timeTIdx][kwds['pROHRMeasure']].iloc[0]   
+            pROHRMeasureValueRaw=plotTimeDfs[timeTIdx][kwds['pROHRMeasure']].iloc[0]               
             pROHRMeasureValue=[None for m in pROHRMeasureValueRaw]
             for idx in range(len(pROHRMeasureValueRaw)):                   
                 mx2Idx=vROHR['mx2Idx'].iloc[idx]
                 m=pROHRMeasureValueRaw[mx2Idx]
-                m=float(m)
-                if kwds['pROHRMeasureAbs']:
-                    pROHRMeasureValue[idx]=math.fabs(m)
-                else:
-                    pROHRMeasureValue[idx]=m
+
+                mApplied=kwds['pROHRMeasureApplyFunction'](m)
+                pROHRMeasureValue[idx]=mApplied
+
             pROHR=vROHR.assign(Measure=pd.Series(pROHRMeasureValue)) #!
 
             # ========================================
-            # Return pFWVB enthaelt die ungefilterte und unselektierte Menge
-            # ========================================
-            pltROHR=pROHR
-            pltFWVB=pFWVB
-
+            # ROHR Attribute-Behandlung wg. float & Filter
+            # ========================================        
+            pROHR[kwds['pROHRAttribute']]=pROHR[kwds['pROHRAttribute']].apply(kwds['pROHRAttributeApplyFunction']) 
+            pROHR[kwds['pROHRAttribute']]=pROHR[kwds['pROHRAttribute']].fillna(kwds['pROHRAttributeApplyFunctionNaNValue']).astype(float)       
+             
             # ROHRe filtern
-            pltROHR=pltROHR[(pltROHR['CONT_ID'].astype(int).isin(kwds['CONT_IDisIn']))]
-            pltROHR=pltROHR[(pltROHR['KVR'].astype(int).isin(kwds['KVRisIn']))]
+            row,col=pROHR.shape
+            logger.debug("{:s}pROHR vor   filtern: Zeilen: {:d}".format(logStr,row))   
+            f=kwds['pROHRFilterFunction']  
+            logger.debug("{:s}pltROHR Filterfunktion: {:s}".format(logStr,str(f)))     
+            pltROHR=pROHR[f] #!    
             row,col=pltROHR.shape
-            logger.debug("{:s}pltROHR nach filtern: {:d}".format(logStr,row))     
+            logger.debug("{:s}pltROHR nach filtern: Zeilen: {:d}".format(logStr,row))        
 
-            # FWVB filtern
-            pltFWVB=pltFWVB[(pltFWVB['CONT_ID'].astype(int).isin(kwds['CONT_IDisIn']))]
+            # ========================================
+            # FWVB Attribute-Behandlung wg. float & Filter
+            # ========================================
+            pFWVB[kwds['pFWVBAttribute']]=pFWVB[kwds['pFWVBAttribute']].apply(kwds['pFWVBAttributeApplyFunction'])
+            pFWVB[kwds['pFWVBAttribute']]=pFWVB[kwds['pFWVBAttribute']].fillna(kwds['pFWVBAttributeApplyFunctionNaNValue']).astype(float) 
             
-            # Selektionen (Attribute)
-            pltFWVB[kwds['pFWVBAttribute']]=pltFWVB[kwds['pFWVBAttribute']].astype(float)
-            pltROHR[kwds['pROHRAttribute']]=pltROHR[kwds['pROHRAttribute']].astype(float)            
-                         
-            pltFWVB=pltFWVB[pltFWVB[kwds['pFWVBAttribute']]>0] 
-            pltROHR=pltROHR[pltROHR[kwds['pROHRAttribute']]>0] 
-
+            # FWVB filtern
+            row,col=pFWVB.shape
+            logger.debug("{:s}pFWVB vor   filtern: Zeilen: {:d}".format(logStr,row))   
+            f=kwds['pFWVBFilterFunction']  
+            logger.debug("{:s}pltFWVB Filterfunktion: {:s}".format(logStr,str(f)))     
+            pltFWVB=pFWVB[f] #!          
+            row,col=pltFWVB.shape
+            logger.debug("{:s}pltFWVB nach filtern: Zeilen: {:d}".format(logStr,row))    
 
             
             pltFWVB=pltFWVB[(pltFWVB[kwds['pFWVBAttribute']]<=pltFWVB[kwds['pFWVBAttribute']].quantile(kwds['quantil_pFWVBAttributeHigh']))
@@ -1838,7 +1914,7 @@ class Rm():
             )
             fig = plt.gcf()  
             ax=plt.gca()
-            #
+
             pFWVBrefSizeValue=pltFWVB[kwds['pFWVBAttribute']].std()
             if pFWVBrefSizeValue < 1:
                 pFWVBrefSizeValue=pltFWVB[kwds['pFWVBAttribute']].mean()
