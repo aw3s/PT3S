@@ -1342,10 +1342,18 @@ class Xm():
         try: 
             vNRCV=None
             vNRCV=self.dataFrames['NRCV']
-            vNRCV=vNRCV.merge(self.dataFrames['DPGR_ROWS'],left_on='fkDPGR_ROWS',right_on='pk',suffixes=['_NR','_DR'])
-            vNRCV=vNRCV.merge(self.dataFrames['DPGR'],left_on='fk',right_on='pk',suffixes=['_DR2','_DG'])
-            vNRCV=vNRCV.merge(self.dataFrames['CONT'],left_on='fkCONT',right_on='pk',suffixes=['_DR3','_CONT'])
 
+            if 'DPGR_ROWS' in self.dataFrames.keys():
+                # 90-09
+                vNRCV=vNRCV.merge(self.dataFrames['DPGR_ROWS'],left_on='fkDPGR_ROWS',right_on='pk',suffixes=['_NR','_DR'])                
+                vNRCV=vNRCV.merge(self.dataFrames['DPGR'],left_on='fk',right_on='pk',suffixes=['_DR2','_DG'])
+            else:
+                # 90-10                
+                vNRCV=vNRCV.merge(self.dataFrames['DPGR_DPKT'],left_on='fkDPGR_DPKT',right_on='pk',suffixes=['_NR','_DR'])
+                vNRCV=vNRCV.merge(self.dataFrames['DPKT'],left_on='fkDPKT',right_on='pk',suffixes=['_NR','_DR'])
+                vNRCV=vNRCV.merge(self.dataFrames['DPGR'],left_on='fkDPGR',right_on='pk',suffixes=['_DR2','_DG'])
+            
+            vNRCV=vNRCV.merge(self.dataFrames['CONT'],left_on='fkCONT',right_on='pk',suffixes=['_DR3','_CONT'])
 
             # GRAF ###
             xyLeftBottom=[]
