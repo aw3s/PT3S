@@ -1,8 +1,10 @@
+import warnings
+
 import os
 import sys
 import logging
 import pandas as pd
-import warnings
+
 import tables
 import re
 

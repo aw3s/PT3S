@@ -1,13 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.27703.2035
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "PT3S", "PT3S.pyproj", "{A4114EDB-830B-4F14-ADF1-5F2313AC1FEA}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nb", "nb", "{89FCC235-14F6-4939-8106-6708349AE6D1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{88EA5911-D6B0-4AB3-8834-4B8CEDE7AA49}"
+EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "PT3S", "PT3S.pyproj", "{A4114EDB-830B-4F14-ADF1-5F2313AC1FEA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,5 +20,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A0009FCA-48C5-4FBA-93D5-D88CCA8925F3}
 	EndGlobalSection
 EndGlobal

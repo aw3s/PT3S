@@ -30,6 +30,7 @@ SIR 3S MX-Interface (short: MX)
 >>> # SETUP
 >>> # ---
 >>> import os
+>>> import time
 >>> try:
 ...    path = os.path.dirname(__file__)
 ... except NameError:
@@ -246,22 +247,30 @@ True
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',7,'Change','__init__(...,NoH5Read=True,...)')) 
 >>> if os.path.exists(mx.h5FileVecs):                        
 ...    os.remove(mx.h5FileVecs)
->>> mx=Mx(mx1File=mx1File,NoH5Read=True)
->>> os.path.exists(mx.h5FileVecs) # exists due to previous test
+>>> mx=Mx(mx1File=mx1File,NoH5Read=True) 
+>>> os.path.exists(mx.h5FileVecs) # h5 was written (h5 did not exist)
 True
 >>> h5VecsFileTime=os.path.getmtime(mx.h5FileVecs) 
->>> mx=Mx(mx1File=mx1File,NoH5Read=True)
->>> h5VecsFileTime<os.path.getmtime(mx.h5FileVecs) 
+>>> mx=Mx(mx1File=mx1File,NoH5Read=True) # h5 will be written again (h5 exists)
+>>> h5VecsFileTimeNow=os.path.getmtime(mx.h5FileVecs)
+>>> logger.debug("1 h5VecsFileTime:{:s} < h5VecsFileTimeNow:{:s}".format(time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTime)),time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTimeNow))))
+>>> h5VecsFileTime<h5VecsFileTimeNow # 1 h5 was written again (h5 did exist before)
 True
 >>> h5VecsFileTime=os.path.getmtime(mx.h5FileVecs) 
->>> mx=Mx(mx1File=mx1File)
->>> h5VecsFileTime==os.path.getmtime(mx.h5FileVecs) 
+>>> mx=Mx(mx1File=mx1File) # h5 is read - not written
+>>> h5VecsFileTimeNow=os.path.getmtime(mx.h5FileVecs)
+>>> logger.debug("2 h5VecsFileTime:{:s} == h5VecsFileTimeNow:{:s}".format(time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTime)),time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTimeNow))))
+>>> h5VecsFileTime==h5VecsFileTimeNow # 2 h5 was read - not written
 True
->>> mx.setResultsToMxsFile()
->>> h5VecsFileTime==os.path.getmtime(mx.h5FileVecs) 
+>>> mx.setResultsToMxsFile() # h5 will not be updated
+>>> h5VecsFileTimeNow=os.path.getmtime(mx.h5FileVecs)
+>>> logger.debug("3 h5VecsFileTime:{:s} == h5VecsFileTimeNow:{:s}".format(time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTime)),time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTimeNow))))
+>>> h5VecsFileTime==h5VecsFileTimeNow # 3 h5 was not updated
 True
->>> mx.setResultsToMxsFile(NewH5Vec=True)
->>> h5VecsFileTime<os.path.getmtime(mx.h5FileVecs) 
+>>> mx.setResultsToMxsFile(NewH5Vec=True) # h5 is written
+>>> h5VecsFileTimeNow=os.path.getmtime(mx.h5FileVecs)
+>>> logger.debug("h5VecsFileTime:{:s} == h5VecsFileTimeNow:{:s}".format(time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTime)),time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTimeNow))))
+>>> h5VecsFileTime<h5VecsFileTimeNow # h5 was written
 True
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',8,'Change','setResultsToMxsZipFile: finally: NewH5Vec=False')) 
 >>> mx.ToH5()
@@ -642,6 +651,13 @@ True
    2002-05-22 16:16:16+00:00                b'STAT'                 0                0                0               11                  0              160.0                0              0.0                  0                  0                0.0                0.0         -273.149994                 9              1.0               30                   160.0                     0.0                    0.0                86.01461      1000.299988     556.299988       3.736424           3.402823e+38              3.986973              0.980928           3.402823e+38              140.0                        1.006286                      40.258186                            140.0                         3.016954                       40.755142                              10.0                       39.999683                              -20.000008                       1000.299988                        4.016954                               40.755142                               40.755142                                4.016954                                4.016954                               0.0123                            10.0                      1000.299988                       4.986973                              40.643616                              40.643616                               4.986973                               4.986973                              0.0123                           10.0                      1000.299988                       3.507876                              40.565548                              40.565548                               3.507876                               3.507876                              0.0123                           10.0                      1000.299988                       2.006286                              40.258186                              40.258186                               2.006286                               2.006286                              0.0123                           10.0                      1000.299988                       3.936131                              39.931221                              39.931221                               3.936131                               3.936131                              0.0123                           10.0                       1000.299988                        4.416402                               39.827152                               39.827152                                4.416402                                4.416402                               0.0123                            10.0                       1000.299988                        4.920524                               39.966225                               39.966225                                4.920524                                4.920524                               0.0123                            10.0                       1000.299988                        3.937013                               39.940212                               39.940212                                3.937013                                3.937013                               0.0123                            10.0                      1000.299988                        3.45231                                39.9991                                39.9991                                3.45231                                3.45231                              0.0123                           10.0                            1000.299988                             3.452336                                    39.999367                                    39.999367                                     3.452336                                     3.452336                                    0.0123                                 10.0                       1000.299988                        1.980928                               39.999683                               39.999683                                1.980928                                1.980928                               0.0123                            10.0                          0.499333                          0.499333                              140.0                              140.0                         0.499333                         0.499333                             140.0                             140.0                         0.510817                         0.510817                         64.851456                         64.851456                         0.292091                         0.292091                          9.615081                          9.615081                          0.196514                          0.196514                           6.468875                           6.468875                          -0.228407                          -0.228407                           -7.518734                           -7.518734                           0.102688                           0.102688                            7.535347                            7.535347                         -0.126186                         -0.126186                          -9.259682                          -9.259682                              -0.071333                              -0.071333                              -20.000008                              -20.000008                              -0.176839                2.0'''
 """
 
+import warnings # 3.6
+#...\Anaconda3\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+#   from ._conv import register_converters as _register_converters
+#...\PT3S\Mx.py:1: FutureWarning: pandas.tslib is deprecated and will be removed in a future version.
+#   You can access Timestamp as pandas.Timestamp
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 import os
 import sys
 import logging
@@ -652,14 +668,14 @@ import struct
 import zipfile
 import pandas as pd
 import h5py
-import warnings
+# import warnings # 3.6
 import tables
 import math
 
 # ---
 # --- PT3S Imports
 # ---
-import PT3S
+# import PT3S # 3.6
 
 logger = logging.getLogger('PT3S.Mx')  
 
@@ -1356,7 +1372,6 @@ class Mx():
                 maxRecordsLimit=False   
                       
             recsReadFromFile=0     
-            #firstTime=None    
             
             if mxsVecsH5StorePtr != None:
                 keysAtStart=mxsVecsH5StorePtr.keys()
@@ -1378,14 +1393,16 @@ class Mx():
                         # process record time
                         try:
                             timeISO8601 = recordData[self.unpackIdxTIMESTAMP] #b'2017-10-20 00:00:00.000000+01:00' for scenTime 2017-10-20 00:00:00
-                            time = pd.to_datetime(timeISO8601,utc=True) 
+                            time = pd.to_datetime(timeISO8601.decode(),utc=True) # 3.6
                             time_read_after_to_datetime=time.strftime("%Y-%m-%d %H:%M:%S.%f%z") #%z: UTC offset in the form +HHMM or -HHMM (empty string if the object is naive)        
                             time = time + pd.to_timedelta('1 hour')   
                             time_read_finally=time.strftime("%Y-%m-%d %H:%M:%S.%f%z")       
                             if recsReadFromFile==0 and firstTime==None:
                                 firstTime=time                                                                                                                                                                                                                                                                             
-                        except:
+                        except Exception as e:
                             logStrFinal="{0:s}process record time failed. Error.".format(logStr)
+                            logger.error(logStrFinal) 
+                            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                    
                             logger.error(logStrFinal) 
                             raise MxError(logStrFinal)                
                         
@@ -1629,8 +1646,10 @@ class Mx():
             
             # .vec.h5 Handling 
             self._handleMxsVecsFileDeletion(mxsFile=mxsFile,newMxsVecsFile=NewH5Vec)
-              
+            
             mxsVecH5Store=pd.HDFStore(self.h5FileVecs) 
+            #
+            h5VecsFileTimeBefore=os.path.getmtime(self.h5FileVecs)
                                                                                       
             if isinstance(self.df,pd.core.frame.DataFrame):   
                 firstTime=self.df.index[0]
@@ -1667,7 +1686,14 @@ class Mx():
                 logger.debug("{0:s}RESULT after {1:s}: df Shape: {2!s} First Time: {3!s} Last Time: {4!s}.".format(logStr,mxsFile,self.df.shape,self.df.index[0],self.df.index[-1]))                                             
             else:
                 logger.error("{0:s}Mxs: {1:s}: Reading failed.".format(logStr,mxsFile))    
-                                           
+            
+            import time
+            h5VecsFileTimeAfter=os.path.getmtime(self.h5FileVecs)
+            logger.debug("{:s}: h5FileVecs: Before: {:s}: After:  {:s}.".format(logStr
+            ,time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTimeBefore))
+            ,time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTimeAfter))
+            ))                                             
+
         except MxError:
             raise
         except Exception as e:
