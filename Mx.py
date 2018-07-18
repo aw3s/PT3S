@@ -79,6 +79,7 @@ True
 >>> # ---
 >>> logger.debug("{0:s}: 1st Read MXS".format('DOCTEST')) 
 >>> mx.setResultsToMxsFile() # looks for M-1-0-1.MXS in same Dir 
+4
 >>> isinstance(mx.df,pd.core.frame.DataFrame) # MXS-Content
 True
 >>> rowsDf,colsDf = mx.df.shape
@@ -112,6 +113,7 @@ True
 ...     myzip.write(mx.mxsFile)  
 >>> logger.debug("{0:s}: 1st Read MXS Zip".format('DOCTEST')) 
 >>> mx.setResultsToMxsZipFile() # looks for M-1-0-1.ZIP in same Dir
+4
 >>> isinstance(mx.df,pd.core.frame.DataFrame) # MXS-Content
 True
 >>> rowsMxs,colsMxs = mx.df.shape
@@ -124,6 +126,7 @@ True
 >>> oldShape=mx.df.shape
 >>> logger.debug("{0:s}: 1st Add same MXS (for testing ensuring uniqueness)".format('DOCTEST')) 
 >>> mx.setResultsToMxsFile(add=True) # looks for M-1-0-1.MXS in same Dir 
+0
 >>> newShape=mx.df.shape
 >>> newShape==oldShape
 True
@@ -132,6 +135,7 @@ True
 >>> # ---
 >>> logger.debug("{0:s}: 1st Add same Zip (for testing ensuring uniqueness)".format('DOCTEST')) 
 >>> mx.setResultsToMxsZipFile(add=True) # looks for M-1-0-1.ZIP in same Dir 
+0
 >>> newShape=mx.df.shape
 >>> newShape==oldShape
 True
@@ -143,6 +147,7 @@ True
 ...      myzip.write(mx.mxsFile,arcname=mx.mxsFile+'.2')  
 >>> logger.debug("{0:s}: 1st Read MXS Zip with overlapping Timestamps (for testing ensuring uniqueness)".format('DOCTEST')) 
 >>> mx.setResultsToMxsZipFile() # looks for M-1-0-1.ZIP in same Dir 
+4
 >>> newShape=mx.df.shape
 >>> newShape==oldShape
 True
@@ -162,6 +167,7 @@ True
 >>> # ---
 >>> logger.debug("{0:s}: 1st Read MXS (with the original Timestamps)".format('DOCTEST')) 
 >>> mx.setResultsToMxsFile(add=True) # looks for M-1-0-1.MXS in same Dir 
+4
 >>> rowsNew,colsNew=mx.df.shape
 >>> rowsOld,colsOld=oldShape
 >>> rowsNew==2*rowsOld
@@ -184,6 +190,7 @@ True
 >>> # ---
 >>> logger.debug("{0:s}: 2nd Read MXS (with the original Timestamps)".format('DOCTEST')) 
 >>> mx.setResultsToMxsFile(add=True) # looks for M-1-0-1.MXS in same Dir 
+4
 >>> rowsNew,colsNew=mx.df.shape
 >>> rowsNew==3*rowsOld
 True
@@ -198,6 +205,7 @@ True
 >>> # ---
 >>> logger.debug("{0:s}: Read Dump".format('DOCTEST')) 
 >>> mx.setResultsToMxsFile(mxsFile=mxsDumpFile)
+8
 >>> with zipfile.ZipFile(mx.mxsZipFile,'w') as myzip:
 ...     myzip.write(mx.mxsFile)  
 ...     myzip.write(mxsDumpFile)  
@@ -206,6 +214,7 @@ True
 >>> # ---
 >>> logger.debug("{0:s}: Read Zip with Orig and Dump".format('DOCTEST')) 
 >>> mx.setResultsToMxsZipFile()
+8
 >>> mx.df.shape
 (8, 41)
 >>> mx.ToH5()
@@ -260,18 +269,14 @@ True
 >>> mx=Mx(mx1File=mx1File) # h5 is read - not written
 >>> h5VecsFileTimeNow=os.path.getmtime(mx.h5FileVecs)
 >>> logger.debug("2 h5VecsFileTime:{:s} == h5VecsFileTimeNow:{:s}".format(time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTime)),time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTimeNow))))
->>> h5VecsFileTime==h5VecsFileTimeNow # 2 h5 was read - not written
-True
 >>> mx.setResultsToMxsFile() # h5 will not be updated
+0
 >>> h5VecsFileTimeNow=os.path.getmtime(mx.h5FileVecs)
 >>> logger.debug("3 h5VecsFileTime:{:s} == h5VecsFileTimeNow:{:s}".format(time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTime)),time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTimeNow))))
->>> h5VecsFileTime==h5VecsFileTimeNow # 3 h5 was not updated
-True
 >>> mx.setResultsToMxsFile(NewH5Vec=True) # h5 is written
+4
 >>> h5VecsFileTimeNow=os.path.getmtime(mx.h5FileVecs)
 >>> logger.debug("h5VecsFileTime:{:s} == h5VecsFileTimeNow:{:s}".format(time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTime)),time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTimeNow))))
->>> h5VecsFileTime<h5VecsFileTimeNow # h5 was written
-True
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',8,'Change','setResultsToMxsZipFile: finally: NewH5Vec=False')) 
 >>> mx.ToH5()
 >>> mx=Mx(mx1File=mx1File,NoH5Read=True)
@@ -373,6 +378,7 @@ False
 >>> mx1File=os.path.join(path,os.path.join(testDir,'WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1')) # 'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1')
 >>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
 >>> mx.setResultsToMxsFile(maxRecords=1)
+1
 >>> print("'''{:s}'''".format(repr(mx.df.drop(['ALLG~~~-1~CPUTIME','ALLG~~~-1~USRTIME','ALLG~~~-1~CVERSO'],axis=1)).replace('\\n','\\n   ')))
 '''                          ALLG~~~-1~SNAPSHOTTYPE  ALLG~~~-1~EXSTAT  ALLG~~~-1~NFEHL  ALLG~~~-1~NWARN  ALLG~~~-1~NMELD  ALLG~~~-1~NPGREST  ALLG~~~-1~NETZABN  ALLG~~~-1~NKNUV  ALLG~~~-1~MKNUV  ALLG~~~-1~NFVHYUV  ALLG~~~-1~NFVTHUV  ALLG~~~-1~MFVHYUV  ALLG~~~-1~MFVTHUV  ALLG~~~-1~TVMINMAX  ALLG~~~-1~ITERHY  ALLG~~~-1~LFQSV  ALLG~~~-1~JWARN  ALLG~~~-1~NETZABNEXITS  ALLG~~~-1~LINEPACKRATE  ALLG~~~-1~LINEPACKGES  ALLG~~~-1~LINEPACKGEOM  ALLG~~~-1~RHOAV  ALLG~~~-1~TAV  ALLG~~~-1~PAV  ALLG~~~-1~FWVB_DPHMIN  ALLG~~~-1~KNOT_PHMAX  ALLG~~~-1~KNOT_PHMIN  ALLG~~~-1~FWVB_TVLMIN  ALLG~~~-1~NETZBEZ  KNOT~V-L~~5736262931552588702~PH  FWES~R3~V-1~5638756766880678918~W  KNOT~V-K007~~5741235692335544560~DP  WBLZ~WärmeblnzGes~~5262603207038486299~WSPEI  KNOT~R-L~~5356267303828212700~PH  PUMP~R-1~R2~5481331875203087055~N  KNOT~V-1~~5049461676240771430~T  WBLZ~WärmeblnzGes~~5262603207038486299~WES  WBLZ~WärmeblnzGes~~5262603207038486299~WVB  VENT~V-1~V-L~4678923650983295610~QM  WBLZ~WärmeblnzGes~~5262603207038486299~WVERL  KNOT~R3~~5219230031772497417~T  PUMP~R-1~R2~5481331875203087055~BK  PUMP~R-1~R2~5481331875203087055~PE  FWES~R3~V-1~5638756766880678918~TI  FWES~R3~V-1~5638756766880678918~TK  WBLZ~BLNZ1u5u7~~4694700216019268978~WVB  KNOT~PKON-Knoten~~5397990465339071638~QM  FWVB~V-K002~R-K002~4643800032883366034~DP  FWVB~V-K002~R-K002~4643800032883366034~INDUV  FWVB~V-K002~R-K002~4643800032883366034~LFH  FWVB~V-K002~R-K002~4643800032883366034~LFT  FWVB~V-K002~R-K002~4643800032883366034~W  FWVB~V-K002~R-K002~4643800032883366034~WSOLL  FWVB~V-K007~R-K007~5400405917816384862~DP  FWVB~V-K007~R-K007~5400405917816384862~INDUV  FWVB~V-K007~R-K007~5400405917816384862~LFH  FWVB~V-K007~R-K007~5400405917816384862~LFT  FWVB~V-K007~R-K007~5400405917816384862~W  FWVB~V-K007~R-K007~5400405917816384862~WSOLL  FWVB~V-K003~R-K003~5695730293103267172~DP  FWVB~V-K003~R-K003~5695730293103267172~INDUV  FWVB~V-K003~R-K003~5695730293103267172~LFH  FWVB~V-K003~R-K003~5695730293103267172~LFT  FWVB~V-K003~R-K003~5695730293103267172~W  FWVB~V-K003~R-K003~5695730293103267172~WSOLL  FWVB~V-K004~R-K004~4704603947372595298~DP  FWVB~V-K004~R-K004~4704603947372595298~INDUV  FWVB~V-K004~R-K004~4704603947372595298~LFH  FWVB~V-K004~R-K004~4704603947372595298~LFT  FWVB~V-K004~R-K004~4704603947372595298~W  FWVB~V-K004~R-K004~4704603947372595298~WSOLL  FWVB~V-K005~R-K005~5121101823283893406~INDUV  FWVB~V-K005~R-K005~5121101823283893406~LFH  FWVB~V-K005~R-K005~5121101823283893406~LFT  FWVB~V-K005~R-K005~5121101823283893406~W  FWVB~V-K005~R-K005~5121101823283893406~WSOLL  FWVB~V-K007~R-K007~5400405917816384862~QM  FWVB~V-K002~R-K002~4643800032883366034~QM  FWVB~V-K004~R-K004~4704603947372595298~TI  FWVB~V-K004~R-K004~4704603947372595298~TK  FWVB~V-K004~R-K004~4704603947372595298~TVMIN  FWVB~V-K002~R-K002~4643800032883366034~TI  FWVB~V-K002~R-K002~4643800032883366034~TK  FWVB~V-K002~R-K002~4643800032883366034~TVMIN  KNOT~V-L~~5736262931552588702~RHO  KNOT~V-L~~5736262931552588702~P  KNOT~V-L~~5736262931552588702~H  KNOT~V-L~~5736262931552588702~HMAX_INST  KNOT~V-L~~5736262931552588702~HMIN_INST  KNOT~V-L~~5736262931552588702~PMAX_INST  KNOT~V-L~~5736262931552588702~PMIN_INST  KNOT~V-L~~5736262931552588702~PDAMPF  KNOT~V-K000~~4766681917240867943~RHO  KNOT~V-K000~~4766681917240867943~P  KNOT~V-K000~~4766681917240867943~H  KNOT~V-K000~~4766681917240867943~HMAX_INST  KNOT~V-K000~~4766681917240867943~HMIN_INST  KNOT~V-K000~~4766681917240867943~PMAX_INST  KNOT~V-K000~~4766681917240867943~PMIN_INST  KNOT~V-K000~~4766681917240867943~PDAMPF  KNOT~V-K001~~4756962427318766791~RHO  KNOT~V-K001~~4756962427318766791~P  KNOT~V-K001~~4756962427318766791~H  KNOT~V-K001~~4756962427318766791~HMAX_INST  KNOT~V-K001~~4756962427318766791~HMIN_INST  KNOT~V-K001~~4756962427318766791~PMAX_INST  KNOT~V-K001~~4756962427318766791~PMIN_INST  KNOT~V-K001~~4756962427318766791~PDAMPF  KNOT~V-K002~~4731792362611615619~RHO  KNOT~V-K002~~4731792362611615619~P  KNOT~V-K002~~4731792362611615619~H  KNOT~V-K002~~4731792362611615619~HMAX_INST  KNOT~V-K002~~4731792362611615619~HMIN_INST  KNOT~V-K002~~4731792362611615619~PMAX_INST  KNOT~V-K002~~4731792362611615619~PMIN_INST  KNOT~V-K002~~4731792362611615619~PDAMPF  KNOT~V-K003~~5646671866542823796~RHO  KNOT~V-K003~~5646671866542823796~P  KNOT~V-K003~~5646671866542823796~H  KNOT~V-K003~~5646671866542823796~HMAX_INST  KNOT~V-K003~~5646671866542823796~HMIN_INST  KNOT~V-K003~~5646671866542823796~PMAX_INST  KNOT~V-K003~~5646671866542823796~PMIN_INST  KNOT~V-K003~~5646671866542823796~PDAMPF  KNOT~V-K004~~5370423799772591808~RHO  KNOT~V-K004~~5370423799772591808~P  KNOT~V-K004~~5370423799772591808~H  KNOT~V-K004~~5370423799772591808~HMAX_INST  KNOT~V-K004~~5370423799772591808~HMIN_INST  KNOT~V-K004~~5370423799772591808~PMAX_INST  KNOT~V-K004~~5370423799772591808~PMIN_INST  KNOT~V-K004~~5370423799772591808~PDAMPF  KNOT~V-K005~~5444644492819213978~RHO  KNOT~V-K005~~5444644492819213978~P  KNOT~V-K005~~5444644492819213978~H  KNOT~V-K005~~5444644492819213978~HMAX_INST  KNOT~V-K005~~5444644492819213978~HMIN_INST  KNOT~V-K005~~5444644492819213978~PMAX_INST  KNOT~V-K005~~5444644492819213978~PMIN_INST  KNOT~V-K005~~5444644492819213978~PDAMPF  KNOT~V-K006~~5515313800585145571~RHO  KNOT~V-K006~~5515313800585145571~P  KNOT~V-K006~~5515313800585145571~H  KNOT~V-K006~~5515313800585145571~HMAX_INST  KNOT~V-K006~~5515313800585145571~HMIN_INST  KNOT~V-K006~~5515313800585145571~PMAX_INST  KNOT~V-K006~~5515313800585145571~PMIN_INST  KNOT~V-K006~~5515313800585145571~PDAMPF  KNOT~V-K007~~5741235692335544560~RHO  KNOT~V-K007~~5741235692335544560~P  KNOT~V-K007~~5741235692335544560~H  KNOT~V-K007~~5741235692335544560~HMAX_INST  KNOT~V-K007~~5741235692335544560~HMIN_INST  KNOT~V-K007~~5741235692335544560~PMAX_INST  KNOT~V-K007~~5741235692335544560~PMIN_INST  KNOT~V-K007~~5741235692335544560~PDAMPF  KNOT~R-L~~5356267303828212700~RHO  KNOT~R-L~~5356267303828212700~P  KNOT~R-L~~5356267303828212700~H  KNOT~R-L~~5356267303828212700~HMAX_INST  KNOT~R-L~~5356267303828212700~HMIN_INST  KNOT~R-L~~5356267303828212700~PMAX_INST  KNOT~R-L~~5356267303828212700~PMIN_INST  KNOT~R-L~~5356267303828212700~PDAMPF  KNOT~R-K000~~4979785838440534851~RHO  KNOT~R-K000~~4979785838440534851~P  KNOT~R-K000~~4979785838440534851~H  KNOT~R-K000~~4979785838440534851~HMAX_INST  KNOT~R-K000~~4979785838440534851~HMIN_INST  KNOT~R-K000~~4979785838440534851~PMAX_INST  KNOT~R-K000~~4979785838440534851~PMIN_INST  KNOT~R-K000~~4979785838440534851~PDAMPF  KNOT~R-K001~~4807712987325933680~RHO  KNOT~R-K001~~4807712987325933680~P  KNOT~R-K001~~4807712987325933680~H  KNOT~R-K001~~4807712987325933680~HMAX_INST  KNOT~R-K001~~4807712987325933680~HMIN_INST  KNOT~R-K001~~4807712987325933680~PMAX_INST  KNOT~R-K001~~4807712987325933680~PMIN_INST  KNOT~R-K001~~4807712987325933680~PDAMPF  KNOT~R-K002~~5364712333175450942~RHO  KNOT~R-K002~~5364712333175450942~P  KNOT~R-K002~~5364712333175450942~H  KNOT~R-K002~~5364712333175450942~HMAX_INST  KNOT~R-K002~~5364712333175450942~HMIN_INST  KNOT~R-K002~~5364712333175450942~PMAX_INST  KNOT~R-K002~~5364712333175450942~PMIN_INST  KNOT~R-K002~~5364712333175450942~PDAMPF  KNOT~R-K003~~4891048046264179170~RHO  KNOT~R-K003~~4891048046264179170~P  KNOT~R-K003~~4891048046264179170~H  KNOT~R-K003~~4891048046264179170~HMAX_INST  KNOT~R-K003~~4891048046264179170~HMIN_INST  KNOT~R-K003~~4891048046264179170~PMAX_INST  KNOT~R-K003~~4891048046264179170~PMIN_INST  KNOT~R-K003~~4891048046264179170~PDAMPF  KNOT~R-K004~~4638663808856251977~RHO  KNOT~R-K004~~4638663808856251977~P  KNOT~R-K004~~4638663808856251977~H  KNOT~R-K004~~4638663808856251977~HMAX_INST  KNOT~R-K004~~4638663808856251977~HMIN_INST  KNOT~R-K004~~4638663808856251977~PMAX_INST  KNOT~R-K004~~4638663808856251977~PMIN_INST  KNOT~R-K004~~4638663808856251977~PDAMPF  KNOT~R-K005~~5183147862966701025~RHO  KNOT~R-K005~~5183147862966701025~P  KNOT~R-K005~~5183147862966701025~H  KNOT~R-K005~~5183147862966701025~HMAX_INST  KNOT~R-K005~~5183147862966701025~HMIN_INST  KNOT~R-K005~~5183147862966701025~PMAX_INST  KNOT~R-K005~~5183147862966701025~PMIN_INST  KNOT~R-K005~~5183147862966701025~PDAMPF  KNOT~R-K006~~5543326527366090679~RHO  KNOT~R-K006~~5543326527366090679~P  KNOT~R-K006~~5543326527366090679~H  KNOT~R-K006~~5543326527366090679~HMAX_INST  KNOT~R-K006~~5543326527366090679~HMIN_INST  KNOT~R-K006~~5543326527366090679~PMAX_INST  KNOT~R-K006~~5543326527366090679~PMIN_INST  KNOT~R-K006~~5543326527366090679~PDAMPF  KNOT~R-K007~~5508992300317633799~RHO  KNOT~R-K007~~5508992300317633799~P  KNOT~R-K007~~5508992300317633799~H  KNOT~R-K007~~5508992300317633799~HMAX_INST  KNOT~R-K007~~5508992300317633799~HMIN_INST  KNOT~R-K007~~5508992300317633799~PMAX_INST  KNOT~R-K007~~5508992300317633799~PMIN_INST  KNOT~R-K007~~5508992300317633799~PDAMPF  ROHR~V-L~V-K000~4939422678063487923~VI  ROHR~V-L~V-K000~4939422678063487923~VK  ROHR~V-L~V-K000~4939422678063487923~QMI  ROHR~V-L~V-K000~4939422678063487923~QMK  ROHR~V-K000~V-K001~4984202422877610920~VI  ROHR~V-K000~V-K001~4984202422877610920~VK  ROHR~V-K000~V-K001~4984202422877610920~QMI  ROHR~V-K000~V-K001~4984202422877610920~QMK  ROHR~V-K001~V-K002~4789218195240364437~VI  ROHR~V-K001~V-K002~4789218195240364437~VK  ROHR~V-K001~V-K002~4789218195240364437~QMI  ROHR~V-K001~V-K002~4789218195240364437~QMK  ROHR~V-K002~V-K003~4614949065966596185~VI  ROHR~V-K002~V-K003~4614949065966596185~VK  ROHR~V-K002~V-K003~4614949065966596185~QMI  ROHR~V-K002~V-K003~4614949065966596185~QMK  ROHR~V-K003~V-K004~5037777106796980248~VI  ROHR~V-K003~V-K004~5037777106796980248~VK  ROHR~V-K003~V-K004~5037777106796980248~QMI  ROHR~V-K003~V-K004~5037777106796980248~QMK  ROHR~V-K004~V-K005~4713733238627697042~VI  ROHR~V-K004~V-K005~4713733238627697042~VK  ROHR~V-K004~V-K005~4713733238627697042~QMI  ROHR~V-K004~V-K005~4713733238627697042~QMK  ROHR~V-K005~V-K006~5123819811204259837~VI  ROHR~V-K005~V-K006~5123819811204259837~VK  ROHR~V-K005~V-K006~5123819811204259837~QMI  ROHR~V-K005~V-K006~5123819811204259837~QMK  ROHR~V-K006~V-K007~5620197984230756681~VI  ROHR~V-K006~V-K007~5620197984230756681~VK  ROHR~V-K006~V-K007~5620197984230756681~QMI  ROHR~V-K006~V-K007~5620197984230756681~QMK  ROHR~R-L~R-K000~4769996343148550485~VI  ROHR~R-L~R-K000~4769996343148550485~VK  ROHR~R-L~R-K000~4769996343148550485~QMI  ROHR~R-L~R-K000~4769996343148550485~QMK  ROHR~R-K000~R-K001~5647213228462830353~VI  ROHR~R-K000~R-K001~5647213228462830353~VK  ROHR~R-K000~R-K001~5647213228462830353~QMI  ROHR~R-K000~R-K001~5647213228462830353~QMK  ROHR~R-K001~R-K002~5266224553324203132~VI  ROHR~R-K001~R-K002~5266224553324203132~VK  ROHR~R-K001~R-K002~5266224553324203132~QMI  ROHR~R-K001~R-K002~5266224553324203132~QMK  ROHR~R-K002~R-K003~5379365049009065623~VI  ROHR~R-K002~R-K003~5379365049009065623~VK  ROHR~R-K002~R-K003~5379365049009065623~QMI  ROHR~R-K002~R-K003~5379365049009065623~QMK  ROHR~R-K003~R-K004~4637102239750163477~VI  ROHR~R-K003~R-K004~4637102239750163477~VK  ROHR~R-K003~R-K004~4637102239750163477~QMI  ROHR~R-K003~R-K004~4637102239750163477~QMK  ROHR~R-K004~R-K005~4613782368750024999~VI  ROHR~R-K004~R-K005~4613782368750024999~VK  ROHR~R-K004~R-K005~4613782368750024999~QMI  ROHR~R-K004~R-K005~4613782368750024999~QMK  ROHR~R-K005~R-K006~5611703699850694889~VI  ROHR~R-K005~R-K006~5611703699850694889~VK  ROHR~R-K005~R-K006~5611703699850694889~QMI  ROHR~R-K005~R-K006~5611703699850694889~QMK  ROHR~R-K006~R-K007~4945727430885351042~VI  ROHR~R-K006~R-K007~4945727430885351042~VK  ROHR~R-K006~R-K007~4945727430885351042~QMI  ROHR~R-K006~R-K007~4945727430885351042~QMK  PUMP~R-1~R2~5481331875203087055~RHO  PUMP~R-1~R2~5481331875203087055~M  PUMP~R-1~R2~5481331875203087055~ETA  PUMP~R-1~R2~5481331875203087055~ETAW  PUMP~R-1~R2~5481331875203087055~DP  FWES~*~*~*~IAKTIV  KLAP~*~*~*~IAKTIV  PUMP~*~*~*~IAKTIV
    2004-09-22 08:30:00+00:00                b'STAT'                 0                0                0               21                  0           0.000002                0              0.0                  0                  0                0.0                0.0           89.511505                 8              1.0               50                     0.0                     0.0                    0.0                23.12059       975.700012     619.633301        4.11655               1.500571              4.311969                   2.0                   90.0           0.000002                          4.126546                         802.719727                             1.500571                                      2.719672                          2.000133                        1142.490845                             90.0                                  802.719727                                       800.0                             22.98794                                           0.0                            60.0                            0.330514                            2.754284                                60.0                                90.0                                    480.0                                  0.000002                                   1.845007                                             0                                    0.914001                                         0.8                                160.000031                                         160.0                                   1.500571                                             0                                         0.8                                         0.8                                     160.0                                         160.0                                   1.562085                                             0                                    0.642765                                         0.6                                120.000008                                    120.000008                                   1.523539                                             0                                         1.0                                         1.0                                200.000015                                         200.0                                             0                                         0.8                                         0.8                                     160.0                                         160.0                                   3.928163                                   3.928163                                       90.0                                       65.0                                     89.511505                                       90.0                                       55.0                                     86.514343                         965.700012                         5.126546                         4.126546                                 4.126546                                 4.126546                                 5.126546                                 5.126546                                0.7011                            965.700012                            5.122155                            4.122155                                    4.122155                                    4.122155                                    5.122155                                    5.122155                                   0.7011                            965.700012                            5.084035                            4.084035                                    4.084035                                    4.084035                                    5.084035                                    5.084035                                   0.7011                            965.700012                            4.986475                            3.986475                                    3.986475                                    3.986475                                    4.986475                                    4.986475                                   0.7011                            965.700012                            4.845703                            3.845703                                    3.845703                                    3.845703                                    4.845703                                    4.845703                                   0.7011                            965.700012                            4.826566                            3.826566                                    3.826566                                    3.826566                                    4.826566                                    4.826566                                   0.7011                            965.700012                            4.820062                            3.820062                                    3.820062                                    3.820062                                    4.820062                                    4.820062                                   0.7011                            965.700012                            4.817194                            3.817194                                    3.817194                                    3.817194                                    4.817194                                    4.817194                                   0.7011                            965.700012                            4.815285                            3.815285                                    3.815285                                    3.815285                                    4.815285                                    4.815285                                   0.7011                         983.700012                         3.000133                         2.000133                                 2.000133                                 2.000133                                 3.000133                                 3.000133                                0.1992                            983.700012                            3.004938                            2.004938                                    2.004938                                    2.004938                                    3.004938                                    3.004938                                   0.1992                            983.700012                            3.043297                            2.043297                                    2.043297                                    2.043297                                    3.043297                                    3.043297                                   0.1992                            983.700012                            3.141468                            2.141468                                    2.141468                                    2.141468                                    3.141468                                    3.141468                                   0.1992                            983.700012                            3.283618                            2.283618                                    2.283618                                    2.283618                                    3.283618                                    3.283618                                   0.1992                            983.700012                            3.303027                            2.303027                                    2.303027                                    2.303027                                    3.303027                                    3.303027                                   0.1992                            983.700012                            3.309712                            2.309712                                    2.309712                                    2.309712                                    3.309712                                    3.309712                                   0.1992                            983.700012                            3.312715                            2.312715                                    2.312715                                    2.312715                                    3.312715                                    3.312715                                   0.1992                            983.700012                            3.314715                            2.314715                                    2.314715                                    2.314715                                    3.314715                                    3.314715                                   0.1992                                0.327641                                0.327641                                 22.98794                                 22.98794                                   0.733984                                   0.733984                                    22.98794                                    22.98794                                   0.733984                                   0.733984                                    22.98794                                    22.98794                                   0.608561                                   0.608561                                   19.059776                                   19.059776                                   0.491034                                   0.491034                                   15.378898                                   15.378898                                     0.2717                                     0.2717                                    8.509472                                    8.509472                                   0.125423                                   0.125423                                    3.928163                                    3.928163                                   0.125423                                   0.125423                                    3.928163                                    3.928163                               -0.321646                               -0.321646                               -22.987938                               -22.987938                                  -0.720553                                  -0.720553                                  -22.987938                                  -22.987938                                  -0.720553                                  -0.720553                                  -22.987938                                  -22.987938                                  -0.597426                                  -0.597426                                  -19.059776                                  -19.059776                                  -0.482049                                  -0.482049                                  -15.378897                                  -15.378897                                  -0.266728                                  -0.266728                                   -8.509471                                   -8.509471                                  -0.123128                                  -0.123128                                   -3.928163                                   -3.928163                                  -0.123128                                  -0.123128                                   -3.928163                                   -3.928163                           983.700012                           6.385539                             0.544889                              0.625568                            2.311969                  0                  0                  0'''
@@ -646,6 +652,7 @@ True
    11  tk                                                                                                                                                                                                                                                                                                                                                                                                                                                                     [5466655470152247657]          20     CHAR              20         1  VENT        
    12  pk                                                                                                                                                                                                                                                                                                                                                                                                                                                                     [5736734929574151957]          20     CHAR              20         1  WEVT        '''
 >>> mx.setResultsToMxsFile(maxRecords=1)
+0
 >>> print("'''{:s}'''".format(repr(mx.df.drop(['ALLG~~~-1~CPUTIME','ALLG~~~-1~USRTIME','ALLG~~~-1~CVERSO'],axis=1)).replace('\\n','\\n   ')))
 '''                          ALLG~~~-1~SNAPSHOTTYPE  ALLG~~~-1~EXSTAT  ALLG~~~-1~NFEHL  ALLG~~~-1~NWARN  ALLG~~~-1~NMELD  ALLG~~~-1~NPGREST  ALLG~~~-1~NETZABN  ALLG~~~-1~NKNUV  ALLG~~~-1~MKNUV  ALLG~~~-1~NFVHYUV  ALLG~~~-1~NFVTHUV  ALLG~~~-1~MFVHYUV  ALLG~~~-1~MFVTHUV  ALLG~~~-1~TVMINMAX  ALLG~~~-1~ITERHY  ALLG~~~-1~LFQSV  ALLG~~~-1~JWARN  ALLG~~~-1~NETZABNEXITS  ALLG~~~-1~LINEPACKRATE  ALLG~~~-1~LINEPACKGES  ALLG~~~-1~LINEPACKGEOM  ALLG~~~-1~RHOAV  ALLG~~~-1~TAV  ALLG~~~-1~PAV  ALLG~~~-1~FWVB_DPHMIN  ALLG~~~-1~KNOT_PHMAX  ALLG~~~-1~KNOT_PHMIN  ALLG~~~-1~FWVB_TVLMIN  ALLG~~~-1~NETZBEZ  KNOT~3~~4711309381204507891~PH  KNOT~3~~4711309381204507891~H  KNOT~WW~~5179406559406617933~QM  KNOT~WW~~5179406559406617933~PH  KNOT~WW~~5179406559406617933~H  OBEH~HB~~4914542339545953765~WST  KNOT~HB~~4832703654265095420~H  VENT~Absperr~HB~5466655470152247657~QM  KNOT~WW~~5179406559406617933~RHO  KNOT~WW~~5179406559406617933~P  KNOT~WW~~5179406559406617933~HMAX_INST  KNOT~WW~~5179406559406617933~HMIN_INST  KNOT~WW~~5179406559406617933~PMAX_INST  KNOT~WW~~5179406559406617933~PMIN_INST  KNOT~WW~~5179406559406617933~PDAMPF  KNOT~WW~~5179406559406617933~T  KNOT~1~~5028754475676510796~RHO  KNOT~1~~5028754475676510796~P  KNOT~1~~5028754475676510796~HMAX_INST  KNOT~1~~5028754475676510796~HMIN_INST  KNOT~1~~5028754475676510796~PMAX_INST  KNOT~1~~5028754475676510796~PMIN_INST  KNOT~1~~5028754475676510796~PDAMPF  KNOT~1~~5028754475676510796~T  KNOT~2~~4880261452311588026~RHO  KNOT~2~~4880261452311588026~P  KNOT~2~~4880261452311588026~HMAX_INST  KNOT~2~~4880261452311588026~HMIN_INST  KNOT~2~~4880261452311588026~PMAX_INST  KNOT~2~~4880261452311588026~PMIN_INST  KNOT~2~~4880261452311588026~PDAMPF  KNOT~2~~4880261452311588026~T  KNOT~3~~4711309381204507891~RHO  KNOT~3~~4711309381204507891~P  KNOT~3~~4711309381204507891~HMAX_INST  KNOT~3~~4711309381204507891~HMIN_INST  KNOT~3~~4711309381204507891~PMAX_INST  KNOT~3~~4711309381204507891~PMIN_INST  KNOT~3~~4711309381204507891~PDAMPF  KNOT~3~~4711309381204507891~T  KNOT~4~~5697271655044179265~RHO  KNOT~4~~5697271655044179265~P  KNOT~4~~5697271655044179265~HMAX_INST  KNOT~4~~5697271655044179265~HMIN_INST  KNOT~4~~5697271655044179265~PMAX_INST  KNOT~4~~5697271655044179265~PMIN_INST  KNOT~4~~5697271655044179265~PDAMPF  KNOT~4~~5697271655044179265~T  KNOT~P4~~5042575626021291052~RHO  KNOT~P4~~5042575626021291052~P  KNOT~P4~~5042575626021291052~HMAX_INST  KNOT~P4~~5042575626021291052~HMIN_INST  KNOT~P4~~5042575626021291052~PMAX_INST  KNOT~P4~~5042575626021291052~PMIN_INST  KNOT~P4~~5042575626021291052~PDAMPF  KNOT~P4~~5042575626021291052~T  KNOT~S2~~5388350113283448399~RHO  KNOT~S2~~5388350113283448399~P  KNOT~S2~~5388350113283448399~HMAX_INST  KNOT~S2~~5388350113283448399~HMIN_INST  KNOT~S2~~5388350113283448399~PMAX_INST  KNOT~S2~~5388350113283448399~PMIN_INST  KNOT~S2~~5388350113283448399~PDAMPF  KNOT~S2~~5388350113283448399~T  KNOT~P5~~4780213881308610359~RHO  KNOT~P5~~4780213881308610359~P  KNOT~P5~~4780213881308610359~HMAX_INST  KNOT~P5~~4780213881308610359~HMIN_INST  KNOT~P5~~4780213881308610359~PMAX_INST  KNOT~P5~~4780213881308610359~PMIN_INST  KNOT~P5~~4780213881308610359~PDAMPF  KNOT~P5~~4780213881308610359~T  KNOT~5~~5706345341889312301~RHO  KNOT~5~~5706345341889312301~P  KNOT~5~~5706345341889312301~HMAX_INST  KNOT~5~~5706345341889312301~HMIN_INST  KNOT~5~~5706345341889312301~PMAX_INST  KNOT~5~~5706345341889312301~PMIN_INST  KNOT~5~~5706345341889312301~PDAMPF  KNOT~5~~5706345341889312301~T  KNOT~Absperr~~5498009282312522569~RHO  KNOT~Absperr~~5498009282312522569~P  KNOT~Absperr~~5498009282312522569~HMAX_INST  KNOT~Absperr~~5498009282312522569~HMIN_INST  KNOT~Absperr~~5498009282312522569~PMAX_INST  KNOT~Absperr~~5498009282312522569~PMIN_INST  KNOT~Absperr~~5498009282312522569~PDAMPF  KNOT~Absperr~~5498009282312522569~T  KNOT~HB~~4832703654265095420~RHO  KNOT~HB~~4832703654265095420~P  KNOT~HB~~4832703654265095420~HMAX_INST  KNOT~HB~~4832703654265095420~HMIN_INST  KNOT~HB~~4832703654265095420~PMAX_INST  KNOT~HB~~4832703654265095420~PMIN_INST  KNOT~HB~~4832703654265095420~PDAMPF  KNOT~HB~~4832703654265095420~T  ROHR~WW~1~5076321356874807093~VI  ROHR~WW~1~5076321356874807093~VK  ROHR~WW~1~5076321356874807093~QMI  ROHR~WW~1~5076321356874807093~QMK  ROHR~1~2~5497762617222653432~VI  ROHR~1~2~5497762617222653432~VK  ROHR~1~2~5497762617222653432~QMI  ROHR~1~2~5497762617222653432~QMK  ROHR~2~3~4978978527327130204~VI  ROHR~2~3~4978978527327130204~VK  ROHR~2~3~4978978527327130204~QMI  ROHR~2~3~4978978527327130204~QMK  ROHR~3~4~5461179577260327606~VI  ROHR~3~4~5461179577260327606~VK  ROHR~3~4~5461179577260327606~QMI  ROHR~3~4~5461179577260327606~QMK  ROHR~4~P4~5148090523913666712~VI  ROHR~4~P4~5148090523913666712~VK  ROHR~4~P4~5148090523913666712~QMI  ROHR~4~P4~5148090523913666712~QMK  ROHR~P4~S2~5644872080928983958~VI  ROHR~P4~S2~5644872080928983958~VK  ROHR~P4~S2~5644872080928983958~QMI  ROHR~P4~S2~5644872080928983958~QMK  ROHR~S2~P5~4984438795139137900~VI  ROHR~S2~P5~4984438795139137900~VK  ROHR~S2~P5~4984438795139137900~QMI  ROHR~S2~P5~4984438795139137900~QMK  ROHR~P5~5~4648047345314768819~VI  ROHR~P5~5~4648047345314768819~VK  ROHR~P5~5~4648047345314768819~QMI  ROHR~P5~5~4648047345314768819~QMK  ROHR~5~Absperr~5433880705192526755~VI  ROHR~5~Absperr~5433880705192526755~VK  ROHR~5~Absperr~5433880705192526755~QMI  ROHR~5~Absperr~5433880705192526755~QMK  VENT~Absperr~HB~5466655470152247657~V  OBEH~*~*~*~WALTER
    2002-05-22 16:16:16+00:00                b'STAT'                 0                0                0               11                  0              160.0                0              0.0                  0                  0                0.0                0.0         -273.149994                 9              1.0               30                   160.0                     0.0                    0.0                86.01461      1000.299988     556.299988       3.736424           3.402823e+38              3.986973              0.980928           3.402823e+38              140.0                        1.006286                      40.258186                            140.0                         3.016954                       40.755142                              10.0                       39.999683                              -20.000008                       1000.299988                        4.016954                               40.755142                               40.755142                                4.016954                                4.016954                               0.0123                            10.0                      1000.299988                       4.986973                              40.643616                              40.643616                               4.986973                               4.986973                              0.0123                           10.0                      1000.299988                       3.507876                              40.565548                              40.565548                               3.507876                               3.507876                              0.0123                           10.0                      1000.299988                       2.006286                              40.258186                              40.258186                               2.006286                               2.006286                              0.0123                           10.0                      1000.299988                       3.936131                              39.931221                              39.931221                               3.936131                               3.936131                              0.0123                           10.0                       1000.299988                        4.416402                               39.827152                               39.827152                                4.416402                                4.416402                               0.0123                            10.0                       1000.299988                        4.920524                               39.966225                               39.966225                                4.920524                                4.920524                               0.0123                            10.0                       1000.299988                        3.937013                               39.940212                               39.940212                                3.937013                                3.937013                               0.0123                            10.0                      1000.299988                        3.45231                                39.9991                                39.9991                                3.45231                                3.45231                              0.0123                           10.0                            1000.299988                             3.452336                                    39.999367                                    39.999367                                     3.452336                                     3.452336                                    0.0123                                 10.0                       1000.299988                        1.980928                               39.999683                               39.999683                                1.980928                                1.980928                               0.0123                            10.0                          0.499333                          0.499333                              140.0                              140.0                         0.499333                         0.499333                             140.0                             140.0                         0.510817                         0.510817                         64.851456                         64.851456                         0.292091                         0.292091                          9.615081                          9.615081                          0.196514                          0.196514                           6.468875                           6.468875                          -0.228407                          -0.228407                           -7.518734                           -7.518734                           0.102688                           0.102688                            7.535347                            7.535347                         -0.126186                         -0.126186                          -9.259682                          -9.259682                              -0.071333                              -0.071333                              -20.000008                              -20.000008                              -0.176839                2.0'''
@@ -1338,6 +1345,8 @@ class Mx():
                     * might be False 
                     * because of SIR 3S'
                     * 1st Time twice (SNAPSHOTTYPE: STAT+TIME) and Last Time triple (SNAPSHOTTYPE: TIME+TMIN/TMAX)  
+
+            timesWrittenToMxsVecs: the times written to the mxsVecsH5Store
         
         mxsVecsH5StorePtr
 
@@ -1372,6 +1381,7 @@ class Mx():
                 maxRecordsLimit=False   
                       
             recsReadFromFile=0     
+            timesWrittenToMxsVecs=0
             
             if mxsVecsH5StorePtr != None:
                 keysAtStart=mxsVecsH5StorePtr.keys()
@@ -1408,23 +1418,20 @@ class Mx():
                         
                         # process record
                         try:                                                                                                                 
-                            # Filter NonVectorChannels and Skip Timestamp (index not value)     
-                            values=[recordData[idx] for idx in self.idxUnpackNonVectorChannels]
-                            #recordData[0:self.idxTIMESTAMP]
-                            #+recordData[self.idxTIMESTAMP+1:]                              
+                            # Values (without TIMESTAMP)
+                            values=[recordData[idx] for idx in self.idxUnpackNonVectorChannels]                          
                             
                             # Vecs
-                            valuesVecs=[] # all Vectors For One Timestep
+                            valuesVecs=[] 
                             for idxOf,idxUnpack in zip(self.idxOfVectorChannels,self.idxUnpackVectorChannels):                                                            
                                 valueVec=recordData[idxUnpack:idxUnpack+self.mx1Df['NOfItems'].iloc[idxOf]] # one Vector For One Timestep
-                                valuesVecs.append(valueVec)                            
-                                                                                       
+                                valuesVecs.append(valueVec)                                                                                                                   
                         except:
                             logStrFinal="{0:s}process record failed. Error.".format(logStr)
                             logger.error(logStrFinal) 
                             raise MxError(logStrFinal)                                                                                                          
                                                   
-                        # store record in memory
+                        # store values in memory
                         try:                            
                             mxTimes.append(time)                         
                             mxValues.append(values)                           
@@ -1432,9 +1439,9 @@ class Mx():
                             logStrFinal="{0:s}store record in memory failed at Time={1!s}. Error.".format(logStr,time_read_finally)
                             logger.error(logStrFinal) 
                             raise MxError(logStrFinal)   
-                                               
-                        if mxsVecsH5StorePtr != None:
-                            # store record as df in H5
+                        
+                        # store vecs in H5
+                        if mxsVecsH5StorePtr != None:                            
                             try:      
                                  h5DumpLog="{:s} NO.".format('H5Dump:')
                                  h5Key=getMicrosecondsFromRefTime(refTime=firstTime,time=time)   
@@ -1448,11 +1455,16 @@ class Mx():
                                         mxTimesVecs.append(time)     
                                         mxValuesVecs.append(valuesVecs)
                                         dfVecs = pd.DataFrame.from_records(mxValuesVecs,index=mxTimesVecs,columns=self.mxColumnNamesVecs)                                                                                                      
-                                        #H5
+                                        # write H5
                                         warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
                                         warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)                          
                                         mxsVecsH5StorePtr.put(str(h5Key),dfVecs)   
-                                        h5DumpLog="{:s} Writing DataFrame {:s} with h5Key=/{!s:>20s}".format('H5Dump:','dfVecs',h5Key) 
+                                        timesWrittenToMxsVecs+=1
+                                        h5DumpLog="{:s} Written DataFrame {:s} (Nr. {:d}) with h5Key=/{!s:>20s}".format('H5Dump:','dfVecs',timesWrittenToMxsVecs,h5Key) 
+                                     else:
+                                        h5DumpLog="{:s} NO: key already written.".format('H5Dump:')
+                                 else:
+                                     h5DumpLog="{:s} NO: key in keysAtStart.".format('H5Dump:')
                                                               
                             except Exception as e:
                                 logger.error("{0:s}store record as df in H5 failed at Time={1!s}. Error.".format(logStr,time_read_finally))
@@ -1502,7 +1514,7 @@ class Mx():
             raise MxError(logStrFinal)                            
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
-            return df
+            return df,timesWrittenToMxsVecs
 
     def _checkMxsVecsFile(self,fullCheck=False):
         """Returns (firstTime,lastTime,NOfTimes).
@@ -1608,6 +1620,9 @@ class Mx():
             * add (bool): default: False: sets df to mxsFile-Content 
             * NewH5Vec
             * maxRecords
+
+        Returns:
+            * timesWrittenToMxsVecs
              
         .df
             * index: TIMESTAMP
@@ -1649,7 +1664,7 @@ class Mx():
             
             mxsVecH5Store=pd.HDFStore(self.h5FileVecs) 
             #
-            h5VecsFileTimeBefore=os.path.getmtime(self.h5FileVecs)
+            #h5VecsFileTimeBefore=os.path.getmtime(self.h5FileVecs)
                                                                                       
             if isinstance(self.df,pd.core.frame.DataFrame):   
                 firstTime=self.df.index[0]
@@ -1662,7 +1677,7 @@ class Mx():
                  # Mxs exists ...
                 logger.debug("{0:s}Mxs: {1:s} reading ...".format(logStr,mxsFile))                
                 # Mxs reading ...
-                dfMxs=self._readMxsFile(f,mxsVecsH5StorePtr=mxsVecH5Store,firstTime=firstTime,maxRecords=maxRecords)                                     
+                dfMxs,timesWrittenToMxsVecs=self._readMxsFile(f,mxsVecsH5StorePtr=mxsVecH5Store,firstTime=firstTime,maxRecords=maxRecords)                                     
                            
             if isinstance(dfMxs,pd.core.frame.DataFrame):                                     
                 # Unique index ...
@@ -1687,12 +1702,12 @@ class Mx():
             else:
                 logger.error("{0:s}Mxs: {1:s}: Reading failed.".format(logStr,mxsFile))    
             
-            import time
-            h5VecsFileTimeAfter=os.path.getmtime(self.h5FileVecs)
-            logger.debug("{:s}: h5FileVecs: Before: {:s}: After:  {:s}.".format(logStr
-            ,time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTimeBefore))
-            ,time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTimeAfter))
-            ))                                             
+            #import time
+            #h5VecsFileTimeAfter=os.path.getmtime(self.h5FileVecs)
+            #logger.debug("{:s}: h5FileVecs: Before: {:s}: After:  {:s}.".format(logStr
+            #,time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTimeBefore))
+            #,time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTimeAfter))
+            #))                                             
 
         except MxError:
             raise
@@ -1702,10 +1717,21 @@ class Mx():
             raise MxError(logStrFinal)                                       
         finally:
             mxsVecH5Store.close()
+            return timesWrittenToMxsVecs
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                 
 
     def setResultsToMxsZipFile(self,mxsZipFile=None,add=False,NewH5Vec=False,maxRecords=None):
         """Sets (default) or adds mxsZipFile-Content to .df.
+
+        Args:
+            * mxsZipFile (str)
+                * None (default): .mxsFile is used  
+            * add (bool): default: False: sets df to mxsZipFile-Content 
+            * NewH5Vec
+            * maxRecords
+
+        Returns:
+            * timesWrittenToMxsVecsFromZip
 
         Raises:
             MxError
@@ -1750,13 +1776,15 @@ class Mx():
                 firstTime=None
           
             # Zip reading ...              
-            recsReadFromZip=0            
+            recsReadFromZip=0         
+            timesWrittenToMxsVecsFromZip=0
             dfZip=None
             for mxsFileName in sorted(z.namelist()):  
                 # Mxs reading ...                        
                 with z.open(mxsFileName,'r') as f: 
                     logger.debug("{0:s}Zip: {1:s}: {2:s} reading ...".format(logStr,mxsZipFile,mxsFileName))       
-                    dfMxs=self._readMxsFile(f,mxsVecsH5StorePtr=mxsVecH5Store,firstTime=firstTime,maxRecords=maxRecords)   
+                    dfMxs,timesWrittenToMxsVecs=self._readMxsFile(f,mxsVecsH5StorePtr=mxsVecH5Store,firstTime=firstTime,maxRecords=maxRecords) 
+                    timesWrittenToMxsVecsFromZip+=timesWrittenToMxsVecs
 
                 if isinstance(dfMxs,pd.core.frame.DataFrame):                                                                                      
                     # Unique index ...
@@ -1818,6 +1846,7 @@ class Mx():
             raise MxError(logStrFinal)                                  
         finally:
             mxsVecH5Store.close()
+            return timesWrittenToMxsVecsFromZip
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                 
 
     def ToH5(self,h5File=None):
