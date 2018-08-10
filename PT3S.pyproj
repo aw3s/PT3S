@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{a4114edb-830b-4f14-adf1-5f2313ac1fea}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>Mx.py</StartupFile>
+    <StartupFile>Rm.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>

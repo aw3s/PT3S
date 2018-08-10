@@ -25,6 +25,7 @@
 >>> mx1File=os.path.join(path,'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1')
 >>> mx=Mx.Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
 >>> mx.setResultsToMxsFile(NewH5Vec=True)
+5
 >>> xm.Mx(mx=mx)
 >>> rm=Rm(xm=xm,mx=mx)
 >>> # ---
@@ -76,10 +77,21 @@ True
 >>> if os.path.exists(plotFileName):                        
 ...   pass #os.remove(plotFileName)
 """
+
+import warnings # 3.6
+#...\Anaconda3\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+#   from ._conv import register_converters as _register_converters
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+#C:\Users\Wolters\Anaconda3\lib\site-packages\matplotlib\cbook\deprecation.py:107: MatplotlibDeprecationWarning: Adding an axes using the same arguments as a previous axes currently reuses the earlier instance.  In a future version, a new instance will always be created and returned.  Meanwhile, this warning can be suppressed, and the future behavior ensured, by passing a unique label to each axes instance.
+#  warnings.warn(message, mplDeprecation, stacklevel=1)
+import matplotlib.cbook
+warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
+
+
 import os
 import sys
 import logging
-
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
@@ -108,7 +120,7 @@ from matplotlib.colorbar import make_axes
 # ---
 # --- PT3S Imports
 # ---
-import PT3S
+# import PT3S # 3.6
 import Xm
 import Mx
 
