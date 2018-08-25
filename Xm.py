@@ -481,7 +481,7 @@ if __name__ == "__main__":
     logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context: ','Not import PT3S')) 
 else:
     logger.debug("{0:s}{1:s}{2:s}{3:s}".format('in MODULEFILE: Not __main__ Context: ','__name__: ',__name__,"import PT3S")) 
-    import PT3S
+    #import PT3S
 import Mx
 
 # ---

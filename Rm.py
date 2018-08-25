@@ -9,11 +9,21 @@
 >>> # path
 >>> # ---
 >>> if __name__ == "__main__":
-...    logger.debug("{0:s}{1:s}".format('__main__ Context: ','path = os.path.dirname(__file__)')) 
-...    path = os.path.dirname(__file__)
+...   try:
+...      dummy=__file__
+...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ','path = os.path.dirname(__file__)',"Not from PT3S.Xm import Xm")) 
+...      path = os.path.dirname(__file__)
+...      #from PT3S.Mx import Mx
+...   except NameError:    
+...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined","from PT3S.Xm import Xm")) 
+...      path = '.'
+...      from PT3S.Rm import Rm
+...      #import Mx
 ... else:
 ...    path = '.'
 ...    logger.debug("{0:s}{1:s}".format('Not __main__ Context: ',"path = '.'")) 
+>>> import Mx
+>>> import Xm
 >>> # ---
 >>> # testDir
 >>> # ---
