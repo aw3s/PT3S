@@ -31,16 +31,23 @@ SIR 3S MX-Interface (short: MX)
 >>> # ---
 >>> import os
 >>> import time
->>> try:
-...    path = os.path.dirname(__file__)
-... except NameError:
-...    path = '.'
-...    import PT3S
-...    from Mx import Mx
 >>> import logging
 >>> logger = logging.getLogger('PT3S.Mx')  
->>> import zipfile
->>> import pandas as pd
+>>> # ---
+>>> # path
+>>> # ---
+>>> if __name__ == "__main__":
+...    try:
+...       dummy=__file__
+...       logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ','path = os.path.dirname(__file__)',"Not from PT3S.Mx import Mx")) 
+...       path = os.path.dirname(__file__)
+...    except NameError:    
+...       logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined","from PT3S.Mx import Mx")) 
+...       path = '.'
+...       from PT3S.Mx import Mx
+... else:
+...    logger.debug("{0:s}{1:s}{2:s}{3:s}".format('DOCTEST: Not __main__ Context: ','__name__: ',__name__,"path = '.'")) 
+...    path = '.'
 >>> # ---
 >>> # testDir
 >>> # ---
@@ -49,6 +56,8 @@ SIR 3S MX-Interface (short: MX)
 ...     dummy= testDir
 ... except NameError:
 ...     testDir='testdata' 
+>>> import zipfile
+>>> import pandas as pd
 >>> # ---
 >>> # Init
 >>> # ---
@@ -672,7 +681,6 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 import os
 import sys
-import logging
 
 import xml.etree.ElementTree as ET
 import re
@@ -680,16 +688,20 @@ import struct
 import zipfile
 import pandas as pd
 import h5py
-# import warnings # 3.6
 import tables
 import math
 
+import logging
 # ---
 # --- PT3S Imports
 # ---
-# import PT3S # 3.6
-
 logger = logging.getLogger('PT3S.Mx')  
+
+if __name__ == "__main__":
+    logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context: ','xxx')) 
+else:
+    logger.debug("{0:s}{1:s}{2:s}{3:s}".format('in MODULEFILE: Not __main__ Context: ','__name__: ',__name__," xxx")) 
+    #import PT3S
 
 # ---
 # --- main Imports
@@ -2178,7 +2190,11 @@ class Mx():
             raise MxError(logStrFinal)                                  
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))               
-
+"""
+definiert offenbar __name__ zu '__main__':
+suite=doctest.DocTestSuite() # globs={'testDir':'testdata'})   
+unittest.TextTestRunner().run(suite)   
+"""
 if __name__ == "__main__":
     """
     Run the Stuff or/and perform Unittests.
@@ -2236,4 +2252,6 @@ if __name__ == "__main__":
         sys.exit(0)
     finally:
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.')) 
+
+
         sys.exit(0)

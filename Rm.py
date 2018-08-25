@@ -3,16 +3,25 @@
 >>> # SETUP
 >>> # ---
 >>> import os
->>> try:
-...   path = os.path.dirname(__file__)
-... except NameError:
-...   path = '.'
-...   import PT3S
-...   import Mx
-...   import Xm
-...   from Rm import Rm
 >>> import logging
->>> logger = logging.getLogger('PT3S.Rm')  
+>>> logger = logging.getLogger('PT3S.Rm')
+>>> # ---
+>>> # path
+>>> # ---
+>>> if __name__ == "__main__":
+...    logger.debug("{0:s}{1:s}".format('__main__ Context: ','path = os.path.dirname(__file__)')) 
+...    path = os.path.dirname(__file__)
+... else:
+...    path = '.'
+...    logger.debug("{0:s}{1:s}".format('Not __main__ Context: ',"path = '.'")) 
+>>> # ---
+>>> # testDir
+>>> # ---
+>>> # globs={'testDir':'testdata'}
+>>> try:
+...    dummy= testDir
+... except NameError:
+...    testDir='testdata' 
 >>> import pandas as pd
 >>> import matplotlib.pyplot as plt
 >>> pd.set_option('display.max_columns',None)
@@ -20,7 +29,7 @@
 >>> # ---
 >>> # LocalHeatingNetwork SETUP
 >>> # ---
->>> xmlFile=os.path.join(path,'testdata\LocalHeatingNetwork.XML')
+>>> xmlFile=os.path.join(os.path.join(path,testDir),'LocalHeatingNetwork.XML')
 >>> xm=Xm.Xm(xmlFile=xmlFile)
 >>> mx1File=os.path.join(path,'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1')
 >>> mx=Mx.Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
@@ -88,10 +97,8 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 import matplotlib.cbook
 warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
 
-
 import os
 import sys
-import logging
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
@@ -117,14 +124,19 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 from matplotlib.colorbar import make_axes
 
+import logging
 # ---
 # --- PT3S Imports
 # ---
-# import PT3S # 3.6
-import Xm
-import Mx
-
 logger = logging.getLogger('PT3S.Rm')  
+
+if __name__ == "__main__":
+    logger.debug("{0:s}{1:s}".format('__main__ Context: ','Not import PT3S.')) 
+else:
+    import PT3S
+    logger.debug("{0:s}{1:s}".format('Not __main__ Context: ','import PT3S.')) 
+import Mx
+import Xm
 
 # ---
 # --- main Imports

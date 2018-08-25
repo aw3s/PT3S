@@ -3,16 +3,36 @@
 >>> # Imports
 >>> # ---
 >>> import os
->>> try:
-...     path = os.path.dirname(__file__)
-... except NameError:
-...     path = '.'
-...     import PT3S 
-...     import Mx
-...     from Xm import Xm
->>> import pandas as pd
 >>> import logging
 >>> logger = logging.getLogger('PT3S.Xm')  
+>>> # ---
+>>> # path
+>>> # ---
+>>> if __name__ == "__main__":
+...   try:
+...      dummy=__file__
+...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ','path = os.path.dirname(__file__)',"Not from PT3S.Xm import Xm")) 
+...      path = os.path.dirname(__file__)
+...      #from PT3S.Mx import Mx
+...   except NameError:    
+...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined","from PT3S.Xm import Xm")) 
+...      path = '.'
+...      from PT3S.Xm import Xm
+...      #import Mx
+... else:
+...    logger.debug("{0:s}{1:s}{2:s}{3:s}".format('DOCTEST: Not __main__ Context: ','__name__: ',__name__,"path = '.'")) 
+...    path = '.'
+...    #import Mx
+>>> import Mx
+>>> # ---
+>>> # testDir
+>>> # ---
+>>> # globs={'testDir':'testdata'}
+>>> try:
+...    dummy= testDir
+... except NameError:
+...    testDir='testdata' 
+>>> import pandas as pd
 >>> # ---
 >>> # Clean Up
 >>> # ---
@@ -456,10 +476,13 @@ import struct
 # ---
 # --- PT3S Imports
 # ---
-# import PT3S # 3.6
-import Mx
-
 logger = logging.getLogger('PT3S.Xm')  
+if __name__ == "__main__":
+    logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context: ','Not import PT3S')) 
+else:
+    logger.debug("{0:s}{1:s}{2:s}{3:s}".format('in MODULEFILE: Not __main__ Context: ','__name__: ',__name__,"import PT3S")) 
+    import PT3S
+import Mx
 
 # ---
 # --- main Imports
@@ -2968,7 +2991,6 @@ class Xm():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try: 
-
             if isinstance(mx,Mx.Mx):
                 pass
             else:
