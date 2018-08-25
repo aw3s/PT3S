@@ -11,17 +11,15 @@
 >>> if __name__ == "__main__":
 ...   try:
 ...      dummy=__file__
-...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ','path = os.path.dirname(__file__)',"Not from PT3S.Xm import Xm")) 
+...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ','path = os.path.dirname(__file__)'," .")) 
 ...      path = os.path.dirname(__file__)
-...      #from PT3S.Mx import Mx
 ...   except NameError:    
-...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined","from PT3S.Xm import Xm")) 
+...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined"," from PT3S.Rm import Rm.")) 
 ...      path = '.'
 ...      from PT3S.Rm import Rm
-...      #import Mx
 ... else:
 ...    path = '.'
-...    logger.debug("{0:s}{1:s}".format('Not __main__ Context: ',"path = '.'")) 
+...    logger.debug("{0:s}{1:s}".format('Not __main__ Context: ',"path = '.' .")) 
 >>> import Mx
 >>> import Xm
 >>> # ---
@@ -144,7 +142,7 @@ if __name__ == "__main__":
     logger.debug("{0:s}{1:s}".format('__main__ Context: ','Not import PT3S.')) 
 else:
     import PT3S
-    logger.debug("{0:s}{1:s}".format('Not __main__ Context: ','import PT3S.')) 
+    logger.debug("{0:s}{1:s}".format('Not __main__ Context: ','import PT3S because isinstance(#,PT3S.aMod.#) because from PT3S import aMod.')) 
 import Mx
 import Xm
 

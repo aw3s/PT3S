@@ -39,10 +39,10 @@ SIR 3S MX-Interface (short: MX)
 >>> if __name__ == "__main__":
 ...    try:
 ...       dummy=__file__
-...       logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ','path = os.path.dirname(__file__)',"Not from PT3S.Mx import Mx")) 
+...       logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ','path = os.path.dirname(__file__)'," .")) 
 ...       path = os.path.dirname(__file__)
 ...    except NameError:    
-...       logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined","from PT3S.Mx import Mx")) 
+...       logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined"," from PT3S.Mx import Mx.")) 
 ...       path = '.'
 ...       from PT3S.Mx import Mx
 ... else:
@@ -698,10 +698,9 @@ import logging
 logger = logging.getLogger('PT3S.Mx')  
 
 if __name__ == "__main__":
-    logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context: ','xxx')) 
+    logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context: ',' .')) 
 else:
-    logger.debug("{0:s}{1:s}{2:s}{3:s}".format('in MODULEFILE: Not __main__ Context: ','__name__: ',__name__," xxx")) 
-    #import PT3S
+    logger.debug("{0:s}{1:s}{2:s}{3:s}".format('in MODULEFILE: Not __main__ Context: ','__name__: ',__name__," .")) 
 
 # ---
 # --- main Imports
