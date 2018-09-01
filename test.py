@@ -1,0 +1,112 @@
+"""
+XXX
+
+"""
+
+import warnings # 3.6
+#...\Anaconda3\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+#   from ._conv import register_converters as _register_converters
+#...\PT3S\Mx.py:1: FutureWarning: pandas.tslib is deprecated and will be removed in a future version.
+#   You can access Timestamp as pandas.Timestamp
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+import os
+import sys
+
+import logging
+logger = logging.getLogger('PT3S')  
+
+if __name__ == "__main__":
+    logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context: ',' .')) 
+else:
+    logger.debug("{0:s}{1:s}{2:s}{3:s}".format('in MODULEFILE: Not __main__ Context: ','__name__: ',__name__," .")) 
+
+# ---
+# --- main Imports
+# ---
+import argparse
+import unittest
+import doctest
+
+if __name__ == "__main__":
+    """
+    XXX
+    """
+
+    try:              
+        # Logfile
+        logFileName = 'PT3S.log' 
+        
+        loglevel = logging.INFO
+        logging.basicConfig(filename=logFileName
+                            ,filemode='w'
+                            ,level=loglevel
+                            ,format="%(asctime)s ; %(name)-60s ; %(levelname)-7s ; %(message)s")    
+
+        fileHandler = logging.FileHandler(logFileName)        
+        logger.addHandler(fileHandler)
+
+        consoleHandler = logging.StreamHandler()
+        consoleHandler.setFormatter(logging.Formatter("%(levelname)-7s ; %(message)s"))
+        consoleHandler.setLevel(logging.INFO)
+        logger.addHandler(consoleHandler)
+
+        logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+                                      
+        # Arguments      
+        parser = argparse.ArgumentParser(description='Run the Stuff or/and perform Unittests.'
+        ,epilog='''
+        UsageExample: -v       
+        '''                                 
+        )
+
+        group = parser.add_mutually_exclusive_group()                                
+        group.add_argument("-v","--verbose", help="Debug Messages On", action="store_true",default=True)      
+        group.add_argument("-q","--quiet", help="Debug Messages Off", action="store_true")           
+        parser.add_argument('--testDir',type=str,default='testdata',help="value for global 'testDir'")
+        args = parser.parse_args()
+
+        if args.verbose:           
+            logger.setLevel(logging.DEBUG)     
+        else:            
+            logger.setLevel(logging.ERROR)  
+                      
+        logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start. Argumente:',str(sys.argv))) 
+        logger.debug("{0:s}{1:s}{2:s}".format(logStr,'testDir:',args.testDir)) 
+
+        import Mx, Xm, Rm
+
+        # unittests
+        logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start unittests. Argumente: ','None')) 
+        unittest.TextTestRunner().run(doctest.DocTestSuite(Mx,globs={'testDir':args.testDir}))  
+        unittest.TextTestRunner().run(doctest.DocTestSuite(Xm,globs={'testDir':args.testDir})) 
+        unittest.TextTestRunner().run(doctest.DocTestSuite(Rm,globs={'testDir':args.testDir}))
+
+        # doctests
+        logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start doctests. Argumente: ','None')) 
+        dtFinder=doctest.DocTestFinder(verbose=False)
+        dtRunner=doctest.DocTestRunner(verbose=False) 
+
+        dTests=dtFinder.find(Mx,globs={'testDir':args.testDir}) # returns a list of DocTests 
+        dtRunner.run(dTests[0])
+
+        dTests=dtFinder.find(Xm,globs={'testDir':args.testDir}) # returns a list of DocTests 
+        dtRunner.run(dTests[0])
+
+        dTests=dtFinder.find(Rm,globs={'testDir':args.testDir}) # returns a list of DocTests 
+        dtRunner.run(dTests[0])
+        
+    except SystemExit:
+        pass                                              
+    except:
+        logger.error("{0:s}{1:s}".format(logStr,'logging.exception!')) 
+        logging.exception('')  
+    else:
+        logger.debug("{0:s}{1:s}".format(logStr,'No Exception.')) 
+        sys.exit(0)
+    finally:
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.')) 
+
+
+        sys.exit(0)
+
