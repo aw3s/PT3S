@@ -14,9 +14,9 @@
 ...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ','path = os.path.dirname(__file__)'," .")) 
 ...      path = os.path.dirname(__file__)
 ...   except NameError:    
-...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined"," from PT3S.Rm import Rm.")) 
+...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined"," from Rm import Rm.")) 
 ...      path = '.'
-...      from PT3S.Rm import Rm
+...      from Rm import Rm 
 ... else:
 ...    path = '.'
 ...    logger.debug("{0:s}{1:s}".format('Not __main__ Context: ',"path = '.' .")) 
@@ -91,9 +91,9 @@ True
 >>> if os.path.exists(mx.mxsZipFile):                        
 ...    os.remove(mx.mxsZipFile)
 >>> if os.path.exists(mx.h5FileVecs):                        
-...   os.remove(mx.h5FileVecs)
+...    os.remove(mx.h5FileVecs)
 >>> if os.path.exists(plotFileName):                        
-...   pass #os.remove(plotFileName)
+...    os.remove(plotFileName)
 """
 
 import warnings # 3.6
@@ -138,12 +138,10 @@ import logging
 # --- PT3S Imports
 # ---
 logger = logging.getLogger('PT3S.Rm')  
-
 if __name__ == "__main__":
-    logger.debug("{0:s}{1:s}".format('__main__ Context: ','Not import PT3S.')) 
+    logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context: ',' .')) 
 else:
-    import PT3S
-    logger.debug("{0:s}{1:s}".format('Not __main__ Context: ','import PT3S because isinstance(#,PT3S.aMod.#) because from PT3S import aMod.')) 
+    logger.debug("{0:s}{1:s}{2:s}{3:s}".format('in MODULEFILE: Not __main__ Context: ','__name__: ',__name__," .")) 
 import Mx
 import Xm
 

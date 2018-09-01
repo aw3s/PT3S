@@ -42,9 +42,9 @@ SIR 3S MX-Interface (short: MX)
 ...       logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ','path = os.path.dirname(__file__)'," .")) 
 ...       path = os.path.dirname(__file__)
 ...    except NameError:    
-...       logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined"," from PT3S.Mx import Mx.")) 
+...       logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined"," from Mx import Mx.")) 
 ...       path = '.'
-...       from PT3S.Mx import Mx
+...       from Mx import Mx
 ... else:
 ...    logger.debug("{0:s}{1:s}{2:s}{3:s}".format('DOCTEST: Not __main__ Context: ','__name__: ',__name__,"path = '.'")) 
 ...    path = '.'
@@ -388,6 +388,17 @@ False
 >>> # ---
 >>> mx1File=os.path.join(path,os.path.join(testDir,'WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1')) # 'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1')
 >>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
+>>> # ---
+>>> # Clean Up LocalHeatingNetwork
+>>> # ---
+>>> if os.path.exists(mx.h5File):                        
+...    os.remove(mx.h5File)
+>>> if os.path.exists(mx.mxsZipFile):                        
+...    os.remove(mx.mxsZipFile)
+>>> if os.path.exists(mxsDumpFile):                        
+...    os.remove(mxsDumpFile)
+>>> if os.path.exists(mx.h5FileVecs):                        
+...    os.remove(mx.h5FileVecs)
 >>> mx.setResultsToMxsFile(maxRecords=1)
 1
 >>> print("'''{:s}'''".format(repr(mx.df.drop(['ALLG~~~-1~CPUTIME','ALLG~~~-1~USRTIME','ALLG~~~-1~CVERSO'],axis=1)).replace('\\n','\\n   ')))
@@ -696,7 +707,6 @@ import logging
 # --- PT3S Imports
 # ---
 logger = logging.getLogger('PT3S.Mx')  
-
 if __name__ == "__main__":
     logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context: ',' .')) 
 else:
@@ -2188,12 +2198,8 @@ class Mx():
             logger.error(logStrFinal) 
             raise MxError(logStrFinal)                                  
         else:
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))               
-"""
-definiert offenbar __name__ zu '__main__':
-suite=doctest.DocTestSuite() # globs={'testDir':'testdata'})   
-unittest.TextTestRunner().run(suite)   
-"""
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+            
 if __name__ == "__main__":
     """
     Run the Stuff or/and perform Unittests.

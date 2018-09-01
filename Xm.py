@@ -14,9 +14,9 @@
 ...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ','path = os.path.dirname(__file__)'," .")) 
 ...      path = os.path.dirname(__file__)
 ...   except NameError:    
-...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined"," from PT3S.Xm import Xm.")) 
+...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined"," from Xm import Xm.")) 
 ...      path = '.'
-...      from PT3S.Xm import Xm
+...      from Xm import Xm
 ... else:
 ...    logger.debug("{0:s}{1:s}{2:s}{3:s}".format('DOCTEST: Not __main__ Context: ','__name__: ',__name__,"path = '.'")) 
 ...    path = '.'
@@ -455,7 +455,6 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 import os
 import sys
-import logging
 
 import xml.etree.ElementTree as ET
 import re
@@ -470,6 +469,7 @@ import time
 import base64
 import struct
 
+import logging
 # ---
 # --- PT3S Imports
 # ---
