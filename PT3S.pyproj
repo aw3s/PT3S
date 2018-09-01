@@ -14,7 +14,8 @@
     <IsWindowsApplication>False</IsWindowsApplication>
     <CommandLineArguments>-v</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
-    <InterpreterId>Global|PythonCore|3.6</InterpreterId>
+    <InterpreterId>
+    </InterpreterId>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
@@ -65,10 +66,6 @@
     <Folder Include="testdata\WDOneLPipe\B1\" />
     <Folder Include="testdata\WDOneLPipe\B1\V0\" />
     <Folder Include="testdata\WDOneLPipe\B1\V0\BZ1\" />
-  </ItemGroup>
-  <ItemGroup>
-    <InterpreterReference Include="Global|ContinuumAnalytics|Anaconda36-64" />
-    <InterpreterReference Include="Global|PythonCore|3.6" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>

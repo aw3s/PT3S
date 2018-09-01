@@ -80,6 +80,7 @@ True
 >>> # ---
 >>> # Plot 3Classes True
 >>> # ---
+>>> plt.close('all')
 >>> # FixedLimits wird automatisch auf Wahr gesetzt wenn 3Classes Wahr ... 
 >>> pFWVB=rm.pltNetDHUS(timeDeltaToT=timeDeltaToT,pFWVBMeasure3Classes=True,pFWVBMeasureCBFixedLimitHigh=0.80,pFWVBMeasureCBFixedLimitLow=0.66)
 >>> # ---
