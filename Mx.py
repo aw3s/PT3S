@@ -56,13 +56,21 @@ SIR 3S MX-Interface (short: MX)
 ...     dummy= testDir
 ... except NameError:
 ...     testDir='testdata' 
+>>> # ---
+>>> # dotResolution
+>>> # ---
+>>> # globs={'dotResolution':''}
+>>> try:
+...     dummy= dotResolution
+... except NameError:
+...     dotResolution='' 
 >>> import zipfile
 >>> import pandas as pd
 >>> # ---
 >>> # Init
 >>> # ---
 >>> h5File=os.path.join(path,os.path.join(testDir,'OneLPipe.h5')) 
->>> mx1File=os.path.join(path,os.path.join(testDir,'WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX1')) 
+>>> mx1File=os.path.join(path,os.path.join(testDir,'WDOneLPipe\B1\V0\BZ1\M-1-0-1'+dotResolution+'.MX1')) 
 >>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
 >>> isinstance(mx.mx1Df,pd.core.frame.DataFrame) # MX1-Content
 True
@@ -209,12 +217,13 @@ True
 >>> # Write Dump
 >>> # ---
 >>> mx.dumpInMxsFormat() # dumps to .MXS.dump-File in same Dir
+(12, 8)
 >>> # ---
 >>> # Read Dump
 >>> # ---
 >>> logger.debug("{0:s}: Read Dump".format('DOCTEST')) 
 >>> mx.setResultsToMxsFile(mxsFile=mxsDumpFile)
-8
+12
 >>> with zipfile.ZipFile(mx.mxsZipFile,'w') as myzip:
 ...     myzip.write(mx.mxsFile)  
 ...     myzip.write(mxsDumpFile)  
@@ -223,9 +232,9 @@ True
 >>> # ---
 >>> logger.debug("{0:s}: Read Zip with Orig and Dump".format('DOCTEST')) 
 >>> mx.setResultsToMxsZipFile()
-8
+12
 >>> mx.df.shape
-(8, 41)
+(12, 41)
 >>> mx.ToH5()
 >>> # ---
 >>> # Without MX1, MXS
@@ -236,26 +245,28 @@ True
 >>> os.rename(mx.mx1File+'.blind',mx.mx1File)
 >>> os.rename(mx.mxsFile+'.blind',mx.mxsFile)
 >>> # ---
->>> mx.mx1Df['Sir3sID'][mx.mx1Df['Sir3sID']=='ALLG~~~-1~TIMESTAMP'].index[0]   
+>>> sir3sIdTimestamp=mx.mx1Df['Sir3sID'].iloc[mx.idxTIMESTAMP]
+>>> mx.mx1Df['Sir3sID'][mx.mx1Df['Sir3sID']==sir3sIdTimestamp].index[0]   
 0
->>> mx.mx1Df['unpackIdx'][mx.mx1Df['Sir3sID']=='ALLG~~~-1~TIMESTAMP'].iloc[0]
+>>> mx.mx1Df['unpackIdx'][mx.mx1Df['Sir3sID']==sir3sIdTimestamp].iloc[0]
 0
 >>> mx.df.shape
-(8, 41)
+(12, 41)
 >>> isinstance(mx.df.index[0],pd.tslib.Timestamp)
 True
 >>> str(mx.df.index[0])
 '2018-03-03 00:00:00+00:00'
->>> ts=mx.df['KNOT~I~~5642914844465475844~QM']
+>>> sir3sId=mx.mx1Df['Sir3sID'][mx.mx1Df['Sir3sID'].str.contains('KNOT~\S*~~5642914844465475844~QM')].iloc[0] #KNOT~I~~5642914844465475844~QM
+>>> ts=mx.df[sir3sId]
 >>> isinstance(ts,pd.core.series.Series)
 True
 >>> "{:06.2f}".format(round(ts.iloc[0],2))
 '176.71'
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.31',1,'New','_checkMxsVecsFile: (...,fullCheck=False,...)')) 
 >>> mx._checkMxsVecsFile()
-(Timestamp('2018-03-03 00:00:00+0000', tz='UTC'), Timestamp('2018-03-03 00:00:07+0000', tz='UTC'), 8)
+(Timestamp('2018-03-03 00:00:00+0000', tz='UTC'), Timestamp('2018-03-03 00:00:11+0000', tz='UTC'), 12)
 >>> mx._checkMxsVecsFile(fullCheck=True)
-(Timestamp('2018-03-03 00:00:00+0000', tz='UTC'), Timestamp('2018-03-03 00:00:07+0000', tz='UTC'), 8)
+(Timestamp('2018-03-03 00:00:00+0000', tz='UTC'), Timestamp('2018-03-03 00:00:11+0000', tz='UTC'), 12)
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',1,'Change','setResultsToMxsFile: finally: h5.close()')) 
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',2,'Change','setResultsToMxsZipFile: finally: h5.close()')) 
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.32',3,'Change','ToH5: finally: h5.close()')) 
@@ -363,7 +374,12 @@ False
    6  tk                                 [4737064599036143765]          20     CHAR              20         1  ROHR        
    7  N_OF_POINTS                                       (101,)           4     INT4               4         1  ROHR        
    8  pk                                 [5396761270498593493]          20     CHAR              20         1  SWVT        '''
->>> print("'''{:s}'''".format(repr(mx.df.drop(['ALLG~~~-1~CPUTIME','ALLG~~~-1~USRTIME','ALLG~~~-1~CVERSO'],axis=1)).replace('\\n','\\n   ')))
+>>> print("'''{:s}'''".format(repr(mx.df.drop([
+...  mx.mx1Df['Sir3sID'][mx.mx1Df['Sir3sID'].str.contains('ALLG~~~\S+~CPUTIME')].iloc[0] # 'ALLG~~~-1~CPUTIME'
+... ,mx.mx1Df['Sir3sID'][mx.mx1Df['Sir3sID'].str.contains('ALLG~~~\S+~USRTIME')].iloc[0] # 'ALLG~~~-1~USRTIME'
+... ,mx.mx1Df['Sir3sID'][mx.mx1Df['Sir3sID'].str.contains('ALLG~~~\S+~CVERSO')].iloc[0] # 'ALLG~~~-1~CVERSO'
+... ]
+... ,axis=1)).replace('\\n','\\n   ')))
 '''                          ALLG~~~-1~SNAPSHOTTYPE  ALLG~~~-1~EXSTAT  ALLG~~~-1~NFEHL  ALLG~~~-1~NWARN  ALLG~~~-1~NMELD  ALLG~~~-1~NPGREST  ALLG~~~-1~NETZABN  ALLG~~~-1~NKNUV  ALLG~~~-1~MKNUV  ALLG~~~-1~NFVHYUV  ALLG~~~-1~NFVTHUV  ALLG~~~-1~MFVHYUV  ALLG~~~-1~MFVTHUV  ALLG~~~-1~TVMINMAX  ALLG~~~-1~ITERHY  ALLG~~~-1~LFQSV  ALLG~~~-1~JWARN  ALLG~~~-1~NETZABNEXITS  ALLG~~~-1~LINEPACKRATE  ALLG~~~-1~LINEPACKGES  ALLG~~~-1~LINEPACKGEOM  ALLG~~~-1~RHOAV  ALLG~~~-1~TAV  ALLG~~~-1~PAV  ALLG~~~-1~FWVB_DPHMIN  ALLG~~~-1~KNOT_PHMAX  ALLG~~~-1~KNOT_PHMIN  ALLG~~~-1~FWVB_TVLMIN  ALLG~~~-1~NETZBEZ  KNOT~I~~5642914844465475844~PH  KNOT~I~~5642914844465475844~QM  KNOT~K~~5289899964753656852~PH  KNOT~K~~5289899964753656852~QM  ROHR~*~*~*~PHR  ROHR~*~*~*~QMAV  ROHR~*~*~*~VAV  ROHR~*~*~*~A  ROHR~*~*~*~IRTRENN
    2018-03-03 00:00:00+00:00                b'STAT'                 0                0                0               13                  0         176.714600                0              0.0                  0                  0                0.0                0.0         -273.149994                11              1.0               30                     0.0                0.000000           0.000000e+00              490.873871      1000.299988     556.299988       3.108535           3.402823e+38              4.217070                   0.0           3.402823e+38           176.7146                        4.217070                        176.7146                             0.0                     -176.714600        4.217033       176.714600        1.000000        1000.0                   0
    2018-03-03 00:00:01+00:00                b'TIME'                 0                0                0                0                  0         176.714737                0              0.0                  0                  0                0.0                0.0         -273.149994                 1              1.0               30                     0.0               -0.000137          -2.042460e-08              490.873871      1000.299988     556.299988       3.108534           3.402823e+38              4.217062                   0.0           3.402823e+38           176.7146                        4.217062                        176.7146                             0.0                     -176.714737        4.217032       176.714722        1.000001        1000.0                   0
@@ -386,7 +402,7 @@ False
 >>> # ---
 >>> # LocalHeatingNetwork
 >>> # ---
->>> mx1File=os.path.join(path,os.path.join(testDir,'WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1')) # 'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1')
+>>> mx1File=os.path.join(path,os.path.join(testDir,'WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1'+dotResolution+'.MX1')) 
 >>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
 >>> # ---
 >>> # Clean Up LocalHeatingNetwork
@@ -401,7 +417,12 @@ False
 ...    os.remove(mx.h5FileVecs)
 >>> mx.setResultsToMxsFile(maxRecords=1)
 1
->>> print("'''{:s}'''".format(repr(mx.df.drop(['ALLG~~~-1~CPUTIME','ALLG~~~-1~USRTIME','ALLG~~~-1~CVERSO'],axis=1)).replace('\\n','\\n   ')))
+>>> print("'''{:s}'''".format(repr(mx.df.drop([
+...  mx.mx1Df['Sir3sID'][mx.mx1Df['Sir3sID'].str.contains('ALLG~~~\S+~CPUTIME')].iloc[0] # 'ALLG~~~-1~CPUTIME'
+... ,mx.mx1Df['Sir3sID'][mx.mx1Df['Sir3sID'].str.contains('ALLG~~~\S+~USRTIME')].iloc[0] # 'ALLG~~~-1~USRTIME'
+... ,mx.mx1Df['Sir3sID'][mx.mx1Df['Sir3sID'].str.contains('ALLG~~~\S+~CVERSO')].iloc[0] # 'ALLG~~~-1~CVERSO'
+... ]
+... ,axis=1)).replace('\\n','\\n   ')))
 '''                          ALLG~~~-1~SNAPSHOTTYPE  ALLG~~~-1~EXSTAT  ALLG~~~-1~NFEHL  ALLG~~~-1~NWARN  ALLG~~~-1~NMELD  ALLG~~~-1~NPGREST  ALLG~~~-1~NETZABN  ALLG~~~-1~NKNUV  ALLG~~~-1~MKNUV  ALLG~~~-1~NFVHYUV  ALLG~~~-1~NFVTHUV  ALLG~~~-1~MFVHYUV  ALLG~~~-1~MFVTHUV  ALLG~~~-1~TVMINMAX  ALLG~~~-1~ITERHY  ALLG~~~-1~LFQSV  ALLG~~~-1~JWARN  ALLG~~~-1~NETZABNEXITS  ALLG~~~-1~LINEPACKRATE  ALLG~~~-1~LINEPACKGES  ALLG~~~-1~LINEPACKGEOM  ALLG~~~-1~RHOAV  ALLG~~~-1~TAV  ALLG~~~-1~PAV  ALLG~~~-1~FWVB_DPHMIN  ALLG~~~-1~KNOT_PHMAX  ALLG~~~-1~KNOT_PHMIN  ALLG~~~-1~FWVB_TVLMIN  ALLG~~~-1~NETZBEZ  KNOT~V-L~~5736262931552588702~PH  FWES~R3~V-1~5638756766880678918~W  KNOT~V-K007~~5741235692335544560~DP  WBLZ~WärmeblnzGes~~5262603207038486299~WSPEI  KNOT~R-L~~5356267303828212700~PH  PUMP~R-1~R2~5481331875203087055~N  KNOT~V-1~~5049461676240771430~T  WBLZ~WärmeblnzGes~~5262603207038486299~WES  WBLZ~WärmeblnzGes~~5262603207038486299~WVB  VENT~V-1~V-L~4678923650983295610~QM  WBLZ~WärmeblnzGes~~5262603207038486299~WVERL  KNOT~R3~~5219230031772497417~T  PUMP~R-1~R2~5481331875203087055~BK  PUMP~R-1~R2~5481331875203087055~PE  FWES~R3~V-1~5638756766880678918~TI  FWES~R3~V-1~5638756766880678918~TK  WBLZ~BLNZ1u5u7~~4694700216019268978~WVB  KNOT~PKON-Knoten~~5397990465339071638~QM  FWVB~V-K002~R-K002~4643800032883366034~DP  FWVB~V-K002~R-K002~4643800032883366034~INDUV  FWVB~V-K002~R-K002~4643800032883366034~LFH  FWVB~V-K002~R-K002~4643800032883366034~LFT  FWVB~V-K002~R-K002~4643800032883366034~W  FWVB~V-K002~R-K002~4643800032883366034~WSOLL  FWVB~V-K007~R-K007~5400405917816384862~DP  FWVB~V-K007~R-K007~5400405917816384862~INDUV  FWVB~V-K007~R-K007~5400405917816384862~LFH  FWVB~V-K007~R-K007~5400405917816384862~LFT  FWVB~V-K007~R-K007~5400405917816384862~W  FWVB~V-K007~R-K007~5400405917816384862~WSOLL  FWVB~V-K003~R-K003~5695730293103267172~DP  FWVB~V-K003~R-K003~5695730293103267172~INDUV  FWVB~V-K003~R-K003~5695730293103267172~LFH  FWVB~V-K003~R-K003~5695730293103267172~LFT  FWVB~V-K003~R-K003~5695730293103267172~W  FWVB~V-K003~R-K003~5695730293103267172~WSOLL  FWVB~V-K004~R-K004~4704603947372595298~DP  FWVB~V-K004~R-K004~4704603947372595298~INDUV  FWVB~V-K004~R-K004~4704603947372595298~LFH  FWVB~V-K004~R-K004~4704603947372595298~LFT  FWVB~V-K004~R-K004~4704603947372595298~W  FWVB~V-K004~R-K004~4704603947372595298~WSOLL  FWVB~V-K005~R-K005~5121101823283893406~INDUV  FWVB~V-K005~R-K005~5121101823283893406~LFH  FWVB~V-K005~R-K005~5121101823283893406~LFT  FWVB~V-K005~R-K005~5121101823283893406~W  FWVB~V-K005~R-K005~5121101823283893406~WSOLL  FWVB~V-K007~R-K007~5400405917816384862~QM  FWVB~V-K002~R-K002~4643800032883366034~QM  FWVB~V-K004~R-K004~4704603947372595298~TI  FWVB~V-K004~R-K004~4704603947372595298~TK  FWVB~V-K004~R-K004~4704603947372595298~TVMIN  FWVB~V-K002~R-K002~4643800032883366034~TI  FWVB~V-K002~R-K002~4643800032883366034~TK  FWVB~V-K002~R-K002~4643800032883366034~TVMIN  KNOT~V-L~~5736262931552588702~RHO  KNOT~V-L~~5736262931552588702~P  KNOT~V-L~~5736262931552588702~H  KNOT~V-L~~5736262931552588702~HMAX_INST  KNOT~V-L~~5736262931552588702~HMIN_INST  KNOT~V-L~~5736262931552588702~PMAX_INST  KNOT~V-L~~5736262931552588702~PMIN_INST  KNOT~V-L~~5736262931552588702~PDAMPF  KNOT~V-K000~~4766681917240867943~RHO  KNOT~V-K000~~4766681917240867943~P  KNOT~V-K000~~4766681917240867943~H  KNOT~V-K000~~4766681917240867943~HMAX_INST  KNOT~V-K000~~4766681917240867943~HMIN_INST  KNOT~V-K000~~4766681917240867943~PMAX_INST  KNOT~V-K000~~4766681917240867943~PMIN_INST  KNOT~V-K000~~4766681917240867943~PDAMPF  KNOT~V-K001~~4756962427318766791~RHO  KNOT~V-K001~~4756962427318766791~P  KNOT~V-K001~~4756962427318766791~H  KNOT~V-K001~~4756962427318766791~HMAX_INST  KNOT~V-K001~~4756962427318766791~HMIN_INST  KNOT~V-K001~~4756962427318766791~PMAX_INST  KNOT~V-K001~~4756962427318766791~PMIN_INST  KNOT~V-K001~~4756962427318766791~PDAMPF  KNOT~V-K002~~4731792362611615619~RHO  KNOT~V-K002~~4731792362611615619~P  KNOT~V-K002~~4731792362611615619~H  KNOT~V-K002~~4731792362611615619~HMAX_INST  KNOT~V-K002~~4731792362611615619~HMIN_INST  KNOT~V-K002~~4731792362611615619~PMAX_INST  KNOT~V-K002~~4731792362611615619~PMIN_INST  KNOT~V-K002~~4731792362611615619~PDAMPF  KNOT~V-K003~~5646671866542823796~RHO  KNOT~V-K003~~5646671866542823796~P  KNOT~V-K003~~5646671866542823796~H  KNOT~V-K003~~5646671866542823796~HMAX_INST  KNOT~V-K003~~5646671866542823796~HMIN_INST  KNOT~V-K003~~5646671866542823796~PMAX_INST  KNOT~V-K003~~5646671866542823796~PMIN_INST  KNOT~V-K003~~5646671866542823796~PDAMPF  KNOT~V-K004~~5370423799772591808~RHO  KNOT~V-K004~~5370423799772591808~P  KNOT~V-K004~~5370423799772591808~H  KNOT~V-K004~~5370423799772591808~HMAX_INST  KNOT~V-K004~~5370423799772591808~HMIN_INST  KNOT~V-K004~~5370423799772591808~PMAX_INST  KNOT~V-K004~~5370423799772591808~PMIN_INST  KNOT~V-K004~~5370423799772591808~PDAMPF  KNOT~V-K005~~5444644492819213978~RHO  KNOT~V-K005~~5444644492819213978~P  KNOT~V-K005~~5444644492819213978~H  KNOT~V-K005~~5444644492819213978~HMAX_INST  KNOT~V-K005~~5444644492819213978~HMIN_INST  KNOT~V-K005~~5444644492819213978~PMAX_INST  KNOT~V-K005~~5444644492819213978~PMIN_INST  KNOT~V-K005~~5444644492819213978~PDAMPF  KNOT~V-K006~~5515313800585145571~RHO  KNOT~V-K006~~5515313800585145571~P  KNOT~V-K006~~5515313800585145571~H  KNOT~V-K006~~5515313800585145571~HMAX_INST  KNOT~V-K006~~5515313800585145571~HMIN_INST  KNOT~V-K006~~5515313800585145571~PMAX_INST  KNOT~V-K006~~5515313800585145571~PMIN_INST  KNOT~V-K006~~5515313800585145571~PDAMPF  KNOT~V-K007~~5741235692335544560~RHO  KNOT~V-K007~~5741235692335544560~P  KNOT~V-K007~~5741235692335544560~H  KNOT~V-K007~~5741235692335544560~HMAX_INST  KNOT~V-K007~~5741235692335544560~HMIN_INST  KNOT~V-K007~~5741235692335544560~PMAX_INST  KNOT~V-K007~~5741235692335544560~PMIN_INST  KNOT~V-K007~~5741235692335544560~PDAMPF  KNOT~R-L~~5356267303828212700~RHO  KNOT~R-L~~5356267303828212700~P  KNOT~R-L~~5356267303828212700~H  KNOT~R-L~~5356267303828212700~HMAX_INST  KNOT~R-L~~5356267303828212700~HMIN_INST  KNOT~R-L~~5356267303828212700~PMAX_INST  KNOT~R-L~~5356267303828212700~PMIN_INST  KNOT~R-L~~5356267303828212700~PDAMPF  KNOT~R-K000~~4979785838440534851~RHO  KNOT~R-K000~~4979785838440534851~P  KNOT~R-K000~~4979785838440534851~H  KNOT~R-K000~~4979785838440534851~HMAX_INST  KNOT~R-K000~~4979785838440534851~HMIN_INST  KNOT~R-K000~~4979785838440534851~PMAX_INST  KNOT~R-K000~~4979785838440534851~PMIN_INST  KNOT~R-K000~~4979785838440534851~PDAMPF  KNOT~R-K001~~4807712987325933680~RHO  KNOT~R-K001~~4807712987325933680~P  KNOT~R-K001~~4807712987325933680~H  KNOT~R-K001~~4807712987325933680~HMAX_INST  KNOT~R-K001~~4807712987325933680~HMIN_INST  KNOT~R-K001~~4807712987325933680~PMAX_INST  KNOT~R-K001~~4807712987325933680~PMIN_INST  KNOT~R-K001~~4807712987325933680~PDAMPF  KNOT~R-K002~~5364712333175450942~RHO  KNOT~R-K002~~5364712333175450942~P  KNOT~R-K002~~5364712333175450942~H  KNOT~R-K002~~5364712333175450942~HMAX_INST  KNOT~R-K002~~5364712333175450942~HMIN_INST  KNOT~R-K002~~5364712333175450942~PMAX_INST  KNOT~R-K002~~5364712333175450942~PMIN_INST  KNOT~R-K002~~5364712333175450942~PDAMPF  KNOT~R-K003~~4891048046264179170~RHO  KNOT~R-K003~~4891048046264179170~P  KNOT~R-K003~~4891048046264179170~H  KNOT~R-K003~~4891048046264179170~HMAX_INST  KNOT~R-K003~~4891048046264179170~HMIN_INST  KNOT~R-K003~~4891048046264179170~PMAX_INST  KNOT~R-K003~~4891048046264179170~PMIN_INST  KNOT~R-K003~~4891048046264179170~PDAMPF  KNOT~R-K004~~4638663808856251977~RHO  KNOT~R-K004~~4638663808856251977~P  KNOT~R-K004~~4638663808856251977~H  KNOT~R-K004~~4638663808856251977~HMAX_INST  KNOT~R-K004~~4638663808856251977~HMIN_INST  KNOT~R-K004~~4638663808856251977~PMAX_INST  KNOT~R-K004~~4638663808856251977~PMIN_INST  KNOT~R-K004~~4638663808856251977~PDAMPF  KNOT~R-K005~~5183147862966701025~RHO  KNOT~R-K005~~5183147862966701025~P  KNOT~R-K005~~5183147862966701025~H  KNOT~R-K005~~5183147862966701025~HMAX_INST  KNOT~R-K005~~5183147862966701025~HMIN_INST  KNOT~R-K005~~5183147862966701025~PMAX_INST  KNOT~R-K005~~5183147862966701025~PMIN_INST  KNOT~R-K005~~5183147862966701025~PDAMPF  KNOT~R-K006~~5543326527366090679~RHO  KNOT~R-K006~~5543326527366090679~P  KNOT~R-K006~~5543326527366090679~H  KNOT~R-K006~~5543326527366090679~HMAX_INST  KNOT~R-K006~~5543326527366090679~HMIN_INST  KNOT~R-K006~~5543326527366090679~PMAX_INST  KNOT~R-K006~~5543326527366090679~PMIN_INST  KNOT~R-K006~~5543326527366090679~PDAMPF  KNOT~R-K007~~5508992300317633799~RHO  KNOT~R-K007~~5508992300317633799~P  KNOT~R-K007~~5508992300317633799~H  KNOT~R-K007~~5508992300317633799~HMAX_INST  KNOT~R-K007~~5508992300317633799~HMIN_INST  KNOT~R-K007~~5508992300317633799~PMAX_INST  KNOT~R-K007~~5508992300317633799~PMIN_INST  KNOT~R-K007~~5508992300317633799~PDAMPF  ROHR~V-L~V-K000~4939422678063487923~VI  ROHR~V-L~V-K000~4939422678063487923~VK  ROHR~V-L~V-K000~4939422678063487923~QMI  ROHR~V-L~V-K000~4939422678063487923~QMK  ROHR~V-K000~V-K001~4984202422877610920~VI  ROHR~V-K000~V-K001~4984202422877610920~VK  ROHR~V-K000~V-K001~4984202422877610920~QMI  ROHR~V-K000~V-K001~4984202422877610920~QMK  ROHR~V-K001~V-K002~4789218195240364437~VI  ROHR~V-K001~V-K002~4789218195240364437~VK  ROHR~V-K001~V-K002~4789218195240364437~QMI  ROHR~V-K001~V-K002~4789218195240364437~QMK  ROHR~V-K002~V-K003~4614949065966596185~VI  ROHR~V-K002~V-K003~4614949065966596185~VK  ROHR~V-K002~V-K003~4614949065966596185~QMI  ROHR~V-K002~V-K003~4614949065966596185~QMK  ROHR~V-K003~V-K004~5037777106796980248~VI  ROHR~V-K003~V-K004~5037777106796980248~VK  ROHR~V-K003~V-K004~5037777106796980248~QMI  ROHR~V-K003~V-K004~5037777106796980248~QMK  ROHR~V-K004~V-K005~4713733238627697042~VI  ROHR~V-K004~V-K005~4713733238627697042~VK  ROHR~V-K004~V-K005~4713733238627697042~QMI  ROHR~V-K004~V-K005~4713733238627697042~QMK  ROHR~V-K005~V-K006~5123819811204259837~VI  ROHR~V-K005~V-K006~5123819811204259837~VK  ROHR~V-K005~V-K006~5123819811204259837~QMI  ROHR~V-K005~V-K006~5123819811204259837~QMK  ROHR~V-K006~V-K007~5620197984230756681~VI  ROHR~V-K006~V-K007~5620197984230756681~VK  ROHR~V-K006~V-K007~5620197984230756681~QMI  ROHR~V-K006~V-K007~5620197984230756681~QMK  ROHR~R-L~R-K000~4769996343148550485~VI  ROHR~R-L~R-K000~4769996343148550485~VK  ROHR~R-L~R-K000~4769996343148550485~QMI  ROHR~R-L~R-K000~4769996343148550485~QMK  ROHR~R-K000~R-K001~5647213228462830353~VI  ROHR~R-K000~R-K001~5647213228462830353~VK  ROHR~R-K000~R-K001~5647213228462830353~QMI  ROHR~R-K000~R-K001~5647213228462830353~QMK  ROHR~R-K001~R-K002~5266224553324203132~VI  ROHR~R-K001~R-K002~5266224553324203132~VK  ROHR~R-K001~R-K002~5266224553324203132~QMI  ROHR~R-K001~R-K002~5266224553324203132~QMK  ROHR~R-K002~R-K003~5379365049009065623~VI  ROHR~R-K002~R-K003~5379365049009065623~VK  ROHR~R-K002~R-K003~5379365049009065623~QMI  ROHR~R-K002~R-K003~5379365049009065623~QMK  ROHR~R-K003~R-K004~4637102239750163477~VI  ROHR~R-K003~R-K004~4637102239750163477~VK  ROHR~R-K003~R-K004~4637102239750163477~QMI  ROHR~R-K003~R-K004~4637102239750163477~QMK  ROHR~R-K004~R-K005~4613782368750024999~VI  ROHR~R-K004~R-K005~4613782368750024999~VK  ROHR~R-K004~R-K005~4613782368750024999~QMI  ROHR~R-K004~R-K005~4613782368750024999~QMK  ROHR~R-K005~R-K006~5611703699850694889~VI  ROHR~R-K005~R-K006~5611703699850694889~VK  ROHR~R-K005~R-K006~5611703699850694889~QMI  ROHR~R-K005~R-K006~5611703699850694889~QMK  ROHR~R-K006~R-K007~4945727430885351042~VI  ROHR~R-K006~R-K007~4945727430885351042~VK  ROHR~R-K006~R-K007~4945727430885351042~QMI  ROHR~R-K006~R-K007~4945727430885351042~QMK  PUMP~R-1~R2~5481331875203087055~RHO  PUMP~R-1~R2~5481331875203087055~M  PUMP~R-1~R2~5481331875203087055~ETA  PUMP~R-1~R2~5481331875203087055~ETAW  PUMP~R-1~R2~5481331875203087055~DP  FWES~*~*~*~IAKTIV  KLAP~*~*~*~IAKTIV  PUMP~*~*~*~IAKTIV
    2004-09-22 08:30:00+00:00                b'STAT'                 0                0                0               21                  0           0.000002                0              0.0                  0                  0                0.0                0.0           89.511505                 8              1.0               50                     0.0                     0.0                    0.0                23.12059       975.700012     619.633301        4.11655               1.500571              4.311969                   2.0                   90.0           0.000002                          4.126546                         802.719727                             1.500571                                      2.719672                          2.000133                        1142.490845                             90.0                                  802.719727                                       800.0                             22.98794                                           0.0                            60.0                            0.330514                            2.754284                                60.0                                90.0                                    480.0                                  0.000002                                   1.845007                                             0                                    0.914001                                         0.8                                160.000031                                         160.0                                   1.500571                                             0                                         0.8                                         0.8                                     160.0                                         160.0                                   1.562085                                             0                                    0.642765                                         0.6                                120.000008                                    120.000008                                   1.523539                                             0                                         1.0                                         1.0                                200.000015                                         200.0                                             0                                         0.8                                         0.8                                     160.0                                         160.0                                   3.928163                                   3.928163                                       90.0                                       65.0                                     89.511505                                       90.0                                       55.0                                     86.514343                         965.700012                         5.126546                         4.126546                                 4.126546                                 4.126546                                 5.126546                                 5.126546                                0.7011                            965.700012                            5.122155                            4.122155                                    4.122155                                    4.122155                                    5.122155                                    5.122155                                   0.7011                            965.700012                            5.084035                            4.084035                                    4.084035                                    4.084035                                    5.084035                                    5.084035                                   0.7011                            965.700012                            4.986475                            3.986475                                    3.986475                                    3.986475                                    4.986475                                    4.986475                                   0.7011                            965.700012                            4.845703                            3.845703                                    3.845703                                    3.845703                                    4.845703                                    4.845703                                   0.7011                            965.700012                            4.826566                            3.826566                                    3.826566                                    3.826566                                    4.826566                                    4.826566                                   0.7011                            965.700012                            4.820062                            3.820062                                    3.820062                                    3.820062                                    4.820062                                    4.820062                                   0.7011                            965.700012                            4.817194                            3.817194                                    3.817194                                    3.817194                                    4.817194                                    4.817194                                   0.7011                            965.700012                            4.815285                            3.815285                                    3.815285                                    3.815285                                    4.815285                                    4.815285                                   0.7011                         983.700012                         3.000133                         2.000133                                 2.000133                                 2.000133                                 3.000133                                 3.000133                                0.1992                            983.700012                            3.004938                            2.004938                                    2.004938                                    2.004938                                    3.004938                                    3.004938                                   0.1992                            983.700012                            3.043297                            2.043297                                    2.043297                                    2.043297                                    3.043297                                    3.043297                                   0.1992                            983.700012                            3.141468                            2.141468                                    2.141468                                    2.141468                                    3.141468                                    3.141468                                   0.1992                            983.700012                            3.283618                            2.283618                                    2.283618                                    2.283618                                    3.283618                                    3.283618                                   0.1992                            983.700012                            3.303027                            2.303027                                    2.303027                                    2.303027                                    3.303027                                    3.303027                                   0.1992                            983.700012                            3.309712                            2.309712                                    2.309712                                    2.309712                                    3.309712                                    3.309712                                   0.1992                            983.700012                            3.312715                            2.312715                                    2.312715                                    2.312715                                    3.312715                                    3.312715                                   0.1992                            983.700012                            3.314715                            2.314715                                    2.314715                                    2.314715                                    3.314715                                    3.314715                                   0.1992                                0.327641                                0.327641                                 22.98794                                 22.98794                                   0.733984                                   0.733984                                    22.98794                                    22.98794                                   0.733984                                   0.733984                                    22.98794                                    22.98794                                   0.608561                                   0.608561                                   19.059776                                   19.059776                                   0.491034                                   0.491034                                   15.378898                                   15.378898                                     0.2717                                     0.2717                                    8.509472                                    8.509472                                   0.125423                                   0.125423                                    3.928163                                    3.928163                                   0.125423                                   0.125423                                    3.928163                                    3.928163                               -0.321646                               -0.321646                               -22.987938                               -22.987938                                  -0.720553                                  -0.720553                                  -22.987938                                  -22.987938                                  -0.720553                                  -0.720553                                  -22.987938                                  -22.987938                                  -0.597426                                  -0.597426                                  -19.059776                                  -19.059776                                  -0.482049                                  -0.482049                                  -15.378897                                  -15.378897                                  -0.266728                                  -0.266728                                   -8.509471                                   -8.509471                                  -0.123128                                  -0.123128                                   -3.928163                                   -3.928163                                  -0.123128                                  -0.123128                                   -3.928163                                   -3.928163                           983.700012                           6.385539                             0.544889                              0.625568                            2.311969                  0                  0                  0'''
 >>> logger.debug("{:s}: CHANGEHISTORY: {:>10s}: {:>3d}: {:>6s}: {:s}".format('DOCTEST','0.0.41',1,'New',"getMxsVecsFileData")) 
@@ -436,7 +457,7 @@ True
 >>> # ---
 >>> # TinyWDN
 >>> # ---
->>> mx1File=os.path.join(path,os.path.join(testDir,'WDTinyWDN\B1\V0\BZ1\M-1-0-1.MX1'))
+>>> mx1File=os.path.join(path,os.path.join(testDir,'WDTinyWDN\B1\V0\BZ1\M-1-0-1'+dotResolution+'.MX1'))
 >>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
 >>> print("'''{:s}'''".format(repr(mx.mx1Df).replace('\\n','\\n   ')))
 '''    ADDEND      ATTRTYPE CLIENT_FLAGS CLIENT_ID  DATALENGTH  DATAOFFSET DATATYPE  DATATYPELENGTH DEVIATION FACTOR  FLAGS LINKED_CHANNEL LOWER_LIMIT    NAME1    NAME2 NAME3 OBJTYPE           OBJTYPE_PK OPCITEM_ID                                     TITLE       UNIT UPPER_LIMIT                                          Sir3sID  NOfItems  isVectorChannel  isVectorChannelMx2  isVectorChannelMx2Rvec  unpackIdx
@@ -673,7 +694,12 @@ True
    12  pk                                                                                                                                                                                                                                                                                                                                                                                                                                                                     [5736734929574151957]          20     CHAR              20         1  WEVT        '''
 >>> mx.setResultsToMxsFile(maxRecords=1)
 1
->>> print("'''{:s}'''".format(repr(mx.df.drop(['ALLG~~~-1~CPUTIME','ALLG~~~-1~USRTIME','ALLG~~~-1~CVERSO'],axis=1)).replace('\\n','\\n   ')))
+>>> print("'''{:s}'''".format(repr(mx.df.drop([
+...  mx.mx1Df['Sir3sID'][mx.mx1Df['Sir3sID'].str.contains('ALLG~~~\S+~CPUTIME')].iloc[0] # 'ALLG~~~-1~CPUTIME'
+... ,mx.mx1Df['Sir3sID'][mx.mx1Df['Sir3sID'].str.contains('ALLG~~~\S+~USRTIME')].iloc[0] # 'ALLG~~~-1~USRTIME'
+... ,mx.mx1Df['Sir3sID'][mx.mx1Df['Sir3sID'].str.contains('ALLG~~~\S+~CVERSO')].iloc[0] # 'ALLG~~~-1~CVERSO'
+... ]
+... ,axis=1)).replace('\\n','\\n   ')))
 '''                          ALLG~~~-1~SNAPSHOTTYPE  ALLG~~~-1~EXSTAT  ALLG~~~-1~NFEHL  ALLG~~~-1~NWARN  ALLG~~~-1~NMELD  ALLG~~~-1~NPGREST  ALLG~~~-1~NETZABN  ALLG~~~-1~NKNUV  ALLG~~~-1~MKNUV  ALLG~~~-1~NFVHYUV  ALLG~~~-1~NFVTHUV  ALLG~~~-1~MFVHYUV  ALLG~~~-1~MFVTHUV  ALLG~~~-1~TVMINMAX  ALLG~~~-1~ITERHY  ALLG~~~-1~LFQSV  ALLG~~~-1~JWARN  ALLG~~~-1~NETZABNEXITS  ALLG~~~-1~LINEPACKRATE  ALLG~~~-1~LINEPACKGES  ALLG~~~-1~LINEPACKGEOM  ALLG~~~-1~RHOAV  ALLG~~~-1~TAV  ALLG~~~-1~PAV  ALLG~~~-1~FWVB_DPHMIN  ALLG~~~-1~KNOT_PHMAX  ALLG~~~-1~KNOT_PHMIN  ALLG~~~-1~FWVB_TVLMIN  ALLG~~~-1~NETZBEZ  KNOT~3~~4711309381204507891~PH  KNOT~3~~4711309381204507891~H  KNOT~WW~~5179406559406617933~QM  KNOT~WW~~5179406559406617933~PH  KNOT~WW~~5179406559406617933~H  OBEH~HB~~4914542339545953765~WST  KNOT~HB~~4832703654265095420~H  VENT~Absperr~HB~5466655470152247657~QM  KNOT~WW~~5179406559406617933~RHO  KNOT~WW~~5179406559406617933~P  KNOT~WW~~5179406559406617933~HMAX_INST  KNOT~WW~~5179406559406617933~HMIN_INST  KNOT~WW~~5179406559406617933~PMAX_INST  KNOT~WW~~5179406559406617933~PMIN_INST  KNOT~WW~~5179406559406617933~PDAMPF  KNOT~WW~~5179406559406617933~T  KNOT~1~~5028754475676510796~RHO  KNOT~1~~5028754475676510796~P  KNOT~1~~5028754475676510796~HMAX_INST  KNOT~1~~5028754475676510796~HMIN_INST  KNOT~1~~5028754475676510796~PMAX_INST  KNOT~1~~5028754475676510796~PMIN_INST  KNOT~1~~5028754475676510796~PDAMPF  KNOT~1~~5028754475676510796~T  KNOT~2~~4880261452311588026~RHO  KNOT~2~~4880261452311588026~P  KNOT~2~~4880261452311588026~HMAX_INST  KNOT~2~~4880261452311588026~HMIN_INST  KNOT~2~~4880261452311588026~PMAX_INST  KNOT~2~~4880261452311588026~PMIN_INST  KNOT~2~~4880261452311588026~PDAMPF  KNOT~2~~4880261452311588026~T  KNOT~3~~4711309381204507891~RHO  KNOT~3~~4711309381204507891~P  KNOT~3~~4711309381204507891~HMAX_INST  KNOT~3~~4711309381204507891~HMIN_INST  KNOT~3~~4711309381204507891~PMAX_INST  KNOT~3~~4711309381204507891~PMIN_INST  KNOT~3~~4711309381204507891~PDAMPF  KNOT~3~~4711309381204507891~T  KNOT~4~~5697271655044179265~RHO  KNOT~4~~5697271655044179265~P  KNOT~4~~5697271655044179265~HMAX_INST  KNOT~4~~5697271655044179265~HMIN_INST  KNOT~4~~5697271655044179265~PMAX_INST  KNOT~4~~5697271655044179265~PMIN_INST  KNOT~4~~5697271655044179265~PDAMPF  KNOT~4~~5697271655044179265~T  KNOT~P4~~5042575626021291052~RHO  KNOT~P4~~5042575626021291052~P  KNOT~P4~~5042575626021291052~HMAX_INST  KNOT~P4~~5042575626021291052~HMIN_INST  KNOT~P4~~5042575626021291052~PMAX_INST  KNOT~P4~~5042575626021291052~PMIN_INST  KNOT~P4~~5042575626021291052~PDAMPF  KNOT~P4~~5042575626021291052~T  KNOT~S2~~5388350113283448399~RHO  KNOT~S2~~5388350113283448399~P  KNOT~S2~~5388350113283448399~HMAX_INST  KNOT~S2~~5388350113283448399~HMIN_INST  KNOT~S2~~5388350113283448399~PMAX_INST  KNOT~S2~~5388350113283448399~PMIN_INST  KNOT~S2~~5388350113283448399~PDAMPF  KNOT~S2~~5388350113283448399~T  KNOT~P5~~4780213881308610359~RHO  KNOT~P5~~4780213881308610359~P  KNOT~P5~~4780213881308610359~HMAX_INST  KNOT~P5~~4780213881308610359~HMIN_INST  KNOT~P5~~4780213881308610359~PMAX_INST  KNOT~P5~~4780213881308610359~PMIN_INST  KNOT~P5~~4780213881308610359~PDAMPF  KNOT~P5~~4780213881308610359~T  KNOT~5~~5706345341889312301~RHO  KNOT~5~~5706345341889312301~P  KNOT~5~~5706345341889312301~HMAX_INST  KNOT~5~~5706345341889312301~HMIN_INST  KNOT~5~~5706345341889312301~PMAX_INST  KNOT~5~~5706345341889312301~PMIN_INST  KNOT~5~~5706345341889312301~PDAMPF  KNOT~5~~5706345341889312301~T  KNOT~Absperr~~5498009282312522569~RHO  KNOT~Absperr~~5498009282312522569~P  KNOT~Absperr~~5498009282312522569~HMAX_INST  KNOT~Absperr~~5498009282312522569~HMIN_INST  KNOT~Absperr~~5498009282312522569~PMAX_INST  KNOT~Absperr~~5498009282312522569~PMIN_INST  KNOT~Absperr~~5498009282312522569~PDAMPF  KNOT~Absperr~~5498009282312522569~T  KNOT~HB~~4832703654265095420~RHO  KNOT~HB~~4832703654265095420~P  KNOT~HB~~4832703654265095420~HMAX_INST  KNOT~HB~~4832703654265095420~HMIN_INST  KNOT~HB~~4832703654265095420~PMAX_INST  KNOT~HB~~4832703654265095420~PMIN_INST  KNOT~HB~~4832703654265095420~PDAMPF  KNOT~HB~~4832703654265095420~T  ROHR~WW~1~5076321356874807093~VI  ROHR~WW~1~5076321356874807093~VK  ROHR~WW~1~5076321356874807093~QMI  ROHR~WW~1~5076321356874807093~QMK  ROHR~1~2~5497762617222653432~VI  ROHR~1~2~5497762617222653432~VK  ROHR~1~2~5497762617222653432~QMI  ROHR~1~2~5497762617222653432~QMK  ROHR~2~3~4978978527327130204~VI  ROHR~2~3~4978978527327130204~VK  ROHR~2~3~4978978527327130204~QMI  ROHR~2~3~4978978527327130204~QMK  ROHR~3~4~5461179577260327606~VI  ROHR~3~4~5461179577260327606~VK  ROHR~3~4~5461179577260327606~QMI  ROHR~3~4~5461179577260327606~QMK  ROHR~4~P4~5148090523913666712~VI  ROHR~4~P4~5148090523913666712~VK  ROHR~4~P4~5148090523913666712~QMI  ROHR~4~P4~5148090523913666712~QMK  ROHR~P4~S2~5644872080928983958~VI  ROHR~P4~S2~5644872080928983958~VK  ROHR~P4~S2~5644872080928983958~QMI  ROHR~P4~S2~5644872080928983958~QMK  ROHR~S2~P5~4984438795139137900~VI  ROHR~S2~P5~4984438795139137900~VK  ROHR~S2~P5~4984438795139137900~QMI  ROHR~S2~P5~4984438795139137900~QMK  ROHR~P5~5~4648047345314768819~VI  ROHR~P5~5~4648047345314768819~VK  ROHR~P5~5~4648047345314768819~QMI  ROHR~P5~5~4648047345314768819~QMK  ROHR~5~Absperr~5433880705192526755~VI  ROHR~5~Absperr~5433880705192526755~VK  ROHR~5~Absperr~5433880705192526755~QMI  ROHR~5~Absperr~5433880705192526755~QMK  VENT~Absperr~HB~5466655470152247657~V  OBEH~*~*~*~WALTER
    2002-05-22 16:16:16+00:00                b'STAT'                 0                0                0               11                  0              160.0                0              0.0                  0                  0                0.0                0.0         -273.149994                 9              1.0               30                   160.0                     0.0                    0.0                86.01461      1000.299988     556.299988       3.736424           3.402823e+38              3.986973              0.980928           3.402823e+38              140.0                        1.006286                      40.258186                            140.0                         3.016954                       40.755142                              10.0                       39.999683                              -20.000008                       1000.299988                        4.016954                               40.755142                               40.755142                                4.016954                                4.016954                               0.0123                            10.0                      1000.299988                       4.986973                              40.643616                              40.643616                               4.986973                               4.986973                              0.0123                           10.0                      1000.299988                       3.507876                              40.565548                              40.565548                               3.507876                               3.507876                              0.0123                           10.0                      1000.299988                       2.006286                              40.258186                              40.258186                               2.006286                               2.006286                              0.0123                           10.0                      1000.299988                       3.936131                              39.931221                              39.931221                               3.936131                               3.936131                              0.0123                           10.0                       1000.299988                        4.416402                               39.827152                               39.827152                                4.416402                                4.416402                               0.0123                            10.0                       1000.299988                        4.920524                               39.966225                               39.966225                                4.920524                                4.920524                               0.0123                            10.0                       1000.299988                        3.937013                               39.940212                               39.940212                                3.937013                                3.937013                               0.0123                            10.0                      1000.299988                        3.45231                                39.9991                                39.9991                                3.45231                                3.45231                              0.0123                           10.0                            1000.299988                             3.452336                                    39.999367                                    39.999367                                     3.452336                                     3.452336                                    0.0123                                 10.0                       1000.299988                        1.980928                               39.999683                               39.999683                                1.980928                                1.980928                               0.0123                            10.0                          0.499333                          0.499333                              140.0                              140.0                         0.499333                         0.499333                             140.0                             140.0                         0.510817                         0.510817                         64.851456                         64.851456                         0.292091                         0.292091                          9.615081                          9.615081                          0.196514                          0.196514                           6.468875                           6.468875                          -0.228407                          -0.228407                           -7.518734                           -7.518734                           0.102688                           0.102688                            7.535347                            7.535347                         -0.126186                         -0.126186                          -9.259682                          -9.259682                              -0.071333                              -0.071333                              -20.000008                              -20.000008                              -0.176839                2.0'''
 >>> # ---
@@ -758,50 +784,50 @@ class Mx():
         * (mx1File,NoH5Read=True): use this for a fresh start with implicit .MXS-File read; finalize with ToH5()
         * (mx1File,NoH5Read=True,NoMxsRead=True): use this for a fresh start; call setResultsTo...() explicit; finalize with ToH5()
         * note that base.h5-File has to be dunped explicitely with ToH5()
-        * and .vec.h5-File is written implicitely while (implicit or explicit calls to) setResultsTo...() 
-        * and is deleted explicitely (mx1File,NoH5Read=True) or implicitely (because too old or because 
+        * and base.vec.h5-File is written implicitely while (implicit or explicit calls to) setResultsTo...() 
+        * and is deleted explicitely (mx1File,NoH5Read=True) or implicitely (because i.e. too old) 
 
     Args:
-        * mx1File (str): base.MX1-File (an XML-File) (base.1.MX1-File for 90-10)
+        * mx1File (str): base.MX1-File (an XML-File) (base.1.MX1-File from 90-10 on)
 
         * NoH5Read (bool): 
             False (default - use this to profit from previous reads finalized with ToH5()): 
                 * If a base.h5-File 
                     * exists 
-                    * and is newer (>) than an .MX1-File (base.1.Mx1-File for 90-10) 
-                    * and is newer (>) than an .MXS-File (base.1.MXS-File for 90-10):
+                    * and is newer (>) than an .MX1-File (base.1.Mx1-File from 90-10 on) 
+                    * and is newer (>) than an .MXS-File (base.1.MXS-File from 90-10 on):
 
                         * The base.h5-File is read instead of the .MX1-File.                        
 
             True (use this for a fresh start):             
                 * An base.h5-File is deleted if existing.  
-                * The .MX1-File is read.
-                * The .vec.h5-File is newly created in case of an .MXS-File read.       
+                * The .MX1-File is read. (base.1.Mx1-File from 90-10 on)
+                * The .vec.h5-File is newly created in case of an .MXS-File read. (.1.MXS-File read from 90-10 on)       
 
         * NoMxsRead (bool):
             True:
-                * a .MXS-File is not read
+                * a .MXS-File is not read (.1.MXS-File read from 90-10 on)
                 * a .vec.h5-File is not touched
 
             False (default):
-                * If a .MXS-File 
+                * If a .MXS-File (.1.Mx1-File from 90-10 on)
                     * exists
-                    * and is newer (>=) than .MX1-File 
+                    * and is newer (>=) than .MX1-File (.1.Mx1-File from 90-10 on)
                     * and base.h5-File is not read:
 
-                        * The .MXS-File is read.          
+                        * The .MXS-File is read.  (.1.MXS-File is read from 90-10 on)             
                         * NoH5Read=True will delete .vec.h5-File.
 
     Attributes:
         * fileNames
-            * .mx1File: .MX1-File 
+            * .mx1File: base.MX1-File (.1.Mx1-File from 90-10 on) 
 
             derived from mx1File
-                * .mx2File: .MX2-File 
-                * .mxsFile: .MXS-File 
-                * .mxsZipFile
-                * .h5File: .h5-File
-                * .h5FileVecs: .vec.h5-File
+                * .mx2File: base.MX2-File 
+                * .mxsFile: base.MXS-File (.1.MXS-File from 90-10 on)
+                * .mxsZipFile base.ZIP
+                * .h5File: base.h5-File
+                * .h5FileVecs: base.vec.h5-File
 
         * .mxRecordStructFmtString
 
@@ -809,7 +835,7 @@ class Mx():
             * .mx1Df  
             * .mx2Df 
             * .df
-                * the .MXS-File(s) Content
+                * the .MXS-File(s) Content  (.1.MXS-File from 90-10 on)
                 * non Vectordata only
                 * index:   TIMESTAMP (scenario time)
                 * columns: Values  
@@ -829,18 +855,17 @@ class Mx():
         try: 
 
             if type(mx1File) == str:
-                    self.mx1File=mx1File  
+                    self.mx1File=mx1File  # base.MX1-File (an XML-File) (base.1.MX1-File from 90-10 on)
             else:
                     logStrFinal="{0:s}{1!s}: Not of type str!".format(logStr,mx1File)                                 
                     raise MxError(logStrFinal)     
 
-            #Determine corresponding .MX2 Filename
+            # determine base
             (wD,fileName)=os.path.split(self.mx1File)
             (base,ext)=os.path.splitext(fileName)
+            (base,dotResolution)=os.path.splitext(base) # dotResolution: '.1' from 90-10 on; '' before
 
-            # wenn 90-10, dann ist base im Sinne des folgenden Codes um .1 zu strippen
-            # bei MXS allerdings ist .1 wieder zu ergaenzen
-
+            #Determine corresponding .MX2 Filename
             self.mx2File=wD+os.path.sep+base+'.'+'MX2'   
                                                      
             #Determine corresponding .h5 Filename(s)
@@ -848,7 +873,7 @@ class Mx():
             self.h5FileVecs=wD+os.path.sep+base+'.'+'vec'+'.'+'h5' # (Vectordata)           
             
             #Determine corresponding .MXS Filename
-            self.mxsFile=wD+os.path.sep+base+'.'+'MXS'  
+            self.mxsFile=wD+os.path.sep+base+dotResolution+'.'+'MXS'  
           
             #Determine corresponding .MXS Zip-Filename
             self.mxsZipFile=wD+os.path.sep+base+'.'+'ZIP'   
@@ -894,6 +919,8 @@ class Mx():
 
             self.df=None   
             self.mx1Df=None
+            self.timeDeltaReadOffset=None
+            self.timeDeltaWriteOffset=None
 
             if not h5Read:
                 if not mx1FileThere:
@@ -1012,7 +1039,15 @@ class Mx():
             self.mx1Df['isVectorChannelMx2Rvec']=[True if isVectorChannelMx2 and dataType=='RVEC' else False for isVectorChannelMx2,dataType in zip(self.mx1Df['isVectorChannelMx2'],self.mx1Df['DATATYPE'])] 
 
             logger.debug("{0:s}mx1Df after some generated Columns: Shape: {1!s}.".format(logStr,self.mx1Df.shape))    
-                                                                       
+
+            pd.set_option('display.max_columns',None)
+            pd.set_option('display.max_rows',None)
+            pd.set_option('display.max_colwidth',666666)   
+            pd.set_option('display.width',666666666)
+            logger.debug("{0:s}\n{1!s}".format(logStr
+                                             ,repr(self.mx1Df)#.replace('\\n','\\n   ')
+                                             ))    
+                                                                            
         except MxError:
             raise            
         except Exception as e:
@@ -1106,7 +1141,6 @@ class Mx():
                            )
                                  )    
                                                             
-  
         except MxError:
             raise            
         except Exception as e:
@@ -1261,7 +1295,9 @@ class Mx():
     def _buildMxRecordStructUnpackFmtStringPost(self):
         """Stuff todo after buildMxRecordStructUnpackFmtString.
            
-        Sets                 
+        Sets   
+            * .idxCVERSO (idx of CVERSO in MX1) 
+            * .unpackIdxCVERSO (idx of CVERSO in recordData)            
             * .idxTIMESTAMP (idx of TIMESTAMP in MX1)
             * .unpackIdxTIMESTAMP (idx of TIMESTAMP in recordData)
             * .mxColumnNames=[] (of non Vectordata without TIMESTAMP in MX1-Sequence)
@@ -1279,11 +1315,21 @@ class Mx():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
         try:
+            # CVERSO
+            self.idxCVERSO=self.mx1Df['Sir3sID'][
+                self.mx1Df['ATTRTYPE']=='CVERSO'
+                ].index[0]           
+            self.unpackIdxCVERSO=self.mx1Df['unpackIdx'][               
+                self.mx1Df['ATTRTYPE']=='CVERSO'
+                ].iloc[0]    
             
-            # idxTIMESTAMP
-            self.idxTIMESTAMP=self.mx1Df['Sir3sID'][self.mx1Df['Sir3sID']=='ALLG~~~-1~TIMESTAMP'].index[0]
-            # unpackIdxTIMESTAMP
-            self.unpackIdxTIMESTAMP=self.mx1Df['unpackIdx'][self.mx1Df['Sir3sID']=='ALLG~~~-1~TIMESTAMP'].iloc[0]    
+            # TIMESTAMP
+            self.idxTIMESTAMP=self.mx1Df['Sir3sID'][                
+                self.mx1Df['ATTRTYPE']=='TIMESTAMP'
+                ].index[0]           
+            self.unpackIdxTIMESTAMP=self.mx1Df['unpackIdx'][
+                self.mx1Df['ATTRTYPE']=='TIMESTAMP'
+                ].iloc[0]    
             logger.debug("{:s}idxTIMESTAMP={:d} (idx in MX1) unpackIdxTIMESTAMP={:d} (idx in recordData).".format(logStr,self.idxTIMESTAMP,self.unpackIdxTIMESTAMP))                    
             
             # columnNames used in Pandas        
@@ -1298,7 +1344,8 @@ class Mx():
                     self.mxColumnNamesVecs.append(sir3sID)
 
             # remove Timestamp in mxColumnNamesVecs (index not value)
-            idxTIMESTAMP=self.mxColumnNames.index('ALLG~~~-1~TIMESTAMP')
+            sir3sIdTimestamp=self.mx1Df['Sir3sID'].iloc[self.idxTIMESTAMP]
+            idxTIMESTAMP=self.mxColumnNames.index(sir3sIdTimestamp)#'ALLG~~~-1~TIMESTAMP')
             del self.mxColumnNames[idxTIMESTAMP] 
             columns=len(self.mxColumnNames)
             logger.debug("{0:s}NOfColumns (without TIMESTAMP): {1:d}.".format(logStr,columns))                
@@ -1371,6 +1418,8 @@ class Mx():
             * mxsVecsH5StorePtr: .vec.h5-File
             * firstTime: used to calculate h5Key for mxsVecsH5Store
                 * None (default): firstTime is set to 1st TIMESTAMP in .MXS-File 
+                * else:
+                    * caller sets firstTime - in general the youngest TIMESTAMP in the df to be extended                   
 
             * maxRecords
 
@@ -1391,6 +1440,8 @@ class Mx():
             * is used to update the mxsVecsH5Store with mxsFile-Content
 
                 * Key: microseconds from firstTime 
+                    * can be all negative if firstTime (in general the youngest TIMESTAMP in the df to be extended) is older than the oldest TIMESTAMP in the .MXS-File
+
                 * dfVecs
                     * index: TIMESTAMP 
                     * values: Vectordata for the TIMESTAMP
@@ -1438,12 +1489,43 @@ class Mx():
                         else:
                             timeISO8601=None
 
+                        # process CVERSO
+                        if self.timeDeltaReadOffset==None:
+                            try:
+                                cVerso = recordData[self.unpackIdxCVERSO].decode('utf-8') # 'SIR 3S 90-11-00-02 3S Consult, 30827 Garbsen - 02.09.2018 09:47 - M-1-0-1       '
+                                logger.debug("{0:s}CVERSO: {1!s}.".format(logStr,cVerso))
+                                matchExp='SIR 3S (\d{2})-(\d{2})-(\d{2})-(\d{2})'
+                                mo=re.search(matchExp,cVerso)
+                                subVersion=int(mo.group(2))
+                            
+                                if subVersion < 10:
+                                    self.timeDeltaReadOffset=pd.to_timedelta('1 hour') # the MX-TIMESTAMPS contain +01:00
+                                    self.timeDeltaWriteOffset='+01:00'
+                                else:
+                                    self.timeDeltaReadOffset=pd.to_timedelta('0 seconds')   
+                                    self.timeDeltaWriteOffset=''
+                                                                                                                                                                                                                                                           
+                            except Exception as e:                           
+                                logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                    
+                                logger.error(logStrFinal) 
+                                raise MxError(logStrFinal) 
+
                         # process record time
                         try:
-                            timeISO8601 = recordData[self.unpackIdxTIMESTAMP] #b'2017-10-20 00:00:00.000000+01:00' for scenTime 2017-10-20 00:00:00
+                            timeISO8601 = recordData[self.unpackIdxTIMESTAMP] 
+                            #  09                               b'2018-03-03 00:00:00.000000+01:00'
+                                # d.h. die Version schreibt das UTC offset 
+                            #>=10 (11 checked):                 b'2018-03-03 00:00:00.000000      '                 
+                                # d.h. die Version schreibt kein UTC offset          
                             time = pd.to_datetime(timeISO8601.decode(),utc=True) # 3.6
-                            time_read_after_to_datetime=time.strftime("%Y-%m-%d %H:%M:%S.%f%z") #%z: UTC offset in the form +HHMM or -HHMM (empty string if the object is naive)        
-                            time = time + pd.to_timedelta('1 hour')   
+                            #  09               numpy.datetime64('2018-03-02T23:00:00.000000000') # in die errechnete Zeit geht das UTC offset ein 
+                            #>=10 (11 checked): numpy.datetime64('2018-03-03T00:00:00.000000000')                            
+
+                            time_read_after_to_datetime=time.strftime("%Y-%m-%d %H:%M:%S.%f%z") #%z: UTC offset in the form +HHMM or -HHMM (empty string if the object is naive) # %z delivers always +0000 ?!   
+                            #  09               2018-03-02 23:00:00.000000+0000 
+                            #>=10 (11 checked): 2018-03-03 00:00:00.000000+0000 
+
+                            time = time + self.timeDeltaReadOffset 
                             time_read_finally=time.strftime("%Y-%m-%d %H:%M:%S.%f%z")       
                             if recsReadFromFile==0 and firstTime==None:
                                 firstTime=time                                                                                                                                                                                                                                                                             
@@ -1580,8 +1662,16 @@ class Mx():
                         time=dfVecs.index[0]
                         if idx==0:
                             firstTime=time
+                        msForTime=getMicrosecondsFromRefTime(firstTime,time)
+                        if msForTime != keys[idx]:
+                            logger.debug("{:s}TimeNr. {:>6d} with key {!s:>20s} and TIMESTAMP {!s:s}: ms (>key) NOT ms {!s:>20s} for TIMESTAMP.".format(logStr,idx+1,key,time,msForTime))  
+                        if idx>0:
+                            if time <= lastTime:
+                                 logger.debug("{:s}TimeNr. {:>6d} with key {!s:>20s} and TIMESTAMP {!s:s}: NOT > lastTimeRead {!s:s}.".format(logStr,idx+1,key,time,lastTime))  
+
+
                         logger.debug("{:s}TimeNr. {:>6d} with key {!s:>20s} and TIMESTAMP {!s:s}.".format(logStr,idx+1,key,time))         
-                    lastTime=time
+                        lastTime=time
                 else:
                     #1st Time
                     key=keysH5[0]
@@ -1740,12 +1830,9 @@ class Mx():
             else:
                 logger.error("{0:s}Mxs: {1:s}: Reading failed.".format(logStr,mxsFile))    
             
-            #import time
-            #h5VecsFileTimeAfter=os.path.getmtime(self.h5FileVecs)
-            #logger.debug("{:s}: h5FileVecs: Before: {:s}: After:  {:s}.".format(logStr
-            #,time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTimeBefore))
-            #,time.strftime("%Y-%m-%d %H:%M:%S %z",time.gmtime(h5VecsFileTimeAfter))
-            #))                                             
+            #logger.debug("{0:s}\n{1!s}".format(logStr
+            #                                 ,repr(self.df)#.replace('\\n','\\n   ')
+            #                                 ))                                              
 
         except MxError:
             raise
@@ -1875,7 +1962,9 @@ class Mx():
             else:
                 logger.error("{0:s}Zip: {1:s}: Reading failed.".format(logStr,mxsZipFile))                                          
                                                                     
-                       
+            #logger.debug("{0:s}\n{1!s}".format(logStr
+            #                                 ,repr(self.df)#.replace('\\n','\\n   ')
+            #                                 ))               
         except MxError:
             raise
         except Exception as e:
@@ -2063,7 +2152,9 @@ class Mx():
             * timesReq: List of requested TIMESTAMPs
 
         Returns:
-            * List of dfs with mxsVecsFileData
+            * List of dfs with mxsVecsFileData 
+                * None, if none of the req. TIMESTAMPs was found                
+
             * one TIMESTAMP per df
             * index: TIMESTAMP
 
@@ -2095,13 +2186,28 @@ class Mx():
                                  
             mxsVecsDfs=[]
             with pd.HDFStore(self.h5FileVecs) as h5Store:
-                #available
+                # ueber alle verlangten keys
                 h5KeysAvailable=sorted(h5Store.keys())      
-                for idx,h5Key in enumerate(h5KeysRequested):
-                    if h5Key in h5KeysAvailable:
-                        mxsVecsDfs.append(h5Store[h5Key])
+                for idx,h5KeyReq in enumerate(h5KeysRequested):
+                    if h5KeyReq in h5KeysAvailable:
+                        df=h5Store[h5KeyReq]
+                        mxsVecsDfs.append(df)
+                        if df.index[0]!=timesReq[idx]:
+                            logger.debug("{:s}{:s}: Key {:s} available - BUT TimeReq {:s} matched not H5-Time for this Key which is: {:s}.".format(logStr,self.h5FileVecs,h5KeyReq,str(timesReq[idx]),str(df.index[0])))                        
+
                     else:
-                        logger.debug("{:s}{:s}: Key {:s} (Time {:s}) not available.".format(logStr,self.h5FileVecs,h5Key,timesReq[idx]))
+                        logger.debug("{:s}{:s}: Key {:s} (Time {:s}) not available.".format(logStr,self.h5FileVecs,h5KeyReq,str(timesReq[idx])))
+                        # ueber alle vorhandenen Keys
+                        for h5KeyAva in h5KeysAvailable:                            
+                            df=h5Store[h5KeyAva]
+                            timeStamp=df.index[0]
+                            logger.debug("{:s}{:s}: KeyAva {:s} (Time {:s}).".format(logStr,self.h5FileVecs,h5KeyAva,str(timeStamp)))                            
+                            if timeStamp==timesReq[idx]:
+                                mxsVecsDfs.append(df)
+                                logger.debug("{:s}{:s}: Key {:s} matched Time {:s}.".format(logStr,self.h5FileVecs,h5KeyAva,str(timesReq[idx])))                        
+                                break  
+                        else:                            
+                            logger.debug("{:s}{:s}: Key {:s} (Time {:s}) also as TIMESTAMP not available.".format(logStr,self.h5FileVecs,h5KeyReq,str(timesReq[idx])))
                                                         
         except MxError:
             raise
@@ -2116,6 +2222,17 @@ class Mx():
     def dumpInMxsFormat(self,mxsDumpFile=None):
         """Dumps in MXS-Format to mxsDumpFile (for testing purposes). 
 
+        Returns:
+            * (TimeStampsDumped, TimeStampsFoundInH5)
+                * normally:  TimeStampsDumped=TimeStampsFoundInH5
+                * if TimesStamps in self.df are manipulated ...
+                * ... the H5-Content remains unchanged
+                * in effect the H5-Content can be different from self.df-Content ...
+                * während in self.df die Zeiten (Index) immer geordnet und voneinander verschieden sind
+                * sind beim H5-Content nur die Keys voneinander verschieden
+                * um pruefen zu koennen, ob alle Zeiten in self.df im H5-Content auch gefunden wurden, wird TimeStampsFoundInH5 mit ausgegeben
+                * gedumped werden immer alle Zeiten aus self.df 
+                * - fuer jede im H5-Content nicht gefundene Zeit wird das Ergebnis der zuletzt zuvor gefundenen Zeit ausgegeben  
         Raises:
             MxError
         """
@@ -2130,17 +2247,14 @@ class Mx():
             with open(mxsDumpFile,'wb') as f:
 
                 # ueber alle Zeiten in self.df ...
-                idxDumped=0
+                TimeStampsDumped=0
+                TimeStampsFoundInH5=0
                 for idx,row in enumerate(self.df.itertuples(index=False)):
                     
                     # TIMESTAMP herrichten
                     try:                        
-                        scenTime=self.df.index[idx]                                                                                               
-                        #timeISO8601 read:          b'2017-10-20 00:00:00.000000+01:00' - the original timeISO8601 read is marked as UTC +1 written as +01:00
-                        #Time read after to_datetime: 2017-10-19 23:00:00.000000+0000   - the result after pd.to_datetime(timeISO8601,utc=True) 
-                        #Time read finally            2017-10-20 00:00:00.000000+0000   - the time used - "corrected" manually +1 hour 
-                        #+01:00 instead of %z because %z will be +0000 ...  
-                        scenTimeStr=scenTime.strftime("%Y-%m-%d %H:%M:%S.%f+01:00") 
+                        scenTime=self.df.index[idx]                                                                                                                                               
+                        scenTimeStr=scenTime.strftime("%Y-%m-%d %H:%M:%S.%f"+self.timeDeltaWriteOffset) 
                         scenTimeStrBytes=scenTimeStr.encode('utf-8')
                     except:
                         logStrFinal="{0:s}h5File: {1!s}: TIMESTAMP herrichten: Error.".format(logStr,mxsDumpFile)
@@ -2149,19 +2263,28 @@ class Mx():
 
                     # Values herrichten und Satz schreiben
                     try:    
+                        # valuesNonVec
                         valuesNonVec=list(row)
-                        # valuesVec
-                        # h5Key aus scenTime
-                        firstTime=self.df.index[0]
-                        h5Key=getMicrosecondsFromRefTime(refTime=firstTime,time=scenTime)
-                        
-                        h5Key='/'+str(h5Key)
-                        # dfVecs lesen
-                        with pd.HDFStore(self.h5FileVecs) as mxsVecsH5Store: 
-                            dfVecs=mxsVecsH5Store[h5Key]  
-                        for row in dfVecs.itertuples(index=False):
-                            # one row
-                            valuesVec=list(row)
+
+                        # valuesVec  
+                        try:
+                            # h5-Satz suchen                                            
+                            timesReq=[]
+                            timesReq.append(scenTime)
+                            dfVecs=self.getMxsVecsFileData(timesReq=timesReq)[0]
+                        except  Exception as e:
+                            logStrFinal="{:s}mxsDumpFile: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,mxsDumpFile,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                            logger.debug(logStrFinal)   
+                            logger.debug("{:s}mxsDumpFile: {:s}: TimeNr. {:>6d} with TIMESTAMP: {:s}: Not found in H5-Content. Using H5-Content read before.".format(logStr,mxsDumpFile,TimeStampsDumped,scenTimeStr))    
+                            dfVecs=dfVecsOld                            
+                        else:
+                            dfVecsOld=dfVecs
+                            TimeStampsFoundInH5=TimeStampsFoundInH5+1
+                        finally:
+                            for row in dfVecs.itertuples(index=False):
+                                # one row only
+                                valuesVec=list(row)
+
                         # Gesamt anlegen
                         rows,cols = self.mx1Df.shape
                         values=[]
@@ -2185,11 +2308,13 @@ class Mx():
                         # Satz schreiben
                         bytes=struct.pack(self.mxRecordStructFmtString,*valuesSingle)
                         f.write(bytes)        
-                        logger.debug("{:s}mxsDumpFile: {:s}: TimeNr. {:>6d} with TIMESTAMP: {:s}: Dumped.".format(logStr,mxsDumpFile,idxDumped,scenTimeStr))    
-                        idxDumped=idxDumped+1                                                                 
-                    except:
-                        logger.debug("{:s}mxsDumpFile: {:s}: TIMESTAMP: {:s}: Exception. Continue.".format(logStr,mxsDumpFile,scenTimeStr))                                                     
-                        continue                      
+                        logger.debug("{:s}mxsDumpFile: {:s}: TimeNr. {:>6d} with TIMESTAMP: {:s}: Dumped.".format(logStr,mxsDumpFile,TimeStampsDumped,scenTimeStr))    
+                        TimeStampsDumped=TimeStampsDumped+1                                                                 
+
+                    except Exception as e:                        
+                        logStrFinal="{:s}mxsDumpFile: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,mxsDumpFile,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                        logger.error(logStrFinal)                        
+                        raise MxError(logStrFinal)                                                                                          
                                                                                     
         except MxError:
             raise
@@ -2199,6 +2324,7 @@ class Mx():
             raise MxError(logStrFinal)                                  
         else:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+            return(TimeStampsDumped, TimeStampsFoundInH5)
             
 if __name__ == "__main__":
     """
