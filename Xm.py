@@ -77,7 +77,7 @@ True
 >>> # ---
 >>> # getWDirModelDirModelName()
 >>> # ---
->>> (wDir,modelDir,modelName)=xm.getWDirModelDirModelName()
+>>> (wDir,modelDir,modelName,mx1File)=xm.getWDirModelDirModelName()
 >>> modelName
 'M-1-0-1'
 >>> # ---
@@ -193,16 +193,15 @@ False
 >>> # ---
 >>> # vAGSN
 >>> # ---
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vAGSN']).replace('\\n','\\n   ')))
-'''  LFDNR                                      NAME AKTIV OBJTYPE                OBJID                   pk                   tk  nrObjInAgsn
-   0     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4939422678063487923  5252525269080005909  5252525269080005909            1
-   1     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4984202422877610920  5252525269080005909  5252525269080005909            2
-   2     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4789218195240364437  5252525269080005909  5252525269080005909            3
-   3     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4614949065966596185  5252525269080005909  5252525269080005909            4
-   4     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5037777106796980248  5252525269080005909  5252525269080005909            5
-   5     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4713733238627697042  5252525269080005909  5252525269080005909            6
-   6     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5123819811204259837  5252525269080005909  5252525269080005909            7
-   7     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5620197984230756681  5252525269080005909  5252525269080005909            8'''
+>>> print(xm._getvXXXXAsOneString(vXXXX='vAGSN',end=7,dropColList=['nrObjtypeInAgsn']))
+  LFDNR                                      NAME AKTIV OBJTYPE                OBJID                   pk                   tk  nrObjInAgsn
+0     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4939422678063487923  5252525269080005909  5252525269080005909            1
+1     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4984202422877610920  5252525269080005909  5252525269080005909            2
+2     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4789218195240364437  5252525269080005909  5252525269080005909            3
+3     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4614949065966596185  5252525269080005909  5252525269080005909            4
+4     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5037777106796980248  5252525269080005909  5252525269080005909            5
+5     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4713733238627697042  5252525269080005909  5252525269080005909            6
+6     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5123819811204259837  5252525269080005909  5252525269080005909            7
 >>> # ---
 >>> # vFWVB
 >>> # ---
@@ -356,23 +355,22 @@ False
 >>> # ---
 >>> # vNRCV
 >>> # ---
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vNRCV'].sort_values(['OBJTYPE','fkOBJTYPE','ATTRTYPE','cRefLfdNr'],ascending=True)).replace('\\n','\\n   ')))
-'''   cRefLfdNr                                      CONT CONT_ID CONT_LFDNR         DPGR OBJTYPE            fkOBJTYPE ATTRTYPE              pk_ROWS              tk_ROWS                   pk                   tk                                  pXYLB
-   0          1                                      BHKW    1002         -1  UserDefined    FWES  5638756766880678918        W  5762106696740202356  5762106696740202356  4857294696992797631  4857294696992797631                           (90.0, 65.0)
-   1          1                                      BHKW    1002         -1  UserDefined    KNOT  5049461676240771430        T  4723443975311885965  4723443975311885965  5097127385155151127  5097127385155151127                           (90.0, 95.0)
-   2          1                                      BHKW    1002         -1  UserDefined    KNOT  5219230031772497417        T  5602301870151014230  5602301870151014230  5557806245003742769  5557806245003742769                           (90.0, 35.0)
-   3          1                                      BHKW    1002         -1  UserDefined    KNOT  5356267303828212700       PH  5000989080893535213  5000989080893535213  4968703141722117357  4968703141722117357                          (220.0, 25.0)
-   4          1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5397990465339071638       QM  5134531789044068877  5134531789044068877  5410059595276504750  5410059595276504750                          (91.0, -94.0)
-   5          2                                      BHKW    1002         -1  UserDefined    KNOT  5397990465339071638       QM  5134531789044068877  5134531789044068877  5357021981944933535  5357021981944933535  (184.999999464624, 57.99999953107601)
-   6          1                                      BHKW    1002         -1  UserDefined    KNOT  5736262931552588702       PH  4754881272083464445  4754881272083464445  4681213816714574464  4681213816714574464                          (220.0, 85.0)
-   7          1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5741235692335544560       DP  4949183695502554728  4949183695502554728  4914949875368816179  4914949875368816179                         (1234.0, 83.0)
-   8          1                                      BHKW    1002         -1  UserDefined    PUMP  5481331875203087055        N  5563842594211689762  5563842594211689762  5091374651838464239  5091374651838464239                          (170.0, 45.0)
-   9          1                                      BHKW    1002         -1  UserDefined    VENT  4678923650983295610       QM  5126307362398248950  5126307362398248950  5410904806390050339  5410904806390050339                         (200.0, 110.0)
-   10         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    WBLZ  4694700216019268978      WVB  4778244458749966216  4778244458749966216  4991097791264453745  4991097791264453745                        (354.0, -225.0)
-   11         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WES  5690691957596882133  5690691957596882133  5179988968597313889  5179988968597313889                          (90.0, 155.0)
-   12         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WSPEI  5153847813311339683  5153847813311339683  4946584950744559030  4946584950744559030                          (90.0, 140.0)
-   13         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WVB  5214984699859365639  5214984699859365639  5281885868749421521  5281885868749421521                          (90.0, 150.0)
-   14         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WVERL  4722863010266870887  4722863010266870887  5476262878682325254  5476262878682325254                          (90.0, 145.0)'''
+>>> print(xm._getvXXXXAsOneString(vXXXX='vNRCV',end=14,dropColList=['DPGR','CONT_LFDNR','pk_ROWS'],sortList=['OBJTYPE','fkOBJTYPE','ATTRTYPE','cRefLfdNr']))
+   cRefLfdNr                                      CONT CONT_ID OBJTYPE            fkOBJTYPE ATTRTYPE              tk_ROWS                   pk                   tk                                  pXYLB
+0          1                                      BHKW    1002    FWES  5638756766880678918        W  5762106696740202356  4857294696992797631  4857294696992797631                           (90.0, 65.0)
+1          1                                      BHKW    1002    KNOT  5049461676240771430        T  4723443975311885965  5097127385155151127  5097127385155151127                           (90.0, 95.0)
+2          1                                      BHKW    1002    KNOT  5219230031772497417        T  5602301870151014230  5557806245003742769  5557806245003742769                           (90.0, 35.0)
+3          1                                      BHKW    1002    KNOT  5356267303828212700       PH  5000989080893535213  4968703141722117357  4968703141722117357                          (220.0, 25.0)
+4          1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001    KNOT  5397990465339071638       QM  5134531789044068877  5410059595276504750  5410059595276504750                          (91.0, -94.0)
+5          2                                      BHKW    1002    KNOT  5397990465339071638       QM  5134531789044068877  5357021981944933535  5357021981944933535  (184.999999464624, 57.99999953107601)
+6          1                                      BHKW    1002    KNOT  5736262931552588702       PH  4754881272083464445  4681213816714574464  4681213816714574464                          (220.0, 85.0)
+7          1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001    KNOT  5741235692335544560       DP  4949183695502554728  4914949875368816179  4914949875368816179                         (1234.0, 83.0)
+8          1                                      BHKW    1002    PUMP  5481331875203087055        N  5563842594211689762  5091374651838464239  5091374651838464239                          (170.0, 45.0)
+9          1                                      BHKW    1002    VENT  4678923650983295610       QM  5126307362398248950  5410904806390050339  5410904806390050339                         (200.0, 110.0)
+10         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001    WBLZ  4694700216019268978      WVB  4778244458749966216  4991097791264453745  4991097791264453745                        (354.0, -225.0)
+11         1                                      BHKW    1002    WBLZ  5262603207038486299      WES  5690691957596882133  5179988968597313889  5179988968597313889                          (90.0, 155.0)
+12         1                                      BHKW    1002    WBLZ  5262603207038486299    WSPEI  5153847813311339683  4946584950744559030  4946584950744559030                          (90.0, 140.0)
+13         1                                      BHKW    1002    WBLZ  5262603207038486299      WVB  5214984699859365639  5281885868749421521  5281885868749421521                          (90.0, 150.0)
 >>> # ---
 >>> # Mx()
 >>> # ---
@@ -410,8 +408,7 @@ True
 >>> xmlFile=os.path.join(os.path.join(path,testDir),'LocalHeatingNetwork.XML')
 >>> xm=Xm(xmlFile=xmlFile)
 >>> vROHR=xm.dataFrames['vROHR']
->>> (wDir,modelDir,modelName)=xm.getWDirModelDirModelName()
->>> mx1File=os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'    
+>>> (wDir,modelDir,modelName,mx1File)=xm.getWDirModelDirModelName()    
 >>> mx=Mx.Mx(mx1File=mx1File)
 >>> vROHR.shape
 (16, 73)
@@ -425,22 +422,23 @@ True
 >>> # ---
 >>> # vNRCV_Mx1
 >>> # ---
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vNRCV_Mx1'].sort_values(['Sir3sID'],ascending=True)).replace('\\n','\\n   ')))
-'''                                         Sir3sID cRefLfdNr                                      CONT CONT_ID CONT_LFDNR         DPGR OBJTYPE            fkOBJTYPE ATTRTYPE              pk_ROWS              tk_ROWS                   pk                   tk            pXYLB
-   0              FWES~R3~V-1~5638756766880678918~W         1                                      BHKW    1002         -1  UserDefined    FWES  5638756766880678918        W  5762106696740202356  5762106696740202356  4857294696992797631  4857294696992797631     (90.0, 65.0)
-   1       KNOT~PKON-Knoten~~5397990465339071638~QM         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5397990465339071638       QM  5134531789044068877  5134531789044068877  5410059595276504750  5410059595276504750    (91.0, -94.0)
-   2               KNOT~R-L~~5356267303828212700~PH         1                                      BHKW    1002         -1  UserDefined    KNOT  5356267303828212700       PH  5000989080893535213  5000989080893535213  4968703141722117357  4968703141722117357    (220.0, 25.0)
-   3                 KNOT~R3~~5219230031772497417~T         1                                      BHKW    1002         -1  UserDefined    KNOT  5219230031772497417        T  5602301870151014230  5602301870151014230  5557806245003742769  5557806245003742769     (90.0, 35.0)
-   4                KNOT~V-1~~5049461676240771430~T         1                                      BHKW    1002         -1  UserDefined    KNOT  5049461676240771430        T  4723443975311885965  4723443975311885965  5097127385155151127  5097127385155151127     (90.0, 95.0)
-   5            KNOT~V-K007~~5741235692335544560~DP         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    KNOT  5741235692335544560       DP  4949183695502554728  4949183695502554728  4914949875368816179  4914949875368816179   (1234.0, 83.0)
-   6               KNOT~V-L~~5736262931552588702~PH         1                                      BHKW    1002         -1  UserDefined    KNOT  5736262931552588702       PH  4754881272083464445  4754881272083464445  4681213816714574464  4681213816714574464    (220.0, 85.0)
-   7              PUMP~R-1~R2~5481331875203087055~N         1                                      BHKW    1002         -1  UserDefined    PUMP  5481331875203087055        N  5563842594211689762  5563842594211689762  5091374651838464239  5091374651838464239    (170.0, 45.0)
-   8            VENT~V-1~V-L~4678923650983295610~QM         1                                      BHKW    1002         -1  UserDefined    VENT  4678923650983295610       QM  5126307362398248950  5126307362398248950  5410904806390050339  5410904806390050339   (200.0, 110.0)
-   9        WBLZ~BLNZ1u5u7~~4694700216019268978~WVB         1  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  UserDefined    WBLZ  4694700216019268978      WVB  4778244458749966216  4778244458749966216  4991097791264453745  4991097791264453745  (354.0, -225.0)
-   10    WBLZ~WärmeblnzGes~~5262603207038486299~WES         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WES  5690691957596882133  5690691957596882133  5179988968597313889  5179988968597313889    (90.0, 155.0)
-   11  WBLZ~WärmeblnzGes~~5262603207038486299~WSPEI         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WSPEI  5153847813311339683  5153847813311339683  4946584950744559030  4946584950744559030    (90.0, 140.0)
-   12    WBLZ~WärmeblnzGes~~5262603207038486299~WVB         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299      WVB  5214984699859365639  5214984699859365639  5281885868749421521  5281885868749421521    (90.0, 150.0)
-   13  WBLZ~WärmeblnzGes~~5262603207038486299~WVERL         1                                      BHKW    1002         -1  UserDefined    WBLZ  5262603207038486299    WVERL  4722863010266870887  4722863010266870887  5476262878682325254  5476262878682325254    (90.0, 145.0)'''
+>>> import re
+>>> f=lambda s: re.match('(\S+)~(\S*)~(\S*)~(\d+)~(\S+)',s).group(1)+'~~~'+re.match('(\S+)~(\S*)~(\S*)~(\d+)~(\S+)',s).group(4)+'~'+re.match('(\S+)~(\S*)~(\S*)~(\d+)~(\S+)',s).group(5)
+>>> print(xm._getvXXXXAsOneString(vXXXX='vNRCV_Mx1',end=14,dropColList=['DPGR','CONT_LFDNR','pk_ROWS'],mapDct={'Sir3sID':f},sortList=['Sir3sID'],fmtDct={'Sir3sID':f},index=False,header=False))
+FWES~~~5638756766880678918~W  1                                      BHKW  1002  FWES  5638756766880678918      W  5762106696740202356  4857294696992797631  4857294696992797631     (90.0, 65.0)
+    KNOT~~~5049461676240771430~T  1                                      BHKW  1002  KNOT  5049461676240771430      T  4723443975311885965  5097127385155151127  5097127385155151127     (90.0, 95.0)
+    KNOT~~~5219230031772497417~T  1                                      BHKW  1002  KNOT  5219230031772497417      T  5602301870151014230  5557806245003742769  5557806245003742769     (90.0, 35.0)
+   KNOT~~~5356267303828212700~PH  1                                      BHKW  1002  KNOT  5356267303828212700     PH  5000989080893535213  4968703141722117357  4968703141722117357    (220.0, 25.0)
+   KNOT~~~5397990465339071638~QM  1  Nahwärmenetz mit 1000 kW Anschlussleistu  1001  KNOT  5397990465339071638     QM  5134531789044068877  5410059595276504750  5410059595276504750    (91.0, -94.0)
+   KNOT~~~5736262931552588702~PH  1                                      BHKW  1002  KNOT  5736262931552588702     PH  4754881272083464445  4681213816714574464  4681213816714574464    (220.0, 85.0)
+   KNOT~~~5741235692335544560~DP  1  Nahwärmenetz mit 1000 kW Anschlussleistu  1001  KNOT  5741235692335544560     DP  4949183695502554728  4914949875368816179  4914949875368816179   (1234.0, 83.0)
+    PUMP~~~5481331875203087055~N  1                                      BHKW  1002  PUMP  5481331875203087055      N  5563842594211689762  5091374651838464239  5091374651838464239    (170.0, 45.0)
+   VENT~~~4678923650983295610~QM  1                                      BHKW  1002  VENT  4678923650983295610     QM  5126307362398248950  5410904806390050339  5410904806390050339   (200.0, 110.0)
+  WBLZ~~~4694700216019268978~WVB  1  Nahwärmenetz mit 1000 kW Anschlussleistu  1001  WBLZ  4694700216019268978    WVB  4778244458749966216  4991097791264453745  4991097791264453745  (354.0, -225.0)
+  WBLZ~~~5262603207038486299~WES  1                                      BHKW  1002  WBLZ  5262603207038486299    WES  5690691957596882133  5179988968597313889  5179988968597313889    (90.0, 155.0)
+WBLZ~~~5262603207038486299~WSPEI  1                                      BHKW  1002  WBLZ  5262603207038486299  WSPEI  5153847813311339683  4946584950744559030  4946584950744559030    (90.0, 140.0)
+  WBLZ~~~5262603207038486299~WVB  1                                      BHKW  1002  WBLZ  5262603207038486299    WVB  5214984699859365639  5281885868749421521  5281885868749421521    (90.0, 150.0)
+WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1002  WBLZ  5262603207038486299  WVERL  4722863010266870887  5476262878682325254  5476262878682325254    (90.0, 145.0)
 >>> # ---
 >>> # Clean Up LocalHeatingNetwork
 >>> # ---
@@ -880,16 +878,19 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def getWDirModelDirModelName(self):
-        """ Returns (wDir,modelDir,modelName).
+        """ Returns (wDir,modelDir,modelName,mx1FileName).
 
         Returns:            
-            (wDir,modelDir,modelName)
+            (wDir,modelDir,modelName,mx1FileName)
 
         wDir
-            If wDir as given literally in .xmlFile is not a valid Dir, a wDir relative to .xmlFile is returned. 
+            If wDir as given literally in .xmlFile is not a valid Dir or such an WD... relative to .xmlFile-Path exists the WD... relative is returned. 
 
-        mx1FileName: os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'    
-
+        mx1FileName
+            If not existing an INFO-Message ist generated.
+            mx1FileName is set to:               os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'
+            or if file above does :not exist to: os.path.join(wDir,os.path.join(modelDir,modelName))+'.1'+'.MX1'
+           
         Raises:
             XmError
         """
@@ -900,16 +901,36 @@ class Xm():
         result=tuple(['','',''])
         
         try:    
+            # wDir literally from Model 
             t=self.dataFrames['SYSTEMKONFIG']
-            wDir=t[t['ID'].astype(int)==1]['WERT'].iloc[0] 
+            WDirFromModel=t[t['ID'].astype(int)==1]['WERT'].iloc[0] 
+
+            # such a wDir relative to Modelfile-Path
+            head,wDirTail=os.path.split(os.path.abspath(WDirFromModel))
+            xmlDirHead,tail=os.path.split(os.path.abspath(self.xmlFile))
+            WDirFromModelFilePath=os.path.join(xmlDirHead,wDirTail)
             
-            if not os.path.isdir(wDir):            
-                logger.debug("{:s}wDir: {:s} does not exist.".format(logStr,wDir))
-                head,wDirTail=os.path.split(os.path.abspath(wDir))
-                xmlDirHead,tail=os.path.split(os.path.abspath(self.xmlFile))
-                wDir=os.path.join(xmlDirHead,wDirTail)
-                if not os.path.isdir(wDir):                
-                    logger.info("{:s}wDir: {:s} also does not exist?!".format(logStr,wDir))
+            if not os.path.isdir(WDirFromModel) and not os.path.isdir(WDirFromModelFilePath):   
+                    logStrFinal="{:s}wDirs {:s} and {:s} both not existing!".format(logStr,WDirFromModel,WDirFromModelFilePath)                          
+                    logger.error(logStrFinal)       
+                    raise XmError(logStrFinal)  
+            elif os.path.isdir(WDirFromModel) and not os.path.isdir(WDirFromModelFilePath):   
+                    logStr="{:s}Only wDir {:s} exists.".format(logStr,WDirFromModel)                          
+                    logger.debug(logStr)       
+                    wDir=wDirFromModel
+            elif not os.path.isdir(WDirFromModel) and os.path.isdir(WDirFromModelFilePath):   
+                    logStr="{:s}Only wDir {:s} exists.".format(logStr,WDirFromModelFilePath)                          
+                    logger.debug(logStr)       
+                    wDir=WDirFromModelFilePath
+            else: # beide Verzeichnisse existieren ....   
+                    if WDirFromModel == WDirFromModelFilePath:
+                        pass # der Normalfall
+                    else:
+                        logStr="{:s}wDirs {:s} and {:s} both are existing.".format(logStr,WDirFromModel,WDirFromModelFilePath)      
+                        logger.debug(logStr)  
+                        logStr="{:s}wDir {:s} is used.".format(logStr,WDirFromModelFilePath)   
+                        logger.debug(logStr)       
+                    wDir=WDirFromModelFilePath
 
             t=self.dataFrames['DATENEBENE']
             B=t[t['TYP'].str.contains('BASIS')]['ORDNERNAME'].iloc[0] 
@@ -919,12 +940,16 @@ class Xm():
 
             t=self.dataFrames['MODELL']
             modelName=t['BEZEICHNER'].iloc[0]          
-
-            result=tuple([wDir,modelDir,modelName])
-            
-            mx1Filename=os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'     
+  
+            mx1FilenamePre=os.path.join(wDir,os.path.join(modelDir,modelName))     
+            mx1Filename=mx1FilenamePre+'.MX1' 
             if not os.path.isfile(mx1Filename):                                          
-                logger.info("{:s}mx1FileName: {:s} does not exist?!".format(logStr,mx1Filename))
+                logger.debug("{:s}This mx1FileName: {:s} does not exist. Trying .1.MX1 ...".format(logStr,mx1Filename))
+                mx1Filename=mx1FilenamePre+'.1'+'.MX1'    
+                if not os.path.isfile(mx1Filename):                                          
+                    logger.info("{:s}This mx1FileName: {:s} also does not exist?!".format(logStr,mx1Filename))                   
+
+            result=tuple([wDir,modelDir,modelName,mx1Filename])
 
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))            
@@ -933,6 +958,51 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return result 
+
+    def _getvXXXXAsOneString(self,vXXXX=None,start=0,end=-1,dropColList=None,mapDct={},sortList=None,fmtDct={},index=True,header=True):
+        """Returns vXXXX-Content as one String (for Doctest-Purposes).
+           
+        Raises:
+            XmError
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        dfContentAsOneString=None
+
+        df=self.dataFrames[vXXXX]
+
+        # select rows
+        df=df[start:end]
+
+        # select cols        
+        colList=df.columns.values.tolist()
+        if isinstance(dropColList,list):
+            colListOut=[col for col in colList if col not in dropColList]
+        else:
+            colListOut=colList
+        df=df.loc[:,colListOut]
+
+        # map cols
+        for col,func in mapDct.items():            
+            df[col]=df[col].map(func)
+
+        # sort 
+        if isinstance(sortList,list):
+            df=df.sort_values(sortList,ascending=True)    
+
+        try:                 
+            dfContentAsOneString=df.to_string(formatters=fmtDct,index=index,header=header)                                                                            
+        except MxError:
+            raise            
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)            
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+            return dfContentAsOneString
 
     def _vXXXX(self):
         """Creates all Views.
@@ -1165,7 +1235,8 @@ class Xm():
                     * pk, tk   
 
                 ANNOTATION
-                    * nrObjInAgsn: Element Nr.  in AGSN (LFDNR)                                                      
+                    * nrObjInAgsn: lfd. Obj-Nr. in AGSN (LFDNR)                   
+                    * nrObjtypeInAgsn: should be 1
 
         Raises:
             XmError                                
@@ -1188,7 +1259,8 @@ class Xm():
             #IDs
             ,'pk','tk'
             ]]
-            vAGSN=vAGSN.assign(nrObjInAgsn=vAGSN.sort_values(['LFDNR']).groupby(['LFDNR']).cumcount()+1)
+            vAGSN=vAGSN.assign(nrObjInAgsn=vAGSN.groupby(['LFDNR']).cumcount()+1) # dieses VBEL-Obj. ist im Schnitt Nr. x
+            vAGSN=vAGSN.assign(nrObjtypeInAgsn=vAGSN.groupby(['LFDNR','OBJTYPE','OBJID']).cumcount()+1) # dieses VBEL-Obj kommt im Schnitt zum x. Mal vor
           
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -2990,8 +3062,7 @@ class Xm():
             if isinstance(mx,Mx.Mx):
                 pass
             else:
-                (wDir,modelDir,modelName)=self.getWDirModelDirModelName()
-                mx1File=os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'            
+                (wDir,modelDir,modelName,mx1File)=self.getWDirModelDirModelName()                      
                 mx=Mx.Mx(mx1File=mx1File,NoMxsRead=True)
 
             self.__Mx1(mx)
@@ -3107,6 +3178,9 @@ class Xm():
             ]['Data'].iloc[0]
 
             vROHR=self.dataFrames['vROHR']
+
+            #logger.debug("{0:s}{1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vROHR')))
+            #logger.debug("{0:s}{1:s}".format(logStr,str(tksROHRMx)))
 
             tksROHRXm=vROHR['tk']
             mxTkRohrIdx=[tksROHRMx.index(tk) for tk in tksROHRXm]

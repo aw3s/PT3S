@@ -30,6 +30,14 @@
 ...    dummy= testDir
 ... except NameError:
 ...    testDir='testdata' 
+>>> # ---
+>>> # dotResolution
+>>> # ---
+>>> # globs={'dotResolution':''}
+>>> try:
+...     dummy= dotResolution
+... except NameError:
+...     dotResolution='' 
 >>> import pandas as pd
 >>> import matplotlib.pyplot as plt
 >>> pd.set_option('display.max_columns',None)
@@ -39,7 +47,7 @@
 >>> # ---
 >>> xmlFile=os.path.join(os.path.join(path,testDir),'LocalHeatingNetwork.XML')
 >>> xm=Xm.Xm(xmlFile=xmlFile)
->>> mx1File=os.path.join(path,'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1')
+>>> mx1File=os.path.join(path,os.path.join(testDir,'WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1'+dotResolution+'.MX1')) 
 >>> mx=Mx.Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
 >>> mx.setResultsToMxsFile(NewH5Vec=True)
 5
@@ -2076,12 +2084,12 @@ class Rm():
                  TBAV=1.15
             
             xmFileName,ext = os.path.splitext(os.path.basename(self.xm.xmlFile))
-            (wDir,modelDir,modelName)=self.xm.getWDirModelDirModelName()
+            (wDir,modelDir,modelName,mx1File)=self.xm.getWDirModelDirModelName()
             Projekt=self.xm.dataFrames['MODELL']['PROJEKT'].iloc[0]
             Planer=self.xm.dataFrames['MODELL']['PLANER'].iloc[0]
             Inst=self.xm.dataFrames['MODELL']['INST'].iloc[0]       
             Model="M: {:s}".format(xmFileName)   
-            Result="E: {:s}".format(os.path.join(os.path.basename(wDir),os.path.join(modelDir,modelName))+'.MX1')   
+            Result="E: {:s}".format(mx1File)   
             Times="TRef: {!s:s} T: {!s:s}".format(kwds['timeDeltaToRef'],kwds['timeDeltaToT']).replace('days','Tage')       
             pltNetLegendTitleblock(
                text=Projekt+'\n'+Planer+'\n'+Inst+'\n'+Model+'\n'+Result+'\n'+Times 
