@@ -28,6 +28,21 @@
     <Content Include="Rm.rst">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="testdata\TinyWDN.xml" />
+    <Content Include="testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.1.MX1" />
+    <Content Include="testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.1.MX3" />
+    <Content Include="testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.1.MXS" />
+    <Content Include="testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.XML" />
+    <Content Include="testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.1.MX1" />
+    <Content Include="testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.1.MX3" />
+    <Content Include="testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.1.MXS" />
+    <Content Include="testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX2" />
+    <Content Include="testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.XML" />
+    <Content Include="testdata\WDTinyWDN\B1\V0\BZ1\M-1-0-1.1.MX1" />
+    <Content Include="testdata\WDTinyWDN\B1\V0\BZ1\M-1-0-1.1.MX3" />
+    <Content Include="testdata\WDTinyWDN\B1\V0\BZ1\M-1-0-1.1.MXS" />
+    <Content Include="testdata\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MX2" />
+    <Content Include="testdata\WDTinyWDN\B1\V0\BZ1\M-1-0-1.XML" />
     <Content Include="Xm.rst" />
     <Content Include="LICENSE" />
     <Content Include="PT3S.html" />
@@ -35,12 +50,7 @@
     <Content Include="setup.cfg" />
     <Content Include="testdata\LocalHeatingNetwork.XML" />
     <Content Include="testdata\OneLPipe.XML" />
-    <Content Include="testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1" />
     <Content Include="testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX2" />
-    <Content Include="testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MXS" />
-    <Content Include="testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX1" />
-    <Content Include="testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX2" />
-    <Content Include="testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MXS" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="conf.py" />
@@ -69,6 +79,10 @@
     <Folder Include="testdata\WDOneLPipe\B1\" />
     <Folder Include="testdata\WDOneLPipe\B1\V0\" />
     <Folder Include="testdata\WDOneLPipe\B1\V0\BZ1\" />
+    <Folder Include="testdata\WDTinyWDN\" />
+    <Folder Include="testdata\WDTinyWDN\B1\" />
+    <Folder Include="testdata\WDTinyWDN\B1\V0\" />
+    <Folder Include="testdata\WDTinyWDN\B1\V0\BZ1\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
