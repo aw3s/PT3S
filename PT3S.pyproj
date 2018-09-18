@@ -12,7 +12,7 @@
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <CommandLineArguments>-v 	--dotResolution .1</CommandLineArguments>
+    <CommandLineArguments>-v --testDir testdata09</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
     <InterpreterId>
     </InterpreterId>
@@ -28,6 +28,30 @@
     <Content Include="Rm.rst">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="testdata09\LocalHeatingNetwork.XML" />
+    <Content Include="testdata09\LocalHeatingNetwork.mdb" />
+    <Content Include="testdata09\OneLPipe.XML" />
+    <Content Include="testdata09\OneLPipe.mdb" />
+    <Content Include="testdata09\TinyWDN.xml" />
+    <Content Include="testdata09\TinyWDN.mdb" />
+    <Content Include="testdata09\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1" />
+    <Content Include="testdata09\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX2" />
+    <Content Include="testdata09\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX3" />
+    <Content Include="testdata09\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MXS" />
+    <Content Include="testdata09\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.XML" />
+    <Content Include="testdata09\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX1" />
+    <Content Include="testdata09\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX2" />
+    <Content Include="testdata09\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX3" />
+    <Content Include="testdata09\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MXS" />
+    <Content Include="testdata09\WDOneLPipe\B1\V0\BZ1\M-1-0-1.XML" />
+    <Content Include="testdata09\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MX1" />
+    <Content Include="testdata09\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MX2" />
+    <Content Include="testdata09\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MX3" />
+    <Content Include="testdata09\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MXS" />
+    <Content Include="testdata09\WDTinyWDN\B1\V0\BZ1\M-1-0-1.XML" />
+    <Content Include="testdata\LocalHeatingNetwork.mdb" />
+    <Content Include="testdata\OneLPipe.mdb" />
+    <Content Include="testdata\TinyWDN.mdb" />
     <Content Include="testdata\TinyWDN.xml" />
     <Content Include="testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.1.MX1" />
     <Content Include="testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.1.MX3" />
@@ -70,6 +94,19 @@
     <Compile Include="setup.py" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="testdata09\" />
+    <Folder Include="testdata09\WDLocalHeatingNetwork\" />
+    <Folder Include="testdata09\WDLocalHeatingNetwork\B1\" />
+    <Folder Include="testdata09\WDLocalHeatingNetwork\B1\V0\" />
+    <Folder Include="testdata09\WDLocalHeatingNetwork\B1\V0\BZ1\" />
+    <Folder Include="testdata09\WDOneLPipe\" />
+    <Folder Include="testdata09\WDOneLPipe\B1\" />
+    <Folder Include="testdata09\WDOneLPipe\B1\V0\" />
+    <Folder Include="testdata09\WDOneLPipe\B1\V0\BZ1\" />
+    <Folder Include="testdata09\WDTinyWDN\" />
+    <Folder Include="testdata09\WDTinyWDN\B1\" />
+    <Folder Include="testdata09\WDTinyWDN\B1\V0\" />
+    <Folder Include="testdata09\WDTinyWDN\B1\V0\BZ1\" />
     <Folder Include="testdata\" />
     <Folder Include="testdata\WDLocalHeatingNetwork\" />
     <Folder Include="testdata\WDLocalHeatingNetwork\B1\" />
