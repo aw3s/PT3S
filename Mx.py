@@ -2187,7 +2187,9 @@ if __name__ == "__main__":
 
         group = parser.add_mutually_exclusive_group()                                
         group.add_argument("-v","--verbose", help="Debug Messages On", action="store_true",default=True)      
-        group.add_argument("-q","--quiet", help="Debug Messages Off", action="store_true")                  
+        group.add_argument("-q","--quiet", help="Debug Messages Off", action="store_true")           
+        parser.add_argument('--testDir',type=str,default='testdata',help="value for global 'testDir' i.e. testdata")
+        parser.add_argument('--dotResolution',type=str,default='',help="value for global 'dotResolution' i.e. .1")        
         args = parser.parse_args()
 
         if args.verbose:           
@@ -2197,7 +2199,7 @@ if __name__ == "__main__":
                       
         logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start. Argumente:',str(sys.argv))) 
 
-        suite=doctest.DocTestSuite() # globs={'testDir':'testdata'})   
+        suite=doctest.DocTestSuite(globs={'testDir':args.testDir,'dotResolution':args.dotResolution})  
         unittest.TextTestRunner().run(suite)         
 
     except SystemExit:
