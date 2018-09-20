@@ -5,15 +5,19 @@ SIR 3S MX-Interface (short: MX)
     
     This module contains stuff to utilize SIR 3S' MX calculation results in pure Python.  
 
-    SIR 3S MX calculation results:
+    SIR 3S MX calculation results overview:
 
         * Binary .MXS-Files contain the SIR 3S calculations results. 
         * A Model calculation run creates at least one .MXS-File.
-        * There is one .MX1-File (an XML-File) for each SIR 3S Model calculation run.    
-        * This .MX1-File defines (in XML) a sequence of MX-Channels. 
-        * And - as a result - the Byte-Layout of a single MX3-Record in .MXS-File(s).
-        * A MX3-Record contains calculation results for one TIMESTAMP.
-        * A .MXS-File contains at least one MX3-Record.
+        * There is one .MX1-File (an XML-File) for the corresponding .MXS-File(s).    
+        * This .MX1-File defines (in XML) a sequence of MX-Channels in the corresponding .MXS-File(s). 
+        * And - as a result - the Byte-Layout of a single Record in the corresponding .MXS-File(s).
+        * A single Record is called a MX3-Record. .MXS-File(s) contain a sequence of MX3-Records.
+        * A MX3-Record contains calculation results for one TIMESTAMP. TIMESTAMP ist Scenariotime.
+        * A corresponding .MX3-File contains one MX3-Record - the last Scenariotime calculated.
+        * Summary:
+        * .MXS-File(s): MX3-Records: MX-Channels 
+        * MX3-Record Byte-Layout (the MX-Channels) defined in corresponding .MX1-File.
 
     A MX-Channel can be:
      

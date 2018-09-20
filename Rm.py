@@ -20,8 +20,8 @@
 ... else:
 ...    path = '.'
 ...    logger.debug("{0:s}{1:s}".format('Not __main__ Context: ',"path = '.' .")) 
->>> import Mx
->>> import Xm
+>>> from PT3S import Mx
+>>> from PT3S import Xm
 >>> # ---
 >>> # testDir
 >>> # ---
@@ -150,8 +150,8 @@ if __name__ == "__main__":
     logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context: ',' .')) 
 else:
     logger.debug("{0:s}{1:s}{2:s}{3:s}".format('in MODULEFILE: Not __main__ Context: ','__name__: ',__name__," .")) 
-import Mx
-import Xm
+from PT3S import Mx
+from PT3S import Xm
 
 # ---
 # --- main Imports
@@ -1209,13 +1209,13 @@ class Rm():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try: 
-            if isinstance(xm,Xm.Xm) or isinstance(xm,PT3S.Xm.Xm):
+            if isinstance(xm,Xm.Xm):# or isinstance(xm,PT3S.Xm.Xm):
                 self.xm=xm
             else:
                 logStrFinal="{:s}{:s} not {:s}. Type: {!s:s}".format(logStr,'xm','Xm-Type',type(xm))
                 logger.error(logStrFinal) 
                 raise RmError(logStrFinal)  
-            if isinstance(mx,Mx.Mx) or isinstance(mx,PT3S.Mx.Mx):
+            if isinstance(mx,Mx.Mx):# or isinstance(mx,PT3S.Mx.Mx):
                 self.mx=mx
             else:
                 logStrFinal="{:s}{:s} not {:s} Type: {!s:s}.".format(logStr,'xm','Xm-Type',type(mx))

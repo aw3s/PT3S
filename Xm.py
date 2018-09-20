@@ -20,7 +20,7 @@
 ... else:
 ...    logger.debug("{0:s}{1:s}{2:s}{3:s}".format('DOCTEST: Not __main__ Context: ','__name__: ',__name__,"path = '.'")) 
 ...    path = '.'
->>> import Mx
+>>> from PT3S import Mx
 >>> # ---
 >>> # testDir
 >>> # ---
@@ -476,7 +476,7 @@ if __name__ == "__main__":
     logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context: ',' .')) 
 else:
     logger.debug("{0:s}{1:s}{2:s}{3:s}".format('in MODULEFILE: Not __main__ Context: ','__name__: ',__name__," .")) 
-import Mx
+from PT3S import Mx
 
 # ---
 # --- main Imports
@@ -490,7 +490,6 @@ class XmError(Exception):
         self.value = value
     def __str__(self):
         return repr(self.value)
-
 
 class Xm():
     """SIR 3S modelFile to pandas DataFrames.

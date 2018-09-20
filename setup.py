@@ -24,7 +24,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.0.48.dev1',
+    version='0.0.51.dev1',
 
     description='Python Tools 3S',
     long_description=long_description,
@@ -82,13 +82,29 @@ setup(
             'PT3S.ipynb'
            ,'PT3S.html'
            ,'testdata\OneLPipe.XML'
-           ,'testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX1'
+           ,'testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.1.MX1'
            ,'testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX2'
-           ,'testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MXS'
+           ,'testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.1.MXS'
            ,'testdata\LocalHeatingNetwork.XML'
-           ,'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1'
+           ,'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.1.MX1'
            ,'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX2'
-           ,'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MXS'
+           ,'testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.1.MXS'
+           ,'testdata\TinyWDN.XML'
+           ,'testdata\WDTinyWDN\B1\V0\BZ1\M-1-0-1.1.MX1'
+           ,'testdata\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MX2'
+           ,'testdata\WDTinyWDN\B1\V0\BZ1\M-1-0-1.1.MXS'
+           ,'testdata09\OneLPipe.XML'
+           ,'testdata09\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX1'
+           ,'testdata09\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX2'
+           ,'testdata09\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MXS'
+           ,'testdata09\LocalHeatingNetwork.XML'
+           ,'testdata09\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1'
+           ,'testdata09\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX2'
+           ,'testdata09\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MXS'
+           ,'testdata09\TinyWDN.XML'
+           ,'testdata09\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MX1'
+           ,'testdata09\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MX2'
+           ,'testdata09\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MXS'
             ],
     },
 
