@@ -1227,19 +1227,9 @@ class Rm():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try: 
-            if isinstance(xm,Xm.Xm):# or isinstance(xm,PT3S.Xm.Xm):
-                self.xm=xm
-            else:
-                logStrFinal="{:s}{:s} not {:s}. Type: {!s:s}".format(logStr,'xm','Xm-Type',type(xm))
-                logger.error(logStrFinal) 
-                raise RmError(logStrFinal)  
-            if isinstance(mx,Mx.Mx):# or isinstance(mx,PT3S.Mx.Mx):
-                self.mx=mx
-            else:
-                logStrFinal="{:s}{:s} not {:s} Type: {!s:s}.".format(logStr,'xm','Xm-Type',type(mx))
-                logger.error(logStrFinal) 
-                raise RmError(logStrFinal)    
-            
+            self.xm=xm
+            self.mx=mx
+ 
             try:
                 vNRCV_Mx1=self.xm.dataFrames['vNRCV_Mx1'] # d.h. Sachdaten bereits annotiert mit MX1-Wissen 
             except:
