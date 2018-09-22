@@ -14,14 +14,22 @@
 ...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ','path = os.path.dirname(__file__)'," .")) 
 ...      path = os.path.dirname(__file__)
 ...   except NameError:    
-...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined"," from Rm import Rm.")) 
+...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined and: "," from Rm import Rm")) 
 ...      path = '.'
 ...      from Rm import Rm 
 ... else:
 ...    path = '.'
 ...    logger.debug("{0:s}{1:s}".format('Not __main__ Context: ',"path = '.' .")) 
->>> from PT3S import Mx
->>> from PT3S import Xm
+>>> try:
+...    from PT3S import Mx
+... except ImportError:
+...    logger.debug("{0:s}{1:s}".format("DOCTEST: from PT3S import Mx: ImportError: ","trying import Mx maybe pip install -e . is active ..."))  
+...    import Mx
+>>> try:
+...    from PT3S import Xm
+... except ImportError:
+...    logger.debug("{0:s}{1:s}".format("DOCTEST: from PT3S import Xm: ImportError: ","trying import Xm maybe pip install -e . is active ..."))  
+...    import Xm
 >>> # ---
 >>> # testDir
 >>> # ---
@@ -150,8 +158,18 @@ if __name__ == "__main__":
     logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context: ',' .')) 
 else:
     logger.debug("{0:s}{1:s}{2:s}{3:s}".format('in MODULEFILE: Not __main__ Context: ','__name__: ',__name__," .")) 
-from PT3S import Mx
-from PT3S import Xm
+
+try:
+    from PT3S import Mx
+except ImportError:
+    logger.debug("{0:s}{1:s}".format('ImportError: ','from PT3S import Mx - trying import Mx maybe pip install -e . is active ...')) 
+    import Mx
+
+try:
+    from PT3S import Xm
+except ImportError:
+    logger.debug("{0:s}{1:s}".format('ImportError: ','from PT3S import Xm - trying import Xm maybe pip install -e . is active ...')) 
+    import Xm
 
 # ---
 # --- main Imports

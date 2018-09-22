@@ -46,7 +46,7 @@ SIR 3S MX-Interface (short: MX)
 ...       logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ','path = os.path.dirname(__file__)'," .")) 
 ...       path = os.path.dirname(__file__)
 ...    except NameError:    
-...       logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined"," from Mx import Mx.")) 
+...       logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined and: "," from Mx import Mx")) 
 ...       path = '.'
 ...       from Mx import Mx
 ... else:

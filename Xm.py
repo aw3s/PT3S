@@ -14,13 +14,17 @@
 ...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ','path = os.path.dirname(__file__)'," .")) 
 ...      path = os.path.dirname(__file__)
 ...   except NameError:    
-...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined"," from Xm import Xm.")) 
+...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined and: ","from Xm import Xm")) 
 ...      path = '.'
 ...      from Xm import Xm
 ... else:
 ...    logger.debug("{0:s}{1:s}{2:s}{3:s}".format('DOCTEST: Not __main__ Context: ','__name__: ',__name__,"path = '.'")) 
 ...    path = '.'
->>> from PT3S import Mx
+>>> try:
+...    from PT3S import Mx
+... except ImportError:
+...    logger.debug("{0:s}{1:s}".format("DOCTEST: from PT3S import Mx: ImportError: ","trying import Mx maybe pip install -e . is active ..."))  
+...    import Mx
 >>> # ---
 >>> # testDir
 >>> # ---
@@ -476,7 +480,12 @@ if __name__ == "__main__":
     logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context: ',' .')) 
 else:
     logger.debug("{0:s}{1:s}{2:s}{3:s}".format('in MODULEFILE: Not __main__ Context: ','__name__: ',__name__," .")) 
-from PT3S import Mx
+
+try:
+    from PT3S import Mx
+except ImportError:
+    logger.debug("{0:s}{1:s}".format('ImportError: ','from PT3S import Mx - trying import Mx maybe pip install -e . is active ...')) 
+    import Mx
 
 # ---
 # --- main Imports
@@ -1277,22 +1286,24 @@ class Xm():
         """Decode a column OBJS (a BLOB containing a SIR 3S OBJ collection).
 
         Args:
-            dfName: Name of a dataFrame with column OBJS (a BLOB containing a SIR 3S OBJ collection)
+            dfName: Name of a dataFrame with column OBJS
             
-            columns used (in dfName):
+            columns used (in self.dataFrames[dfName]):
                 * OBJS (BLOB): i.e.: KNOT~4668229590574507160\t...
                 * pk: ID (of the row) 
                 * None is returned if these columns are missing
+                * in this case no changes in column OBJS in self.dataFrames[dfName]
 
         Returns:
-            dfOBJS: dataFrame with one row per OBJ: 
-                columns new (from SIR 3S OBJ collection):
+            column OBJS in self.dataFrames[dfName] is decoded
+            to 'XXXX~' if OBJS was None 
+
+            dfOBJS: dataFrame with one row per OBJ in OBJS: 
+                columns added (compared to self.dataFrames[dfName]):
                     * OBJTYPE
-                    * OBJID
-                column missing (compared to dfName):
-                    * OBJS (the SIR 3S OBJ collection as BLOB)    
-                rows missing (compared to dfName):
-                    * rows with OBJS innull
+                    * OBJID 
+                rows missing (compared to self.dataFrames[dfName]):
+                    * rows with OBJS None
         Raises:
             XmError                                
         """
@@ -1308,7 +1319,6 @@ class Xm():
             else:
                  logger.debug("{0:s}{1:s}     in dataFrames.keys()".format(logStr,dfName)) 
 
-            #dfOBJS_DATA=self.dataFrames[dfName] 
             if 'OBJS' not in self.dataFrames[dfName].columns.tolist():
                  logger.debug("{0:s}column OBJS not in dataFrame!".format(logStr)) 
                  logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
@@ -1319,18 +1329,14 @@ class Xm():
                  logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
                  return dfOBJS
            
-            #dfOBJS_DATA=df[pd.notnull(df['OBJS'])]  
-            #dfOBJS_DATA=df           
-            #
-            # Spalte OBJS dekodieren; wenn leer ((noch) keine OBJS), dann 'XXXX~0000000000000000000'      
+           
+            # Spalte OBJS dekodieren; wenn leer ((noch) keine OBJS), dann 'XXXX~'      
             #                                                                   4668229590574507160
             self.dataFrames[dfName].loc[:,'OBJS']=self.dataFrames[dfName]['OBJS'].apply(lambda x: 'XXXX~' if x is None else base64.b64decode(x)).str.decode('utf-8')
-            #dfOBJS_DATA.loc[:,'OBJS']=dfOBJS_DATA['OBJS'].apply(lambda x: 'XXXX~' if x is None else base64.b64decode(x)).str.decode('utf-8')
-            #logger.debug("{0:s}dfOBJS_DATA: {1:s}".format(logStr,str(dfOBJS_DATA)))    
 
-            #sList=[pd.Series(row['pk'],index=row['OBJS'].split('\t'),name='pk_Echo') for index,row in dfOBJS_DATA.iterrows()]
-            sList=[pd.Series(row['pk'],index=row['OBJS'].split('\t'),name='pk_Echo') for index,row in self.dataFrames[dfName].iterrows()]
-            # dfOBJS_DATA.drop(['OBJS'],axis=1,inplace=True)           
+            # einzelne OBJS als neuer df
+            # ------------------------->           
+            sList=[pd.Series(row['pk'],index=row['OBJS'].split('\t'),name='pk_Echo') for index,row in self.dataFrames[dfName].iterrows()]                
 
             # sList[0]:
             # index:                      pk_Echo 
@@ -1340,23 +1346,26 @@ class Xm():
             dfOBJS_OBJS=pd.concat(sList).reset_index() # When we reset the index, the old index is added as a column named 'index', and a new sequential index is used
             dfOBJS_OBJS.rename(columns={'index':'ETYPEEID'},inplace=True)
             # dfOBJS_OBJS:
-            #	ETYPEEID	                pk_Echo
-            # 0	KNOT~4668229590574507160	5403356857783326643
-            # 0 XXXX~                       5403356857783326643
+            #	ETYPEEID	              pk_Echo
+            # 0	KNOT~4668229590574507160  5403356857783326643
+            # 0 XXXX~                     5403356857783326643
 
+            # ETYPEEID Checks als Filter
             dfOBJS_OBJS=dfOBJS_OBJS[dfOBJS_OBJS['ETYPEEID'].notnull()]
             dfOBJS_OBJS=dfOBJS_OBJS[dfOBJS_OBJS['ETYPEEID'].str.len()>5]
+
+            # ETYPEEID: neue Spalten bilden 
             dfOBJS_OBJS['OBJTYPE']=dfOBJS_OBJS['ETYPEEID'].str[:4]
-            dfOBJS_OBJS['OBJID']=dfOBJS_OBJS['ETYPEEID'].str[5:]           
+            dfOBJS_OBJS['OBJID']=dfOBJS_OBJS['ETYPEEID'].str[5:]
+            # ETYPEEID: loeschen
             dfOBJS_OBJS.drop(['ETYPEEID'],axis=1,inplace=True)
             # dfOBJS_OBJS:
             #	OBJTYPE OBJID 	            pk_Echo
-            # 0	KNOT    4668229590574507160	5403356857783326643            
-
+            # 0	KNOT    4668229590574507160	5403356857783326643   
+            # <-------------------------                   
             
-            
-            
-            #dfOBJS=pd.merge(dfOBJS_DATA,dfOBJS_OBJS,left_on='pk',right_on='pk_Echo')
+            # neuer df
+            # --------                
             dfOBJS=pd.merge(self.dataFrames[dfName],dfOBJS_OBJS,left_on='pk',right_on='pk_Echo')
             dfOBJS.drop(['pk_Echo'],axis=1,inplace=True)
 

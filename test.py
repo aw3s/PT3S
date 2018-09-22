@@ -75,7 +75,11 @@ if __name__ == "__main__":
         logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start. Argumente:',str(sys.argv))) 
         logger.debug("{0:s}{1:s}{2:s}".format(logStr,'testDir: ',args.testDir)) 
 
-        import Mx, Xm, Rm
+        try:
+            from PT3S import Mx, Xm, Rm
+        except ImportError:
+            logger.debug("{0:s}{1:s}".format("test: from PT3S import Mx, Xm, Rm: ImportError: ","trying import Mx, Xm, Rm ..."))  
+            import Mx, Xm, Rm
 
         # unittests
         logger.info("{0:s}{1:s}{2:s}".format(logStr,'Start unittests (DocTestSuite...). testDir: ',args.testDir)) 
