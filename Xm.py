@@ -497,7 +497,7 @@ class Xm():
     Args:
         * xmlFile (str): SIR 3S modelFile
         * NoH5Read (bool): 
-                False: 
+                False (default): 
                     * An existing and newer h5File will be read _instead of xmlFile.
                     * xmlFile will _not be read (it does even not have to exist)
                 True:
@@ -1279,17 +1279,20 @@ class Xm():
         Args:
             dfName: Name of a dataFrame with column OBJS (a BLOB containing a SIR 3S OBJ collection)
             
-            columns used:
+            columns used (in dfName):
                 * OBJS (BLOB): i.e.: KNOT~4668229590574507160\t...
                 * pk: ID (of the row) 
+                * None is returned if these columns are missing
 
         Returns:
             dfOBJS: dataFrame with one row per OBJ: 
                 columns new (from SIR 3S OBJ collection):
                     * OBJTYPE
                     * OBJID
-                column deleted:
-                    * OBJS (the SIR 3S OBJ collection as BLOB)                       
+                column missing (compared to dfName):
+                    * OBJS (the SIR 3S OBJ collection as BLOB)    
+                rows missing (compared to dfName):
+                    * rows with OBJS innull
         Raises:
             XmError                                
         """
@@ -1304,22 +1307,42 @@ class Xm():
                  logger.debug("{0:s}{1:s} not in dataFrames.keys()".format(logStr,dfName)) 
             else:
                  logger.debug("{0:s}{1:s}     in dataFrames.keys()".format(logStr,dfName)) 
-                
-            df=self.dataFrames[dfName] 
-            dfOBJS_DATA=df[pd.notnull(df['OBJS'])]                      
-            dfOBJS_DATA['OBJS']=dfOBJS_DATA['OBJS'].apply(lambda x: base64.b64decode(x)).str.decode('utf-8')
 
+            #dfOBJS_DATA=self.dataFrames[dfName] 
+            if 'OBJS' not in self.dataFrames[dfName].columns.tolist():
+                 logger.debug("{0:s}column OBJS not in dataFrame!".format(logStr)) 
+                 logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+                 return dfOBJS
 
-            sList=[pd.Series(row['pk'],index=row['OBJS'].split('\t'),name='pk_Echo') for index,row in dfOBJS_DATA.iterrows()]
+            if 'pk' not in self.dataFrames[dfName].columns.tolist():
+                 logger.debug("{0:s}column pk not in dataFrame!".format(logStr)) 
+                 logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+                 return dfOBJS
+           
+            #dfOBJS_DATA=df[pd.notnull(df['OBJS'])]  
+            #dfOBJS_DATA=df           
+            #
+            # Spalte OBJS dekodieren; wenn leer ((noch) keine OBJS), dann 'XXXX~0000000000000000000'      
+            #                                                                   4668229590574507160
+            self.dataFrames[dfName].loc[:,'OBJS']=self.dataFrames[dfName]['OBJS'].apply(lambda x: 'XXXX~' if x is None else base64.b64decode(x)).str.decode('utf-8')
+            #dfOBJS_DATA.loc[:,'OBJS']=dfOBJS_DATA['OBJS'].apply(lambda x: 'XXXX~' if x is None else base64.b64decode(x)).str.decode('utf-8')
+            #logger.debug("{0:s}dfOBJS_DATA: {1:s}".format(logStr,str(dfOBJS_DATA)))    
+
+            #sList=[pd.Series(row['pk'],index=row['OBJS'].split('\t'),name='pk_Echo') for index,row in dfOBJS_DATA.iterrows()]
+            sList=[pd.Series(row['pk'],index=row['OBJS'].split('\t'),name='pk_Echo') for index,row in self.dataFrames[dfName].iterrows()]
+            # dfOBJS_DATA.drop(['OBJS'],axis=1,inplace=True)           
+
             # sList[0]:
             # index:                      pk_Echo 
             # KNOT~4668229590574507160    5403356857783326643
+            # XXXX~                       5403356857783326643
 
             dfOBJS_OBJS=pd.concat(sList).reset_index() # When we reset the index, the old index is added as a column named 'index', and a new sequential index is used
             dfOBJS_OBJS.rename(columns={'index':'ETYPEEID'},inplace=True)
             # dfOBJS_OBJS:
             #	ETYPEEID	                pk_Echo
             # 0	KNOT~4668229590574507160	5403356857783326643
+            # 0 XXXX~                       5403356857783326643
 
             dfOBJS_OBJS=dfOBJS_OBJS[dfOBJS_OBJS['ETYPEEID'].notnull()]
             dfOBJS_OBJS=dfOBJS_OBJS[dfOBJS_OBJS['ETYPEEID'].str.len()>5]
@@ -1328,11 +1351,13 @@ class Xm():
             dfOBJS_OBJS.drop(['ETYPEEID'],axis=1,inplace=True)
             # dfOBJS_OBJS:
             #	OBJTYPE OBJID 	            pk_Echo
-            # 0	KNOT    4668229590574507160	5403356857783326643
+            # 0	KNOT    4668229590574507160	5403356857783326643            
 
-            dfOBJS_DATA.drop(['OBJS'],axis=1,inplace=True)       
-            #dfOBJS_DATA.drop(['OBJSDec'],axis=1,inplace=True)            
-            dfOBJS=pd.merge(dfOBJS_DATA,dfOBJS_OBJS,left_on='pk',right_on='pk_Echo')
+            
+            
+            
+            #dfOBJS=pd.merge(dfOBJS_DATA,dfOBJS_OBJS,left_on='pk',right_on='pk_Echo')
+            dfOBJS=pd.merge(self.dataFrames[dfName],dfOBJS_OBJS,left_on='pk',right_on='pk_Echo')
             dfOBJS.drop(['pk_Echo'],axis=1,inplace=True)
 
         except Exception as e:
