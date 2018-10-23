@@ -71,17 +71,17 @@
 >>> timeDeltaToT=mx.df.index[2]-mx.df.index[0]
 >>> # 3Classes und FixedLimits sind standardmaessig Falsch; RefPerc ist standardmaessig Wahr
 >>> # die Belegung von MCategory gemaess FixedLimitsHigh/Low erfolgt immer ... 
->>> pFWVB=rm.pltNetDHUS(timeDeltaToT=timeDeltaToT,pFWVBMeasureCBFixedLimitHigh=0.80,pFWVBMeasureCBFixedLimitLow=0.66)
+>>> pFWVB=rm.pltNetDHUS(timeDeltaToT=timeDeltaToT,pFWVBMeasureCBFixedLimitHigh=0.80,pFWVBMeasureCBFixedLimitLow=0.66,pFWVBGCategory=['BLNZ1u5u7'],pVICsDf=pd.DataFrame({'Kundenname': ['VIC1'],'Knotenname': ['V-K007']}))
 >>> # ---
 >>> # Check pFWVB Return
 >>> # ---
->>> print("'''{:s}'''".format(repr(pFWVB[['Measure','MCategory','GCategory']]).replace('\\n','\\n   ')))
-'''    Measure MCategory  GCategory
-   0  0.809706       Top  BLNZ1u5u7
-   1  0.666924    Middle           
-   2  0.660432    Middle  BLNZ1u5u7
-   3  0.655515    Bottom  BLNZ1u5u7
-   4  0.685479    Middle           '''
+>>> print("'''{:s}'''".format(repr(pFWVB[['Measure','MCategory','GCategory','VIC']]).replace('\\n','\\n   ')))
+'''    Measure MCategory  GCategory   VIC
+   0  0.809706       Top  BLNZ1u5u7   NaN
+   1  0.666924    Middle              NaN
+   2  0.660432    Middle  BLNZ1u5u7   NaN
+   3  0.655515    Bottom  BLNZ1u5u7  VIC1
+   4  0.685479    Middle              NaN'''
 >>> # ---
 >>> # Print 
 >>> # ---
@@ -407,7 +407,8 @@ def pltNetNodes(pDf,**kwds):
 
             NODE: Size (Attribute)
                 * pAttribute: colName (default: 'Attribute') in pDf  
-                * pSizeFactor: scatter Sy-Area in pts^2 = pSizeFactor (default: 1.) * Attribute   
+                * pSizeFactor: (deafault: 1.)
+                * scatter Sy-Area in pts^2 = pSizeFactor * Attribute   
 
             NODE: Color (Measure)
                 * pMeasure: colName (default: 'Measure') in pDf  
@@ -1413,7 +1414,7 @@ class Rm():
                     * d.h. Werte die eine "kleinere" Farbe hätten, bekommen die Farbe von UsageStart
                
             NRCVs - NumeRiCal Values to be displayed
-                * pFIGNrcv: List of Sir3sID RegExps to be displayed (i.e. ['KNOT~PKON-Knoten~\S*~\S+~QM'])
+                * pFIGNrcv: List of Sir3sID RegExps to be displayed (i.e. ['KNOT~PKON-Knoten~\S*~\S+~QM']) default: None
                     the 1st Match is used if a RegExp matches more than 1 Channel
                     
                     further Examples for RegExps (and corresponding Texts):
@@ -1423,7 +1424,7 @@ class Rm():
 
                     WBLZ~[\S ]+~\S*~\S+~\S+: Example for a RegExp matching all Channels with OBJTYPE WBLZ  
 
-                * pFIGNrcvTxt: corresponding (same length required!) List of Texts (i.e. ['Kontrolle DH'])
+                * pFIGNrcvTxt: corresponding (same length required!) List of Texts (i.e. ['Kontrolle DH']) default: None
                     
                 * pFIGNrcvFmt (i.e. '{:12s}: {:8.2f} {:6s}')
                     * Text (from pFIGNrcvTxt)
@@ -1438,8 +1439,8 @@ class Rm():
                 * pFIGNrcvYStart (.5 default)
 
             Category - User Heat Balances to be displayed
-                * pFWVBGCategory: List of Heat Balances to be displayed (i.e. ['BLNZ1u5u7'])
-                * pFWVBGCategoryUnit: Unit of these Balances (default: '[kW]')                  
+                * pFWVBGCategory: List of Heat Balances to be displayed (i.e. ['BLNZ1u5u7']) default: None
+                * pFWVBGCategoryUnit:  Unit of all these Balances (default: '[kW]'])               
                 * pFWVBGCategoryXStart (.1 default)
                 * pFWVBGCategoryYStart (.9 default)
 
@@ -1462,7 +1463,7 @@ class Rm():
                         * Kundenname (i.e. 'VIC1') - Text
                         * Knotenname (i.e. 'V-K007') - Specification by Supply-Node
 
-                    default: pd.DataFrame({'Kundenname': ['VIC1'],'Knotenname': ['V-K007']})
+                    i.e.: pd.DataFrame({'Kundenname': ['VIC1'],'Knotenname': ['V-K007']})
 
                  * pVICsPercFmt (i.e. '{:12s}: {:6.1f}%')
                     * Kundenname
@@ -1498,6 +1499,7 @@ class Rm():
                                 * BotText
                             
                         * GCategory: list (non-empty only if req. GCategories are a subset of the available Categories and object belongs to a req. Category)
+                        * VIC (filled with Kundenname from pVICsDf)
 
                     * rows (compared to vFWVB):
                         * pFWVB enthaelt dieselben Objekte wie vFWVB
@@ -1713,9 +1715,9 @@ class Rm():
 
             # NRCVs to be displayed
             if 'pFIGNrcv' not in keys:
-                kwds['pFIGNrcv']=['KNOT~PKON-Knoten~\S*~\S+~QM']  
+                kwds['pFIGNrcv']=None #['KNOT~PKON-Knoten~\S*~\S+~QM']  
             if 'pFIGNrcvTxt' not in keys:
-                kwds['pFIGNrcvTxt']=['Kontrolle DH']
+                kwds['pFIGNrcvTxt']=None #['Kontrolle DH']
             if 'pFIGNrcvFmt' not in keys:
                 kwds['pFIGNrcvFmt']='{:12s}: {:8.2f} {:6s}'
             if 'pFIGNrcvPercFmt' not in keys:
@@ -1727,7 +1729,7 @@ class Rm():
 
             # User Heat Balances to be displayed
             if 'pFWVBGCategory' not in keys:
-                kwds['pFWVBGCategory']=['BLNZ1u5u7']  
+                kwds['pFWVBGCategory']=None #['BLNZ1u5u7']  
             if 'pFWVBGCategoryUnit' not in keys:
                 kwds['pFWVBGCategoryUnit']='[kW]'  
 
@@ -1745,7 +1747,7 @@ class Rm():
 
             # VICs
             if 'pVICsDf' not in keys:
-                kwds['pVICsDf']=pd.DataFrame({'Kundenname': ['VIC1'],'Knotenname': ['V-K007']})
+                kwds['pVICsDf']=None #pd.DataFrame({'Kundenname': ['VIC1'],'Knotenname': ['V-K007']})
             if 'pVICsPercFmt' not in keys:
                 kwds['pVICsPercFmt']='{:12s}: {:6.1f}%'
             if 'pVICsFmt' not in keys:
@@ -1828,8 +1830,19 @@ class Rm():
             # Sachdaten annotieren mit Spalte Measure 
 
             # FWVB            
-            pFWVBMeasureValue=plotTimeDfs[timeTIdx][kwds['pFWVBMeasure']].iloc[0] 
-            pFWVBMeasureValueRef=plotTimeDfs[timeRefIdx][kwds['pFWVBMeasure']].iloc[0] 
+            pFWVBMeasureValueRaw=plotTimeDfs[timeTIdx][kwds['pFWVBMeasure']].iloc[0] 
+            pFWVBMeasureValueRefRaw=plotTimeDfs[timeRefIdx][kwds['pFWVBMeasure']].iloc[0] 
+
+            pFWVBMeasureValue=[None for m in pFWVBMeasureValueRaw]
+            pFWVBMeasureValueRef=[None for m in pFWVBMeasureValueRefRaw]
+            for idx in range(len(pFWVBMeasureValueRaw)):                   
+                mx2Idx=vFWVB['mx2Idx'].iloc[idx]
+                
+                m=pFWVBMeasureValueRaw[mx2Idx]
+                pFWVBMeasureValue[idx]=m
+                m=pFWVBMeasureValueRefRaw[mx2Idx]
+                pFWVBMeasureValueRef[idx]=m
+              
             if kwds['pFWVBMeasureInRefPerc']:  # auch in diesem Fall traegt die Spalte Measure das Ergebnis                               
                 pFWVBMeasureValuePerc=[float(m)/float(mRef) if float(mRef) >0 else 1 for m,mRef in zip(pFWVBMeasureValue,pFWVBMeasureValueRef)]
                 pFWVB=vFWVB.assign(Measure=pd.Series(pFWVBMeasureValuePerc)) #!                                
@@ -2137,8 +2150,8 @@ class Rm():
                         else:
                             text=text+'\n'+txt
                     
-            fig.sca(ax)            
-            pltNetTextblock(text=text,x=kwds['pFIGNrcvXStart'],y=kwds['pFIGNrcvYStart'])         
+                    fig.sca(ax)            
+                    pltNetTextblock(text=text,x=kwds['pFIGNrcvXStart'],y=kwds['pFIGNrcvYStart'])         
                       
             # ============================================================
             # User Heat Balances to be displayed in Net
@@ -2241,8 +2254,8 @@ class Rm():
                     else:
                             text=text+'\n'+txt
                 
-            fig.sca(ax)            
-            pltNetTextblock(text=text,x=kwds['pFWVBGCategoryXStart'],y=kwds['pFWVBGCategoryYStart'])         
+                fig.sca(ax)            
+                pltNetTextblock(text=text,x=kwds['pFWVBGCategoryXStart'],y=kwds['pFWVBGCategoryYStart'])         
 
             # ============================================================
             # VICs to be displayed in Net
