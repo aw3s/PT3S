@@ -456,6 +456,37 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 2  160.0  V-K005  R-K005  [BLNZ1u5, BLNZ1u5u7, BLNZ5]       2
 3  160.0  V-K007  R-K007                  [BLNZ1u5u7]       3
 4  120.0  V-K003  R-K003                           []       4
+>>> xm.Mx()
+>>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',dropColList=['pk_i','CONT_i','CONT_VKNO_i','pk_k','CONT_k','CONT_VKNO_k']))
+                                           BESCHREIBUNG IDREFERENZ                   tk       NAME_i  NAME_k  mx2Idx
+ROHR 4613782368750024999                           None         -1  4613782368750024999       R-K004  R-K005       0
+     4614949065966596185                           None         -1  4614949065966596185       V-K002  V-K003       1
+     4637102239750163477                           None         -1  4637102239750163477       R-K003  R-K004       2
+     4713733238627697042                           None         -1  4713733238627697042       V-K004  V-K005       3
+     4769996343148550485                           None         -1  4769996343148550485          R-L  R-K000       5
+     4789218195240364437                           None         -1  4789218195240364437       V-K001  V-K002       7
+     4939422678063487923                           None         -1  4939422678063487923          V-L  V-K000       8
+     4945727430885351042                           None         -1  4945727430885351042       R-K006  R-K007       9
+     4984202422877610920                           None         -1  4984202422877610920       V-K000  V-K001      10
+     5037777106796980248                           None         -1  5037777106796980248       V-K003  V-K004      11
+     5123819811204259837                           None         -1  5123819811204259837       V-K005  V-K006      12
+     5266224553324203132                           None         -1  5266224553324203132       R-K001  R-K002      13
+     5379365049009065623                           None         -1  5379365049009065623       R-K002  R-K003      14
+     5611703699850694889                           None         -1  5611703699850694889       R-K005  R-K006      15
+     5620197984230756681                           None         -1  5620197984230756681       V-K006  V-K007       4
+     5647213228462830353                           None         -1  5647213228462830353       R-K000  R-K001       6
+VENT 4678923650983295610                           None         -1  4678923650983295610          V-1     V-L       0
+     4897018421024717974                           None         -1  4897018421024717974          R-L     R-1       1
+     5525310316015533093                           None         -1  5525310316015533093  PKON-Knoten     R-1       2
+FWVB 4643800032883366034                              1         -1  4643800032883366034       V-K002  R-K002       0
+     4704603947372595298                              3         -1  4704603947372595298       V-K004  R-K004       1
+     5121101823283893406                              4         -1  5121101823283893406       V-K005  R-K005       2
+     5400405917816384862                              5         -1  5400405917816384862       V-K007  R-K007       3
+     5695730293103267172                              2         -1  5695730293103267172       V-K003  R-K003       4
+FWES 5638756766880678918  BHKW - Modul - 1000 kW therm.         -1  5638756766880678918           R3     V-1       0
+PUMP 5481331875203087055                    Umwälzpumpe         -1  5481331875203087055          R-1      R2       0
+KLAP 4801110583764519435                           None         -1  4801110583764519435           R2      R3       0
+PGRP 4986517622672493603                   Pumpengruppe         -1  4986517622672493603          R-1      R3       0
 >>> # ---
 >>> # Clean Up LocalHeatingNetwork
 >>> # ---
@@ -466,8 +497,6 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 >>> # ---
 >>> xmlFile=os.path.join(os.path.join(path,testDir),'TinyWDN.XML')
 >>> xm=Xm(xmlFile=xmlFile)
->>> #print(xm._getvXXXXAsOneString(vXXXX='vVBEL',dropColList=['pk_i','CONT_i','CONT_VKNO_i','pk_k','CONT_k','CONT_VKNO_k']))
-
 """
 
 import warnings # 3.6
@@ -513,6 +542,8 @@ except ImportError:
 import argparse
 import unittest
 import doctest
+
+vVBEL_edges=['ROHR','VENT','FWVB','FWES','PUMP','KLAP','REGV','PREG','MREG','DPRG','PGRP']
    
 class XmError(Exception):
     def __init__(self, value):
@@ -1060,7 +1091,7 @@ class Xm():
                 * Edges
                     * vROHR: Pipes
                     * vFWVB: Housestations (district heating)    
-                * all Edges
+                * all Edges (all: implemented see vVBEL_edges)
                     * vVBEL
             * Annotations
                 * vNRCV
@@ -3481,7 +3512,7 @@ class Xm():
     #        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
 
-    def _vVBEL(self,vKNOT=None,edges=['ROHR','VENT','FWVB','FWES','PUMP','KLAP','REGV','PREG','MREG','DPRG'],indices=['VBEL','pk']):
+    def _vVBEL(self,vKNOT=None,edges=vVBEL_edges,indices=['VBEL','pk']):
         """One row per Edge.
 
         Args:
@@ -3524,9 +3555,7 @@ class Xm():
             vVBEL_UnionList=[]
 
             for VBEL in edges:
-                pass
                 if VBEL in self.dataFrames:
-                    pass
                     vXXXX=self._vVBEL_XXXX(vKNOT=vKNOT,XXXX=VBEL)
                     if vXXXX is None:
                         pass
@@ -3611,11 +3640,11 @@ class Xm():
             return vXXXX     
 
     def Mx(self,mx=None):
-        """Mx-Information (MX1, MX2) into some Views.
+        """Sir3sID Update in Mx-Object. Mx-Information (MX1, MX2) into some Views.
 
         Args:
             mx: Mx-Object
-                If no Mx-Object is given a Mx-Object is constructed and Mx-Information is read.        
+                If no Mx-Object is given a Mx-Object is constructed.        
 
         Raises:
             XmError
@@ -3629,18 +3658,78 @@ class Xm():
                 pass
             else:
                 (wDir,modelDir,modelName,mx1File)=self.getWDirModelDirModelName()                      
-                mx=Mx.Mx(mx1File=mx1File,NoMxsRead=True)
+                mx=Mx.Mx(mx1File=mx1File)
 
+
+            self.__Mx1_Sir3sID(mx) # Sir3sID
+            self.__Mx2_vKNOT(mx) # vKNOT
             self.__Mx1_vNRCV(mx) # vNRCV
             self.__Mx2_vROHR(mx) # vROHR
-            self.__Mx2_vFWVB(mx) # vFWVB
-            self.__Mx2_vKNOT(mx) # vKNOT
+            self.__Mx2_vFWVB(mx) # vFWVB           
             self.__Mx2_vVBEL(mx) # vVBEL
                                                        
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
             logger.error(logStrFinal) 
                      
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+
+
+    def __Mx1_Sir3sID(self,mx):
+        """Update Sir3sID in mx.mx1Df and mx.df.
+
+        Args:
+            mx: Mx-Object
+
+        Raises:
+            XmError
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:
+            Upd=False
+
+            # Sir3sID split
+            df=mx.mx1Df['Sir3sID'].str.extract(Mx.reSir3sIDcompiled)               
+            # Sir3sID reconstruction
+            df=df.assign(Sir3sID=lambda df: df.OBJTYPE+'~'+df.NAME1+'~'+df.NAME2+'~'+df.OBJTYPE_PK+'~'+df.ATTRTYPE)
+
+            # KNOT ------------------------------------------
+            dfKNOTCols=df.columns.tolist()
+            dfKNOTCols.append('NAME')
+            dfKNOT=pd.merge(
+                # KNOT-Channels without KI
+                df[ (df['NAME1'].str.len()==0) & (df['OBJTYPE'].isin(['KNOT'])) ]
+               ,self.dataFrames['vKNOT']
+               ,how='inner'
+               ,left_on='OBJTYPE_PK'
+               ,right_on='pk'
+               ,suffixes=('', '_y'))[dfKNOTCols]
+            # calculate Sir3sID Update for these KNOT-Channels
+            dfKNOT=dfKNOT.assign(Sir3sIDUpd=lambda df: df.OBJTYPE+'~'+df.NAME+'~'+df.NAME2+'~'+df.OBJTYPE_PK+'~'+df.ATTRTYPE)
+
+            # iterate over all old Sir3sIDs
+            # set Sir3sID to Sir3sIDUpd
+            # set NAME1 to NAME
+            # rename the corresponding col in df
+            for index, row in dfKNOT.iterrows():
+                Upd=True
+                mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sID'],'Sir3sID']=row['Sir3sIDUpd']
+                logger.debug("{0:s}Changing {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))    
+                mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sIDUpd'],'NAME1']=row['NAME']
+                if isinstance(mx.df,pd.core.frame.DataFrame):  
+                    mx.df.rename(columns={row['Sir3sID']:row['Sir3sIDUpd']},inplace=True)  
+
+            if Upd and mx.h5Read:
+                mx.ToH5()
+                           
+        except Exception as e:            
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e)) 
+            logger.error(logStrFinal) 
+                       
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
@@ -3740,24 +3829,27 @@ class Xm():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try: 
-            tksROHRMx=mx.mx2Df[
-            (mx.mx2Df['ObjType'].str.contains('ROHR'))
+            xksROHRMx=mx.mx2Df[
+            (mx.mx2Df['ObjType'].str.match('ROHR'))
             &
             ~(mx.mx2Df['AttrType'].str.contains('N_OF_POINTS'))
             ]['Data'].iloc[0]
 
+            xkTypeMx=mx.mx2Df[
+            (mx.mx2Df['ObjType'].str.match('ROHR'))
+            &
+            ~(mx.mx2Df['AttrType'].str.contains('N_OF_POINTS'))
+            ]['AttrType'].iloc[0]
+
             vROHR=self.dataFrames['vROHR']
+            xksROHRXm=vROHR[xkTypeMx.strip()]
 
-            #logger.debug("{0:s}{1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vROHR')))
-            #logger.debug("{0:s}{1:s}".format(logStr,str(tksROHRMx)))
+            mxXkRohrIdx=[xksROHRMx.index(xk) for xk in xksROHRXm]
 
-            tksROHRXm=vROHR['tk']
-            mxTkRohrIdx=[tksROHRMx.index(tk) for tk in tksROHRXm]
-
-            vROHR['mx2Idx']=pd.Series(mxTkRohrIdx)
+            vROHR['mx2Idx']=pd.Series(mxXkRohrIdx)
             
             nOfPtsROHRMx=mx.mx2Df[
-            (mx.mx2Df['ObjType'].str.contains('ROHR'))
+            (mx.mx2Df['ObjType'].str.match('ROHR'))
             &
             (mx.mx2Df['AttrType'].str.contains('N_OF_POINTS'))
             ]['Data'].iloc[0]
@@ -3790,16 +3882,20 @@ class Xm():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try: 
-            tksFWVBMx=mx.mx2Df[
-            (mx.mx2Df['ObjType'].str.contains('FWVB'))
+            xksFWVBMx=mx.mx2Df[
+            (mx.mx2Df['ObjType'].str.match('FWVB'))
             ]['Data'].iloc[0]
+
+            xkTypeMx=mx.mx2Df[
+            (mx.mx2Df['ObjType'].str.match('FWVB'))
+            ]['AttrType'].iloc[0]
 
             vFWVB=self.dataFrames['vFWVB']
 
-            tksFWVBXm=vFWVB['tk']
-            mxTkFwvbIdx=[tksFWVBMx.index(tk) for tk in tksFWVBXm]
+            xksFWVBXm=vFWVB[xkTypeMx.strip()]
+            mxXkFwvbIdx=[xksFWVBMx.index(xk) for xk in xksFWVBXm]
 
-            vFWVB['mx2Idx']=pd.Series(mxTkFwvbIdx)
+            vFWVB['mx2Idx']=pd.Series(mxXkFwvbIdx)
                                                                                
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))            
@@ -3826,11 +3922,12 @@ class Xm():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try: 
-            tksKNOTMx=mx.mx2Df[(mx.mx2Df['ObjType'].str.contains('KNOT'))]['Data'].iloc[0]
+            xksKNOTMx=mx.mx2Df[(mx.mx2Df['ObjType'].str.match('KNOT'))]['Data'].iloc[0]
+            xkTypeMx=mx.mx2Df[(mx.mx2Df['ObjType'].str.match('KNOT'))]['AttrType'].iloc[0]
             vKNOT=self.dataFrames['vKNOT']
-            tksKNOTXm=vKNOT['tk']
-            mxTkKNOTIdx=[tksKNOTMx.index(tk) for tk in tksKNOTXm]
-            vKNOT['mx2Idx']=pd.Series(mxTkKNOTIdx)
+            xksKNOTXm=vKNOT[xkTypeMx.strip()]
+            mxXkKNOTIdx=[xksKNOTMx.index(xk) for xk in xksKNOTXm]
+            vKNOT['mx2Idx']=pd.Series(mxXkKNOTIdx)
                                                   
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))            
@@ -3840,7 +3937,7 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))      
             self.dataFrames['vKNOT']=vKNOT     
 
-    def __Mx2_vVBEL(self,mx,edges=['VENT','FWVB','FWES','PUMP','KLAP','REGV','PREG','MREG','DPRG']):
+    def __Mx2_vVBEL(self,mx,edges=vVBEL_edges):
         """Mx2-Information into vVBEL.
         
         Args:
@@ -3868,29 +3965,35 @@ class Xm():
             mx2IdxRohr=dfROHR['mx2Idx']
             dfVBEL.loc[('ROHR',),'mx2Idx']=mx2IdxRohr.values
 
-            # all (other) edges
-            for edge in edges:
-                 try:
-                     tksEDGEXm=dfVBEL.loc[(edge,),'tk']
+            # FWVB
+            dfFWVB=self.dataFrames['vFWVB']
+            mx2IdxFwvb=dfFWVB['mx2Idx']
+            dfVBEL.loc[('FWVB',),'mx2Idx']=mx2IdxFwvb.values
 
-                     tksEDGEMx=mx.mx2Df[
-                                (mx.mx2Df['ObjType'].str.contains(edge))
+            # all (other) edges
+            for edge in [edge for edge in edges if edge not in ['ROHR','FWVB']]:
+                 try:
+                     xksEDGEMx=mx.mx2Df[
+                                (mx.mx2Df['ObjType'].str.match(edge))
                          ]['Data'].iloc[0]
 
-                     logger.debug("{0:s}{1:s}: tksEDGEXm: {2:s}".format(logStr,edge,str(tksEDGEXm.values.tolist())))   
-                     logger.debug("{0:s}{1:s}: tksEDGEMx: {2:s}".format(logStr,edge,str(tksEDGEMx)))      
-                 
-                     try:
-                        mxTkEDGEIdx=[tksEDGEMx.index(tk) for tk in tksEDGEXm]
-                     except ValueError:
-                        logger.debug("{0:s}{1:s}: ValueError: Trying with pk instead of tk ...".format(logStr,edge))      
-                        tksEDGEXm=dfVBEL.loc[(edge,),:].index#.get_level_values('pk')
-                        logger.debug("{0:s}{1:s}: tksEDGEXm: {2:s}".format(logStr,edge,str(tksEDGEXm.values.tolist())))   
-                        mxTkEDGEIdx=[tksEDGEMx.index(tk) for tk in tksEDGEXm]                        
-                     except Exception as e:                        
-                        raise e
+                     xkTypeMx=mx.mx2Df[
+                                (mx.mx2Df['ObjType'].str.match(edge))
+                         ]['AttrType'].iloc[0]
+
+                     if xkTypeMx == 'tk':
+                        xksEDGEXm=dfVBEL.loc[(edge,),xkTypeMx]
                      else:
-                        dfVBEL.loc[(edge,),'mx2Idx']=mxTkEDGEIdx
+                        # pk
+                        xksEDGEXm=dfVBEL.loc[(edge,),:].index
+
+                     logger.debug("{0:s}{1:s}: xkTypeMx: {2:s}".format(logStr,edge,xkTypeMx))   
+                     logger.debug("{0:s}{1:s}: xksEDGEXm: {2:s}".format(logStr,edge,str(xksEDGEXm.values.tolist())))   
+                     logger.debug("{0:s}{1:s}: xksEDGEMx: {2:s}".format(logStr,edge,str(xksEDGEMx)))      
+                                      
+                     mxXkEDGEIdx=[xksEDGEMx.index(tk) for tk in xksEDGEXm]
+                     
+                     dfVBEL.loc[(edge,),'mx2Idx']=mxXkEDGEIdx
 
                  except Exception as e:
                     logStrEdge="{:s}Exception: Line: {:d}: {!s:s}: {:s}: mx2Idx for {:s} failed. mx2Idx = -1.".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e),edge)            
@@ -3901,7 +4004,8 @@ class Xm():
             logger.error(logStrFinal) 
                           
         finally:
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))        
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+            self.dataFrames['vVBEL']=dfVBEL
 
 if __name__ == "__main__":
     """

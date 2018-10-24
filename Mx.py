@@ -469,8 +469,8 @@ import argparse
 import unittest
 import doctest
 
-# Sir3sID regExp
-reSir3sID='(\S+)~([\S ]+)~(\S*)~(\S+)~(\S+)'
+# Sir3sID regExp Example
+reSir3sID='(?P<OBJTYPE>\S+)~(?P<NAME1>[\S ]*)~(?P<NAME2>\S*)~(?P<OBJTYPE_PK>\d+)~(?P<ATTRTYPE>\S+)'    
 reSir3sIDcompiled=re.compile(reSir3sID) 
   
 def getMicrosecondsFromRefTime(refTime,time):
@@ -543,6 +543,9 @@ class Mx():
                         * NoH5Read=True will delete .vec.h5-File.
 
     Attributes:
+        * states
+            * h5Read
+
         * fileNames
             * .mx1File: base.MX1-File (.1.Mx1-File from 90-10 on) 
 
@@ -566,8 +569,7 @@ class Mx():
                     * The following (String-)ID - called Sir3sID - is used as Columnlabel:                    
                     * this Sir3sID consists of ~ separated .MX1-File terms:
                     * OBJTYPE~NAME1~NAME2~OBJTYPE_PK~ATTRTYPE  
-                    * Sir3sID regExp: '(\S+)~([\S ]+)~(\S*)~(\S+)~(\S+)'
-    
+                    * Sir3sID regExp Example: (?P<OBJTYPE>\S+)~(?P<NAME1>[\S ]*)~(?P<NAME1>\S*)~(?P<OBJTYPE_PK>\d+)~(?P<ATTRTYPE>\S+)'    
     Raises:
         MxError
     """
@@ -626,20 +628,20 @@ class Mx():
                         if(h5FileTime>mxsFileTime and not NoH5Read):
                             logger.debug("{0:s}h5File {1:s} exists _and is newer than an mx1File {2:s} _and is newer than an (existing) mxsFile {3:s} _and NoH5Read False:".format(logStr,self.h5File,self.mx1File,self.mxsFile))     
                             logger.debug("{0:s}The h5File is read _instead of an mx1File (mxsFile exists).".format(logStr))   
-                            h5Read=True
+                            self.h5Read=True
                         else:                                                             
-                            h5Read=False  
+                            self.h5Read=False  
                     else:
                         if not NoH5Read:
                             logger.debug("{0:s}h5File {1:s} exists _and is newer than an mx1File {2:s} _and there is no mxsFile like {3:s} _and NoH5Read False:".format(logStr,self.h5File,self.mx1File,self.mxsFile))     
                             logger.debug("{0:s}The h5File is read _instead of an mx1File.".format(logStr))   
-                            h5Read=True  
+                            self.h5Read=True  
                         else:
-                            h5Read=False  
+                            self.h5Read=False  
                 else:                    
-                    h5Read=False
+                    self.h5Read=False
             else:
-                h5Read=False
+                self.h5Read=False
 
             self.df=None   
             self.mx1Df=None
@@ -647,7 +649,7 @@ class Mx():
             self.timeDeltaReadOffset=None
             self.timeDeltaWriteOffset=None
 
-            if not h5Read:
+            if not self.h5Read:
                 if not mx1FileThere:
                    logStrFinal="{0:s}{1:s}: Not existing! Error.".format(logStr,mx1File)                                 
                    raise MxError(logStrFinal)                 
@@ -658,7 +660,7 @@ class Mx():
                     if(mxsFileTime>=mx1FileTime) and not NoMxsRead: # inplace nach pip install tragen die Dateien denselben Zeitstempel; deswegen >= statt nur >
                         logger.debug("{:s}mxsFile {:s} exists _and is newer than mx1File {:s} _and NoMxsRead False:".format(logStr,self.mxsFile,self.mx1File))     
                         logger.debug("{:s}The mxsFile is read.".format(logStr))   
-                        self.setResultsToMxsFile(NewH5Vec = NoH5Read)  # wenn kein H5 gelesen werden soll, dann soll auch das H5Vec neu angelegt werden
+                        self.setResultsToMxsFile(NewH5Vec=NoH5Read)  # wenn kein H5 gelesen werden soll, dann soll auch das H5Vec neu angelegt werden
             else:                
                 self.FromH5(h5File=self.h5File)
                              
@@ -749,10 +751,10 @@ class Mx():
             self.mx1Df['Sir3sID']=self.mx1Df['OBJTYPE']+sep+self.mx1Df['NAME1']+sep+self.mx1Df['NAME2']+sep+self.mx1Df['OBJTYPE_PK']+sep+self.mx1Df['ATTRTYPE']
             self.mx1Df['Sir3sID']=self.mx1Df['Sir3sID'].astype(str)
 
-            #markVectorChannels (vectorChannel-Definition here := more than 1 Item)
-            self.mx1Df['NOfItems']=[int(cDLength/cDTypeLength) for cDLength,cDTypeLength in zip(self.mx1Df['DATALENGTH'],self.mx1Df['DATATYPELENGTH'])] 
-            #self.mx1Df['isVectorChannel']=[True if int(cDLength/cDTypeLength)>1 else False for cDLength,cDTypeLength in zip(self.mx1Df['DATALENGTH'],self.mx1Df['DATATYPELENGTH'])] 
-            self.mx1Df['isVectorChannel']=[True if nItems>1 else False for nItems in self.mx1Df['NOfItems']] 
+            #markVectorChannels
+            self.mx1Df['NOfItems']=[int(cDLength/cDTypeLength) for cDLength,cDTypeLength in zip(self.mx1Df['DATALENGTH'],self.mx1Df['DATATYPELENGTH'])]             
+            #self.mx1Df['isVectorChannel']=[True if nItems>1 else False for nItems in self.mx1Df['NOfItems']] 
+            self.mx1Df['isVectorChannel']=[True if nItems>1 or (len(OBJTYPE_PK) < 3 and OBJTYPE != 'ALLG') else False for nItems,OBJTYPE_PK,OBJTYPE in zip(self.mx1Df['NOfItems'],self.mx1Df['OBJTYPE_PK'],self.mx1Df['OBJTYPE'])] 
            
             #set(mx.mx1Df['DATATYPE'])
             #{'RVEC', 'CHAR', 'INT4', 'REAL'}
@@ -1422,11 +1424,11 @@ class Mx():
 
         Args:
             * mxsFile
-            * newMxsVecsFile
+            * newMxsVecsFile (default: False)
 
         mxsVecsFile is DELETED! if: 
             * existing and older than mxsFile
-            * or newMxsVecsFile                  
+            * or newMxsVecsFile is True                 
             
         Raises:
             MxError                         
@@ -1471,7 +1473,7 @@ class Mx():
             * mxsFile (str)
                 * None (default): .mxsFile is used  
             * add (bool): default: False: sets df to mxsFile-Content 
-            * NewH5Vec
+            * NewH5Vec: False (default); if True, an existing mxsVecsFile will be deleted even if it is newer than mxsFile
             * maxRecords
 
         Returns:
@@ -1767,6 +1769,7 @@ class Mx():
                     h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MX2' 
                     logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'mx2Df',h5Key))           
                     h5Store.put(h5Key,self.mx2Df)
+
                 if isinstance(self.df,pd.core.frame.DataFrame):    
                     h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MXS'  
                     logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'df',h5Key))         
@@ -1849,7 +1852,8 @@ class Mx():
 
                     if key == 'MX2':                            
                         logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
-                        self.mx2Df=h5Store[h5Key]                         
+                        self.mx2Df=h5Store[h5Key]       
+                        
                     if key == 'MXS':                           
                         logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
                         self.df=h5Store[h5Key]
@@ -2097,10 +2101,10 @@ class Mx():
 
             newColNames={}
             formatters={}
-            matchexp='(\S+)~(\S*)~(\S*)~(\d+)~(\S+)'
+
             f=lambda x: "{:9.1f}".format(x)
             for colName in dfFiltered.columns.tolist():
-                mo=re.match(matchexp,colName)
+                mo=re.match(reSir3sIDcompiled,colName)
                 colNameNew=mo.group(1)+'~~~'+mo.group(4)+'~'+mo.group(5)
                 newColNames[colName]=colNameNew
                 formatters[colNameNew]=f
