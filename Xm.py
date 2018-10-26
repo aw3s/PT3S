@@ -376,7 +376,7 @@ False
 12         1                                      BHKW    1002    WBLZ  5262603207038486299    WSPEI  5153847813311339683  4946584950744559030  4946584950744559030                          (90.0, 140.0)
 13         1                                      BHKW    1002    WBLZ  5262603207038486299      WVB  5214984699859365639  5281885868749421521  5281885868749421521                          (90.0, 150.0)
 >>> # ---
->>> # Mx()
+>>> # Mx() - without Mx-Object
 >>> # ---
 >>> vROHR=xm.dataFrames['vROHR']
 >>> vROHR.shape
@@ -407,17 +407,16 @@ True
 14         None         -1    None   0        1       0   73.42   0  0.1    0    0    0      1   0.025  1000         0   2          NaN  168.3  160.3  150   0.45 NaN             NaN        NaN    4    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4769996343148550485  4769996343148550485       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1     R-L     2   60  2540740  5706225     20  R-K000     2   60  2540793  5706209     20      0.0     16.0     53.0      0.0       [0.0, 53.0]     [16.0, 0.0]     [0.0, 24.0, 45.0, 61.950000000186265]                [16.0, 16.0, -12.0, -12.0]  [(2540740.0, 5706225.0), (2540764.0, 5706225.0), (2540785.0, 5706197.0), (2540801.95, 5706197.0)]       4          2
 15         None         -1    None   0        1       0    68.6   0  0.1    0    0    0      1   0.025  1000         0   1          NaN  168.3  160.3  150   0.45 NaN             NaN        NaN    4    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4939422678063487923  4939422678063487923       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1     V-L     1   90  2540740  5706240     20  V-K000     1   90  2540793  5706209     20      0.0     31.0     53.0      0.0       [0.0, 53.0]     [31.0, 0.0]           [0.0, 30.0, 53.049999999813735]       [31.0, 31.0, -0.049999999813735485]                         [(2540740.0, 5706240.0), (2540770.0, 5706240.0), (2540793.05, 5706208.95)]       6          2
 >>> # ---
->>> # Mx() with explicit xmlFile
+>>> # Mx() - with Mx-Object
 >>> # ---
->>> xmlFile=os.path.join(os.path.join(path,testDir),'LocalHeatingNetwork.XML')
 >>> xm=Xm(xmlFile=xmlFile)
 >>> vROHR=xm.dataFrames['vROHR']
->>> (wDir,modelDir,modelName,mx1File)=xm.getWDirModelDirModelName()    
->>> mx=Mx.Mx(mx1File=mx1File)
 >>> vROHR.shape
 (16, 74)
 >>> 'vNRCV_Mx1' in xm.dataFrames
 False
+>>> (wDir,modelDir,modelName,mx1File)=xm.getWDirModelDirModelName()    
+>>> mx=Mx.Mx(mx1File=mx1File)
 >>> xm.Mx(mx=mx)
 >>> vROHR.shape
 (16, 76)
@@ -456,8 +455,10 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 2  160.0  V-K005  R-K005  [BLNZ1u5, BLNZ1u5u7, BLNZ5]       2
 3  160.0  V-K007  R-K007                  [BLNZ1u5u7]       3
 4  120.0  V-K003  R-K003                           []       4
->>> xm.Mx()
->>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',dropColList=['pk_i','CONT_i','CONT_VKNO_i','pk_k','CONT_k','CONT_VKNO_k']))
+>>> # ---
+>>> # vXXXX
+>>> # ---
+>>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',dropColList=['VBEL','pk_i','CONT_i','CONT_VKNO_i','pk_k','CONT_k','CONT_VKNO_k']))
                                            BESCHREIBUNG IDREFERENZ                   tk       NAME_i  NAME_k  mx2Idx
 ROHR 4613782368750024999                           None         -1  4613782368750024999       R-K004  R-K005       0
      4614949065966596185                           None         -1  4614949065966596185       V-K002  V-K003       1
@@ -488,10 +489,12 @@ PUMP 5481331875203087055                    Umwälzpumpe         -1  54813318752
 KLAP 4801110583764519435                           None         -1  4801110583764519435           R2      R3       0
 PGRP 4986517622672493603                   Pumpengruppe         -1  4986517622672493603          R-1      R3       0
 >>> # ---
->>> # Clean Up LocalHeatingNetwork
+>>> # Clean Up LocalHeatingNetwork Mx
 >>> # ---
 >>> if os.path.exists(mx.h5FileVecs):                        
 ...    os.remove(mx.h5FileVecs)
+>>> if os.path.exists(mx.h5File):                        
+...    os.remove(mx.h5File)
 >>> # ---
 >>> # TinyWDN
 >>> # ---
@@ -3572,7 +3575,8 @@ class Xm():
                 arrays.append(vVBEL[col].tolist())
             tuples = list(zip(*(arrays)))
             index = pd.MultiIndex.from_tuples(tuples,names=mIdxLst)
-            vVBEL.drop(mIdxLst,axis=1,inplace=True)
+            #vVBEL.drop(mIdxLst,axis=1,inplace=True)
+            vVBEL.drop('pk',axis=1,inplace=True)
             vVBEL=pd.DataFrame(vVBEL.values,index=arrays,columns=vVBEL.columns)
 
         except Exception as e:
@@ -3661,7 +3665,7 @@ class Xm():
                 mx=Mx.Mx(mx1File=mx1File)
 
 
-            self.__Mx1_Sir3sID(mx) # Sir3sID
+            self.__Mx1_Sir3sIDUpd(mx) # Sir3sID
             self.__Mx2_vKNOT(mx) # vKNOT
             self.__Mx1_vNRCV(mx) # vNRCV
             self.__Mx2_vROHR(mx) # vROHR
@@ -3676,7 +3680,7 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
 
-    def __Mx1_Sir3sID(self,mx):
+    def __Mx1_Sir3sIDUpd(self,mx):
         """Update Sir3sID in mx.mx1Df and mx.df.
 
         Args:
@@ -3690,40 +3694,65 @@ class Xm():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try:
-            Upd=False
-
             # Sir3sID split
             df=mx.mx1Df['Sir3sID'].str.extract(Mx.reSir3sIDcompiled)               
             # Sir3sID reconstruction
             df=df.assign(Sir3sID=lambda df: df.OBJTYPE+'~'+df.NAME1+'~'+df.NAME2+'~'+df.OBJTYPE_PK+'~'+df.ATTRTYPE)
 
-            # KNOT ------------------------------------------
-            dfKNOTCols=df.columns.tolist()
-            dfKNOTCols.append('NAME')
-            dfKNOT=pd.merge(
-                # KNOT-Channels without KI
-                df[ (df['NAME1'].str.len()==0) & (df['OBJTYPE'].isin(['KNOT'])) ]
-               ,self.dataFrames['vKNOT']
+            nOfSir3sIDsUpdated=0
+            
+            # KNOT
+            nOfSir3sIDsUpdated=nOfSir3sIDsUpdated+self.__Mx1_Sir3sIDUpd_ObjTypeNode(mx=mx
+                                                                 ,dfUpd=df[ (df['NAME1'].str.len()==0) & (df['OBJTYPE'].isin(['KNOT'])) ]
+                                                                 ,dfNAME1=self.dataFrames['KNOT']
+                                                                 ,NAME1Col='NAME')
+            # WBLZ
+            nOfSir3sIDsUpdated=nOfSir3sIDsUpdated+self.__Mx1_Sir3sIDUpd_ObjTypeNode(mx=mx
+                                                                 ,dfUpd=df[ (df['NAME1'].str.len()==0) & (df['OBJTYPE'].isin(['WBLZ'])) ]
+                                                                 ,dfNAME1=self.dataFrames['WBLZ']
+                                                                 ,NAME1Col='NAME')
+            # RXXXX
+            for ObjType in ['RSLW','RMES','RFKT','RTOT','RVGL','RHYS','RINT','RPT1','RADD','RMUL','RDIV','RMIN','RPID','RVGL']:       
+                if ObjType in self.dataFrames:
+                    nOfSir3sIDsUpdated=nOfSir3sIDsUpdated+self.__Mx1_Sir3sIDUpd_ObjTypeNode(mx=mx
+                                                                     ,dfUpd=df[ (df['NAME1'].str.len()==0) & (df['OBJTYPE'].isin([ObjType])) ]
+                                                                     ,dfNAME1=self.dataFrames[ObjType]
+                                                                     ,NAME1Col='KA')
+            
+            # VBEL
+            dfUpd=df[ (df['NAME1'].str.len()==0) & (df['OBJTYPE'].isin(vVBEL_edges)) ]
+            dfUpdCols=dfUpd.columns.tolist()
+            dfUpdCols.append('NAME_i')
+            dfUpdCols.append('NAME_k')
+            dfUpd=pd.merge(
+                dfUpd
+               ,self.dataFrames['vVBEL']
                ,how='inner'
                ,left_on='OBJTYPE_PK'
-               ,right_on='pk'
-               ,suffixes=('', '_y'))[dfKNOTCols]
-            # calculate Sir3sID Update for these KNOT-Channels
-            dfKNOT=dfKNOT.assign(Sir3sIDUpd=lambda df: df.OBJTYPE+'~'+df.NAME+'~'+df.NAME2+'~'+df.OBJTYPE_PK+'~'+df.ATTRTYPE)
+               ,right_on='tk'
+               ,suffixes=('', '_y'))
 
-            # iterate over all old Sir3sIDs
-            # set Sir3sID to Sir3sIDUpd
-            # set NAME1 to NAME
-            # rename the corresponding col in df
-            for index, row in dfKNOT.iterrows():
-                Upd=True
+            dfUpd=dfUpd[(dfUpd['OBJTYPE']==dfUpd['VBEL'])][dfUpdCols]
+            # calculate Sir3sID Update 
+            dfUpd=dfUpd.assign(Sir3sIDUpd=lambda df: df.OBJTYPE+'~'+df.NAME_i+'~'+df.NAME_k+'~'+df.OBJTYPE_PK+'~'+df.ATTRTYPE)
+            # iterate over all Sir3sIDs to be updated
+            for index, row in dfUpd.iterrows():
+                nOfSir3sIDsUpdated=nOfSir3sIDsUpdated+1
+                # set Sir3sID to Sir3sIDUpd in mx.mx1Df
                 mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sID'],'Sir3sID']=row['Sir3sIDUpd']
-                logger.debug("{0:s}Changing {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))    
-                mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sIDUpd'],'NAME1']=row['NAME']
+                logger.debug("{0:s}Changing Sir3sID {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))    
+                # set NAME1 to NAME_i in mx.mx1Df
+                mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sIDUpd'],'NAME1']=row['NAME_i']
+                logger.debug("{0:s}Changing NAME1 (now:{1:s}) to {2:s}.".format(logStr,row['NAME1'],row['NAME_i']))    
+                # set NAME2 to NAME_k in mx.mx1Df
+                mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sIDUpd'],'NAME2']=row['NAME_k']
+                logger.debug("{0:s}Changing NAME2 (now:{1:s}) to {2:s}.".format(logStr,row['NAME2'],row['NAME_k']))    
                 if isinstance(mx.df,pd.core.frame.DataFrame):  
+                    # rename the corresponding col in mx.df
                     mx.df.rename(columns={row['Sir3sID']:row['Sir3sIDUpd']},inplace=True)  
+                    logger.debug("{0:s}Changing Col {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))
 
-            if Upd and mx.h5Read:
+            if nOfSir3sIDsUpdated>0 and mx.h5Read:
                 mx.ToH5()
                            
         except Exception as e:            
@@ -3732,6 +3761,63 @@ class Xm():
                        
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+
+    def __Mx1_Sir3sIDUpd_ObjTypeNode(self,mx=None,dfUpd=None,dfNAME1=None,NAME1Col='NAME'):
+        """Update Sir3sID in mx.mx1Df and mx.df for Channels in dfUpd.
+
+        Args:
+            mx: Mx-Object
+            dfUpd: df with OBJTYPE,NAME1,NAME2,OBJTYPE_PK,ATTRTYPE,Sir3sID to be updated
+            dfNAME1: df with NAME1-Information
+            NAME1Col: col in dfNAME1 with NAME1-Information
+
+        Returns:
+            nOfSir3sIDsUpdated
+
+        Raises:
+            XmError
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:
+            nOfSir3sIDsUpdated=0
+
+            dfUpdCols=dfUpd.columns.tolist()
+            dfUpdCols.append(NAME1Col)
+            dfUpd=pd.merge(
+                dfUpd
+               ,dfNAME1
+               ,how='inner'
+               ,left_on='OBJTYPE_PK'
+               ,right_on='pk'
+               ,suffixes=('', '_y'))[dfUpdCols]
+            dfUpd.rename(columns={NAME1Col:'NAME1Col'},inplace=True)
+            # calculate Sir3sID Update 
+            dfUpd=dfUpd.assign(Sir3sIDUpd=lambda df: df.OBJTYPE+'~'+df.NAME1Col+'~'+df.NAME2+'~'+df.OBJTYPE_PK+'~'+df.ATTRTYPE)
+
+            # iterate over all Sir3sIDs to be updated
+            for index, row in dfUpd.iterrows():
+                nOfSir3sIDsUpdated=nOfSir3sIDsUpdated+1
+                # set Sir3sID to Sir3sIDUpd in mx.mx1Df
+                mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sID'],'Sir3sID']=row['Sir3sIDUpd']
+                logger.debug("{0:s}Changing Sir3sID {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))    
+                # set NAME1 to NAME1Col in mx.mx1Df
+                mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sIDUpd'],'NAME1']=row['NAME1Col']
+                logger.debug("{0:s}Changing NAME1 (now:{1:s}) to {2:s}.".format(logStr,row['NAME1'],row['NAME1Col']))    
+                if isinstance(mx.df,pd.core.frame.DataFrame):  
+                    # rename the corresponding col in mx.df
+                    mx.df.rename(columns={row['Sir3sID']:row['Sir3sIDUpd']},inplace=True)  
+                    logger.debug("{0:s}Changing Col {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))
+                           
+        except Exception as e:            
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e)) 
+            logger.error(logStrFinal) 
+                       
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            return nOfSir3sIDsUpdated
 
     def __Mx1_vNRCV(self,mx):
         """vNRCV_Mx1 (vNRCV with Mx1-Information).

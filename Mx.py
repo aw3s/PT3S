@@ -503,7 +503,7 @@ class MxError(Exception):
 class Mx():
     """Reading SIR 3S' MX-Files. 
 
-    Summry:
+    Summary:
         * (mx1File): use this to profit from previous reads finalized with ToH5()
         * (mx1File,NoH5Read=True): use this for a fresh start with implicit .MXS-File read; finalize with ToH5()
         * (mx1File,NoH5Read=True,NoMxsRead=True): use this for a fresh start; call setResultsTo...() explicit; finalize with ToH5()
