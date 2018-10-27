@@ -458,36 +458,37 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 >>> # ---
 >>> # vXXXX
 >>> # ---
->>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',dropColList=['VBEL','pk_i','CONT_i','CONT_VKNO_i','pk_k','CONT_k','CONT_VKNO_k']))
-                                           BESCHREIBUNG IDREFERENZ                   tk       NAME_i  NAME_k  mx2Idx
-ROHR 4613782368750024999                           None         -1  4613782368750024999       R-K004  R-K005       0
-     4614949065966596185                           None         -1  4614949065966596185       V-K002  V-K003       1
-     4637102239750163477                           None         -1  4637102239750163477       R-K003  R-K004       2
-     4713733238627697042                           None         -1  4713733238627697042       V-K004  V-K005       3
-     4769996343148550485                           None         -1  4769996343148550485          R-L  R-K000       5
-     4789218195240364437                           None         -1  4789218195240364437       V-K001  V-K002       7
-     4939422678063487923                           None         -1  4939422678063487923          V-L  V-K000       8
-     4945727430885351042                           None         -1  4945727430885351042       R-K006  R-K007       9
-     4984202422877610920                           None         -1  4984202422877610920       V-K000  V-K001      10
-     5037777106796980248                           None         -1  5037777106796980248       V-K003  V-K004      11
-     5123819811204259837                           None         -1  5123819811204259837       V-K005  V-K006      12
-     5266224553324203132                           None         -1  5266224553324203132       R-K001  R-K002      13
-     5379365049009065623                           None         -1  5379365049009065623       R-K002  R-K003      14
-     5611703699850694889                           None         -1  5611703699850694889       R-K005  R-K006      15
-     5620197984230756681                           None         -1  5620197984230756681       V-K006  V-K007       4
-     5647213228462830353                           None         -1  5647213228462830353       R-K000  R-K001       6
-VENT 4678923650983295610                           None         -1  4678923650983295610          V-1     V-L       0
-     4897018421024717974                           None         -1  4897018421024717974          R-L     R-1       1
-     5525310316015533093                           None         -1  5525310316015533093  PKON-Knoten     R-1       2
-FWVB 4643800032883366034                              1         -1  4643800032883366034       V-K002  R-K002       0
-     4704603947372595298                              3         -1  4704603947372595298       V-K004  R-K004       1
-     5121101823283893406                              4         -1  5121101823283893406       V-K005  R-K005       2
-     5400405917816384862                              5         -1  5400405917816384862       V-K007  R-K007       3
-     5695730293103267172                              2         -1  5695730293103267172       V-K003  R-K003       4
-FWES 5638756766880678918  BHKW - Modul - 1000 kW therm.         -1  5638756766880678918           R3     V-1       0
-PUMP 5481331875203087055                    Umwälzpumpe         -1  5481331875203087055          R-1      R2       0
-KLAP 4801110583764519435                           None         -1  4801110583764519435           R2      R3       0
-PGRP 4986517622672493603                   Pumpengruppe         -1  4986517622672493603          R-1      R3       0
+>>> xm.dataFrames['vVBEL'].reset_index(inplace=True)
+>>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',index=True,dropColList=['pk_i','CONT_i','CONT_VKNO_i','pk_k','CONT_k','CONT_VKNO_k','IDREFERENZ','tk']))
+   OBJTYPE                   pk                   BESCHREIBUNG       NAME_i  NAME_k  mx2Idx
+0     ROHR  4613782368750024999                           None       R-K004  R-K005       0
+1     ROHR  4614949065966596185                           None       V-K002  V-K003       1
+2     ROHR  4637102239750163477                           None       R-K003  R-K004       2
+3     ROHR  4713733238627697042                           None       V-K004  V-K005       3
+4     ROHR  4769996343148550485                           None          R-L  R-K000       5
+5     ROHR  4789218195240364437                           None       V-K001  V-K002       7
+6     ROHR  4939422678063487923                           None          V-L  V-K000       8
+7     ROHR  4945727430885351042                           None       R-K006  R-K007       9
+8     ROHR  4984202422877610920                           None       V-K000  V-K001      10
+9     ROHR  5037777106796980248                           None       V-K003  V-K004      11
+10    ROHR  5123819811204259837                           None       V-K005  V-K006      12
+11    ROHR  5266224553324203132                           None       R-K001  R-K002      13
+12    ROHR  5379365049009065623                           None       R-K002  R-K003      14
+13    ROHR  5611703699850694889                           None       R-K005  R-K006      15
+14    ROHR  5620197984230756681                           None       V-K006  V-K007       4
+15    ROHR  5647213228462830353                           None       R-K000  R-K001       6
+16    VENT  4678923650983295610                           None          V-1     V-L       0
+17    VENT  4897018421024717974                           None          R-L     R-1       1
+18    VENT  5525310316015533093                           None  PKON-Knoten     R-1       2
+19    FWVB  4643800032883366034                              1       V-K002  R-K002       0
+20    FWVB  4704603947372595298                              3       V-K004  R-K004       1
+21    FWVB  5121101823283893406                              4       V-K005  R-K005       2
+22    FWVB  5400405917816384862                              5       V-K007  R-K007       3
+23    FWVB  5695730293103267172                              2       V-K003  R-K003       4
+24    FWES  5638756766880678918  BHKW - Modul - 1000 kW therm.           R3     V-1       0
+25    PUMP  5481331875203087055                    Umwälzpumpe          R-1      R2       0
+26    KLAP  4801110583764519435                           None           R2      R3       0
+27    PGRP  4986517622672493603                   Pumpengruppe          R-1      R3       0
 >>> # ---
 >>> # Clean Up LocalHeatingNetwork Mx
 >>> # ---
@@ -3532,7 +3533,7 @@ class Xm():
                 * sequence within edges: Xml
 
             columns:
-                * VBEL: str: 'ROHR','VENT',... [default a MIndex not a column]
+                * OBJTYPE: str: 'ROHR','VENT',... [default a MIndex not a column]
                 
                 * BESCHREIBUNG
                 * IDREFERENZ
@@ -3559,7 +3560,7 @@ class Xm():
 
             for VBEL in edges:
                 if VBEL in self.dataFrames:
-                    vXXXX=self._vVBEL_XXXX(vKNOT=vKNOT,XXXX=VBEL)
+                    vXXXX=self._vVBEL_XXXX(vKNOT=vKNOT,OBJTYPE=VBEL)
                     if vXXXX is None:
                         pass
                     else:
@@ -3567,17 +3568,14 @@ class Xm():
 
             vVBEL=pd.concat(vVBEL_UnionList)
 
-            #logger.debug("{0:s}{1:s}".format(logStr,str(vVBEL.columns.tolist()))) 
-
-            mIdxLst=['VBEL','pk']
+            mIdxLst=['OBJTYPE','pk']
             arrays=[]
             for col in mIdxLst:
                 arrays.append(vVBEL[col].tolist())
             tuples = list(zip(*(arrays)))
             index = pd.MultiIndex.from_tuples(tuples,names=mIdxLst)
-            #vVBEL.drop(mIdxLst,axis=1,inplace=True)
-            vVBEL.drop('pk',axis=1,inplace=True)
-            vVBEL=pd.DataFrame(vVBEL.values,index=arrays,columns=vVBEL.columns)
+            vVBEL.drop(mIdxLst,axis=1,inplace=True) # one can use unstack to produce a column            
+            vVBEL=pd.DataFrame(vVBEL.values,index=index,columns=vVBEL.columns)
 
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -3586,20 +3584,20 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
             return vVBEL     
         
-    def _vVBEL_XXXX(self,vKNOT=None,XXXX=None):
+    def _vVBEL_XXXX(self,vKNOT=None,OBJTYPE=None):
         """One row per Edge.
 
         Args:
             * vKNOT: df 
-            * XXXX: str
-                self.dataFrames[XXXX] is used to build with vKNOT the returned Edge-df 
+            * OBJTYPE: str ('ROHR','VENT',...)
+                self.dataFrames[OBJTYPE] is used to build with vKNOT the returned Edge-df 
 
         Returns:
             Edge-df
             None is returned if an exception occurs
 
             columns:
-                * VBEL: str: XXXX
+                * OBJTYPE: str: ROHR,VENT,...
                 
                 * BESCHREIBUNG
                 * IDREFERENZ
@@ -3623,16 +3621,14 @@ class Xm():
         try:         
             vXXXX=None
 
-            vXXXX=pd.merge(self.dataFrames[XXXX],vKNOT,left_on='fkKI',right_on='pk',suffixes=('','_i'))            
+            vXXXX=pd.merge(self.dataFrames[OBJTYPE],vKNOT,left_on='fkKI',right_on='pk',suffixes=('','_i'))            
             vXXXX=vXXXX[['fkKK','BESCHREIBUNG','IDREFERENZ','pk','tk','NAME','CONT','CONT_VKNO','pk_i']]
             vXXXX.rename(columns={'NAME':'NAME_i','CONT':'CONT_i','CONT_VKNO':'CONT_VKNO_i'},inplace=True)
             vXXXX=pd.merge(vXXXX,vKNOT,left_on='fkKK',right_on='pk',suffixes=('','_k'))
             vXXXX=vXXXX[['BESCHREIBUNG','IDREFERENZ','pk','tk','NAME_i','CONT_i','CONT_VKNO_i','pk_i','NAME','CONT','CONT_VKNO','pk_k']]
             vXXXX.rename(columns={'NAME':'NAME_k','CONT':'CONT_k','CONT_VKNO':'CONT_VKNO_k'},inplace=True)
-            vXXXX=vXXXX.assign(VBEL=lambda x: XXXX)
-            vXXXX=vXXXX[['VBEL','BESCHREIBUNG','IDREFERENZ','pk','tk','NAME_i','CONT_i','CONT_VKNO_i','pk_i','NAME_k','CONT_k','CONT_VKNO_k','pk_k']]
-
-            #logger.debug("{0:s}{1:s}".format(logStr,str(vXXXX.columns.tolist()))) 
+            vXXXX=vXXXX.assign(OBJTYPE=lambda x: OBJTYPE)
+            vXXXX=vXXXX[['OBJTYPE','BESCHREIBUNG','IDREFERENZ','pk','tk','NAME_i','CONT_i','CONT_VKNO_i','pk_i','NAME_k','CONT_k','CONT_VKNO_k','pk_k']]
 
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -3721,18 +3717,27 @@ class Xm():
             
             # VBEL
             dfUpd=df[ (df['NAME1'].str.len()==0) & (df['OBJTYPE'].isin(vVBEL_edges)) ]
+            #logger.debug("{0:s}dfUpd vor Merge: {1:s}.".format(logStr,str(dfUpd)))
+
+            # fuer Col-Auswahl nach Merge
             dfUpdCols=dfUpd.columns.tolist()
             dfUpdCols.append('NAME_i')
             dfUpdCols.append('NAME_k')
+
+            # right (hat die zu mergenden Keys als Index)
+            dfVBEL=self.dataFrames['vVBEL']
+            
             dfUpd=pd.merge(
                 dfUpd
-               ,self.dataFrames['vVBEL']
-               ,how='inner'
-               ,left_on='OBJTYPE_PK'
-               ,right_on='tk'
-               ,suffixes=('', '_y'))
+               ,dfVBEL
+               ,how='left' # expected: no NaNs/Nones in Merge.Result
+               ,left_on=['OBJTYPE','OBJTYPE_PK'] # diese left Key-Spalten ... 
+               ,right_index=True # ... matchen mit den right Indices 
+               ,suffixes=('', '_y'))[dfUpdCols]
 
-            dfUpd=dfUpd[(dfUpd['OBJTYPE']==dfUpd['VBEL'])][dfUpdCols]
+            # left.join(right, how=...) ... matched anhand einer Index-Namensgleichheit ... 
+            #logger.debug("{0:s}dfUpd nach Merge: {1:s}.".format(logStr,str(dfUpd)))
+
             # calculate Sir3sID Update 
             dfUpd=dfUpd.assign(Sir3sIDUpd=lambda df: df.OBJTYPE+'~'+df.NAME_i+'~'+df.NAME_k+'~'+df.OBJTYPE_PK+'~'+df.ATTRTYPE)
             # iterate over all Sir3sIDs to be updated

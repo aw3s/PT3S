@@ -81,3 +81,5 @@
 /testdata/TinyWDN.mdb
 /MVV.ipynb
 /.ipynb_checkpoints/MVV-checkpoint.ipynb
+/Expected.txt
+/Got.txt
