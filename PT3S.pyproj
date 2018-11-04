@@ -30,12 +30,19 @@
     <Content Include="Rm.rst">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="testdata09\GPipe.mdb" />
+    <Content Include="testdata09\GPipe.xml" />
     <Content Include="testdata09\LocalHeatingNetwork.XML" />
     <Content Include="testdata09\LocalHeatingNetwork.mdb" />
     <Content Include="testdata09\OneLPipe.XML" />
     <Content Include="testdata09\OneLPipe.mdb" />
     <Content Include="testdata09\TinyWDN.xml" />
     <Content Include="testdata09\TinyWDN.mdb" />
+    <Content Include="testdata09\WDGPipe\B1\V0\BZ1\M-1-0-1.MX1" />
+    <Content Include="testdata09\WDGPipe\B1\V0\BZ1\M-1-0-1.MX2" />
+    <Content Include="testdata09\WDGPipe\B1\V0\BZ1\M-1-0-1.MX3" />
+    <Content Include="testdata09\WDGPipe\B1\V0\BZ1\M-1-0-1.MXS" />
+    <Content Include="testdata09\WDGPipe\B1\V0\BZ1\M-1-0-1.XML" />
     <Content Include="testdata09\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX1" />
     <Content Include="testdata09\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX2" />
     <Content Include="testdata09\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX3" />
@@ -51,10 +58,17 @@
     <Content Include="testdata09\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MX3" />
     <Content Include="testdata09\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MXS" />
     <Content Include="testdata09\WDTinyWDN\B1\V0\BZ1\M-1-0-1.XML" />
+    <Content Include="testdata\GPipe.mdb" />
+    <Content Include="testdata\GPipe.XML" />
     <Content Include="testdata\LocalHeatingNetwork.mdb" />
     <Content Include="testdata\OneLPipe.mdb" />
     <Content Include="testdata\TinyWDN.mdb" />
     <Content Include="testdata\TinyWDN.xml" />
+    <Content Include="testdata\WDGPipe\B1\V0\BZ1\M-1-0-1.1.MX1" />
+    <Content Include="testdata\WDGPipe\B1\V0\BZ1\M-1-0-1.1.MX3" />
+    <Content Include="testdata\WDGPipe\B1\V0\BZ1\M-1-0-1.1.MXS" />
+    <Content Include="testdata\WDGPipe\B1\V0\BZ1\M-1-0-1.MX2" />
+    <Content Include="testdata\WDGPipe\B1\V0\BZ1\M-1-0-1.XML" />
     <Content Include="testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.1.MX1" />
     <Content Include="testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.1.MX3" />
     <Content Include="testdata\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.1.MXS" />
@@ -97,6 +111,10 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="testdata09\" />
+    <Folder Include="testdata09\WDGPipe\" />
+    <Folder Include="testdata09\WDGPipe\B1\" />
+    <Folder Include="testdata09\WDGPipe\B1\V0\" />
+    <Folder Include="testdata09\WDGPipe\B1\V0\BZ1\" />
     <Folder Include="testdata09\WDLocalHeatingNetwork\" />
     <Folder Include="testdata09\WDLocalHeatingNetwork\B1\" />
     <Folder Include="testdata09\WDLocalHeatingNetwork\B1\V0\" />
@@ -110,6 +128,10 @@
     <Folder Include="testdata09\WDTinyWDN\B1\V0\" />
     <Folder Include="testdata09\WDTinyWDN\B1\V0\BZ1\" />
     <Folder Include="testdata\" />
+    <Folder Include="testdata\WDGPipe\" />
+    <Folder Include="testdata\WDGPipe\B1\" />
+    <Folder Include="testdata\WDGPipe\B1\V0\" />
+    <Folder Include="testdata\WDGPipe\B1\V0\BZ1\" />
     <Folder Include="testdata\WDLocalHeatingNetwork\" />
     <Folder Include="testdata\WDLocalHeatingNetwork\B1\" />
     <Folder Include="testdata\WDLocalHeatingNetwork\B1\V0\" />

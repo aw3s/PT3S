@@ -431,6 +431,21 @@ ATTRTYPE  DATALENGTH DATATYPE  DATATYPELENGTH  FLAGS OBJTYPE           OBJTYPE_P
 >>> # ---
 >>> if os.path.exists(mx.h5FileVecs):                        
 ...    os.remove(mx.h5FileVecs)
+>>> # ---
+>>> # GPipe
+>>> # ---
+>>> mx1File=os.path.join(path,os.path.join(testDir,'WDGPipe\B1\V0\BZ1\M-1-0-1'+dotResolution+'.MX1'))
+>>> mx=Mx(mx1File=mx1File)
+>>> plotTimeDfs=mx.getMxsVecsFileData()
+>>> len(plotTimeDfs[0]['ROHR~*~*~*~PVEC'].iloc[0]) == mx.mx2Df[mx.mx2Df['AttrType'].str.contains('N_OF_POINTS')].iloc[0].Data[0]
+True
+>>> plotTimeDfs[0]['ROHR~*~*~*~PVEC'].iloc[0][0]
+41.0
+>>> # ---
+>>> # Clean Up GPipe
+>>> # ---
+>>> if os.path.exists(mx.h5FileVecs):                        
+...    os.remove(mx.h5FileVecs)
 """
 
 import warnings # 3.6
@@ -1879,6 +1894,7 @@ class Mx():
         """
         Args:
             * timesReq: List of requested TIMESTAMPs
+                * if None: a single time only, the firstTime, is considered as requested
 
         Returns:
             * List of dfs with mxsVecsFileData 
@@ -1908,9 +1924,14 @@ class Mx():
             #requested
             h5KeysRequested=[]
             firstTime=self.df.index[0]
-            for timeReq in timesReq:
-                key=getMicrosecondsFromRefTime(refTime=firstTime,time=timeReq)
+
+            if timesReq == None:
+                key=getMicrosecondsFromRefTime(refTime=firstTime,time=firstTime)
                 h5KeysRequested.append(key)
+            else:
+                for timeReq in timesReq:
+                    key=getMicrosecondsFromRefTime(refTime=firstTime,time=timeReq)
+                    h5KeysRequested.append(key)
             h5KeysRequested=['/'+str(key) for key in h5KeysRequested]           
                                  
             mxsVecsDfs=[]

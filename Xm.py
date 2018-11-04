@@ -219,106 +219,107 @@ False
 >>> # ---
 >>> # vLAYR
 >>> # ---
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vLAYR'].sort_values(['LFDNR','NAME','OBJTYPE','OBJID'],ascending=True)).replace('\\n','\\n   ')))
-'''   LFDNR           NAME OBJTYPE                OBJID                   pk                   tk  nrObjInGroup  nrObjtypeInGroup
-   0      1        Vorlauf    FWES  5638756766880678918  5206516471428693478  5206516471428693478             1                 1
-   1      1        Vorlauf    KNOT  4731792362611615619  5206516471428693478  5206516471428693478             2                 1
-   2      1        Vorlauf    KNOT  4756962427318766791  5206516471428693478  5206516471428693478             3                 2
-   3      1        Vorlauf    KNOT  4766681917240867943  5206516471428693478  5206516471428693478             4                 3
-   4      1        Vorlauf    KNOT  5049461676240771430  5206516471428693478  5206516471428693478             5                 4
-   5      1        Vorlauf    KNOT  5370423799772591808  5206516471428693478  5206516471428693478             6                 5
-   6      1        Vorlauf    KNOT  5444644492819213978  5206516471428693478  5206516471428693478             7                 6
-   7      1        Vorlauf    KNOT  5515313800585145571  5206516471428693478  5206516471428693478             8                 7
-   8      1        Vorlauf    KNOT  5646671866542823796  5206516471428693478  5206516471428693478             9                 8
-   9      1        Vorlauf    KNOT  5736262931552588702  5206516471428693478  5206516471428693478            10                 9
-   10     1        Vorlauf    KNOT  5741235692335544560  5206516471428693478  5206516471428693478            11                10
-   11     1        Vorlauf    ROHR  4614949065966596185  5206516471428693478  5206516471428693478            12                 1
-   12     1        Vorlauf    ROHR  4713733238627697042  5206516471428693478  5206516471428693478            13                 2
-   13     1        Vorlauf    ROHR  4789218195240364437  5206516471428693478  5206516471428693478            14                 3
-   14     1        Vorlauf    ROHR  4939422678063487923  5206516471428693478  5206516471428693478            15                 4
-   15     1        Vorlauf    ROHR  4984202422877610920  5206516471428693478  5206516471428693478            16                 5
-   16     1        Vorlauf    ROHR  5037777106796980248  5206516471428693478  5206516471428693478            17                 6
-   17     1        Vorlauf    ROHR  5123819811204259837  5206516471428693478  5206516471428693478            18                 7
-   18     1        Vorlauf    ROHR  5620197984230756681  5206516471428693478  5206516471428693478            19                 8
-   19     1        Vorlauf    VENT  4678923650983295610  5206516471428693478  5206516471428693478            20                 1
-   20     2       Rücklauf    KLAP  4801110583764519435  4693347477612662930  4693347477612662930             1                 1
-   21     2       Rücklauf    KNOT  4638663808856251977  4693347477612662930  4693347477612662930             2                 1
-   22     2       Rücklauf    KNOT  4807712987325933680  4693347477612662930  4693347477612662930             3                 2
-   23     2       Rücklauf    KNOT  4891048046264179170  4693347477612662930  4693347477612662930             4                 3
-   24     2       Rücklauf    KNOT  4979785838440534851  4693347477612662930  4693347477612662930             5                 4
-   25     2       Rücklauf    KNOT  5002109894154139899  4693347477612662930  4693347477612662930             6                 5
-   26     2       Rücklauf    KNOT  5183147862966701025  4693347477612662930  4693347477612662930             7                 6
-   27     2       Rücklauf    KNOT  5219230031772497417  4693347477612662930  4693347477612662930             8                 7
-   28     2       Rücklauf    KNOT  5356267303828212700  4693347477612662930  4693347477612662930             9                 8
-   29     2       Rücklauf    KNOT  5364712333175450942  4693347477612662930  4693347477612662930            10                 9
-   30     2       Rücklauf    KNOT  5397990465339071638  4693347477612662930  4693347477612662930            11                10
-   31     2       Rücklauf    KNOT  5508992300317633799  4693347477612662930  4693347477612662930            12                11
-   32     2       Rücklauf    KNOT  5543326527366090679  4693347477612662930  4693347477612662930            13                12
-   33     2       Rücklauf    KNOT  5557222628687032084  4693347477612662930  4693347477612662930            14                13
-   34     2       Rücklauf    PUMP  5481331875203087055  4693347477612662930  4693347477612662930            15                 1
-   35     2       Rücklauf    ROHR  4613782368750024999  4693347477612662930  4693347477612662930            16                 1
-   36     2       Rücklauf    ROHR  4637102239750163477  4693347477612662930  4693347477612662930            17                 2
-   37     2       Rücklauf    ROHR  4769996343148550485  4693347477612662930  4693347477612662930            18                 3
-   38     2       Rücklauf    ROHR  4945727430885351042  4693347477612662930  4693347477612662930            19                 4
-   39     2       Rücklauf    ROHR  5266224553324203132  4693347477612662930  4693347477612662930            20                 5
-   40     2       Rücklauf    ROHR  5379365049009065623  4693347477612662930  4693347477612662930            21                 6
-   41     2       Rücklauf    ROHR  5611703699850694889  4693347477612662930  4693347477612662930            22                 7
-   42     2       Rücklauf    ROHR  5647213228462830353  4693347477612662930  4693347477612662930            23                 8
-   43     2       Rücklauf    VENT  4897018421024717974  4693347477612662930  4693347477612662930            24                 1
-   44     2       Rücklauf    VENT  5525310316015533093  4693347477612662930  4693347477612662930            25                 2
-   45     3  Kundenanlagen    FWVB  4643800032883366034  5003333277973347346  5003333277973347346             1                 1
-   46     3  Kundenanlagen    FWVB  4704603947372595298  5003333277973347346  5003333277973347346             2                 2
-   47     3  Kundenanlagen    FWVB  5121101823283893406  5003333277973347346  5003333277973347346             3                 3
-   48     3  Kundenanlagen    FWVB  5400405917816384862  5003333277973347346  5003333277973347346             4                 4
-   49     3  Kundenanlagen    FWVB  5695730293103267172  5003333277973347346  5003333277973347346             5                 5
-   50     4           BHKW    BSYM  5043395081363401573  5555393404073362943  5555393404073362943             1                 1
-   51     4           BHKW    TEXT  5056836766824229789  5555393404073362943  5555393404073362943             2                 1
-   52     4           BHKW    TEXT  5329748935118523443  5555393404073362943  5555393404073362943             3                 2
-   53     5          Texte    ARRW  4664845735864571219  5394410243594912680  5394410243594912680             1                 1
-   54     5          Texte    ARRW  4902474974831811106  5394410243594912680  5394410243594912680             2                 2
-   55     5          Texte    ARRW  5026846801782366678  5394410243594912680  5394410243594912680             3                 3
-   56     5          Texte    ARRW  5688313372729413840  5394410243594912680  5394410243594912680             4                 4
-   57     5          Texte    NRCV  4681213816714574464  5394410243594912680  5394410243594912680             5                 1
-   58     5          Texte    NRCV  4857294696992797631  5394410243594912680  5394410243594912680             6                 2
-   59     5          Texte    NRCV  4914949875368816179  5394410243594912680  5394410243594912680             7                 3
-   60     5          Texte    NRCV  4946584950744559030  5394410243594912680  5394410243594912680             8                 4
-   61     5          Texte    NRCV  4968703141722117357  5394410243594912680  5394410243594912680             9                 5
-   62     5          Texte    NRCV  5091374651838464239  5394410243594912680  5394410243594912680            10                 6
-   63     5          Texte    NRCV  5097127385155151127  5394410243594912680  5394410243594912680            11                 7
-   64     5          Texte    NRCV  5179988968597313889  5394410243594912680  5394410243594912680            12                 8
-   65     5          Texte    NRCV  5281885868749421521  5394410243594912680  5394410243594912680            13                 9
-   66     5          Texte    NRCV  5410904806390050339  5394410243594912680  5394410243594912680            14                10
-   67     5          Texte    NRCV  5476262878682325254  5394410243594912680  5394410243594912680            15                11
-   68     5          Texte    NRCV  5557806245003742769  5394410243594912680  5394410243594912680            16                12
-   69     5          Texte    RECT  4994817837124479818  5394410243594912680  5394410243594912680            17                 1
-   70     5          Texte    RPFL  5158870568935841216  5394410243594912680  5394410243594912680            18                 1
-   71     5          Texte    TEXT  4628671704393700430  5394410243594912680  5394410243594912680            19                 1
-   72     5          Texte    TEXT  4654104397990769217  5394410243594912680  5394410243594912680            20                 2
-   73     5          Texte    TEXT  4666644549022031339  5394410243594912680  5394410243594912680            21                 3
-   74     5          Texte    TEXT  4693143208412077585  5394410243594912680  5394410243594912680            22                 4
-   75     5          Texte    TEXT  4768731522550494423  5394410243594912680  5394410243594912680            23                 5
-   76     5          Texte    TEXT  4770844990228490264  5394410243594912680  5394410243594912680            24                 6
-   77     5          Texte    TEXT  4782197969172967134  5394410243594912680  5394410243594912680            25                 7
-   78     5          Texte    TEXT  4855692488683645764  5394410243594912680  5394410243594912680            26                 8
-   79     5          Texte    TEXT  4965628942555351751  5394410243594912680  5394410243594912680            27                 9
-   80     5          Texte    TEXT  4995961504641886710  5394410243594912680  5394410243594912680            28                10
-   81     5          Texte    TEXT  5017907661719368413  5394410243594912680  5394410243594912680            29                11
-   82     5          Texte    TEXT  5028052147238787802  5394410243594912680  5394410243594912680            30                12
-   83     5          Texte    TEXT  5036153631350515544  5394410243594912680  5394410243594912680            31                13
-   84     5          Texte    TEXT  5054433315422452796  5394410243594912680  5394410243594912680            32                14
-   85     5          Texte    TEXT  5108336975548011049  5394410243594912680  5394410243594912680            33                15
-   86     5          Texte    TEXT  5262441422409836340  5394410243594912680  5394410243594912680            34                16
-   87     5          Texte    TEXT  5297832234834839298  5394410243594912680  5394410243594912680            35                17
-   88     5          Texte    TEXT  5370727463979416592  5394410243594912680  5394410243594912680            36                18
-   89     5          Texte    TEXT  5421223289472778073  5394410243594912680  5394410243594912680            37                19
-   90     5          Texte    TEXT  5501963349880613918  5394410243594912680  5394410243594912680            38                20
-   91     5          Texte    TEXT  5502619581048467908  5394410243594912680  5394410243594912680            39                21
-   92     5          Texte    TEXT  5540395812045688781  5394410243594912680  5394410243594912680            40                22
-   93     5          Texte    TEXT  5550982489075668484  5394410243594912680  5394410243594912680            41                23
-   94     5          Texte    TEXT  5610916400841895317  5394410243594912680  5394410243594912680            42                24
-   95     5          Texte    TEXT  5646820849868629537  5394410243594912680  5394410243594912680            43                25
-   96     5          Texte    TEXT  5696590398594231893  5394410243594912680  5394410243594912680            44                26
-   97     5          Texte    TEXT  5697088036451277538  5394410243594912680  5394410243594912680            45                27'''
+>>> # print("'''{:s}'''".format(repr(xm.dataFrames['vLAYR'].sort_values(['LFDNR','NAME','OBJTYPE','OBJID'],ascending=True)).replace('\\n','\\n   ')))
+>>> print(xm._getvXXXXAsOneString(vXXXX='vLAYR'))
+   LFDNR           NAME OBJTYPE                OBJID                   pk                   tk  nrObjInGroup  nrObjtypeInGroup
+0      1        Vorlauf    FWES  5638756766880678918  5206516471428693478  5206516471428693478             1                 1
+1      1        Vorlauf    KNOT  4731792362611615619  5206516471428693478  5206516471428693478             1                 1
+2      1        Vorlauf    KNOT  4756962427318766791  5206516471428693478  5206516471428693478             1                 2
+3      1        Vorlauf    KNOT  4766681917240867943  5206516471428693478  5206516471428693478             1                 3
+4      1        Vorlauf    KNOT  5049461676240771430  5206516471428693478  5206516471428693478             1                 4
+5      1        Vorlauf    KNOT  5370423799772591808  5206516471428693478  5206516471428693478             1                 5
+6      1        Vorlauf    KNOT  5444644492819213978  5206516471428693478  5206516471428693478             1                 6
+7      1        Vorlauf    KNOT  5515313800585145571  5206516471428693478  5206516471428693478             1                 7
+8      1        Vorlauf    KNOT  5646671866542823796  5206516471428693478  5206516471428693478             1                 8
+9      1        Vorlauf    KNOT  5736262931552588702  5206516471428693478  5206516471428693478             1                 9
+10     1        Vorlauf    KNOT  5741235692335544560  5206516471428693478  5206516471428693478             1                10
+11     1        Vorlauf    ROHR  4614949065966596185  5206516471428693478  5206516471428693478             1                 1
+12     1        Vorlauf    ROHR  4713733238627697042  5206516471428693478  5206516471428693478             1                 2
+13     1        Vorlauf    ROHR  4789218195240364437  5206516471428693478  5206516471428693478             1                 3
+14     1        Vorlauf    ROHR  4939422678063487923  5206516471428693478  5206516471428693478             1                 4
+15     1        Vorlauf    ROHR  4984202422877610920  5206516471428693478  5206516471428693478             1                 5
+16     1        Vorlauf    ROHR  5037777106796980248  5206516471428693478  5206516471428693478             1                 6
+17     1        Vorlauf    ROHR  5123819811204259837  5206516471428693478  5206516471428693478             1                 7
+18     1        Vorlauf    ROHR  5620197984230756681  5206516471428693478  5206516471428693478             1                 8
+19     1        Vorlauf    VENT  4678923650983295610  5206516471428693478  5206516471428693478             1                 1
+20     2       Rücklauf    KLAP  4801110583764519435  4693347477612662930  4693347477612662930             1                 1
+21     2       Rücklauf    KNOT  4638663808856251977  4693347477612662930  4693347477612662930             1                 1
+22     2       Rücklauf    KNOT  4807712987325933680  4693347477612662930  4693347477612662930             1                 2
+23     2       Rücklauf    KNOT  4891048046264179170  4693347477612662930  4693347477612662930             1                 3
+24     2       Rücklauf    KNOT  4979785838440534851  4693347477612662930  4693347477612662930             1                 4
+25     2       Rücklauf    KNOT  5002109894154139899  4693347477612662930  4693347477612662930             1                 5
+26     2       Rücklauf    KNOT  5183147862966701025  4693347477612662930  4693347477612662930             1                 6
+27     2       Rücklauf    KNOT  5219230031772497417  4693347477612662930  4693347477612662930             1                 7
+28     2       Rücklauf    KNOT  5356267303828212700  4693347477612662930  4693347477612662930             1                 8
+29     2       Rücklauf    KNOT  5364712333175450942  4693347477612662930  4693347477612662930             1                 9
+30     2       Rücklauf    KNOT  5397990465339071638  4693347477612662930  4693347477612662930             1                10
+31     2       Rücklauf    KNOT  5508992300317633799  4693347477612662930  4693347477612662930             1                11
+32     2       Rücklauf    KNOT  5543326527366090679  4693347477612662930  4693347477612662930             1                12
+33     2       Rücklauf    KNOT  5557222628687032084  4693347477612662930  4693347477612662930             1                13
+34     2       Rücklauf    PUMP  5481331875203087055  4693347477612662930  4693347477612662930             1                 1
+35     2       Rücklauf    ROHR  4613782368750024999  4693347477612662930  4693347477612662930             1                 1
+36     2       Rücklauf    ROHR  4637102239750163477  4693347477612662930  4693347477612662930             1                 2
+37     2       Rücklauf    ROHR  4769996343148550485  4693347477612662930  4693347477612662930             1                 3
+38     2       Rücklauf    ROHR  4945727430885351042  4693347477612662930  4693347477612662930             1                 4
+39     2       Rücklauf    ROHR  5266224553324203132  4693347477612662930  4693347477612662930             1                 5
+40     2       Rücklauf    ROHR  5379365049009065623  4693347477612662930  4693347477612662930             1                 6
+41     2       Rücklauf    ROHR  5611703699850694889  4693347477612662930  4693347477612662930             1                 7
+42     2       Rücklauf    ROHR  5647213228462830353  4693347477612662930  4693347477612662930             1                 8
+43     2       Rücklauf    VENT  4897018421024717974  4693347477612662930  4693347477612662930             1                 1
+44     2       Rücklauf    VENT  5525310316015533093  4693347477612662930  4693347477612662930             1                 2
+45     3  Kundenanlagen    FWVB  4643800032883366034  5003333277973347346  5003333277973347346             1                 1
+46     3  Kundenanlagen    FWVB  4704603947372595298  5003333277973347346  5003333277973347346             1                 2
+47     3  Kundenanlagen    FWVB  5121101823283893406  5003333277973347346  5003333277973347346             1                 3
+48     3  Kundenanlagen    FWVB  5400405917816384862  5003333277973347346  5003333277973347346             1                 4
+49     3  Kundenanlagen    FWVB  5695730293103267172  5003333277973347346  5003333277973347346             1                 5
+50     4           BHKW    BSYM  5043395081363401573  5555393404073362943  5555393404073362943             1                 1
+51     4           BHKW    TEXT  5056836766824229789  5555393404073362943  5555393404073362943             1                 1
+52     4           BHKW    TEXT  5329748935118523443  5555393404073362943  5555393404073362943             1                 2
+53     5          Texte    ARRW  4664845735864571219  5394410243594912680  5394410243594912680             1                 1
+54     5          Texte    ARRW  4902474974831811106  5394410243594912680  5394410243594912680             1                 2
+55     5          Texte    ARRW  5026846801782366678  5394410243594912680  5394410243594912680             1                 3
+56     5          Texte    ARRW  5688313372729413840  5394410243594912680  5394410243594912680             1                 4
+57     5          Texte    NRCV  4681213816714574464  5394410243594912680  5394410243594912680             1                 1
+58     5          Texte    NRCV  4857294696992797631  5394410243594912680  5394410243594912680             1                 2
+59     5          Texte    NRCV  4914949875368816179  5394410243594912680  5394410243594912680             1                 3
+60     5          Texte    NRCV  4946584950744559030  5394410243594912680  5394410243594912680             1                 4
+61     5          Texte    NRCV  4968703141722117357  5394410243594912680  5394410243594912680             1                 5
+62     5          Texte    NRCV  5091374651838464239  5394410243594912680  5394410243594912680             1                 6
+63     5          Texte    NRCV  5097127385155151127  5394410243594912680  5394410243594912680             1                 7
+64     5          Texte    NRCV  5179988968597313889  5394410243594912680  5394410243594912680             1                 8
+65     5          Texte    NRCV  5281885868749421521  5394410243594912680  5394410243594912680             1                 9
+66     5          Texte    NRCV  5410904806390050339  5394410243594912680  5394410243594912680             1                10
+67     5          Texte    NRCV  5476262878682325254  5394410243594912680  5394410243594912680             1                11
+68     5          Texte    NRCV  5557806245003742769  5394410243594912680  5394410243594912680             1                12
+69     5          Texte    RECT  4994817837124479818  5394410243594912680  5394410243594912680             1                 1
+70     5          Texte    RPFL  5158870568935841216  5394410243594912680  5394410243594912680             1                 1
+71     5          Texte    TEXT  4628671704393700430  5394410243594912680  5394410243594912680             1                 1
+72     5          Texte    TEXT  4654104397990769217  5394410243594912680  5394410243594912680             1                 2
+73     5          Texte    TEXT  4666644549022031339  5394410243594912680  5394410243594912680             1                 3
+74     5          Texte    TEXT  4693143208412077585  5394410243594912680  5394410243594912680             1                 4
+75     5          Texte    TEXT  4768731522550494423  5394410243594912680  5394410243594912680             1                 5
+76     5          Texte    TEXT  4770844990228490264  5394410243594912680  5394410243594912680             1                 6
+77     5          Texte    TEXT  4782197969172967134  5394410243594912680  5394410243594912680             1                 7
+78     5          Texte    TEXT  4855692488683645764  5394410243594912680  5394410243594912680             1                 8
+79     5          Texte    TEXT  4965628942555351751  5394410243594912680  5394410243594912680             1                 9
+80     5          Texte    TEXT  4995961504641886710  5394410243594912680  5394410243594912680             1                10
+81     5          Texte    TEXT  5017907661719368413  5394410243594912680  5394410243594912680             1                11
+82     5          Texte    TEXT  5028052147238787802  5394410243594912680  5394410243594912680             1                12
+83     5          Texte    TEXT  5036153631350515544  5394410243594912680  5394410243594912680             1                13
+84     5          Texte    TEXT  5054433315422452796  5394410243594912680  5394410243594912680             1                14
+85     5          Texte    TEXT  5108336975548011049  5394410243594912680  5394410243594912680             1                15
+86     5          Texte    TEXT  5262441422409836340  5394410243594912680  5394410243594912680             1                16
+87     5          Texte    TEXT  5297832234834839298  5394410243594912680  5394410243594912680             1                17
+88     5          Texte    TEXT  5370727463979416592  5394410243594912680  5394410243594912680             1                18
+89     5          Texte    TEXT  5421223289472778073  5394410243594912680  5394410243594912680             1                19
+90     5          Texte    TEXT  5501963349880613918  5394410243594912680  5394410243594912680             1                20
+91     5          Texte    TEXT  5502619581048467908  5394410243594912680  5394410243594912680             1                21
+92     5          Texte    TEXT  5540395812045688781  5394410243594912680  5394410243594912680             1                22
+93     5          Texte    TEXT  5550982489075668484  5394410243594912680  5394410243594912680             1                23
+94     5          Texte    TEXT  5610916400841895317  5394410243594912680  5394410243594912680             1                24
+95     5          Texte    TEXT  5646820849868629537  5394410243594912680  5394410243594912680             1                25
+96     5          Texte    TEXT  5696590398594231893  5394410243594912680  5394410243594912680             1                26
+97     5          Texte    TEXT  5697088036451277538  5394410243594912680  5394410243594912680             1                27
 >>> # ---
 >>> # vGTXT
 >>> # ---
@@ -460,35 +461,35 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 >>> # ---
 >>> xm.dataFrames['vVBEL'].reset_index(inplace=True)
 >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',index=True,dropColList=['pk_i','CONT_i','CONT_VKNO_i','pk_k','CONT_k','CONT_VKNO_k','IDREFERENZ','tk']))
-   OBJTYPE                   pk                   BESCHREIBUNG       NAME_i  NAME_k  mx2Idx
-0     ROHR  4613782368750024999                           None       R-K004  R-K005       0
-1     ROHR  4614949065966596185                           None       V-K002  V-K003       1
-2     ROHR  4637102239750163477                           None       R-K003  R-K004       2
-3     ROHR  4713733238627697042                           None       V-K004  V-K005       3
-4     ROHR  4769996343148550485                           None          R-L  R-K000       5
-5     ROHR  4789218195240364437                           None       V-K001  V-K002       7
-6     ROHR  4939422678063487923                           None          V-L  V-K000       8
-7     ROHR  4945727430885351042                           None       R-K006  R-K007       9
-8     ROHR  4984202422877610920                           None       V-K000  V-K001      10
-9     ROHR  5037777106796980248                           None       V-K003  V-K004      11
-10    ROHR  5123819811204259837                           None       V-K005  V-K006      12
-11    ROHR  5266224553324203132                           None       R-K001  R-K002      13
-12    ROHR  5379365049009065623                           None       R-K002  R-K003      14
-13    ROHR  5611703699850694889                           None       R-K005  R-K006      15
-14    ROHR  5620197984230756681                           None       V-K006  V-K007       4
-15    ROHR  5647213228462830353                           None       R-K000  R-K001       6
-16    VENT  4678923650983295610                           None          V-1     V-L       0
-17    VENT  4897018421024717974                           None          R-L     R-1       1
-18    VENT  5525310316015533093                           None  PKON-Knoten     R-1       2
-19    FWVB  4643800032883366034                              1       V-K002  R-K002       0
-20    FWVB  4704603947372595298                              3       V-K004  R-K004       1
-21    FWVB  5121101823283893406                              4       V-K005  R-K005       2
-22    FWVB  5400405917816384862                              5       V-K007  R-K007       3
-23    FWVB  5695730293103267172                              2       V-K003  R-K003       4
-24    FWES  5638756766880678918  BHKW - Modul - 1000 kW therm.           R3     V-1       0
-25    PUMP  5481331875203087055                    Umwälzpumpe          R-1      R2       0
-26    KLAP  4801110583764519435                           None           R2      R3       0
-27    PGRP  4986517622672493603                   Pumpengruppe          R-1      R3       0
+   OBJTYPE                   pk                   BESCHREIBUNG       NAME_i  NAME_k             LAYR  mx2Idx
+0     FWES  5638756766880678918  BHKW - Modul - 1000 kW therm.           R3     V-1        [Vorlauf]       0
+1     FWVB  4643800032883366034                              1       V-K002  R-K002  [Kundenanlagen]       0
+2     FWVB  4704603947372595298                              3       V-K004  R-K004  [Kundenanlagen]       1
+3     FWVB  5121101823283893406                              4       V-K005  R-K005  [Kundenanlagen]       2
+4     FWVB  5400405917816384862                              5       V-K007  R-K007  [Kundenanlagen]       3
+5     FWVB  5695730293103267172                              2       V-K003  R-K003  [Kundenanlagen]       4
+6     KLAP  4801110583764519435                           None           R2      R3       [Rücklauf]       0
+7     PGRP  4986517622672493603                   Pumpengruppe          R-1      R3               []       0
+8     PUMP  5481331875203087055                    Umwälzpumpe          R-1      R2       [Rücklauf]       0
+9     ROHR  4613782368750024999                           None       R-K004  R-K005       [Rücklauf]       0
+10    ROHR  4614949065966596185                           None       V-K002  V-K003        [Vorlauf]       1
+11    ROHR  4637102239750163477                           None       R-K003  R-K004       [Rücklauf]       2
+12    ROHR  4713733238627697042                           None       V-K004  V-K005        [Vorlauf]       3
+13    ROHR  4769996343148550485                           None          R-L  R-K000       [Rücklauf]       5
+14    ROHR  4789218195240364437                           None       V-K001  V-K002        [Vorlauf]       7
+15    ROHR  4939422678063487923                           None          V-L  V-K000        [Vorlauf]       8
+16    ROHR  4945727430885351042                           None       R-K006  R-K007       [Rücklauf]       9
+17    ROHR  4984202422877610920                           None       V-K000  V-K001        [Vorlauf]      10
+18    ROHR  5037777106796980248                           None       V-K003  V-K004        [Vorlauf]      11
+19    ROHR  5123819811204259837                           None       V-K005  V-K006        [Vorlauf]      12
+20    ROHR  5266224553324203132                           None       R-K001  R-K002       [Rücklauf]      13
+21    ROHR  5379365049009065623                           None       R-K002  R-K003       [Rücklauf]      14
+22    ROHR  5611703699850694889                           None       R-K005  R-K006       [Rücklauf]      15
+23    ROHR  5620197984230756681                           None       V-K006  V-K007        [Vorlauf]       4
+24    ROHR  5647213228462830353                           None       R-K000  R-K001       [Rücklauf]       6
+25    VENT  4678923650983295610                           None          V-1     V-L        [Vorlauf]       0
+26    VENT  4897018421024717974                           None          R-L     R-1       [Rücklauf]       1
+27    VENT  5525310316015533093                           None  PKON-Knoten     R-1       [Rücklauf]       2
 >>> # ---
 >>> # Clean Up LocalHeatingNetwork Mx
 >>> # ---
@@ -500,6 +501,11 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 >>> # TinyWDN
 >>> # ---
 >>> xmlFile=os.path.join(os.path.join(path,testDir),'TinyWDN.XML')
+>>> xm=Xm(xmlFile=xmlFile)
+>>> # ---
+>>> # GPipe
+>>> # ---
+>>> xmlFile=os.path.join(os.path.join(path,testDir),'GPipe.XML')
 >>> xm=Xm(xmlFile=xmlFile)
 """
 
@@ -828,10 +834,12 @@ class Xm():
         * Usage-oriented conversions (i.e. pd.to_numeric and base64.b64decode) are done in the ._vXXXX-methods.
 
         Conversions: 
-            * , > . (converted in: SWVT_ROWT, LFKT_ROWT, QVAR_ROWT)
+            * , > . (converted in: SWVT_ROWT, LFKT_ROWT, QVAR_ROWT, PVAR_ROWT)
 
         Fixes:
-            * 1st Time without Value?! (fixed in: SWVT_ROWT, LFKT_ROWT, QVAR_ROWT)       
+            * No SWVT_ROWT, LFKT_ROWT, QVAR_ROWT, PVAR_ROWT?!
+                *  * SWVT, LFKT, QVAR, PVAR are constructed to
+            * 1st Time without Value?! (fixed in: SWVT_ROWT, LFKT_ROWT, QVAR_ROWT, PVAR_ROWT)       
             * Template Node(s)?!
             * in new Models constructed from SIR 3S 
                * not all Objectattributes are written?!   
@@ -849,6 +857,7 @@ class Xm():
                     * CONT    
             * Models with no PZONs ...
             * Models with no GMIXs ...
+            * Models with no STOFs ...
             * empty WBLZ OBJS-BLOBs
             * empty LAYR OBJS-BLOBs
         Raises:
@@ -860,20 +869,44 @@ class Xm():
         
         try: 
             
-            self.dataFrames['SWVT_ROWT'].ZEIT=self.dataFrames['SWVT_ROWT'].ZEIT.str.replace(',', '.')
-            self.dataFrames['SWVT_ROWT'].W=self.dataFrames['SWVT_ROWT'].W.str.replace(',', '.')
+            if 'SWVT_ROWT' not in self.dataFrames:
+                self.dataFrames['SWVT_ROWT']=self._constructEmptyDf(['pk','fk','ZEIT','W'])
+                self.dataFrames['SWVT']=self._constructEmptyDf(['pk','NAME','BESCHREIBUNG','INTPOL','ZEITOPTION'])
 
-            self.dataFrames['LFKT_ROWT'].ZEIT=self.dataFrames['LFKT_ROWT'].ZEIT.str.replace(',', '.')
-            self.dataFrames['LFKT_ROWT'].LF=self.dataFrames['LFKT_ROWT'].LF.str.replace(',', '.')
+            if not self.dataFrames['SWVT_ROWT'].empty:
+                self.dataFrames['SWVT_ROWT'].ZEIT=self.dataFrames['SWVT_ROWT'].ZEIT.str.replace(',', '.')
+                self.dataFrames['SWVT_ROWT'].W=self.dataFrames['SWVT_ROWT'].W.str.replace(',', '.')
 
-            self.dataFrames['QVAR_ROWT'].ZEIT=self.dataFrames['QVAR_ROWT'].ZEIT.str.replace(',', '.')
-            self.dataFrames['QVAR_ROWT'].QM=self.dataFrames['QVAR_ROWT'].QM.str.replace(',', '.')
+            if 'LFKT_ROWT' not in self.dataFrames:
+                self.dataFrames['LFKT_ROWT']=self._constructEmptyDf(['pk','fk','ZEIT','LF'])     
+                self.dataFrames['LFKT']=self._constructEmptyDf(['pk','NAME','BESCHREIBUNG','INTPOL','ZEITOPTION'])
+
+            if not self.dataFrames['LFKT_ROWT'].empty:
+                self.dataFrames['LFKT_ROWT'].ZEIT=self.dataFrames['LFKT_ROWT'].ZEIT.str.replace(',', '.')
+                self.dataFrames['LFKT_ROWT'].LF=self.dataFrames['LFKT_ROWT'].LF.str.replace(',', '.')
+
+            if 'QVAR_ROWT' not in self.dataFrames:
+                self.dataFrames['QVAR_ROWT']=self._constructEmptyDf(['pk','fk','ZEIT','QM'])    
+                self.dataFrames['QVAR']=self._constructEmptyDf(['pk','NAME','BESCHREIBUNG','INTPOL','ZEITOPTION'])
+
+            if not self.dataFrames['QVAR_ROWT'].empty:
+                self.dataFrames['QVAR_ROWT'].ZEIT=self.dataFrames['QVAR_ROWT'].ZEIT.str.replace(',', '.')
+                self.dataFrames['QVAR_ROWT'].QM=self.dataFrames['QVAR_ROWT'].QM.str.replace(',', '.')
+
+            if 'PVAR_ROWT' not in self.dataFrames:
+                self.dataFrames['PVAR_ROWT']=self._constructEmptyDf(['pk','fk','ZEIT','PH'])     
+                self.dataFrames['PVAR']=self._constructEmptyDf(['pk','NAME','BESCHREIBUNG','INTPOL','ZEITOPTION'])
+
+            if not self.dataFrames['PVAR_ROWT'].empty:
+                self.dataFrames['PVAR_ROWT'].ZEIT=self.dataFrames['PVAR_ROWT'].ZEIT.str.replace(',', '.')
+                self.dataFrames['PVAR_ROWT'].PH=self.dataFrames['PVAR_ROWT'].PH.str.replace(',', '.')
 
             # 1st Time without Value?!
             self.dataFrames['SWVT_ROWT']=self.dataFrames['SWVT_ROWT'].fillna(0) 
             self.dataFrames['LFKT_ROWT']=self.dataFrames['LFKT_ROWT'].fillna(0) 
             self.dataFrames['QVAR_ROWT']=self.dataFrames['QVAR_ROWT'].fillna(0) 
-            
+            self.dataFrames['PVAR_ROWT']=self.dataFrames['PVAR_ROWT'].fillna(0) 
+                        
             # Template Node
             self.dataFrames['KNOT']=self.dataFrames['KNOT'][self.dataFrames['KNOT'].NAME.fillna('').astype(str).isin(['TemplateNode','TemplNode-VL','TemplNode-RL'])==False]            
             
@@ -922,11 +955,14 @@ class Xm():
                 self.dataFrames['PZON']['NAME']=pd.Series()  
                 self.dataFrames['PZON']['pk']=pd.Series()  
 
+            # Models with no STOFs ...
+            if not 'STOF' in self.dataFrames: 
+                #                                                            BESCHREIBUNG
+                self.dataFrames['STOF']=self._constructEmptyDf(['pk','NAME','BESCHREIBUNG']) 
+
             # Models with no GMIXs ...
             if not 'GMIX' in self.dataFrames: 
-                self.dataFrames['GMIX']=pd.DataFrame()       
-                self.dataFrames['GMIX']['NAME']=pd.Series()  
-                self.dataFrames['GMIX']['pk']=pd.Series()  
+                self.dataFrames['GMIX']=self._constructEmptyDf(['pk','NAME']) 
                    
             # empty WBLZ OBJS-BLOBs
             if 'WBLZ' in self.dataFrames.keys():
@@ -942,6 +978,35 @@ class Xm():
             raise XmError(logStrFinal)             
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def _constructEmptyDf(self,cols=['DummyCol1','DummyCol2']):
+        """Constructs an empty df with cols.
+
+        Args:
+            * cols: list of colNames
+
+        Returns:
+            df: constructed df
+
+        Raises:
+            XmError                                       
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            df=pd.DataFrame()       
+            for col in cols:
+                df[col]=pd.Series()  
+             
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)             
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+            return df
 
     def getWDirModelDirModelName(self):
         """ Returns (wDir,modelDir,modelName,mx1FileName).
@@ -1181,7 +1246,7 @@ class Xm():
                     * pk, tk         
 
                 ANNOTATION
-                    * nrObjInGroup: Element Nr. in LAYR (LFDNR)                
+                    * nrObjInGroup: Element Nr. in LAYR (LFDNR) - should be 1 otherwise the same OBJ occurs in the same LAYR multiple times               
                     * nrObjtypeInGroup: Element Nr. of OBJTYPE in LAYR (LFDNR)     
                     
                 SORTING
@@ -1214,7 +1279,7 @@ class Xm():
             vLAYR=pd.DataFrame(vLAYR.values,columns=vLAYR.columns)
 
             #Element Nr.  ... in Gruppe
-            vLAYR=vLAYR.assign(nrObjInGroup=vLAYR.sort_values(['LFDNR','OBJTYPE','OBJID']).groupby(['LFDNR']).cumcount()+1)
+            vLAYR=vLAYR.assign(nrObjInGroup=vLAYR.sort_values(['LFDNR','OBJTYPE','OBJID']).groupby(['LFDNR','OBJID']).cumcount()+1)
             #Element Nr. ... vom Typ x in Gruppe 
             vLAYR=vLAYR.assign(nrObjtypeInGroup=vLAYR.sort_values(['LFDNR','OBJTYPE','OBJID']).groupby(['LFDNR','OBJTYPE']).cumcount()+1)
           
@@ -2314,7 +2379,8 @@ class Xm():
                    ,'pk','tk'
                 ]]
 
-            vKNOT=pd.merge(vKNOT,self.dataFrames['GMIX'],left_on='fkGMIX',right_on='pk',how='left')
+            gMix=self.dataFrames['GMIX']
+            vKNOT=pd.merge(vKNOT,gMix[[col for col in gMix.columns.tolist() if col not in ['BESCHREIBUNG']]],left_on='fkGMIX',right_on='pk',how='left')
             vKNOT.rename(columns={'NAME_x':'NAME','NAME_y':'GMIX_NAME','pk_x':'pk','tk_x':'tk'},inplace=True)
 
             vKNOT=vKNOT[[
@@ -3574,8 +3640,32 @@ class Xm():
                 arrays.append(vVBEL[col].tolist())
             tuples = list(zip(*(arrays)))
             index = pd.MultiIndex.from_tuples(tuples,names=mIdxLst)
-            vVBEL.drop(mIdxLst,axis=1,inplace=True) # one can use unstack to produce a column            
+            vVBEL.drop(mIdxLst,axis=1,inplace=True)   
             vVBEL=pd.DataFrame(vVBEL.values,index=index,columns=vVBEL.columns)
+
+            vVBEL['LAYR']=[list() for dummy in vVBEL['tk']]
+
+            # Gruppenzugeh. ergaenzen
+
+            dfLayr=self.dataFrames['vLAYR']
+
+            if not dfLayr.empty:
+                dfLayr=dfLayr.rename(columns={'OBJTYPE':'TYPE'})         
+                dfLayr=pd.merge(
+                    vVBEL
+                   ,dfLayr
+                   ,how='inner' # nur die VBEL die einen Gruppenzugehoerigkeit haben
+                   ,left_index=True 
+                   ,right_on=['TYPE','OBJID']               
+                   ,suffixes=('', '_y'))[['NAME','TYPE','OBJID','nrObjInGroup','nrObjtypeInGroup']]
+                dfLayr=dfLayr[dfLayr.nrObjInGroup <= 1] # pro VBEL und Gruppe nur 1 Zeile
+
+                for index, row in vVBEL.merge(dfLayr.sort_values(by=['NAME','OBJID']),how='left',left_index=True ,right_on=['TYPE','OBJID'],suffixes=('', '_y')).iterrows():                
+                    if pd.isnull(row.NAME):
+                        continue
+                    row.LAYR.append(row.NAME)
+
+            vVBEL.sort_index(level=0,inplace=True)
 
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -3618,15 +3708,22 @@ class Xm():
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
-        try:         
+        try:        
+            
+            #'KVR','PZON_NAME', 'FSTF_NAME', 'STOF_NAME', 'GMIX_NAME','UTMP_NAME'
+
+
+
             vXXXX=None
 
             vXXXX=pd.merge(self.dataFrames[OBJTYPE],vKNOT,left_on='fkKI',right_on='pk',suffixes=('','_i'))            
             vXXXX=vXXXX[['fkKK','BESCHREIBUNG','IDREFERENZ','pk','tk','NAME','CONT','CONT_VKNO','pk_i']]
             vXXXX.rename(columns={'NAME':'NAME_i','CONT':'CONT_i','CONT_VKNO':'CONT_VKNO_i'},inplace=True)
+
             vXXXX=pd.merge(vXXXX,vKNOT,left_on='fkKK',right_on='pk',suffixes=('','_k'))
             vXXXX=vXXXX[['BESCHREIBUNG','IDREFERENZ','pk','tk','NAME_i','CONT_i','CONT_VKNO_i','pk_i','NAME','CONT','CONT_VKNO','pk_k']]
             vXXXX.rename(columns={'NAME':'NAME_k','CONT':'CONT_k','CONT_VKNO':'CONT_VKNO_k'},inplace=True)
+            
             vXXXX=vXXXX.assign(OBJTYPE=lambda x: OBJTYPE)
             vXXXX=vXXXX[['OBJTYPE','BESCHREIBUNG','IDREFERENZ','pk','tk','NAME_i','CONT_i','CONT_VKNO_i','pk_i','NAME_k','CONT_k','CONT_VKNO_k','pk_k']]
 
