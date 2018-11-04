@@ -84,3 +84,9 @@
 /Expected.txt
 /Got.txt
 /testdata/WDTinyWDN/GPipe.mdb
+/testdata10/WDLocalHeatingNetwork/Maps
+/testdata10/WDTinyWDN/GPipe.mdb
+/testdata/GPipe_Backup_Ver9010_20181104_115939.mdb
+/testdata/LocalHeatingNetwork_Backup_Ver9010_20181104_120225.mdb
+/testdata/OneLPipe_Backup_Ver9010_20181104_120534.mdb
+/testdata/TinyWDN_Backup_Ver9010_20181104_120750.mdb

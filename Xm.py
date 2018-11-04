@@ -323,40 +323,39 @@ False
 >>> # ---
 >>> # vGTXT
 >>> # ---
->>> print("'''{:s}'''".format(repr(xm.dataFrames['vGTXT']).replace('\\n','\\n   ')))
-'''                                        CONT CONT_ID CONT_LFDNR                                     GRAFTEXT                   pk                   tk                                     pXYLB
-   0   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           Georeferenzpunkt 2  4628671704393700430  4628671704393700430              (1115.9500000001863, -323.0)
-   1   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                                        Block  4666644549022031339  4666644549022031339                            (-58.0, -77.0)
-   2   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           numerische Anzeige  4693143208412077585  4693143208412077585                            (1211.0, -9.0)
-   3   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                             Knoten und Rohre  4995961504641886710  4995961504641886710                            (570.0, -49.0)
-   4   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                                Vorlaufstrang  5017907661719368413  5017907661719368413  (358.20699999993667, 220.39499999955297)
-   5   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                          LocalHeatingNetwork  5028052147238787802  5028052147238787802                           (1163.0, 536.0)
-   6   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1   Tel. 05131 - 4980-0 ; Fax. 05131 - 4980-15  5054433315422452796  5054433315422452796                         (-230.0, -1143.0)
-   7   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  eMail. info@3SConsult.de ; www.3SConsult.de  5370727463979416592  5370727463979416592                         (-230.0, -1204.0)
-   8   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                Differenzdruck VL-/ RL-Knoten  5502619581048467908  5502619581048467908                           (1211.0, -49.0)
-   9   Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                                 Kundenanlage  5540395812045688781  5540395812045688781  (1131.9500000001863, 283.95000000018626)
-   10  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                         Fernwärmeverbraucher  5550982489075668484  5550982489075668484                           (1050.0, 239.0)
-   11  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                               Rücklaufstrang  5610916400841895317  5610916400841895317                             (570.0, -9.0)
-   12  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                             Knoten und Rohre  5646820849868629537  5646820849868629537  (358.20699999993667, 174.39499999955297)
-   13  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                          numerische Anzeige:  4614148870174765680  4614148870174765680                           (219.0, -278.0)
-   14  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                        Wärmebilanz: 3 Kunden  5150752151066924202  5150752151066924202                           (219.0, -318.0)
-   15  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                    Kontrolle: DH-Massenstrom  5100960407865990868  5100960407865990868                           (-60.0, -160.0)
-   16                                      BHKW    1002         -1                          Fernwärmeeinspeiser  4654104397990769217  4654104397990769217                             (115.0, 80.0)
-   17                                      BHKW    1002         -1                                        Pumpe  4768731522550494423  4768731522550494423                             (175.0, 25.0)
-   18                                      BHKW    1002         -1                            Wärmebilanz Netz:  4770844990228490264  4770844990228490264                             (90.0, 160.0)
-   19                                      BHKW    1002         -1                                  Speicherung  4782197969172967134  4782197969172967134                            (110.0, 140.0)
-   20                                      BHKW    1002         -1                               Richtungspfeil  4855692488683645764  4855692488683645764                            (220.0, 105.0)
-   21                                      BHKW    1002         -1                                     Verluste  4965628942555351751  4965628942555351751                            (110.0, 145.0)
-   22                                      BHKW    1002         -1                          (Element verbinden)  5036153631350515544  5036153631350515544                             (150.0, 90.0)
-   23                                      BHKW    1002         -1                    BHKW Modul 1000 kW therm.  5056836766824229789  5056836766824229789                              (35.0, 55.0)
-   24                                      BHKW    1002         -1                                       Ventil  5108336975548011049  5108336975548011049                             (205.0, 25.0)
-   25                                      BHKW    1002         -1                                    Verbrauch  5262441422409836340  5262441422409836340                            (110.0, 150.0)
-   26                                      BHKW    1002         -1                                  Einspeisung  5297832234834839298  5297832234834839298                            (110.0, 155.0)
-   27                                      BHKW    1002         -1                           Druckhaltung 2 bar  5329748935118523443  5329748935118523443                             (180.0, 65.0)
-   28                                      BHKW    1002         -1                           Numerische Anzeige  5421223289472778073  5421223289472778073                            (190.0, 115.0)
-   29                                      BHKW    1002         -1                             Verbindungslinie  5501963349880613918  5501963349880613918                             (150.0, 95.0)
-   30                                      BHKW    1002         -1                                       (Text)  5696590398594231893  5696590398594231893                              (35.0, 50.0)
-   31                                      BHKW    1002         -1                                       Klappe  5697088036451277538  5697088036451277538                             (145.0, 25.0)'''
+>>> print(xm._getvXXXXAsOneString(vXXXX='vGTXT',sortList=['CONT_ID','pk'],index=False,header=False))                                 
+Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                          numerische Anzeige:  4614148870174765680  4614148870174765680                           (219.0, -278.0)
+Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                           Georeferenzpunkt 2  4628671704393700430  4628671704393700430              (1115.9500000001863, -323.0)
+Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                                        Block  4666644549022031339  4666644549022031339                            (-58.0, -77.0)
+Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                           numerische Anzeige  4693143208412077585  4693143208412077585                            (1211.0, -9.0)
+Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                             Knoten und Rohre  4995961504641886710  4995961504641886710                            (570.0, -49.0)
+Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                                Vorlaufstrang  5017907661719368413  5017907661719368413  (358.20699999993667, 220.39499999955297)
+Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                          LocalHeatingNetwork  5028052147238787802  5028052147238787802                           (1163.0, 536.0)
+Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1   Tel. 05131 - 4980-0 ; Fax. 05131 - 4980-15  5054433315422452796  5054433315422452796                         (-230.0, -1143.0)
+Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                    Kontrolle: DH-Massenstrom  5100960407865990868  5100960407865990868                           (-60.0, -160.0)
+Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                        Wärmebilanz: 3 Kunden  5150752151066924202  5150752151066924202                           (219.0, -318.0)
+Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1  eMail. info@3SConsult.de ; www.3SConsult.de  5370727463979416592  5370727463979416592                         (-230.0, -1204.0)
+Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                Differenzdruck VL-/ RL-Knoten  5502619581048467908  5502619581048467908                           (1211.0, -49.0)
+Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                                 Kundenanlage  5540395812045688781  5540395812045688781  (1131.9500000001863, 283.95000000018626)
+Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                         Fernwärmeverbraucher  5550982489075668484  5550982489075668484                           (1050.0, 239.0)
+Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                               Rücklaufstrang  5610916400841895317  5610916400841895317                             (570.0, -9.0)
+Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                             Knoten und Rohre  5646820849868629537  5646820849868629537  (358.20699999993667, 174.39499999955297)
+                                    BHKW  1002  -1                          Fernwärmeeinspeiser  4654104397990769217  4654104397990769217                             (115.0, 80.0)
+                                    BHKW  1002  -1                                        Pumpe  4768731522550494423  4768731522550494423                             (175.0, 25.0)
+                                    BHKW  1002  -1                            Wärmebilanz Netz:  4770844990228490264  4770844990228490264                             (90.0, 160.0)
+                                    BHKW  1002  -1                                  Speicherung  4782197969172967134  4782197969172967134                            (110.0, 140.0)
+                                    BHKW  1002  -1                               Richtungspfeil  4855692488683645764  4855692488683645764                            (220.0, 105.0)
+                                    BHKW  1002  -1                                     Verluste  4965628942555351751  4965628942555351751                            (110.0, 145.0)
+                                    BHKW  1002  -1                          (Element verbinden)  5036153631350515544  5036153631350515544                             (150.0, 90.0)
+                                    BHKW  1002  -1                    BHKW Modul 1000 kW therm.  5056836766824229789  5056836766824229789                              (35.0, 55.0)
+                                    BHKW  1002  -1                                       Ventil  5108336975548011049  5108336975548011049                             (205.0, 25.0)
+                                    BHKW  1002  -1                                    Verbrauch  5262441422409836340  5262441422409836340                            (110.0, 150.0)
+                                    BHKW  1002  -1                                  Einspeisung  5297832234834839298  5297832234834839298                            (110.0, 155.0)
+                                    BHKW  1002  -1                           Druckhaltung 2 bar  5329748935118523443  5329748935118523443                             (180.0, 65.0)
+                                    BHKW  1002  -1                           Numerische Anzeige  5421223289472778073  5421223289472778073                            (190.0, 115.0)
+                                    BHKW  1002  -1                             Verbindungslinie  5501963349880613918  5501963349880613918                             (150.0, 95.0)
+                                    BHKW  1002  -1                                       (Text)  5696590398594231893  5696590398594231893                              (35.0, 50.0)
+                                    BHKW  1002  -1                                       Klappe  5697088036451277538  5697088036451277538                             (145.0, 25.0)
 >>> # ---
 >>> # vNRCV
 >>> # ---
@@ -428,7 +427,7 @@ True
 >>> # ---
 >>> import re
 >>> f=lambda s: re.match('(\S+)~(\S*)~(\S*)~(\d+)~(\S+)',s).group(1)+'~~~'+re.match('(\S+)~(\S*)~(\S*)~(\d+)~(\S+)',s).group(4)+'~'+re.match('(\S+)~(\S*)~(\S*)~(\d+)~(\S+)',s).group(5)
->>> print(xm._getvXXXXAsOneString(vXXXX='vNRCV_Mx1',end=14,dropColList=['DPGR','CONT_LFDNR','pk_ROWS'],mapDct={'Sir3sID':f},sortList=['Sir3sID'],fmtDct={'Sir3sID':f},index=False,header=False))
+>>> print(xm._getvXXXXAsOneString(vXXXX='vNRCV_Mx1',end=14,dropColList=['DPGR','CONT_LFDNR','pk_ROWS'],mapFunc={'Sir3sID':f},sortList=['Sir3sID'],fmtFunc={'Sir3sID':f},index=False,header=False))
 FWES~~~5638756766880678918~W  1                                      BHKW  1002  FWES  5638756766880678918      W  5762106696740202356  4857294696992797631  4857294696992797631     (90.0, 65.0)
     KNOT~~~5049461676240771430~T  1                                      BHKW  1002  KNOT  5049461676240771430      T  4723443975311885965  5097127385155151127  5097127385155151127     (90.0, 95.0)
     KNOT~~~5219230031772497417~T  1                                      BHKW  1002  KNOT  5219230031772497417      T  5602301870151014230  5557806245003742769  5557806245003742769     (90.0, 35.0)
@@ -1090,8 +1089,21 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return result 
 
-    def _getvXXXXAsOneString(self,vXXXX=None,start=0,end=-1,dropColList=None,mapDct={},sortList=None,fmtDct={},index=True,header=True):
+    def _getvXXXXAsOneString(self,vXXXX=None,start=0,end=-1,dropColList=None,mapFunc={},sortList=None,fmtFunc={},index=True,header=True):
         """Returns vXXXX-Content as one String (for Doctest-Purposes).
+
+        Args:
+            * vXXXX: df=self.dataFrames[vXXXX]
+            * start
+            * end
+            * mapFunc: col:func: df[col].map(func)
+            * sortList
+            * fmtFunc: col:func: passed to df.to_string(formatters=fmtFunc, ...)
+            * index
+            * header
+
+        Returns:
+            * df.to_string(formatters=fmtFunc,index=index,header=header)                
            
         Raises:
             XmError
@@ -1119,7 +1131,7 @@ class Xm():
         df=df.loc[:,colListOut]
 
         # map cols
-        for col,func in mapDct.items():            
+        for col,func in mapFunc.items():            
             df[col]=df[col].map(func)
 
         # sort 
@@ -1127,7 +1139,7 @@ class Xm():
             df=df.sort_values(sortList,ascending=True)    
 
         try:                 
-            dfContentAsOneString=df.to_string(formatters=fmtDct,index=index,header=header)                                                                            
+            dfContentAsOneString=df.to_string(formatters=fmtFunc,index=index,header=header)                                                                            
         except MxError:
             raise            
         except Exception as e:

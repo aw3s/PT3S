@@ -24,7 +24,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='90.10.15.55.dev1',
+    version='90.11.00.01.dev1',
 
     description='Python Tools 3S',
     long_description=long_description,
@@ -97,6 +97,31 @@ setup(
            ,'testdata\WDTinyWDN\B1\V0\BZ1\M-1-0-1.1.MX1'
            ,'testdata\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MX2'
            ,'testdata\WDTinyWDN\B1\V0\BZ1\M-1-0-1.1.MXS'
+           ,'testdata\GPipe.XML'
+           ,'testdata\GPipe.mdb'
+           ,'testdata\WDGPipe\B1\V0\BZ1\M-1-0-1.1.MX1'
+           ,'testdata\WDGPipe\B1\V0\BZ1\M-1-0-1.MX2'
+           ,'testdata\WDGPipe\B1\V0\BZ1\M-1-0-1.1.MXS'
+           ,'testdata10\OneLPipe.XML'
+           ,'testdata10\OneLPipe.mdb'
+           ,'testdata10\WDOneLPipe\B1\V0\BZ1\M-1-0-1.1.MX1'
+           ,'testdata10\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX2'
+           ,'testdata10\WDOneLPipe\B1\V0\BZ1\M-1-0-1.1.MXS'
+           ,'testdata10\LocalHeatingNetwork.XML'
+           ,'testdata10\LocalHeatingNetwork.mdb'
+           ,'testdata10\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.1.MX1'
+           ,'testdata10\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.MX2'
+           ,'testdata10\WDLocalHeatingNetwork\B1\V0\BZ1\M-1-0-1.1.MXS'
+           ,'testdata10\TinyWDN.XML'
+           ,'testdata10\TinyWDN.mdb'
+           ,'testdata10\WDTinyWDN\B1\V0\BZ1\M-1-0-1.1.MX1'
+           ,'testdata10\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MX2'
+           ,'testdata10\WDTinyWDN\B1\V0\BZ1\M-1-0-1.1.MXS'
+           ,'testdata10\GPipe.XML'
+           ,'testdata10\GPipe.mdb'
+           ,'testdata10\WDGPipe\B1\V0\BZ1\M-1-0-1.1.MX1'
+           ,'testdata10\WDGPipe\B1\V0\BZ1\M-1-0-1.MX2'
+           ,'testdata10\WDGPipe\B1\V0\BZ1\M-1-0-1.1.MXS'
            ,'testdata09\OneLPipe.XML'
            ,'testdata09\OneLPipe.mdb'
            ,'testdata09\WDOneLPipe\B1\V0\BZ1\M-1-0-1.MX1'
@@ -112,6 +137,11 @@ setup(
            ,'testdata09\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MX1'
            ,'testdata09\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MX2'
            ,'testdata09\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MXS'
+           ,'testdata09\GPipe.XML'
+           ,'testdata09\GPipe.mdb'
+           ,'testdata09\WDGPipe\B1\V0\BZ1\M-1-0-1.MX1'
+           ,'testdata09\WDGPipe\B1\V0\BZ1\M-1-0-1.MX2'
+           ,'testdata09\WDGPipe\B1\V0\BZ1\M-1-0-1.MXS'
             ],
     },
 
