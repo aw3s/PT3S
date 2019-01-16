@@ -527,34 +527,34 @@ class Mx():
         * and is deleted explicitely (mx1File,NoH5Read=True) or implicitely (because it is i.e. too old) 
 
     Args:
-        * mx1File (str): base.MX1-File (an XML-File) (base.1.MX1-File from 90-10 on)
+        * mx1File (str): base.MX1-File (an XML-File) (base.Y.MX1-File from 90-10 on)
 
         * NoH5Read (bool): 
             False (default - use this to profit from previous reads finalized with ToH5()): 
                 * If a base.h5-File 
                     * exists 
-                    * and is newer (>) than an .MX1-File (base.1.Mx1-File from 90-10 on) 
-                    * and is newer (>) than an .MXS-File (base.1.MXS-File from 90-10 on):
+                    * and is newer (>) than an .MX1-File (base.Y.Mx1-File from 90-10 on) 
+                    * and is newer (>) than an .MXS-File (base.Y.MXS-File from 90-10 on):
 
                         * The base.h5-File is read instead of the .MX1-File.                        
 
             True (use this for a fresh start):             
                 * An base.h5-File is deleted if existing.  
-                * The .MX1-File is read. (base.1.Mx1-File from 90-10 on)
-                * The .vec.h5-File is newly created in case of an .MXS-File read. (.1.MXS-File read from 90-10 on)       
+                * The .MX1-File is read. (base.Y.Mx1-File from 90-10 on)
+                * The .vec.h5-File is newly created in case of an .MXS-File read. (.Y.MXS-File read from 90-10 on)       
 
         * NoMxsRead (bool):
             True:
-                * a .MXS-File is not read (.1.MXS-File read from 90-10 on)
+                * a .MXS-File is not read (.Y.MXS-File read from 90-10 on)
                 * a .vec.h5-File is not touched
 
             False (default):
-                * If a .MXS-File (.1.Mx1-File from 90-10 on)
+                * If a .MXS-File (.Y.Mx1-File from 90-10 on)
                     * exists
-                    * and is newer (>=) than .MX1-File (.1.Mx1-File from 90-10 on)
+                    * and is newer (>=) than .MX1-File (.Y.Mx1-File from 90-10 on)
                     * and base.h5-File is not read:
 
-                        * The .MXS-File is read.  (.1.MXS-File is read from 90-10 on)             
+                        * The .MXS-File is read.  (.Y.MXS-File is read from 90-10 on)             
                         * NoH5Read=True will delete .vec.h5-File.
 
     Attributes:
@@ -562,11 +562,11 @@ class Mx():
             * h5Read
 
         * fileNames
-            * .mx1File: base.MX1-File (.1.Mx1-File from 90-10 on) 
+            * .mx1File: base.MX1-File (.Y.Mx1-File from 90-10 on) 
 
             derived from mx1File
                 * .mx2File: base.MX2-File 
-                * .mxsFile: base.MXS-File (.1.MXS-File from 90-10 on)
+                * .mxsFile: base.MXS-File (.Y.MXS-File from 90-10 on)
                 * .mxsZipFile base.ZIP
                 * .h5File: base.h5-File
                 * .h5FileVecs: base.vec.h5-File
@@ -577,7 +577,7 @@ class Mx():
             * .mx1Df  
             * .mx2Df 
             * .df
-                * the .MXS-File(s) Content  (.1.MXS-File from 90-10 on)
+                * the .MXS-File(s) Content  (.Y.MXS-File from 90-10 on)
                 * non Vectordata only
                 * index:   TIMESTAMP (scenario time)
                 * columns: Values  
@@ -596,7 +596,7 @@ class Mx():
         try: 
 
             if type(mx1File) == str:
-                    self.mx1File=mx1File  # base.MX1-File (an XML-File) (base.1.MX1-File from 90-10 on)
+                    self.mx1File=mx1File  # base.MX1-File (an XML-File) (base.Y.MX1-File from 90-10 on)
             else:
                     logStrFinal="{0:s}{1!s}: Not of type str!".format(logStr,mx1File)                                 
                     raise MxError(logStrFinal)     
@@ -604,7 +604,7 @@ class Mx():
             # determine base
             (wD,fileName)=os.path.split(self.mx1File)
             (base,ext)=os.path.splitext(fileName)
-            (base,dotResolution)=os.path.splitext(base) # dotResolution: '.1' from 90-10 on; '' before
+            (base,dotResolution)=os.path.splitext(base) # dotResolution: '.Y' from 90-10 on; '' before
 
             #Determine corresponding .MX2 Filename
             self.mx2File=wD+os.path.sep+base+'.'+'MX2'   

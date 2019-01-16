@@ -460,35 +460,36 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 >>> # ---
 >>> xm.dataFrames['vVBEL'].reset_index(inplace=True)
 >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',index=True,dropColList=['pk_i','CONT_i','CONT_VKNO_i','pk_k','CONT_k','CONT_VKNO_k','IDREFERENZ','tk']))
-   OBJTYPE                   pk                   BESCHREIBUNG       NAME_i  NAME_k             LAYR  mx2Idx
-0     FWES  5638756766880678918  BHKW - Modul - 1000 kW therm.           R3     V-1        [Vorlauf]       0
-1     FWVB  4643800032883366034                              1       V-K002  R-K002  [Kundenanlagen]       0
-2     FWVB  4704603947372595298                              3       V-K004  R-K004  [Kundenanlagen]       1
-3     FWVB  5121101823283893406                              4       V-K005  R-K005  [Kundenanlagen]       2
-4     FWVB  5400405917816384862                              5       V-K007  R-K007  [Kundenanlagen]       3
-5     FWVB  5695730293103267172                              2       V-K003  R-K003  [Kundenanlagen]       4
-6     KLAP  4801110583764519435                           None           R2      R3       [Rücklauf]       0
-7     PGRP  4986517622672493603                   Pumpengruppe          R-1      R3               []       0
-8     PUMP  5481331875203087055                    Umwälzpumpe          R-1      R2       [Rücklauf]       0
-9     ROHR  4613782368750024999                           None       R-K004  R-K005       [Rücklauf]       0
-10    ROHR  4614949065966596185                           None       V-K002  V-K003        [Vorlauf]       1
-11    ROHR  4637102239750163477                           None       R-K003  R-K004       [Rücklauf]       2
-12    ROHR  4713733238627697042                           None       V-K004  V-K005        [Vorlauf]       3
-13    ROHR  4769996343148550485                           None          R-L  R-K000       [Rücklauf]       5
-14    ROHR  4789218195240364437                           None       V-K001  V-K002        [Vorlauf]       7
-15    ROHR  4939422678063487923                           None          V-L  V-K000        [Vorlauf]       8
-16    ROHR  4945727430885351042                           None       R-K006  R-K007       [Rücklauf]       9
-17    ROHR  4984202422877610920                           None       V-K000  V-K001        [Vorlauf]      10
-18    ROHR  5037777106796980248                           None       V-K003  V-K004        [Vorlauf]      11
-19    ROHR  5123819811204259837                           None       V-K005  V-K006        [Vorlauf]      12
-20    ROHR  5266224553324203132                           None       R-K001  R-K002       [Rücklauf]      13
-21    ROHR  5379365049009065623                           None       R-K002  R-K003       [Rücklauf]      14
-22    ROHR  5611703699850694889                           None       R-K005  R-K006       [Rücklauf]      15
-23    ROHR  5620197984230756681                           None       V-K006  V-K007        [Vorlauf]       4
-24    ROHR  5647213228462830353                           None       R-K000  R-K001       [Rücklauf]       6
-25    VENT  4678923650983295610                           None          V-1     V-L        [Vorlauf]       0
-26    VENT  4897018421024717974                           None          R-L     R-1       [Rücklauf]       1
-27    VENT  5525310316015533093                           None  PKON-Knoten     R-1       [Rücklauf]       2
+   OBJTYPE                   pk                   BESCHREIBUNG       NAME_i  NAME_k             LAYR       L      D  mx2Idx
+0     FWES  5638756766880678918  BHKW - Modul - 1000 kW therm.           R3     V-1        [Vorlauf]       0     80       0
+1     FWVB  4643800032883366034                              1       V-K002  R-K002  [Kundenanlagen]       0    NaN       0
+2     FWVB  4704603947372595298                              3       V-K004  R-K004  [Kundenanlagen]       0    NaN       1
+3     FWVB  5121101823283893406                              4       V-K005  R-K005  [Kundenanlagen]       0    NaN       2
+4     FWVB  5400405917816384862                              5       V-K007  R-K007  [Kundenanlagen]       0    NaN       3
+5     FWVB  5695730293103267172                              2       V-K003  R-K003  [Kundenanlagen]       0    NaN       4
+6     KLAP  4801110583764519435                           None           R2      R3       [Rücklauf]       0     80       0
+7     PGRP  4986517622672493603                   Pumpengruppe          R-1      R3               []       0    NaN       0
+8     PUMP  5481331875203087055                    Umwälzpumpe          R-1      R2       [Rücklauf]       0    NaN       0
+9     ROHR  4613782368750024999                           None       R-K004  R-K005       [Rücklauf]   88.02  107.1       0
+10    ROHR  4614949065966596185                           None       V-K002  V-K003        [Vorlauf]  405.96  107.1       1
+11    ROHR  4637102239750163477                           None       R-K003  R-K004       [Rücklauf]   83.55  107.1       2
+12    ROHR  4713733238627697042                           None       V-K004  V-K005        [Vorlauf]   88.02  107.1       3
+13    ROHR  4769996343148550485                           None          R-L  R-K000       [Rücklauf]   73.42  160.3       5
+14    ROHR  4789218195240364437                           None       V-K001  V-K002        [Vorlauf]  195.53  107.1       7
+15    ROHR  4939422678063487923                           None          V-L  V-K000        [Vorlauf]    68.6  160.3       8
+16    ROHR  4945727430885351042                           None       R-K006  R-K007       [Rücklauf]  109.77  107.1       9
+17    ROHR  4984202422877610920                           None       V-K000  V-K001        [Vorlauf]    76.4  107.1      10
+18    ROHR  5037777106796980248                           None       V-K003  V-K004        [Vorlauf]   83.55  107.1      11
+19    ROHR  5123819811204259837                           None       V-K005  V-K006        [Vorlauf]  164.91  107.1      12
+20    ROHR  5266224553324203132                           None       R-K001  R-K002       [Rücklauf]  195.53  107.1      13
+21    ROHR  5379365049009065623                           None       R-K002  R-K003       [Rücklauf]  405.96  107.1      14
+22    ROHR  5611703699850694889                           None       R-K005  R-K006       [Rücklauf]  164.91  107.1      15
+23    ROHR  5620197984230756681                           None       V-K006  V-K007        [Vorlauf]  109.77  107.1       4
+24    ROHR  5647213228462830353                           None       R-K000  R-K001       [Rücklauf]    76.4  107.1       6
+25    VENT  4678923650983295610                           None          V-1     V-L        [Vorlauf]       0    150       0
+26    VENT  4897018421024717974                           None          R-L     R-1       [Rücklauf]       0    150       1
+27    VENT  5525310316015533093                           None  PKON-Knoten     R-1       [Rücklauf]       0     50       2
+
 >>> # ---
 >>> # Clean Up LocalHeatingNetwork Mx
 >>> # ---
@@ -530,6 +531,9 @@ import base64
 import struct
 
 import logging
+
+import glob
+
 # ---
 # --- PT3S Imports
 # ---
@@ -552,7 +556,8 @@ import argparse
 import unittest
 import doctest
 
-vVBEL_edges=['ROHR','VENT','FWVB','FWES','PUMP','KLAP','REGV','PREG','MREG','DPRG','PGRP']
+vVBEL_edges =['ROHR','VENT','FWVB','FWES','PUMP','KLAP','REGV','PREG','MREG','DPRG','PGRP']
+vVBEL_edgesD=[''    ,'DN'  ,''    ,'DN'  ,''    ,'DN'  ,'DN'  ,'DN'  ,'DN'  ,'DN'  ,'']
    
 class XmError(Exception):
     def __init__(self, value):
@@ -1014,12 +1019,13 @@ class Xm():
             (wDir,modelDir,modelName,mx1FileName)
 
         wDir
-            If wDir as given literally in .xmlFile is not a valid Dir or such an WD... relative to .xmlFile-Path exists the WD... relative is returned. 
+            If wDir as given literally in .xmlFile is not a valid Dir 
+            or such a wDir relative to .xmlFile-Path exists the wDir relative is returned. 
 
         mx1FileName
-            If not existing an INFO-Message ist generated.
-            mx1FileName is set to:               os.path.join(wDir,os.path.join(modelDir,modelName))+'.MX1'
-            or if file above does :not exist to: os.path.join(wDir,os.path.join(modelDir,modelName))+'.1'+'.MX1'
+            mx1FileName is assumed to be: .:\...\WD...\B...\V...\BZ...\M... .MX1
+            If not existing: .*.MX1 (first match is returned)
+            If a suitable mx1File is not existing an INFO-Message is generated.
            
         Raises:
             XmError
@@ -1074,10 +1080,12 @@ class Xm():
             mx1FilenamePre=os.path.join(wDir,os.path.join(modelDir,modelName))     
             mx1Filename=mx1FilenamePre+'.MX1' 
             if not os.path.isfile(mx1Filename):                                          
-                logger.debug("{:s}This mx1FileName: {:s} does not exist. Trying .1.MX1 ...".format(logStr,mx1Filename))
-                mx1Filename=mx1FilenamePre+'.1'+'.MX1'    
-                if not os.path.isfile(mx1Filename):                                          
-                    logger.info("{:s}This mx1FileName: {:s} also does not exist?!".format(logStr,mx1Filename))                   
+                logger.debug("{:s}This mx1FileName: {:s} does not exist. Trying .*.MX1 ...".format(logStr,mx1Filename))
+                mx1FileNames=glob.glob(mx1FilenamePre+'.*'+'.MX1')
+                if len(mx1FileNames)==0:
+                    logger.info("{:s}Those mx1FileName(s): {:s} also do not exist?!".format(logStr,mx1FilenamePre+'.*'+'.MX1'))  
+                else:
+                    mx1Filename=mx1FileNames[0]
 
             result=tuple([wDir,modelDir,modelName,mx1Filename])
 
@@ -3594,13 +3602,15 @@ class Xm():
     #        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
 
-    def _vVBEL(self,vKNOT=None,edges=vVBEL_edges,indices=['VBEL','pk']):
+    def _vVBEL(self,vKNOT=None,edges=vVBEL_edges,edgesD=vVBEL_edgesD,indices=['VBEL','pk'],mIdxNames=['OBJTYPE','pk']):
         """One row per Edge.
 
         Args:
             * vKNOT: df 
             * edges: list of strs
-            * indices: list of columns which shall be used as MIndex; the columns will be droped
+            * edgesD: list of strs
+            * indices: list of columns which shall be used as MIndex; the columns will be droped; the columns must be delivered by _vVBEL_XXXX
+            * mIdxNames: list of names for the indices above
 
         Returns:
             Edge-df
@@ -3610,29 +3620,25 @@ class Xm():
                 * sequence edges: edges
                 * sequence within edges: Xml
 
-            columns:
+            Mindices:
                 * OBJTYPE: str: 'ROHR','VENT',... [default a MIndex not a column]
-                
-                * BESCHREIBUNG
-                * IDREFERENZ
                 * pk [default a MIndex not a column]      
-                * tk
-                
-                * NAME_i
-                * CONT_i
-                * CONT_VKNO_i
-                * pk_i
-                * NAME_k
-                * CONT_k
-                * CONT_VKNO_k
-                * pk_k
+              
+            columns:                
+                * LAYR
+                * L in m (0 if edge <> ROHR)
+                * D in mm (NaN if no Diameter could be determined)
+
+            columns:                
+                * see _vVBEL_XXXX
                                  
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
-        try:         
+        try:    
+            # construct 
             vVBEL=None
             vVBEL_UnionList=[]
 
@@ -3643,24 +3649,20 @@ class Xm():
                         pass
                     else:
                         vVBEL_UnionList.append(vXXXX)
-
             vVBEL=pd.concat(vVBEL_UnionList)
 
-            mIdxLst=['OBJTYPE','pk']
+            # MIndices
             arrays=[]
-            for col in mIdxLst:
+            for col in mIdxNames:
                 arrays.append(vVBEL[col].tolist())
             tuples = list(zip(*(arrays)))
-            index = pd.MultiIndex.from_tuples(tuples,names=mIdxLst)
-            vVBEL.drop(mIdxLst,axis=1,inplace=True)   
+            index = pd.MultiIndex.from_tuples(tuples,names=mIdxNames)
+            vVBEL.drop(mIdxNames,axis=1,inplace=True)   
             vVBEL=pd.DataFrame(vVBEL.values,index=index,columns=vVBEL.columns)
 
-            vVBEL['LAYR']=[list() for dummy in vVBEL['tk']]
-
             # Gruppenzugeh. ergaenzen
-
+            vVBEL['LAYR']=[list() for dummy in vVBEL['tk']]
             dfLayr=self.dataFrames['vLAYR']
-
             if not dfLayr.empty:
                 dfLayr=dfLayr.rename(columns={'OBJTYPE':'TYPE'})         
                 dfLayr=pd.merge(
@@ -3677,6 +3679,39 @@ class Xm():
                         continue
                     row.LAYR.append(row.NAME)
 
+            # L ergaenzen
+            Rohr=self.dataFrames['ROHR']
+            VbelL=vVBEL.join(Rohr.set_index('pk'),rsuffix='_y')[['L']]            
+            vVBEL['L']=VbelL['L'].fillna(0)            
+
+            # D ergaenzen
+            # Spalte erzeugen ... 
+            vRohr=self.dataFrames['vROHR']
+            VbelD=vVBEL.join(vRohr.set_index('pk'),rsuffix='_y')[['DI']]
+            vVBEL['D']=VbelD['DI'] # ... mit ROHR
+
+            # ueber alle ausser ROHR
+            for eIdx,edge in enumerate(edges):
+                if edge == 'ROHR':
+                    continue
+                edgeDCol=edgesD[eIdx]
+                if edgeDCol=='':
+                    continue     
+                if edge not in self.dataFrames:
+                    continue
+                Edge=self.dataFrames[edge]                      
+                if edgeDCol not in Edge.columns.tolist():
+                    continue
+                edgeD=vVBEL.join(Edge.set_index('pk'),rsuffix='_y',how='inner')[[edgeDCol]]
+                vVBEL.loc[[edge],'D']=edgeD.loc[[edge],:].values
+
+
+            # fehlende Spaltenwerte zuweisen
+            #Vent=self.dataFrames['VENT']
+            #VentD=vVBEL.join(Vent.set_index('pk'),rsuffix='_y',how='inner')[['DN']]
+            #vVBEL.loc[['VENT'],'D']=VentD.loc[['VENT'],:].values
+
+            # Finish
             vVBEL.sort_index(level=0,inplace=True)
 
         except Exception as e:
