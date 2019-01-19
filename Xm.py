@@ -383,7 +383,7 @@ Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                             
 (16, 74)
 >>> 'vNRCV_Mx1' in xm.dataFrames
 False
->>> xm.Mx()
+>>> xm.MxSync()
 >>> 'vNRCV_Mx1' in xm.dataFrames
 True
 >>> vROHR.shape
@@ -417,7 +417,7 @@ True
 False
 >>> (wDir,modelDir,modelName,mx1File)=xm.getWDirModelDirModelName()    
 >>> mx=Mx.Mx(mx1File=mx1File)
->>> xm.Mx(mx=mx)
+>>> xm.MxSync(mx=mx)
 >>> vROHR.shape
 (16, 76)
 >>> 'vNRCV_Mx1' in xm.dataFrames
@@ -458,7 +458,7 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 >>> # ---
 >>> # vXXXX
 >>> # ---
->>> xm.dataFrames['vVBEL'].reset_index(inplace=True)
+>>> xm.dataFrames['vVBEL'].reset_index(inplace=True) #Multiindex to Cols
 >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',index=True,dropColList=['pk_i','CONT_i','CONT_VKNO_i','pk_k','CONT_k','CONT_VKNO_k','IDREFERENZ','tk']))
    OBJTYPE                   pk                   BESCHREIBUNG       NAME_i  NAME_k             LAYR       L      D  mx2Idx
 0     FWES  5638756766880678918  BHKW - Modul - 1000 kW therm.           R3     V-1        [Vorlauf]       0     80       0
@@ -489,7 +489,12 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 25    VENT  4678923650983295610                           None          V-1     V-L        [Vorlauf]       0    150       0
 26    VENT  4897018421024717974                           None          R-L     R-1       [Rücklauf]       0    150       1
 27    VENT  5525310316015533093                           None  PKON-Knoten     R-1       [Rücklauf]       0     50       2
-
+>>> # ---
+>>> # vRART
+>>> # ---
+>>> print(xm._getvXXXXAsOneString(vXXXX='vRART',index=True,sortList=['INDSTD','NAME']))
+  NAME              BESCHREIBUNG                                   INDSTD_TXT  INDSTD   DWDT WSOSTD                   pk NAME_KREF1 NAME_KREF2 NAME_SWVT
+0   dp  Bezeichnung Regelungsart  Differenzdruck Druckseite, Sollwert Tabelle      55  1E+20      0  5552938346422332788     V-K007     R-K007      SWVT
 >>> # ---
 >>> # Clean Up LocalHeatingNetwork Mx
 >>> # ---
@@ -1172,6 +1177,8 @@ class Xm():
                 * vSWVT
             * Signalmodel
                 * vRSLW           
+            * Miscellanea
+                * vRART
             * Hydraulicmodel
                 * Nodes
                     * vVKNO: CONT-Nodes (also called Block-Nodes)
@@ -1180,7 +1187,7 @@ class Xm():
                 * Edges
                     * vROHR: Pipes
                     * vFWVB: Housestations (district heating)    
-                * all Edges (all: implemented see vVBEL_edges)
+                * all Edges (all; implemented Edges see vVBEL_edges)
                     * vVBEL
             * Annotations
                 * vNRCV
@@ -1228,15 +1235,18 @@ class Xm():
                 (vKNOT['CONT_ID'].astype(int)==1001) 
                 & (vKNOT['BESCHREIBUNG'].fillna('').str.startswith('Template Element') == False)]['YKOR'].astype(np.double).min()
 
-            # special edges
+            #special edges
             self.dataFrames['vROHR']=self._vROHR(vKNOT=self.dataFrames['vKNOT'])
             self.dataFrames['vFWVB']=self._vFWVB(vKNOT=self.dataFrames['vKNOT']
                                             ,vLFKT=self.dataFrames['vLFKT']
                                             ,vWBLZ=self.dataFrames['vWBLZ']
                                             )                                             
 
-            # all edges
+            #all edges
             self.dataFrames['vVBEL']=self._vVBEL(vKNOT=self.dataFrames['vKNOT'])
+
+            #miscellanea
+            self.dataFrames['vRART']=self._vRART()          
 
             #annotations
             self.dataFrames['vNRCV']=self._vNRCV()            
@@ -1436,6 +1446,111 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             return vAGSN
+
+        #dfx=pd.merge(
+        #            dfOneAgsn
+        #           ,dfVbel
+        #           ,how='inner' 
+        #           ,right_index=True 
+        #           ,left_on=['OBJTYPE','OBJID']               
+        #           ,suffixes=('', '_y'))[['NAME','OBJTYPE','OBJID','LAYR']]
+
+    def _vRART(self):
+        """One row per RART.
+
+        Returns:
+            columns:
+                RART
+                    * NAME
+                    * BESCHREIBUNG
+                    * INDSTD_TXT
+                    * INDSTD (numeric)
+                    * DWDT
+                RART_BZ
+                    * WSOSTD
+                ID
+                    * pk
+                References
+                    * NAME_KREF1
+                    * NAME_KREF2
+                    * NAME_SWVT
+                    * [NAME_RCPL] - only if RCPLs exist
+            sequence: Model
+
+        Raises:
+            XmError                                
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            vRART=None            
+        
+            sPgrp='(0=aus | 2=Drehzahl | 21=Regelpunktliste Druckseite | 22=Regelpunktliste Saugseite | 41=Netzdruck Druckseite, Sollwert konstant | 43=Netzdruck Druckseite, Sollwert Tabelle | 42=Netzdruck Saugseite, Sollwert konstant | 44=Netzdruck Saugseite, Sollwert Tabelle | 51=Druckerhoehung/-abfall am Stellglied selbst, Sollwert konstant | 54=Druckerhoehung/-abfall am Stellglied selbst, Sollwert Tabelle | 52=Differenzdruck Druckseite, Sollwert konstant | 55=Differenzdruck Druckseite, Sollwert Tabelle | 53=Differenzdruck Saugseite, Sollwert konstant | 56=Differenzdruck Saugseite, Sollwert Tabelle | 62=Mitteldruck Druckseite, Sollwert konstant | 65=Mitteldruck Druckseite, Sollwert Tabelle | 63=Mitteldruck Saugseite, Sollwert konstant | 66=Mitteldruck Saugseite, Sollwert Tabelle | 71=Durchfluss Messstelle, Wirkungsrichtung positiv, Sollwert konstant | 73=Durchfluss Messstelle, Wirkungsrichtung positiv, Sollwert Tabelle | 72=Durchfluss Messstelle, Wirkungsrichtung negativ, Sollwert konstant | 74=Durchfluss Messstelle, Wirkungsrichtung negativ, Sollwert Tabelle)'            
+            sRegv='(1002=Stellung | 1021=Regelpunktliste Unterstrom | 1022=Regelpunktliste Oberstrom | 1041=Netzdruck Unterstrom, Sollwert konstant | 1043=Netzdruck Unterstrom, Sollwert Tabelle | 1042=Netzdruck Oberstrom, Sollwert konstant | 1044=Netzdruck Oberstrom, Sollwert Tabelle | 1051=Druckabfall Regelventil, Sollwert konstant | 1054=Druckabfall Regelventil, Sollwert Tabelle | 1052=Differenzdruck Unterstrom, Sollwert konstant | 1055=Differenzdruck Unterstrom, Sollwert Tabelle | 1053=Differenzdruck Oberstrom, Sollwert konstant | 1056=Differenzdruck Oberstrom, Sollwert Tabelle | 1062=Mitteldruck Unterstrom, Sollwert konstant | 1065=Mitteldruck Unterstrom, Sollwert Tabelle | 1063=Mitteldruck Oberstrom, Sollwert konstant | 1066=Mitteldruck Oberstrom, Sollwert Tabelle | 1071=Durchfluss Messstelle, Wirkungsrichtung positiv, Sollwert konstant | 1073=Durchfluss Messstelle, Wirkungsrichtung positiv, Sollwert Tabelle | 1072=Durchfluss Messstelle, Wirkungsrichtung negativ, Sollwert konstant | 1074=Durchfluss Messstelle, Wirkungsrichtung negativ, Sollwert Tabelle)'
+            sRegvGas='(1002=Stellung | 1041=Netzdruck, Unterstrom, Sollwert konstant | 1042=Netzdruck, Oberstrom, Sollwert konstant | 1071=Durchfluss Messstelle, Wirkungsrichtung positiv, Sollwert konstant | 1073=Durchfluss Messstelle, Wirkungsrichtung positiv, Sollwert Tabelle)'
+            items=sPgrp.strip('()').split(sep='|')+sRegv.strip('()').split(sep='|')+sRegvGas.strip('()').split(sep='|')
+            IndstdDct=dict(zip([int(pair[0]) for pair in [item.split(sep='=') for item in items]]
+                ,[pair[1].strip()  for pair in [item.split(sep='=') for item in items]]
+                     ))
+            logger.debug("{0:s}{1:s}".format(logStr,str(IndstdDct))) 
+
+            vRART=pd.merge(self.dataFrames['RART_BZ'],self.dataFrames['RART'],left_on='fk',right_on='pk',suffixes=['_BZ',''])[['NAME','BESCHREIBUNG'
+            ,'INDSTD','DWDT'
+            ,'fkKREF1','fkKREF2'
+            #BZ
+            ,'WSOSTD','fkRCPL', 'fkSWVT','pk']]
+
+            vKnot=self.dataFrames['vKNOT']
+            colLst=vRART.columns.tolist()
+            colLst.append('NAME_KREF1')
+            vRART=pd.merge(vRART,vKnot,left_on='fkKREF1',right_on='pk',suffixes=['','_KREF1'],how='left')[colLst]
+            colLst.remove('fkKREF1')
+            colLst.append('NAME_KREF2')
+            colLst.remove('fkKREF2')
+            vRART=pd.merge(vRART,vKnot,left_on='fkKREF2',right_on='pk',suffixes=['','_KREF2'],how='left')[colLst]
+
+            vSwvt=self.dataFrames['vSWVT']
+            colLst.append('NAME_SWVT')
+
+              # * W: 1st Value
+              #      * W_min
+              #      * W_max
+
+            colLst.remove('fkSWVT')
+            vRART=pd.merge(vRART,vSwvt,left_on='fkSWVT',right_on='pk',suffixes=['','_SWVT'],how='left')[colLst]
+
+            if 'RCPL' in self.dataFrames:
+                tRcpl=self.dataFrames['RCPL']
+                colLst.append('NAME_RCPL')
+                colLst.remove('fkRCPL')
+                vRART=pd.merge(vRART,tRcpl,left_on='fkRCPL',right_on='pk',suffixes=['','_RCPL'],how='left')[colLst]
+            else:
+                vRART.drop(columns=['fkRCPL'],inplace=True)      
+
+            vRART['INDSTD']=pd.to_numeric(vRART['INDSTD'])                 
+            vRART['INDSTD_TXT']=vRART.apply(lambda row: IndstdDct[row.INDSTD] if row.INDSTD in IndstdDct  else -1  , axis=1)
+            cols=vRART.columns.tolist()
+            cols.pop(cols.index('INDSTD_TXT'))
+            cols.insert(cols.index('INDSTD'),'INDSTD_TXT')
+            vRART=vRART.reindex(cols,axis="columns")
+
+            #['NAME', 'BESCHREIBUNG', 'INDSTD_TXT', 'INDSTD', 'DWDT', 'WSOSTD', 'pk', 'NAME_KREF1', 'NAME_KREF2', 'NAME_SWVT']
+
+            logger.debug("{0:s}{1:s}".format(logStr,str(vRART.columns.tolist())))
+          
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            if isinstance(vRART,pd.core.frame.DataFrame):
+                logger.error(logStrFinal) 
+            else:
+                logger.debug(logStrFinal) 
+                vRART=pd.DataFrame()   
+                                                                              
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+            return vRART
 
     def _OBJS(self,dfName):
         """Decode a column OBJS (a BLOB containing a SIR 3S OBJ collection).
@@ -3668,7 +3783,7 @@ class Xm():
                 dfLayr=pd.merge(
                     vVBEL
                    ,dfLayr
-                   ,how='inner' # nur die VBEL die einen Gruppenzugehoerigkeit haben
+                   ,how='inner' # nur die VBEL die eine Gruppenzugehoerigkeit haben
                    ,left_index=True 
                    ,right_on=['TYPE','OBJID']               
                    ,suffixes=('', '_y'))[['NAME','TYPE','OBJID','nrObjInGroup','nrObjtypeInGroup']]
@@ -3783,12 +3898,17 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
             return vXXXX     
 
-    def Mx(self,mx=None):
-        """Sir3sID Update in Mx-Object. Mx-Information (MX1, MX2) into some Views.
+    def MxSync(self,mx=None):
+        """Sir3sID Update in Mx-Object. vNRCV_Mx1: vNRCV with MX1-Information. Some Xm-Views with MX2-Information.
 
         Args:
             mx: Mx-Object
-                If no Mx-Object is given a Mx-Object is constructed.        
+                * If no Mx-Object is given the Mx-Object is constructed.       
+                * Notes:
+
+                    * Xm holds no Mx-Object.
+                    * Method MxSync can be considered as a Sync between Xm and a particular Mx-Object.
+                    * This Sync has to be done before the 1st MxFill-Call with the Mx-Object.
 
         Raises:
             XmError
@@ -3806,8 +3926,10 @@ class Xm():
 
 
             self.__Mx1_Sir3sIDUpd(mx) # Sir3sID
-            self.__Mx2_vKNOT(mx) # vKNOT
+
             self.__Mx1_vNRCV(mx) # vNRCV
+
+            self.__Mx2_vKNOT(mx) # vKNOT
             self.__Mx2_vROHR(mx) # vROHR
             self.__Mx2_vFWVB(mx) # vFWVB           
             self.__Mx2_vVBEL(mx) # vVBEL
@@ -3819,12 +3941,13 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
-
     def __Mx1_Sir3sIDUpd(self,mx):
-        """Update Sir3sID in mx.mx1Df and mx.df.
+        """Update NAME1,2 and Sir3sID in mx.mx1Df and mx.df.
 
         Args:
             mx: Mx-Object
+
+            mx.ToH5() is called if Sir3sID-Updates occured and mx.h5Read is True. 
 
         Raises:
             XmError
@@ -3859,7 +3982,7 @@ class Xm():
                                                                      ,dfNAME1=self.dataFrames[ObjType]
                                                                      ,NAME1Col='KA')
             
-            # VBEL
+            # VBEL (NAME1,2 und Sir3sID)
             dfUpd=df[ (df['NAME1'].str.len()==0) & (df['OBJTYPE'].isin(vVBEL_edges)) ]
             #logger.debug("{0:s}dfUpd vor Merge: {1:s}.".format(logStr,str(dfUpd)))
 
@@ -3874,12 +3997,11 @@ class Xm():
             dfUpd=pd.merge(
                 dfUpd
                ,dfVBEL
-               ,how='left' # expected: no NaNs/Nones in Merge.Result
+               ,how='left' # expected: no NaNs/Nones in Merge-Result
                ,left_on=['OBJTYPE','OBJTYPE_PK'] # diese left Key-Spalten ... 
                ,right_index=True # ... matchen mit den right Indices 
                ,suffixes=('', '_y'))[dfUpdCols]
 
-            # left.join(right, how=...) ... matched anhand einer Index-Namensgleichheit ... 
             #logger.debug("{0:s}dfUpd nach Merge: {1:s}.".format(logStr,str(dfUpd)))
 
             # calculate Sir3sID Update 
@@ -3912,7 +4034,7 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
     def __Mx1_Sir3sIDUpd_ObjTypeNode(self,mx=None,dfUpd=None,dfNAME1=None,NAME1Col='NAME'):
-        """Update Sir3sID in mx.mx1Df and mx.df for Channels in dfUpd.
+        """Update Sir3sID and NAME1 in mx.mx1Df and mx.df for Channels in dfUpd.
 
         Args:
             mx: Mx-Object
@@ -3974,7 +4096,7 @@ class Xm():
         Args:
             mx: Mx-Object
 
-        self.dataFrames['vNRCV_Mx1']:
+        self.dataFrames['vNRCV_Mx1']
                 index
                     * reindex
                 FILTERed
@@ -4108,7 +4230,6 @@ class Xm():
         self.dataFrames['vFWVB']
                 columns NEW
                     * mx2Idx
-                    * mx2NoPts
         Raises:
             XmError
         """
@@ -4241,6 +4362,70 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             self.dataFrames['vVBEL']=dfVBEL
+
+    def MxFill(self,mx=None,time1st=None,time2nd=None):
+        """Fill some Xm-Views with MX-Results.
+
+        Args:
+            mx: Mx-Object
+                * If no Mx-Object is given the Mx-Object is constructed.    
+                
+            time1st:
+                * TIMESTAMP for col _TIME1st
+                * if None 1st TIME in Mx is used
+
+            time2nd:
+                * TIMESTAMP for col _TIME1st
+                * if None 1st TIME in Mx is used
+
+
+            timesReq: TIMESTAMP-Tuple
+                * 1st: Min-Time
+                * 2nd: Max-Time
+                * if None: Min/Max from Mx-Objects is used
+
+        Views filled:
+            vNRCV_Mx1:
+                * ValueStat
+            vKNOT
+            vVBEL
+
+        
+
+            
+
+
+        Raises:
+            XmError
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            if isinstance(mx,Mx.Mx):
+                pass
+            else:
+                (wDir,modelDir,modelName,mx1File)=self.getWDirModelDirModelName()                      
+                mx=Mx.Mx(mx1File=mx1File)
+
+
+            
+
+            #self.__Mx1_vNRCV(mx) # vNRCV
+
+            #self.__Mx2_vKNOT(mx) # vKNOT
+            #self.__Mx2_vROHR(mx) # vROHR
+            #self.__Mx2_vFWVB(mx) # vFWVB           
+            #self.__Mx2_vVBEL(mx) # vVBEL
+                                                       
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
+            logger.error(logStrFinal) 
+                     
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+
 
 if __name__ == "__main__":
     """

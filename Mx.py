@@ -522,8 +522,8 @@ class Mx():
         * (mx1File): use this to profit from previous reads finalized with ToH5()
         * (mx1File,NoH5Read=True): use this for a fresh start with implicit .MXS-File read; finalize with ToH5()
         * (mx1File,NoH5Read=True,NoMxsRead=True): use this for a fresh start; call setResultsTo...() explicit; finalize with ToH5()
-        * note that base.h5-File has to be dunped explicitely with ToH5()
-        * and base.vec.h5-File is written implicitely while (implicit or explicit calls to) setResultsTo...() 
+        * note that base.Y.h5-File has to be dunped explicitely with ToH5()
+        * and base.Y.vec.h5-File is written implicitely while (implicit or explicit calls to) setResultsTo...() 
         * and is deleted explicitely (mx1File,NoH5Read=True) or implicitely (because it is i.e. too old) 
 
     Args:
@@ -531,31 +531,31 @@ class Mx():
 
         * NoH5Read (bool): 
             False (default - use this to profit from previous reads finalized with ToH5()): 
-                * If a base.h5-File 
+                * If a base.Y.h5-File 
                     * exists 
                     * and is newer (>) than an .MX1-File (base.Y.Mx1-File from 90-10 on) 
                     * and is newer (>) than an .MXS-File (base.Y.MXS-File from 90-10 on):
 
-                        * The base.h5-File is read instead of the .MX1-File.                        
+                        * The base.Y.h5-File is read instead of the .MX1-File.                        
 
             True (use this for a fresh start):             
-                * An base.h5-File is deleted if existing.  
+                * An base.Y.h5-File is deleted if existing.  
                 * The .MX1-File is read. (base.Y.Mx1-File from 90-10 on)
-                * The .vec.h5-File is newly created in case of an .MXS-File read. (.Y.MXS-File read from 90-10 on)       
+                * The base.Y.vec.h5-File is newly created in case of an .MXS-File read. (.Y.MXS-File read from 90-10 on)       
 
         * NoMxsRead (bool):
             True:
                 * a .MXS-File is not read (.Y.MXS-File read from 90-10 on)
-                * a .vec.h5-File is not touched
+                * a base.Y.vec.h5-File is not touched
 
             False (default):
                 * If a .MXS-File (.Y.Mx1-File from 90-10 on)
                     * exists
                     * and is newer (>=) than .MX1-File (.Y.Mx1-File from 90-10 on)
-                    * and base.h5-File is not read:
+                    * and base.Y.h5-File is not read:
 
                         * The .MXS-File is read.  (.Y.MXS-File is read from 90-10 on)             
-                        * NoH5Read=True will delete .vec.h5-File.
+                        * NoH5Read=True will delete base.Y.vec.h5-File.
 
     Attributes:
         * states
@@ -568,8 +568,8 @@ class Mx():
                 * .mx2File: base.MX2-File 
                 * .mxsFile: base.MXS-File (.Y.MXS-File from 90-10 on)
                 * .mxsZipFile base.ZIP
-                * .h5File: base.h5-File
-                * .h5FileVecs: base.vec.h5-File
+                * .h5File: base.Y.h5-File (.Y.MXS-File from 90-10 on)
+                * .h5FileVecs: base.y.vec.h5-File (.Y.MXS-File from 90-10 on)
 
         * .mxRecordStructFmtString
 
@@ -611,13 +611,13 @@ class Mx():
                                                      
             #Determine corresponding .h5 Filename(s)
             self.h5File=wD+os.path.sep+base+'.'+'h5'    # mx1Df, mx2Df, df (non Vectordata only)
-            self.h5FileVecs=wD+os.path.sep+base+'.'+'vec'+'.'+'h5' # (Vectordata)           
+            self.h5FileVecs=wD+os.path.sep+base+dotResolution+'.'+'vec'+'.'+'h5' # (Vectordata)           
             
             #Determine corresponding .MXS Filename
             self.mxsFile=wD+os.path.sep+base+dotResolution+'.'+'MXS'  
           
             #Determine corresponding .MXS Zip-Filename
-            self.mxsZipFile=wD+os.path.sep+base+'.'+'ZIP'   
+            self.mxsZipFile=wD+os.path.sep+base+dotResolution+'.'+'ZIP'   
 
             #check if mx1File exists ...
             if os.path.exists(self.mx1File):
