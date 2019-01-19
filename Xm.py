@@ -406,9 +406,9 @@ True
 13         None         -1    None   0        1       0    76.4   0  0.1    0    0    0      1   0.025  1000         0   2          NaN  114.3  107.1  100  0.325 NaN             NaN        NaN  3.6    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  5647213228462830353  5647213228462830353       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  R-K000     2   60  2540793  5706209     20  R-K001     2   60  2540867  5706228     20     53.0      0.0    127.0     19.0     [53.0, 127.0]     [0.0, 19.0]  [61.950000000186265, 135.89999999990687]               [-12.0, 7.0499999998137355]                                                 [(2540801.95, 5706197.0), (2540875.9, 5706216.05)]      15          2
 14         None         -1    None   0        1       0   73.42   0  0.1    0    0    0      1   0.025  1000         0   2          NaN  168.3  160.3  150   0.45 NaN             NaN        NaN    4    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4769996343148550485  4769996343148550485       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1     R-L     2   60  2540740  5706225     20  R-K000     2   60  2540793  5706209     20      0.0     16.0     53.0      0.0       [0.0, 53.0]     [16.0, 0.0]     [0.0, 24.0, 45.0, 61.950000000186265]                [16.0, 16.0, -12.0, -12.0]  [(2540740.0, 5706225.0), (2540764.0, 5706225.0), (2540785.0, 5706197.0), (2540801.95, 5706197.0)]       4          2
 15         None         -1    None   0        1       0    68.6   0  0.1    0    0    0      1   0.025  1000         0   1          NaN  168.3  160.3  150   0.45 NaN             NaN        NaN    4    NaN    NaN   KUMANRO  Beschreibung Leitungsgruppe            1     999999   KUMANRO  Kunststoffmantelrohr DN20-800 PANISOVIT  2.1E+11        -1     -1  4939422678063487923  4939422678063487923       0         0       0         0       0          0    0       NaN      NaN  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1     V-L     1   90  2540740  5706240     20  V-K000     1   90  2540793  5706209     20      0.0     31.0     53.0      0.0       [0.0, 53.0]     [31.0, 0.0]           [0.0, 30.0, 53.049999999813735]       [31.0, 31.0, -0.049999999813735485]                         [(2540740.0, 5706240.0), (2540770.0, 5706240.0), (2540793.05, 5706208.95)]       6          2
->>> # ---
->>> # Mx() - with Mx-Object
->>> # ---
+>>> # ---------
+>>> # MxSync() 
+>>> # ---------
 >>> xm=Xm(xmlFile=xmlFile)
 >>> vROHR=xm.dataFrames['vROHR']
 >>> vROHR.shape
@@ -495,6 +495,13 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 >>> print(xm._getvXXXXAsOneString(vXXXX='vRART',index=True,sortList=['INDSTD','NAME']))
   NAME              BESCHREIBUNG                                   INDSTD_TXT  INDSTD   DWDT WSOSTD                   pk NAME_KREF1 NAME_KREF2 NAME_SWVT
 0   dp  Bezeichnung Regelungsart  Differenzdruck Druckseite, Sollwert Tabelle      55  1E+20      0  5552938346422332788     V-K007     R-K007      SWVT
+>>> # ------
+>>> # MxAdd
+>>> # ------
+>>> xm.MxAdd(mx=mx)
+>>> xm.MxAdd(mx=mx)
+>>> xm.dataFrames['vKNOT'].shape
+(23, 54)
 >>> # ---
 >>> # Clean Up LocalHeatingNetwork Mx
 >>> # ---
@@ -4363,37 +4370,19 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             self.dataFrames['vVBEL']=dfVBEL
 
-    def MxFill(self,mx=None,time1st=None,time2nd=None):
-        """Fill some Xm-Views with MX-Results.
+    def MxAdd(self,mx=None,timeReq=None):
+        """Add MX-Results to some Xm-Views.
 
         Args:
             mx: Mx-Object
                 * If no Mx-Object is given the Mx-Object is constructed.    
                 
-            time1st:
-                * TIMESTAMP for col _TIME1st
+            timeReq:
+                * TIMESTAMP 
                 * if None 1st TIME in Mx is used
 
-            time2nd:
-                * TIMESTAMP for col _TIME1st
-                * if None 1st TIME in Mx is used
-
-
-            timesReq: TIMESTAMP-Tuple
-                * 1st: Min-Time
-                * 2nd: Max-Time
-                * if None: Min/Max from Mx-Objects is used
-
-        Views filled:
-            vNRCV_Mx1:
-                * ValueStat
+        Views added:            
             vKNOT
-            vVBEL
-
-        
-
-            
-
 
         Raises:
             XmError
@@ -4409,7 +4398,36 @@ class Xm():
                 (wDir,modelDir,modelName,mx1File)=self.getWDirModelDirModelName()                      
                 mx=Mx.Mx(mx1File=mx1File)
 
+            if timeReq==None:
+                timeReq=mx.df.index[0]
 
+            mxVecsFileData=mx.getMxsVecsFileData(timesReq=[timeReq])[0]
+            vKNOT=self.__MxAddForOneDf(dfTarget=self.dataFrames['vKNOT']
+                                      ,dfSource=mxVecsFileData.filter(regex='^KNOT'))
+            vROHR=self.__MxAddForOneDf(dfTarget=self.dataFrames['vROHR']
+                                      ,dfSource=mxVecsFileData.filter(regex='^ROHR'))
+            vFWVB=self.__MxAddForOneDf(dfTarget=self.dataFrames['vFWVB']
+                                      ,dfSource=mxVecsFileData.filter(regex='^FWVB'))
+           
+            self.dataFrames['vKNOT']=vKNOT
+
+            #mx2Cols=vecsFileDataKNOT.columns.tolist()
+            #vKNOT=self.dataFrames['vKNOT']
+            ## maybe the mx2Cols were already added in previous calls: delete them ... 
+            #if vKNOT.columns.isin(mx2Cols).all():
+            #    vKNOT=vKNOT[vKNOT.columns.drop(mx2Cols)]
+
+            #dct={}
+            #mx2Cols=vecsFileDataKNOT.columns.tolist()
+            #for mx2Col in mx2Cols:
+            #    vecsFileDataOneCol=vecsFileDataKNOT[mx2Col]
+            #    vecsFileDataOneColResult=vecsFileDataOneCol[0]
+    
+            #    vecsFileDataOneColResultSeries=pd.Series(vecsFileDataOneColResult)
+            #    dct[mx2Col]=vecsFileDataOneColResultSeries
+            #dfMx2Idx=pd.DataFrame(dct)
+            #dfMx2Idx=dfMx2Idx.reindex(sorted(dfMx2Idx.columns), axis=1)
+            #vKNOT=pd.merge(vKNOT,dfMx2Idx,how='left',left_on='mx2Idx',right_index=True)
             
 
             #self.__Mx1_vNRCV(mx) # vNRCV
@@ -4426,6 +4444,51 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
+    def __MxAddForOneDf(self,dfTarget=None,dfSource=None):
+        """Add MX2-Resultdata from dfSource as cols to dfTarget.
+
+        Args:
+            dfTarget: df with col mx2Idx
+            dfSource: df with corresponding index and cols (containing MX2-Resultdata) to be added
+
+        Returns:
+            dfResult
+            
+        Raises:
+            XmError
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            dfResult=None
+
+            # maybe the cols are already added in previous calls: delete them ... 
+            colsToBeAdded=dfSource.columns.tolist()
+            colsInTarget=dfTarget.columns.tolist()
+            if dfSource.columns.isin(colsInTarget).all():
+                logger.debug("{0:s}Drop the following cols in Target: {1:s}".format(logStr,str(colsToBeAdded)))  
+                dfTarget=dfTarget[dfTarget.columns.drop(colsToBeAdded)]
+
+            dct={}          
+            for col in colsToBeAdded:
+                vecsFileDataOneCol=dfSource[col]
+                vecsFileDataOneColResult=vecsFileDataOneCol[0]
+    
+                vecsFileDataOneColResultSeries=pd.Series(vecsFileDataOneColResult)
+                dct[col]=vecsFileDataOneColResultSeries
+            dfMx2Idx=pd.DataFrame(dct)
+            dfMx2Idx=dfMx2Idx.reindex(sorted(dfMx2Idx.columns), axis=1)
+            dfResult=pd.merge(dfTarget,dfMx2Idx,how='left',left_on='mx2Idx',right_index=True)
+                                                                   
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
+            logger.error(logStrFinal) 
+                     
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            return dfResult
 
 if __name__ == "__main__":
     """
