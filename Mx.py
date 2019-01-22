@@ -559,7 +559,7 @@ class Mx():
 
     Attributes:
         * states
-            * h5Read
+            * h5Read: True, if read from H5
 
         * fileNames
             * .mx1File: base.MX1-File (.Y.Mx1-File from 90-10 on) 

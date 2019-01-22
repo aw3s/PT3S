@@ -376,7 +376,7 @@ Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                             
 12         1                                      BHKW    1002    WBLZ  5262603207038486299    WSPEI  5153847813311339683  4946584950744559030  4946584950744559030                          (90.0, 140.0)
 13         1                                      BHKW    1002    WBLZ  5262603207038486299      WVB  5214984699859365639  5281885868749421521  5281885868749421521                          (90.0, 150.0)
 >>> # ---
->>> # Mx() - without Mx-Object
+>>> # MxSync() - without Mx-Object
 >>> # ---
 >>> vROHR=xm.dataFrames['vROHR']
 >>> vROHR.shape
@@ -458,8 +458,8 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 >>> # ---
 >>> # vXXXX
 >>> # ---
->>> xm.dataFrames['vVBEL'].reset_index(inplace=True) #Multiindex to Cols
->>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',index=True,dropColList=['pk_i','CONT_i','CONT_VKNO_i','pk_k','CONT_k','CONT_VKNO_k','IDREFERENZ','tk']))
+>>> xm.dataFrames['vVBEL_forTestOnly']=xm.dataFrames['vVBEL'].reset_index(inplace=False) # Multiindex to Cols
+>>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL_forTestOnly',index=True,dropColList=['pk_i','CONT_i','CONT_VKNO_i','pk_k','CONT_k','CONT_VKNO_k','IDREFERENZ','tk']))
    OBJTYPE                   pk                   BESCHREIBUNG       NAME_i  NAME_k             LAYR       L      D  mx2Idx
 0     FWES  5638756766880678918  BHKW - Modul - 1000 kW therm.           R3     V-1        [Vorlauf]       0     80       0
 1     FWVB  4643800032883366034                              1       V-K002  R-K002  [Kundenanlagen]       0    NaN       0
@@ -498,13 +498,26 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 >>> # ------
 >>> # MxAdd
 >>> # ------
->>> xm.MxAdd(mx=mx)
+>>> if 'vNRCV_Mx1' in xm.dataFrames:
+...    del xm.dataFrames['vNRCV_Mx1'] # delete MxSync-Result to force MxSync-Call in MxAdd
+>>> xm.MxAdd()
+>>> xm.dataFrames['vKNOT'].shape
+(23, 54)
 >>> xm.MxAdd(mx=mx)
 >>> xm.dataFrames['vKNOT'].shape
 (23, 54)
+>>> xm.MxAdd(mx=mx)
+>>> xm.dataFrames['vKNOT'].shape
+(23, 54)
+>>> xm.dataFrames['vROHR'].shape
+(16, 91)
+>>> xm.dataFrames['vVBEL'].shape
+(28, 39)
 >>> # ---
->>> # Clean Up LocalHeatingNetwork Mx
+>>> # Clean Up LocalHeatingNetwork Xm and Mx
 >>> # ---
+>>> if os.path.exists(xm.h5File):                        
+...    os.remove(xm.h5File)
 >>> if os.path.exists(mx.h5FileVecs):                        
 ...    os.remove(mx.h5FileVecs)
 >>> if os.path.exists(mx.h5File):                        
@@ -570,6 +583,7 @@ import doctest
 
 vVBEL_edges =['ROHR','VENT','FWVB','FWES','PUMP','KLAP','REGV','PREG','MREG','DPRG','PGRP']
 vVBEL_edgesD=[''    ,'DN'  ,''    ,'DN'  ,''    ,'DN'  ,'DN'  ,'DN'  ,'DN'  ,'DN'  ,'']
+vVBEL_edgesQ=['QMAV','QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'']
    
 class XmError(Exception):
     def __init__(self, value):
@@ -591,6 +605,9 @@ class Xm():
                     * xmlFile will be read.
     
     Attributes:
+        * states
+            * h5Read: True, if read from H5
+
         * xmlFile
         * h5File: corresponding h5File(name) derived from xmlFile(name)
         * dataFrames
@@ -655,14 +672,14 @@ class Xm():
                 if(h5FileTime>xmlFileTime):
                     logger.debug("{0:s}h5File {1:s} exists and is newer than an (existing) xmlFile {2:s}:".format(logStr,self.h5File,self.xmlFile))     
                     logger.debug("{0:s}The h5File is read (instead) of the xmlFile.".format(logStr))   
-                    h5Read=True  
+                    self.h5Read=True  
                 else:
                     logger.debug("{0:s}h5File {1:s} exists parallel but is NOT newer than xmlFile {2:s}.".format(logStr,self.h5File,self.xmlFile))     
-                    h5Read=False
+                    self.h5Read=False
             else:
-                h5Read=False               
+                self.h5Read=False               
             
-            if not h5Read:                
+            if not self.h5Read:                
                 self._xmlRead()
             else:
                 self.FromH5(h5File=self.h5File)
@@ -3906,7 +3923,7 @@ class Xm():
             return vXXXX     
 
     def MxSync(self,mx=None):
-        """Sir3sID Update in Mx-Object. vNRCV_Mx1: vNRCV with MX1-Information. Some Xm-Views with MX2-Information.
+        """Mx: Sir3sID Update in Mx-Object. Xm: NEW: vNRCV_Mx1: vNRCV with MX1-Information. Some Xm-Views with MX2-Information (mx2Idx).
 
         Args:
             mx: Mx-Object
@@ -3915,7 +3932,12 @@ class Xm():
 
                     * Xm holds no Mx-Object.
                     * Method MxSync can be considered as a Sync between Xm and a particular Mx-Object.
-                    * This Sync has to be done before the 1st MxFill-Call with the Mx-Object.
+                    * The Sync has to be done before the 1st MxAdd-Call with the Mx-Object.
+
+                    * The Sync-Result is persisted if dfs were read from H5:
+                    
+                        * xm.ToH5() is called if xm.h5Read is True. 
+                        * mx.ToH5() is called (from __Mx1_Sir3sIDUpd) if Sir3sID-Updates occured and mx.h5Read is True. 
 
         Raises:
             XmError
@@ -3940,6 +3962,9 @@ class Xm():
             self.__Mx2_vROHR(mx) # vROHR
             self.__Mx2_vFWVB(mx) # vFWVB           
             self.__Mx2_vVBEL(mx) # vVBEL
+
+            if self.h5Read:
+                self.ToH5()
                                                        
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
@@ -3953,6 +3978,13 @@ class Xm():
 
         Args:
             mx: Mx-Object
+
+        Notes:
+            The following Channels are updated:
+                * KNOT
+                * WBLZ
+                * RXXXX
+                * all Channels in vVBEL
 
             mx.ToH5() is called if Sir3sID-Updates occured and mx.h5Read is True. 
 
@@ -4001,6 +4033,10 @@ class Xm():
             # right (hat die zu mergenden Keys als Index)
             dfVBEL=self.dataFrames['vVBEL']
             
+            #logger.debug("{0:s}dfUpd vor Merge: {1:s}.".format(logStr,str(dfUpd)))
+            #logger.debug("{0:s}dfVBEL vor Merge: {1:s}.".format(logStr,str(dfVBEL)))
+            #logger.debug("{0:s}dfVBEL index vor Merge: {1:s}.".format(logStr,str(dfVBEL.index)))
+
             dfUpd=pd.merge(
                 dfUpd
                ,dfVBEL
@@ -4371,7 +4407,7 @@ class Xm():
             self.dataFrames['vVBEL']=dfVBEL
 
     def MxAdd(self,mx=None,timeReq=None):
-        """Add MX-Results to some Xm-Views.
+        """Add MX-Resultcolumns to some Xm-Views.
 
         Args:
             mx: Mx-Object
@@ -4381,8 +4417,15 @@ class Xm():
                 * TIMESTAMP 
                 * if None 1st TIME in Mx is used
 
-        Views added:            
-            vKNOT
+        Views with MX2-Results added:            
+            * vKNOT (KNOT...)
+            * vROHR (ROHR...
+            * vFWVB (FWVB...)
+            * vVBEL (KNOT..._i and KNOT..._k)
+
+        Notes:
+            * The Add-Result is persisted if df were read from H5:        
+                        * xm.ToH5() is called if xm.h5Read is True.            
 
         Raises:
             XmError
@@ -4397,11 +4440,15 @@ class Xm():
             else:
                 (wDir,modelDir,modelName,mx1File)=self.getWDirModelDirModelName()                      
                 mx=Mx.Mx(mx1File=mx1File)
+            
+            if 'vNRCV_Mx1' not in self.dataFrames:
+                self.MxSync(mx=mx)
 
             if timeReq==None:
                 timeReq=mx.df.index[0]
 
             mxVecsFileData=mx.getMxsVecsFileData(timesReq=[timeReq])[0]
+
             vKNOT=self.__MxAddForOneDf(dfTarget=self.dataFrames['vKNOT']
                                       ,dfSource=mxVecsFileData.filter(regex='^KNOT'))
             vROHR=self.__MxAddForOneDf(dfTarget=self.dataFrames['vROHR']
@@ -4410,31 +4457,58 @@ class Xm():
                                       ,dfSource=mxVecsFileData.filter(regex='^FWVB'))
            
             self.dataFrames['vKNOT']=vKNOT
+            self.dataFrames['vROHR']=vROHR
+            self.dataFrames['vFWVB']=vFWVB
 
-            #mx2Cols=vecsFileDataKNOT.columns.tolist()
-            #vKNOT=self.dataFrames['vKNOT']
-            ## maybe the mx2Cols were already added in previous calls: delete them ... 
-            #if vKNOT.columns.isin(mx2Cols).all():
-            #    vKNOT=vKNOT[vKNOT.columns.drop(mx2Cols)]
+            #vVBEL
+            vKNOT=self.dataFrames['vKNOT']
+            vVBEL=self.dataFrames['vVBEL']
 
-            #dct={}
-            #mx2Cols=vecsFileDataKNOT.columns.tolist()
-            #for mx2Col in mx2Cols:
-            #    vecsFileDataOneCol=vecsFileDataKNOT[mx2Col]
-            #    vecsFileDataOneColResult=vecsFileDataOneCol[0]
-    
-            #    vecsFileDataOneColResultSeries=pd.Series(vecsFileDataOneColResult)
-            #    dct[mx2Col]=vecsFileDataOneColResultSeries
-            #dfMx2Idx=pd.DataFrame(dct)
-            #dfMx2Idx=dfMx2Idx.reindex(sorted(dfMx2Idx.columns), axis=1)
-            #vKNOT=pd.merge(vKNOT,dfMx2Idx,how='left',left_on='mx2Idx',right_index=True)
+            vVBELCols=vVBEL.columns.tolist()
+            mx2IdxColVBEL=vVBELCols.index('mx2Idx')
+            vKNOTCols=vKNOT.columns.tolist()
+            mx2IdxColKNOT=vKNOTCols.index('mx2Idx')
+
+            knotResultCols=vKNOTCols[mx2IdxColKNOT+1:]
+            vbelModelCols=vVBELCols[:mx2IdxColVBEL+1]
+
+            knotResultColsi=[col+'_i' for col in knotResultCols]
+            knotResultColsk=[col+'_k' for col in knotResultCols]
+
+            knotResultColsiRenameDct={}
+            knotResultColskRenameDct={}
+            for idx,col in enumerate(knotResultCols):
+                knotResultColsiRenameDct[col]=knotResultColsi[idx]
+                knotResultColskRenameDct[col]=knotResultColsk[idx]
+
+            df=pd.merge(vVBEL,vKNOT,left_on='pk_i',right_on='pk').filter(items=vbelModelCols+knotResultCols)
+            df.rename(columns=knotResultColsiRenameDct,inplace=True)
+            df=pd.merge(df,vKNOT,left_on='pk_k',right_on='pk').filter(items=vbelModelCols+knotResultColsi+knotResultCols)
+            df.rename(columns=knotResultColskRenameDct,inplace=True)
+            dfResultColsOnly=df.filter(knotResultColsi+knotResultColsk)
+
+            colsAlreadyInTarget=False
+            if dfResultColsOnly.columns.isin(vVBELCols).all():
+                colsAlreadyInTarget=True
+            else:
+                for col in dfResultColsOnly:
+                    vVBEL[col]=None
+            vVBEL.loc[:,knotResultColsi+knotResultColsk]=dfResultColsOnly.values
+
+            #if colsAlreadyInTarget:
+            #    vVBEL.loc[:,knotResultColsi+knotResultColsk]=dfResultColsOnly.values
+            #else:
+            #    vVBEL=df
+
+            self.dataFrames['vVBEL']=vVBEL
+
+            if self.h5Read:
+                self.ToH5()          
             
 
             #self.__Mx1_vNRCV(mx) # vNRCV
 
-            #self.__Mx2_vKNOT(mx) # vKNOT
-            #self.__Mx2_vROHR(mx) # vROHR
-            #self.__Mx2_vFWVB(mx) # vFWVB           
+             
             #self.__Mx2_vVBEL(mx) # vVBEL
                                                        
         except Exception as e:
@@ -4444,15 +4518,22 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
-    def __MxAddForOneDf(self,dfTarget=None,dfSource=None):
+    def __MxAddForOneDf(self,dfTarget=None,dfSource=None,multiIndexKey=None):
         """Add MX2-Resultdata from dfSource as cols to dfTarget.
 
         Args:
             dfTarget: df with col mx2Idx
             dfSource: df with corresponding index and cols (containing MX2-Resultdata) to be added
+            multiIndexKey: value for 1st Index if dfTarget is Multiindexed - i.e. 'XXXX'
 
+        Notes:
+            * all cols from dfSource are added at the end of dfTarget in dfSource-sequence
+            * the cols can already exist in dfTarget
+            * if so, _all cols must already exist ...
+            * ... the dfTarget-sequence should but must be not necessary the dfSource-sequence 
+            
         Returns:
-            dfResult
+            dfTarget
             
         Raises:
             XmError
@@ -4461,15 +4542,28 @@ class Xm():
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
-        try: 
-            dfResult=None
-
-            # maybe the cols are already added in previous calls: delete them ... 
+        try:             
+            # maybe the cols are already added in previous calls: otherwise: construct them ... 
             colsToBeAdded=dfSource.columns.tolist()
             colsInTarget=dfTarget.columns.tolist()
+            colsInTargetNet=list(set(colsInTarget)-set(colsToBeAdded))
+            colsInTargetNet=[col for col in colsInTarget if col in colsInTargetNet] # preserve the original col-Sequence
+
+            colsAlreadInTarget=False
             if dfSource.columns.isin(colsInTarget).all():
-                logger.debug("{0:s}Drop the following cols in Target: {1:s}".format(logStr,str(colsToBeAdded)))  
-                dfTarget=dfTarget[dfTarget.columns.drop(colsToBeAdded)]
+                colsAlreadInTarget=True
+            else:
+                if not dfSource.columns.isin(colsInTarget).any():
+                    # no col to be added exista
+                    for col in colsToBeAdded:
+                        dfTarget[col]=None
+                else:
+                    # only some cols to be added exists?!                    
+                    logger.error("{0:s}Some but - not all! - cols from dfSource exist in dfTarget: existing: {1:s} not existing: {2:s}".format(logStr
+                                                    ,str(list(set(colsInTarget) & set(colsToBeAdded)))
+                                                    ,str(list(set(colsToBeAdded) - set(colsInTarget)))
+                                                    )) 
+                    raise XmError
 
             dct={}          
             for col in colsToBeAdded:
@@ -4479,16 +4573,41 @@ class Xm():
                 vecsFileDataOneColResultSeries=pd.Series(vecsFileDataOneColResult)
                 dct[col]=vecsFileDataOneColResultSeries
             dfMx2Idx=pd.DataFrame(dct)
-            dfMx2Idx=dfMx2Idx.reindex(sorted(dfMx2Idx.columns), axis=1)
-            dfResult=pd.merge(dfTarget,dfMx2Idx,how='left',left_on='mx2Idx',right_index=True)
-                                                                   
+            #dfMx2Idx=dfMx2Idx.reindex(sorted(dfMx2Idx.columns), axis=1)   
+                     
+            if multiIndexKey != None:
+                dfMerge=pd.merge(dfTarget.loc[[multiIndexKey]].filter(items=colsInTargetNet),dfMx2Idx,how='inner',left_on='mx2Idx',right_index=True)            
+                # check alignment ...
+                shapeLeft=dfTarget.loc[[multiIndexKey],colsToBeAdded].shape
+                shapeRight=dfMerge[colsToBeAdded].shape
+                if shapeLeft != shapeRight:
+                    logger.error("{0:s}Alignment Mismatch: shapeLeft: {1:s} <> shapeRight: {2:s}".format(logStr
+                                                    ,str(shapeLeft)
+                                                    ,str(shapeRight)
+                                                    )) 
+                    raise XmError
+                dfTarget.loc[[multiIndexKey],colsToBeAdded]=dfMerge.filter(colsToBeAdded).values               
+            else:
+                dfMerge=pd.merge(dfTarget.filter(items=colsInTargetNet),dfMx2Idx,how='inner',left_on='mx2Idx',right_index=True)            
+                # check alignment ...
+                shapeLeft=dfTarget.loc[:,colsToBeAdded].shape
+                shapeRight=dfMerge[colsToBeAdded].shape
+                if shapeLeft != shapeRight:
+                    logger.error("{0:s}Alignment Mismatch: shapeLeft: {1:s} <> shapeRight: {2:s}".format(logStr
+                                                    ,str(shapeLeft)
+                                                    ,str(shapeRight)
+                                                    )) 
+                    raise XmError
+                else:
+                    dfTarget.loc[:,colsToBeAdded]=dfMerge[colsToBeAdded].values
+                   
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
             logger.error(logStrFinal) 
                      
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
-            return dfResult
+            return dfTarget
 
 if __name__ == "__main__":
     """
