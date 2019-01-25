@@ -197,15 +197,15 @@ False
 >>> # ---
 >>> # vAGSN
 >>> # ---
->>> print(xm._getvXXXXAsOneString(vXXXX='vAGSN',end=7,dropColList=['nrObjtypeInAgsn']))
-  LFDNR                                      NAME AKTIV OBJTYPE                OBJID                   pk                   tk  nrObjInAgsn
-0     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4939422678063487923  5252525269080005909  5252525269080005909            1
-1     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4984202422877610920  5252525269080005909  5252525269080005909            2
-2     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4789218195240364437  5252525269080005909  5252525269080005909            3
-3     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4614949065966596185  5252525269080005909  5252525269080005909            4
-4     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5037777106796980248  5252525269080005909  5252525269080005909            5
-5     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4713733238627697042  5252525269080005909  5252525269080005909            6
-6     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5123819811204259837  5252525269080005909  5252525269080005909            7
+>>> print(xm._getvXXXXAsOneString(vXXXX='vAGSN',end=7,dropColList=['nrObjIdTypeInAgsn']))
+  LFDNR                                      NAME AKTIV OBJTYPE                OBJID                   pk                   tk  nrObjIdInAgsn
+0     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4939422678063487923  5252525269080005909  5252525269080005909              1
+1     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4984202422877610920  5252525269080005909  5252525269080005909              2
+2     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4789218195240364437  5252525269080005909  5252525269080005909              3
+3     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4614949065966596185  5252525269080005909  5252525269080005909              4
+4     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5037777106796980248  5252525269080005909  5252525269080005909              5
+5     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4713733238627697042  5252525269080005909  5252525269080005909              6
+6     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5123819811204259837  5252525269080005909  5252525269080005909              7
 >>> # ---
 >>> # vFWVB
 >>> # ---
@@ -512,7 +512,7 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 >>> xm.dataFrames['vROHR'].shape
 (16, 91)
 >>> xm.dataFrames['vVBEL'].shape
-(28, 39)
+(28, 40)
 >>> # ---
 >>> # Clean Up LocalHeatingNetwork Xm and Mx
 >>> # ---
@@ -1431,9 +1431,14 @@ class Xm():
                 AGSN IDs
                     * pk, tk   
 
+                Sequence:
+                    * Model
+                        * therefore nrObjIdInAgsn (see ANNOTATION below) should be the realwolrd sequence
+                        
+
                 ANNOTATION
-                    * nrObjInAgsn: lfd. Obj-Nr. in AGSN (LFDNR)                   
-                    * nrObjtypeInAgsn: should be 1
+                    * nrObjIdInAgsn: lfd.Nr. Obj. in AGSN (AGSN is defined by LFDNR not by NAME)                   
+                    * nrObjIdTypeInAgsn: should be 1
 
         Raises:
             XmError                                
@@ -1456,8 +1461,8 @@ class Xm():
             #IDs
             ,'pk','tk'
             ]]
-            vAGSN=vAGSN.assign(nrObjInAgsn=vAGSN.groupby(['LFDNR']).cumcount()+1) # dieses VBEL-Obj. ist im Schnitt Nr. x
-            vAGSN=vAGSN.assign(nrObjtypeInAgsn=vAGSN.groupby(['LFDNR','OBJTYPE','OBJID']).cumcount()+1) # dieses VBEL-Obj kommt im Schnitt zum x. Mal vor
+            vAGSN=vAGSN.assign(nrObjIdInAgsn=vAGSN.groupby(['LFDNR']).cumcount()+1) # dieses VBEL-Obj. ist im Schnitt Nr. x
+            vAGSN=vAGSN.assign(nrObjIdTypeInAgsn=vAGSN.groupby(['LFDNR','OBJTYPE','OBJID']).cumcount()+1) # dieses VBEL-Obj kommt im Schnitt zum x. Mal vor
           
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -4342,9 +4347,13 @@ class Xm():
         Args:
             mx: Mx-Object
 
-        self.dataFrames['vVBEL']
+        self.dataFrames['vVBEL']:
                 columns NEW
                     * mx2Idx                   
+
+                    * Notes:
+                        * for ROHR and FWVB the mx2Idx is taken from vROHR and vFWVB
+                        * for other edges directly from mx.mx2Df
         Raises:
             XmError
         """
@@ -4371,7 +4380,7 @@ class Xm():
 
             # all (other) edges
             for edge in [edge for edge in edges if edge not in ['ROHR','FWVB']]:
-                 try:
+                 try:                     
                      xksEDGEMx=mx.mx2Df[
                                 (mx.mx2Df['ObjType'].str.match(edge))
                          ]['Data'].iloc[0]
@@ -4421,7 +4430,7 @@ class Xm():
             * vKNOT (KNOT...)
             * vROHR (ROHR...
             * vFWVB (FWVB...)
-            * vVBEL (KNOT..._i and KNOT..._k)
+            * vVBEL (KNOT..._i and KNOT..._k and Q)
 
         Notes:
             * The Add-Result is persisted if df were read from H5:        
@@ -4447,7 +4456,7 @@ class Xm():
             if timeReq==None:
                 timeReq=mx.df.index[0]
 
-            mxVecsFileData=mx.getMxsVecsFileData(timesReq=[timeReq])[0]
+            mxVecsFileData=mx.getMxsVecsFileData(timesReq=[timeReq])[0] # 1 Zeit, alle Spalten, in den Zellen stehen die Vektoren als Tuple 
 
             vKNOT=self.__MxAddForOneDf(dfTarget=self.dataFrames['vKNOT']
                                       ,dfSource=mxVecsFileData.filter(regex='^KNOT'))
@@ -4460,7 +4469,7 @@ class Xm():
             self.dataFrames['vROHR']=vROHR
             self.dataFrames['vFWVB']=vFWVB
 
-            #vVBEL
+            #vVBEL - Knoten
             vKNOT=self.dataFrames['vKNOT']
             vVBEL=self.dataFrames['vVBEL']
 
@@ -4495,11 +4504,31 @@ class Xm():
                     vVBEL[col]=None
             vVBEL.loc[:,knotResultColsi+knotResultColsk]=dfResultColsOnly.values
 
-            #if colsAlreadyInTarget:
-            #    vVBEL.loc[:,knotResultColsi+knotResultColsk]=dfResultColsOnly.values
-            #else:
-            #    vVBEL=df
 
+            #vVBEL - Q
+            vVBEL['Q']=None 
+
+            for idx,vbel in enumerate(vVBEL_edges):
+                try:
+                    df=vVBEL.loc[vbel] 
+                except KeyError:
+                    continue # VBEL nicht in Modell 
+    
+                #DataFrame: 1 Zeit, Spalte(n), in den Zelle stehen die Werte als Tuple 
+                dfQ=mxVecsFileData.filter(regex='~'+vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel) 
+                shape=dfQ.shape
+    
+                if shape[1]==0:
+                    continue # Spalte nicht in MX2
+                if shape[1]>1:
+                    continue # mehr als matchende Spalte in MX2?!
+
+                colName=dfQ.columns.tolist()[0]
+                vVBEL=self.__MxAddForOneDf(dfTarget=vVBEL,dfSource=dfQ.rename(columns={colName:'Q'}),multiIndexKey=vbel)
+
+                logger.debug("{0:s}vVBEL Liste: {1:s}".format(logStr,str(vVBEL.columns.tolist())))  
+
+              
             self.dataFrames['vVBEL']=vVBEL
 
             if self.h5Read:
@@ -4508,8 +4537,7 @@ class Xm():
 
             #self.__Mx1_vNRCV(mx) # vNRCV
 
-             
-            #self.__Mx2_vVBEL(mx) # vVBEL
+
                                                        
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
@@ -4567,13 +4595,24 @@ class Xm():
 
             dct={}          
             for col in colsToBeAdded:
+                #eine Spalte eines Frames liefert eine Series ...
+                #2004-09-22 08:30:00+00:00  (-8.509474754333496,...)
+                #Name: ROHR~*~*~*~QMAV
                 vecsFileDataOneCol=dfSource[col]
+                
+                
+                #erster Wert der Series:
+                #Tuple:
+                #(-8.509474754333496,...)
                 vecsFileDataOneColResult=vecsFileDataOneCol[0]
     
+                #Series aus Tuple
                 vecsFileDataOneColResultSeries=pd.Series(vecsFileDataOneColResult)
+                
+                #Series merken
                 dct[col]=vecsFileDataOneColResultSeries
+            #DataFrame aus Dct aus Series
             dfMx2Idx=pd.DataFrame(dct)
-            #dfMx2Idx=dfMx2Idx.reindex(sorted(dfMx2Idx.columns), axis=1)   
                      
             if multiIndexKey != None:
                 dfMerge=pd.merge(dfTarget.loc[[multiIndexKey]].filter(items=colsInTargetNet),dfMx2Idx,how='inner',left_on='mx2Idx',right_index=True)            
