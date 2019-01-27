@@ -198,14 +198,14 @@ False
 >>> # vAGSN
 >>> # ---
 >>> print(xm._getvXXXXAsOneString(vXXXX='vAGSN',end=7,dropColList=['nrObjIdTypeInAgsn']))
-  LFDNR                                      NAME AKTIV OBJTYPE                OBJID                   pk                   tk  nrObjIdInAgsn
-0     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4939422678063487923  5252525269080005909  5252525269080005909              1
-1     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4984202422877610920  5252525269080005909  5252525269080005909              2
-2     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4789218195240364437  5252525269080005909  5252525269080005909              3
-3     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4614949065966596185  5252525269080005909  5252525269080005909              4
-4     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5037777106796980248  5252525269080005909  5252525269080005909              5
-5     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4713733238627697042  5252525269080005909  5252525269080005909              6
-6     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5123819811204259837  5252525269080005909  5252525269080005909              7
+  LFDNR                                      NAME AKTIV OBJTYPE                OBJID                   pk                   tk  nrObjIdInAgsn  Layer
+0     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4939422678063487923  5252525269080005909  5252525269080005909              1      1
+1     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4984202422877610920  5252525269080005909  5252525269080005909              2      1
+2     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4789218195240364437  5252525269080005909  5252525269080005909              3      1
+3     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4614949065966596185  5252525269080005909  5252525269080005909              4      1
+4     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5037777106796980248  5252525269080005909  5252525269080005909              5      1
+5     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4713733238627697042  5252525269080005909  5252525269080005909              6      1
+6     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5123819811204259837  5252525269080005909  5252525269080005909              7      1
 >>> # ---
 >>> # vFWVB
 >>> # ---
@@ -474,18 +474,18 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 10    ROHR  4614949065966596185                           None       V-K002  V-K003        [Vorlauf]  405.96  107.1       1
 11    ROHR  4637102239750163477                           None       R-K003  R-K004       [Rücklauf]   83.55  107.1       2
 12    ROHR  4713733238627697042                           None       V-K004  V-K005        [Vorlauf]   88.02  107.1       3
-13    ROHR  4769996343148550485                           None          R-L  R-K000       [Rücklauf]   73.42  160.3       5
-14    ROHR  4789218195240364437                           None       V-K001  V-K002        [Vorlauf]  195.53  107.1       7
-15    ROHR  4939422678063487923                           None          V-L  V-K000        [Vorlauf]    68.6  160.3       8
-16    ROHR  4945727430885351042                           None       R-K006  R-K007       [Rücklauf]  109.77  107.1       9
-17    ROHR  4984202422877610920                           None       V-K000  V-K001        [Vorlauf]    76.4  107.1      10
-18    ROHR  5037777106796980248                           None       V-K003  V-K004        [Vorlauf]   83.55  107.1      11
-19    ROHR  5123819811204259837                           None       V-K005  V-K006        [Vorlauf]  164.91  107.1      12
-20    ROHR  5266224553324203132                           None       R-K001  R-K002       [Rücklauf]  195.53  107.1      13
-21    ROHR  5379365049009065623                           None       R-K002  R-K003       [Rücklauf]  405.96  107.1      14
-22    ROHR  5611703699850694889                           None       R-K005  R-K006       [Rücklauf]  164.91  107.1      15
-23    ROHR  5620197984230756681                           None       V-K006  V-K007        [Vorlauf]  109.77  107.1       4
-24    ROHR  5647213228462830353                           None       R-K000  R-K001       [Rücklauf]    76.4  107.1       6
+13    ROHR  4769996343148550485                           None          R-L  R-K000       [Rücklauf]   73.42  160.3       4
+14    ROHR  4789218195240364437                           None       V-K001  V-K002        [Vorlauf]  195.53  107.1       5
+15    ROHR  4939422678063487923                           None          V-L  V-K000        [Vorlauf]    68.6  160.3       6
+16    ROHR  4945727430885351042                           None       R-K006  R-K007       [Rücklauf]  109.77  107.1       7
+17    ROHR  4984202422877610920                           None       V-K000  V-K001        [Vorlauf]    76.4  107.1       8
+18    ROHR  5037777106796980248                           None       V-K003  V-K004        [Vorlauf]   83.55  107.1       9
+19    ROHR  5123819811204259837                           None       V-K005  V-K006        [Vorlauf]  164.91  107.1      10
+20    ROHR  5266224553324203132                           None       R-K001  R-K002       [Rücklauf]  195.53  107.1      11
+21    ROHR  5379365049009065623                           None       R-K002  R-K003       [Rücklauf]  405.96  107.1      12
+22    ROHR  5611703699850694889                           None       R-K005  R-K006       [Rücklauf]  164.91  107.1      13
+23    ROHR  5620197984230756681                           None       V-K006  V-K007        [Vorlauf]  109.77  107.1      14
+24    ROHR  5647213228462830353                           None       R-K000  R-K001       [Rücklauf]    76.4  107.1      15
 25    VENT  4678923650983295610                           None          V-1     V-L        [Vorlauf]       0    150       0
 26    VENT  4897018421024717974                           None          R-L     R-1       [Rücklauf]       0    150       1
 27    VENT  5525310316015533093                           None  PKON-Knoten     R-1       [Rücklauf]       0     50       2
@@ -509,10 +509,93 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 >>> xm.MxAdd(mx=mx)
 >>> xm.dataFrames['vKNOT'].shape
 (23, 54)
+>>> print(xm._getvXXXXAsOneString(vXXXX='vKNOT',filterColList=['mx2Idx','KVR','NAME','KNOT~*~*~*~PH'],index=True))
+    mx2Idx KVR         NAME  KNOT~*~*~*~PH
+0        0   2       R-K004       2.302971
+1        1   1       V-K002       3.985846
+2        2   1       V-K001       4.083384
+3        3   1       V-K000       4.121495
+4        4   2       R-K001       2.043288
+5        5   2       R-K003       2.283565
+6        6   2       R-K000       2.004937
+7        9   2       R-K005       2.309655
+8       11   2          R-L       2.000133
+9       12   2       R-K002       2.141440
+10      13   1       V-K004       3.825971
+11      15   1       V-K005       3.819468
+12      16   2       R-K007       2.314658
+13      17   1       V-K006       3.816600
+14      18   2       R-K006       2.312659
+15      20   1       V-K003       3.845104
+16      21   1          V-L       4.125885
+17      22   1       V-K007       3.814691
+18       7   2           R2       4.311308
+19       8   1          V-1       4.126020
+20      10   2           R3       4.291591
+21      14   2  PKON-Knoten       2.000000
+22      19   2          R-1       2.000000
 >>> xm.dataFrames['vROHR'].shape
-(16, 91)
+(16, 83)
+>>> print(xm._getvXXXXAsOneString(vXXXX='vROHR',filterColList=['mx2Idx','L','KVR','NAME_i','NAME_k','ROHR~*~*~*~QMAV'],sortList=['ROHR~*~*~*~QMAV','NAME_i'],index=True))
+    mx2Idx       L KVR  NAME_i  NAME_k  ROHR~*~*~*~QMAV
+13      15    76.4   2  R-K000  R-K001       -22.987946
+9       11  195.53   2  R-K001  R-K002       -22.987946
+14       4   73.42   2     R-L  R-K000       -22.987946
+10      12  405.96   2  R-K002  R-K003       -19.059778
+2        2   83.55   2  R-K003  R-K004       -15.378901
+0        0   88.02   2  R-K004  R-K005        -8.509475
+11      13  164.91   2  R-K005  R-K006        -3.928166
+5        7  109.77   2  R-K006  R-K007        -3.928166
+8       10  164.91   1  V-K005  V-K006         3.928167
+12      14  109.77   1  V-K006  V-K007         3.928167
+3        3   88.02   1  V-K004  V-K005         8.509476
+7        9   83.55   1  V-K003  V-K004        15.378901
+1        1  405.96   1  V-K002  V-K003        19.059780
+4        5  195.53   1  V-K001  V-K002        22.987946
+6        8    76.4   1  V-K000  V-K001        22.987947
+15       6    68.6   1     V-L  V-K000        22.987947
+>>> xm.dataFrames['vFWVB'].shape
+(5, 43)
+>>> print(xm._getvXXXXAsOneString(vXXXX='vFWVB',filterColList=['mx2Idx','NAME_i','NAME_k','FWVB~*~*~*~QM'],sortList=['FWVB~*~*~*~QM','NAME_i'],index=True))
+   mx2Idx  NAME_i  NAME_k  FWVB~*~*~*~QM
+4       4  V-K003  R-K003       3.680879
+0       0  V-K002  R-K002       3.928166
+3       3  V-K007  R-K007       3.928166
+2       2  V-K005  R-K005       4.581308
+1       1  V-K004  R-K004       6.869426
 >>> xm.dataFrames['vVBEL'].shape
 (28, 40)
+>>> xm.dataFrames['vVBEL_forTestOnly2']=xm.dataFrames['vVBEL'].reset_index(inplace=False) # Multiindex to Cols
+>>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL_forTestOnly2',filterColList=['OBJTYPE','mx2Idx','L','D','NAME_i','NAME_k','Q'],sortList=['OBJTYPE','Q','NAME_i'],index=True))
+   OBJTYPE  mx2Idx       L      D       NAME_i  NAME_k            Q
+0     FWES       0       0     80           R3     V-1      22.9879
+5     FWVB       4       0    NaN       V-K003  R-K003      3.68088
+1     FWVB       0       0    NaN       V-K002  R-K002      3.92817
+4     FWVB       3       0    NaN       V-K007  R-K007      3.92817
+3     FWVB       2       0    NaN       V-K005  R-K005      4.58131
+2     FWVB       1       0    NaN       V-K004  R-K004      6.86943
+6     KLAP       0       0     80           R2      R3      22.9879
+7     PGRP       0       0    NaN          R-1      R3         None
+8     PUMP       0       0    NaN          R-1      R2      22.9879
+24    ROHR      15    76.4  107.1       R-K000  R-K001     -22.9879
+20    ROHR      11  195.53  107.1       R-K001  R-K002     -22.9879
+13    ROHR       4   73.42  160.3          R-L  R-K000     -22.9879
+21    ROHR      12  405.96  107.1       R-K002  R-K003     -19.0598
+11    ROHR       2   83.55  107.1       R-K003  R-K004     -15.3789
+9     ROHR       0   88.02  107.1       R-K004  R-K005     -8.50947
+22    ROHR      13  164.91  107.1       R-K005  R-K006     -3.92817
+16    ROHR       7  109.77  107.1       R-K006  R-K007     -3.92817
+19    ROHR      10  164.91  107.1       V-K005  V-K006      3.92817
+23    ROHR      14  109.77  107.1       V-K006  V-K007      3.92817
+12    ROHR       3   88.02  107.1       V-K004  V-K005      8.50948
+18    ROHR       9   83.55  107.1       V-K003  V-K004      15.3789
+10    ROHR       1  405.96  107.1       V-K002  V-K003      19.0598
+14    ROHR       5  195.53  107.1       V-K001  V-K002      22.9879
+17    ROHR       8    76.4  107.1       V-K000  V-K001      22.9879
+15    ROHR       6    68.6  160.3          V-L  V-K000      22.9879
+27    VENT       2       0     50  PKON-Knoten     R-1  2.19997e-06
+26    VENT       1       0    150          R-L     R-1      22.9879
+25    VENT       0       0    150          V-1     V-L      22.9879
 >>> # ---
 >>> # Clean Up LocalHeatingNetwork Xm and Mx
 >>> # ---
@@ -1126,13 +1209,15 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return result 
 
-    def _getvXXXXAsOneString(self,vXXXX=None,start=0,end=-1,dropColList=None,mapFunc={},sortList=None,fmtFunc={},index=True,header=True):
+    def _getvXXXXAsOneString(self,vXXXX=None,start=0,end=-1,dropColList=None,filterColList=None,mapFunc={},sortList=None,fmtFunc={},index=True,header=True):
         """Returns vXXXX-Content as one String (for Doctest-Purposes).
 
         Args:
             * vXXXX: df=self.dataFrames[vXXXX]
             * start
             * end
+            * dropColList
+            * filterColList
             * mapFunc: col:func: df[col].map(func)
             * sortList
             * fmtFunc: col:func: passed to df.to_string(formatters=fmtFunc, ...)
@@ -1166,6 +1251,8 @@ class Xm():
         else:
             colListOut=colList
         df=df.loc[:,colListOut]
+        if filterColList!=None:
+            df=df.filter(items=filterColList)
 
         # map cols
         for col,func in mapFunc.items():            
@@ -1423,6 +1510,8 @@ class Xm():
                     * LFDNR
                     * NAME
                     * AKTIV
+                    * Layer
+                        nur bei Netztyp 21: 1=VL, 2=RL, 0=undef (OBJID\n-Trenner von VL und RL)
 
                     from SIR 3S OBJ BLOB collection:
                         * OBJTYPE: type (i.e.ROHR) 
@@ -1463,6 +1552,26 @@ class Xm():
             ]]
             vAGSN=vAGSN.assign(nrObjIdInAgsn=vAGSN.groupby(['LFDNR']).cumcount()+1) # dieses VBEL-Obj. ist im Schnitt Nr. x
             vAGSN=vAGSN.assign(nrObjIdTypeInAgsn=vAGSN.groupby(['LFDNR','OBJTYPE','OBJID']).cumcount()+1) # dieses VBEL-Obj kommt im Schnitt zum x. Mal vor
+
+            tModell=self.dataFrames['MODELL']
+            netzTyp=tModell['NETZTYP'][0] # '21'
+
+            if netzTyp == '21':
+                vAGSN['Layer']=0
+
+                for lfdnr in sorted(vAGSN['LFDNR'].unique()):
+                
+                    oneAgsn=vAGSN[vAGSN['LFDNR']==lfdnr]
+                   
+                    dfSplitRow=oneAgsn[oneAgsn['OBJID'].str.endswith('\n')]
+                    splitRowIdx=dfSplitRow.index.values[0]                    
+    
+                    oneAgsnSL=oneAgsn.iloc[:splitRowIdx]
+                    oneAgsnRL=oneAgsn.iloc[splitRowIdx+1:]
+                                  
+                    vAGSN.loc[oneAgsnSL.index,'Layer']=1                       
+                    vAGSN.loc[oneAgsnRL.index,'Layer']=2
+
           
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -4351,9 +4460,8 @@ class Xm():
                 columns NEW
                     * mx2Idx                   
 
-                    * Notes:
-                        * for ROHR and FWVB the mx2Idx is taken from vROHR and vFWVB
-                        * for other edges directly from mx.mx2Df
+                    * Notes:                        
+                        * for all edges mx2Idx is taken from mx.mx2Df
         Raises:
             XmError
         """
@@ -4363,23 +4471,13 @@ class Xm():
         
         try: 
 
-            # new col in dfVBEL
+            # new col mx2Idx in dfVBEL
             dfVBEL=self.dataFrames['vVBEL']
             dfVBEL=dfVBEL.assign(mx2Idx=lambda x: -1)
             dfVBEL['mx2Idx'].astype('int64',copy=False)
 
-            # ROHR
-            dfROHR=self.dataFrames['vROHR']
-            mx2IdxRohr=dfROHR['mx2Idx']
-            dfVBEL.loc[('ROHR',),'mx2Idx']=mx2IdxRohr.values
-
-            # FWVB
-            dfFWVB=self.dataFrames['vFWVB']
-            mx2IdxFwvb=dfFWVB['mx2Idx']
-            dfVBEL.loc[('FWVB',),'mx2Idx']=mx2IdxFwvb.values
-
-            # all (other) edges
-            for edge in [edge for edge in edges if edge not in ['ROHR','FWVB']]:
+            # all edges
+            for edge in [edge for edge in edges]:
                  try:                     
                      xksEDGEMx=mx.mx2Df[
                                 (mx.mx2Df['ObjType'].str.match(edge))
@@ -4428,9 +4526,10 @@ class Xm():
 
         Views with MX2-Results added:            
             * vKNOT (KNOT...)
-            * vROHR (ROHR...
+            * vROHR (ROHR...) - only Non-VEC-Channels are added
             * vFWVB (FWVB...)
             * vVBEL (KNOT..._i and KNOT..._k and Q)
+            * vAGSN (vVBEL)
 
         Notes:
             * The Add-Result is persisted if df were read from H5:        
@@ -4459,11 +4558,11 @@ class Xm():
             mxVecsFileData=mx.getMxsVecsFileData(timesReq=[timeReq])[0] # 1 Zeit, alle Spalten, in den Zellen stehen die Vektoren als Tuple 
 
             vKNOT=self.__MxAddForOneDf(dfTarget=self.dataFrames['vKNOT']
-                                      ,dfSource=mxVecsFileData.filter(regex='^KNOT'))
+                                      ,dfSource=mxVecsFileData.filter(regex='^KNOT'),testStr='ROHR')
             vROHR=self.__MxAddForOneDf(dfTarget=self.dataFrames['vROHR']
-                                      ,dfSource=mxVecsFileData.filter(regex='^ROHR'))
+                                      ,dfSource=mxVecsFileData.filter(regex='^ROHR').filter(regex='^(?!.*VEC)'),testStr='ROHR')
             vFWVB=self.__MxAddForOneDf(dfTarget=self.dataFrames['vFWVB']
-                                      ,dfSource=mxVecsFileData.filter(regex='^FWVB'))
+                                      ,dfSource=mxVecsFileData.filter(regex='^FWVB'),testStr='FWVB')
            
             self.dataFrames['vKNOT']=vKNOT
             self.dataFrames['vROHR']=vROHR
@@ -4515,7 +4614,10 @@ class Xm():
                     continue # VBEL nicht in Modell 
     
                 #DataFrame: 1 Zeit, Spalte(n), in den Zelle stehen die Werte als Tuple 
-                dfQ=mxVecsFileData.filter(regex='~'+vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel) 
+                if vbel != 'ROHR':
+                    dfQ=mxVecsFileData.filter(regex='~'+vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel)
+                else:
+                    dfQ=mxVecsFileData.filter(regex='~'+vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel).filter(regex='^(?!.*VEC)')
                 shape=dfQ.shape
     
                 if shape[1]==0:
@@ -4524,21 +4626,27 @@ class Xm():
                     continue # mehr als matchende Spalte in MX2?!
 
                 colName=dfQ.columns.tolist()[0]
-                vVBEL=self.__MxAddForOneDf(dfTarget=vVBEL,dfSource=dfQ.rename(columns={colName:'Q'}),multiIndexKey=vbel)
+                vVBEL=self.__MxAddForOneDf(dfTarget=vVBEL,dfSource=dfQ.rename(columns={colName:'Q'}),multiIndexKey=vbel,testStr='vVBEL_'+vbel)
 
                 logger.debug("{0:s}vVBEL Liste: {1:s}".format(logStr,str(vVBEL.columns.tolist())))  
 
-              
             self.dataFrames['vVBEL']=vVBEL
+
+            #vAGSN
+            vAGSN=self.dataFrames['vAGSN']
+
+            vAGSN=pd.merge(
+                    vAGSN
+                   ,vVBEL
+                   ,how='left' 
+                   ,left_on=['OBJTYPE','OBJID']  
+                   ,right_index=True ,suffixes=('', '_y'))
+            vAGSN.rename(columns={'tk_y':'tk_VBEL'},inplace=True)
+            self.dataFrames['vAGSN']=vAGSN
 
             if self.h5Read:
                 self.ToH5()          
-            
-
-            #self.__Mx1_vNRCV(mx) # vNRCV
-
-
-                                                       
+                                                  
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
             logger.error(logStrFinal) 
@@ -4546,7 +4654,7 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
-    def __MxAddForOneDf(self,dfTarget=None,dfSource=None,multiIndexKey=None):
+    def __MxAddForOneDf(self,dfTarget=None,dfSource=None,multiIndexKey=None,testStr='testStr'):
         """Add MX2-Resultdata from dfSource as cols to dfTarget.
 
         Args:
@@ -4612,10 +4720,14 @@ class Xm():
                 #Series merken
                 dct[col]=vecsFileDataOneColResultSeries
             #DataFrame aus Dct aus Series
-            dfMx2Idx=pd.DataFrame(dct)
+            dfMx2Idx=pd.DataFrame(dct)            
                      
             if multiIndexKey != None:
+                ###dfMx2Idx.to_excel(testStr+'_dfMx2Idx'+'_multiIndexKey'+'.xlsx')
+                ###dfTarget.loc[[multiIndexKey]].filter(items=colsInTargetNet).to_excel(testStr+'_dfTarget'+'_multiIndexKey'+'.xlsx')
                 dfMerge=pd.merge(dfTarget.loc[[multiIndexKey]].filter(items=colsInTargetNet),dfMx2Idx,how='inner',left_on='mx2Idx',right_index=True)            
+                #logger.debug("{0:s}dfMerge: {1:s}".format(logStr,str(dfMerge)))
+                ###dfMerge.filter(items=['mx2Idx','L','NAME_i','NAME_k','Q']).to_excel(testStr+'_dfMerge'+'_multiIndexKey'+'.xlsx')
                 # check alignment ...
                 shapeLeft=dfTarget.loc[[multiIndexKey],colsToBeAdded].shape
                 shapeRight=dfMerge[colsToBeAdded].shape
@@ -4625,9 +4737,12 @@ class Xm():
                                                     ,str(shapeRight)
                                                     )) 
                     raise XmError
-                dfTarget.loc[[multiIndexKey],colsToBeAdded]=dfMerge.filter(colsToBeAdded).values               
+                dfTarget.loc[[multiIndexKey],colsToBeAdded]=dfMerge.filter(colsToBeAdded).values    
+
             else:
-                dfMerge=pd.merge(dfTarget.filter(items=colsInTargetNet),dfMx2Idx,how='inner',left_on='mx2Idx',right_index=True)            
+                dfMerge=pd.merge(dfTarget.filter(items=colsInTargetNet),dfMx2Idx,how='inner',left_on='mx2Idx',right_index=True)        
+                ###logger.debug("{0:s}dfMerge: {1:s}".format(logStr,str(dfMerge)))
+                ###dfMerge.to_excel(testStr+'_dfMerge'+'.xlsx')
                 # check alignment ...
                 shapeLeft=dfTarget.loc[:,colsToBeAdded].shape
                 shapeRight=dfMerge[colsToBeAdded].shape
@@ -4639,6 +4754,9 @@ class Xm():
                     raise XmError
                 else:
                     dfTarget.loc[:,colsToBeAdded]=dfMerge[colsToBeAdded].values
+                ###if testStr=='ROHR':                    
+                    ###dfTarget.filter(items=['L','KVR','NAME_i','NAME_k','ROHR~*~*~*~QMAV']).to_excel(testStr+'_dfTarget'+'_multiIndexKey'+'.xlsx')
+                ###logger.debug("{0:s}dfTarget: {1:s}".format(logStr,str(dfTarget)))
                    
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
