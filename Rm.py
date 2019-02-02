@@ -59,7 +59,7 @@
 >>> mx=Mx.Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
 >>> mx.setResultsToMxsFile(NewH5Vec=True)
 5
->>> xm.Mx(mx=mx)
+>>> xm.MxSync(mx=mx)
 >>> rm=Rm(xm=xm,mx=mx)
 >>> # ---
 >>> # Plot 3Classes False

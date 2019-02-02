@@ -500,102 +500,105 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 >>> # ------
 >>> if 'vNRCV_Mx1' in xm.dataFrames:
 ...    del xm.dataFrames['vNRCV_Mx1'] # delete MxSync-Result to force MxSync-Call in MxAdd
+>>> oldShape=xm.dataFrames['vKNOT'].shape
 >>> xm.MxAdd()
->>> xm.dataFrames['vKNOT'].shape
-(23, 54)
+>>> firstShape=xm.dataFrames['vKNOT'].shape
+>>> oldShape[1]<firstShape[1]
+True
 >>> xm.MxAdd(mx=mx)
->>> xm.dataFrames['vKNOT'].shape
-(23, 54)
+>>> secondShape=xm.dataFrames['vKNOT'].shape
+>>> secondShape==firstShape
+True
 >>> xm.MxAdd(mx=mx)
->>> xm.dataFrames['vKNOT'].shape
-(23, 54)
->>> print(xm._getvXXXXAsOneString(vXXXX='vKNOT',filterColList=['mx2Idx','KVR','NAME','KNOT~*~*~*~PH'],index=True))
-    mx2Idx KVR         NAME  KNOT~*~*~*~PH
-0        0   2       R-K004       2.302971
-1        1   1       V-K002       3.985846
-2        2   1       V-K001       4.083384
-3        3   1       V-K000       4.121495
-4        4   2       R-K001       2.043288
-5        5   2       R-K003       2.283565
-6        6   2       R-K000       2.004937
-7        9   2       R-K005       2.309655
-8       11   2          R-L       2.000133
-9       12   2       R-K002       2.141440
-10      13   1       V-K004       3.825971
-11      15   1       V-K005       3.819468
-12      16   2       R-K007       2.314658
-13      17   1       V-K006       3.816600
-14      18   2       R-K006       2.312659
-15      20   1       V-K003       3.845104
-16      21   1          V-L       4.125885
-17      22   1       V-K007       3.814691
-18       7   2           R2       4.311308
-19       8   1          V-1       4.126020
-20      10   2           R3       4.291591
-21      14   2  PKON-Knoten       2.000000
-22      19   2          R-1       2.000000
->>> xm.dataFrames['vROHR'].shape
-(16, 83)
->>> print(xm._getvXXXXAsOneString(vXXXX='vROHR',filterColList=['mx2Idx','L','KVR','NAME_i','NAME_k','ROHR~*~*~*~QMAV'],sortList=['ROHR~*~*~*~QMAV','NAME_i'],index=True))
+>>> thirdShape=xm.dataFrames['vKNOT'].shape
+>>> thirdShape==firstShape
+True
+>>> xm.dataFrames['vKNOT_forTestOnly']=xm.dataFrames['vKNOT'].rename(columns={'KNOT~*~*~*~PH':'Druck'})
+>>> if 'Druck' not in xm.dataFrames['vKNOT_forTestOnly']:
+...     xm.dataFrames['vKNOT_forTestOnly'].rename(columns={'KNOT~*~*~*~H':'Druck'},inplace=True)
+>>> if 'Druck' not in xm.dataFrames['vKNOT_forTestOnly']:
+...     xm.dataFrames['vKNOT_forTestOnly'].rename(columns={'KNOT~*~~*~PH':'Druck'},inplace=True) #09 
+>>> f = lambda x: round(x,1) if x != None else None  
+>>> print(xm._getvXXXXAsOneString(vXXXX='vKNOT_forTestOnly',filterColList=['mx2Idx','KVR','NAME','Druck'],mapFunc={'Druck':f},index=True))
+    mx2Idx KVR         NAME  Druck
+0        0   2       R-K004    2.3
+1        1   1       V-K002    4.0
+2        2   1       V-K001    4.1
+3        3   1       V-K000    4.1
+4        4   2       R-K001    2.0
+5        5   2       R-K003    2.3
+6        6   2       R-K000    2.0
+7        9   2       R-K005    2.3
+8       11   2          R-L    2.0
+9       12   2       R-K002    2.1
+10      13   1       V-K004    3.8
+11      15   1       V-K005    3.8
+12      16   2       R-K007    2.3
+13      17   1       V-K006    3.8
+14      18   2       R-K006    2.3
+15      20   1       V-K003    3.8
+16      21   1          V-L    4.1
+17      22   1       V-K007    3.8
+18       7   2           R2    4.3
+19       8   1          V-1    4.1
+20      10   2           R3    4.3
+21      14   2  PKON-Knoten    2.0
+22      19   2          R-1    2.0
+>>> print(xm._getvXXXXAsOneString(vXXXX='vROHR',filterColList=['mx2Idx','L','KVR','NAME_i','NAME_k','ROHR~*~*~*~QMAV'],mapFunc={'ROHR~*~*~*~QMAV':f},sortList=['ROHR~*~*~*~QMAV','NAME_i'],index=True))
     mx2Idx       L KVR  NAME_i  NAME_k  ROHR~*~*~*~QMAV
-13      15    76.4   2  R-K000  R-K001       -22.987946
-9       11  195.53   2  R-K001  R-K002       -22.987946
-14       4   73.42   2     R-L  R-K000       -22.987946
-10      12  405.96   2  R-K002  R-K003       -19.059778
-2        2   83.55   2  R-K003  R-K004       -15.378901
-0        0   88.02   2  R-K004  R-K005        -8.509475
-11      13  164.91   2  R-K005  R-K006        -3.928166
-5        7  109.77   2  R-K006  R-K007        -3.928166
-8       10  164.91   1  V-K005  V-K006         3.928167
-12      14  109.77   1  V-K006  V-K007         3.928167
-3        3   88.02   1  V-K004  V-K005         8.509476
-7        9   83.55   1  V-K003  V-K004        15.378901
-1        1  405.96   1  V-K002  V-K003        19.059780
-4        5  195.53   1  V-K001  V-K002        22.987946
-6        8    76.4   1  V-K000  V-K001        22.987947
-15       6    68.6   1     V-L  V-K000        22.987947
->>> xm.dataFrames['vFWVB'].shape
-(5, 43)
->>> print(xm._getvXXXXAsOneString(vXXXX='vFWVB',filterColList=['mx2Idx','NAME_i','NAME_k','FWVB~*~*~*~QM'],sortList=['FWVB~*~*~*~QM','NAME_i'],index=True))
-   mx2Idx  NAME_i  NAME_k  FWVB~*~*~*~QM
-4       4  V-K003  R-K003       3.680879
-0       0  V-K002  R-K002       3.928166
-3       3  V-K007  R-K007       3.928166
-2       2  V-K005  R-K005       4.581308
-1       1  V-K004  R-K004       6.869426
->>> xm.dataFrames['vVBEL'].shape
-(28, 40)
->>> xm.dataFrames['vVBEL_forTestOnly2']=xm.dataFrames['vVBEL'].reset_index(inplace=False) # Multiindex to Cols
->>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL_forTestOnly2',filterColList=['OBJTYPE','mx2Idx','L','D','NAME_i','NAME_k','Q'],sortList=['OBJTYPE','Q','NAME_i'],index=True))
-   OBJTYPE  mx2Idx       L      D       NAME_i  NAME_k            Q
-0     FWES       0       0     80           R3     V-1      22.9879
-5     FWVB       4       0    NaN       V-K003  R-K003      3.68088
-1     FWVB       0       0    NaN       V-K002  R-K002      3.92817
-4     FWVB       3       0    NaN       V-K007  R-K007      3.92817
-3     FWVB       2       0    NaN       V-K005  R-K005      4.58131
-2     FWVB       1       0    NaN       V-K004  R-K004      6.86943
-6     KLAP       0       0     80           R2      R3      22.9879
-7     PGRP       0       0    NaN          R-1      R3         None
-8     PUMP       0       0    NaN          R-1      R2      22.9879
-24    ROHR      15    76.4  107.1       R-K000  R-K001     -22.9879
-20    ROHR      11  195.53  107.1       R-K001  R-K002     -22.9879
-13    ROHR       4   73.42  160.3          R-L  R-K000     -22.9879
-21    ROHR      12  405.96  107.1       R-K002  R-K003     -19.0598
-11    ROHR       2   83.55  107.1       R-K003  R-K004     -15.3789
-9     ROHR       0   88.02  107.1       R-K004  R-K005     -8.50947
-22    ROHR      13  164.91  107.1       R-K005  R-K006     -3.92817
-16    ROHR       7  109.77  107.1       R-K006  R-K007     -3.92817
-19    ROHR      10  164.91  107.1       V-K005  V-K006      3.92817
-23    ROHR      14  109.77  107.1       V-K006  V-K007      3.92817
-12    ROHR       3   88.02  107.1       V-K004  V-K005      8.50948
-18    ROHR       9   83.55  107.1       V-K003  V-K004      15.3789
-10    ROHR       1  405.96  107.1       V-K002  V-K003      19.0598
-14    ROHR       5  195.53  107.1       V-K001  V-K002      22.9879
-17    ROHR       8    76.4  107.1       V-K000  V-K001      22.9879
-15    ROHR       6    68.6  160.3          V-L  V-K000      22.9879
-27    VENT       2       0     50  PKON-Knoten     R-1  2.19997e-06
-26    VENT       1       0    150          R-L     R-1      22.9879
-25    VENT       0       0    150          V-1     V-L      22.9879
+13      15    76.4   2  R-K000  R-K001            -23.0
+9       11  195.53   2  R-K001  R-K002            -23.0
+14       4   73.42   2     R-L  R-K000            -23.0
+10      12  405.96   2  R-K002  R-K003            -19.1
+2        2   83.55   2  R-K003  R-K004            -15.4
+0        0   88.02   2  R-K004  R-K005             -8.5
+11      13  164.91   2  R-K005  R-K006             -3.9
+5        7  109.77   2  R-K006  R-K007             -3.9
+8       10  164.91   1  V-K005  V-K006              3.9
+12      14  109.77   1  V-K006  V-K007              3.9
+3        3   88.02   1  V-K004  V-K005              8.5
+7        9   83.55   1  V-K003  V-K004             15.4
+1        1  405.96   1  V-K002  V-K003             19.1
+6        8    76.4   1  V-K000  V-K001             23.0
+4        5  195.53   1  V-K001  V-K002             23.0
+15       6    68.6   1     V-L  V-K000             23.0
+>>> print(xm._getvXXXXAsOneString(vXXXX='vFWVB',filterColList=['mx2Idx','NAME_i','NAME_k','FWVB~*~*~*~W'],mapFunc={'FWVB~*~*~*~W':f},sortList=['FWVB~*~*~*~W','NAME_i'],index=True))
+   mx2Idx  NAME_i  NAME_k  FWVB~*~*~*~W
+4       4  V-K003  R-K003         120.0
+0       0  V-K002  R-K002         160.0
+2       2  V-K005  R-K005         160.0
+3       3  V-K007  R-K007         160.0
+1       1  V-K004  R-K004         200.0
+>>> xm.dataFrames['vVBEL_forTestOnly2']=xm.dataFrames['vVBEL'].loc[['ROHR','FWVB'],:].reset_index(inplace=False) # Multiindex to Cols
+>>> xm.dataFrames['vVBEL_forTestOnly2'].rename(columns={'KNOT~*~*~*~PH_i':'Druck_i'},inplace=True)
+>>> if 'Druck_i' not in xm.dataFrames['vVBEL_forTestOnly2']:
+...     xm.dataFrames['vVBEL_forTestOnly2'].rename(columns={'KNOT~*~*~*~H_i':'Druck_i'},inplace=True)
+>>> if 'Druck_i' not in xm.dataFrames['vVBEL_forTestOnly2']:
+...     xm.dataFrames['vVBEL_forTestOnly2'].rename(columns={'KNOT~*~~*~PH_i':'Druck_i'},inplace=True) #09 
+>>> f = lambda x: round(x,1) if x != None else None  
+>>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL_forTestOnly2',filterColList=['OBJTYPE','mx2Idx','L','D','NAME_i','NAME_k','Druck_i','Q'],mapFunc={'Druck_i':f,'Q':f},sortList=['OBJTYPE','NAME_i','Q'],index=True))
+   OBJTYPE  mx2Idx       L      D  NAME_i  NAME_k  Druck_i     Q
+0     FWVB       0       0    NaN  V-K002  R-K002      4.0   3.9
+4     FWVB       4       0    NaN  V-K003  R-K003      3.8   3.7
+1     FWVB       1       0    NaN  V-K004  R-K004      3.8   6.9
+2     FWVB       2       0    NaN  V-K005  R-K005      3.8   4.6
+3     FWVB       3       0    NaN  V-K007  R-K007      3.8   3.9
+20    ROHR      15    76.4  107.1  R-K000  R-K001      2.0 -23.0
+16    ROHR      11  195.53  107.1  R-K001  R-K002      2.0 -23.0
+17    ROHR      12  405.96  107.1  R-K002  R-K003      2.1 -19.1
+7     ROHR       2   83.55  107.1  R-K003  R-K004      2.3 -15.4
+5     ROHR       0   88.02  107.1  R-K004  R-K005      2.3  -8.5
+18    ROHR      13  164.91  107.1  R-K005  R-K006      2.3  -3.9
+12    ROHR       7  109.77  107.1  R-K006  R-K007      2.3  -3.9
+9     ROHR       4   73.42  160.3     R-L  R-K000      2.0 -23.0
+13    ROHR       8    76.4  107.1  V-K000  V-K001      4.1  23.0
+10    ROHR       5  195.53  107.1  V-K001  V-K002      4.1  23.0
+6     ROHR       1  405.96  107.1  V-K002  V-K003      4.0  19.1
+14    ROHR       9   83.55  107.1  V-K003  V-K004      3.8  15.4
+8     ROHR       3   88.02  107.1  V-K004  V-K005      3.8   8.5
+15    ROHR      10  164.91  107.1  V-K005  V-K006      3.8   3.9
+19    ROHR      14  109.77  107.1  V-K006  V-K007      3.8   3.9
+11    ROHR       6    68.6  160.3     V-L  V-K000      4.1  23.0
 >>> # ---
 >>> # Clean Up LocalHeatingNetwork Xm and Mx
 >>> # ---
@@ -1255,8 +1258,11 @@ class Xm():
             df=df.filter(items=filterColList)
 
         # map cols
-        for col,func in mapFunc.items():            
-            df[col]=df[col].map(func)
+        for col,func in mapFunc.items():          
+            if col not in df.columns:
+                pass
+            else:
+                df[col]=df[col].map(func)
 
         # sort 
         if isinstance(sortList,list):
@@ -1511,20 +1517,22 @@ class Xm():
                     * NAME
                     * AKTIV
                     * Layer
-                        nur bei Netztyp 21: 1=VL, 2=RL, 0=undef (OBJID\n-Trenner von VL und RL)
 
-                    from SIR 3S OBJ BLOB collection:
+                        nur bei Netztyp 21: 1=VL, 2=RL, 0=undef (OBJIDBN-Trenner von VL und RL)\
+                        wenn keine BN-Trennzeile gefunden wird, wird VL angenommen und gesetzt
+
+                    * from SIR 3S OBJ BLOB collection:
+
                         * OBJTYPE: type (i.e.ROHR) 
                         * OBJID: pk (or tk?!)   
                                  
                 AGSN IDs
                     * pk, tk   
 
-                Sequence:
+                Sequence
                     * Model
                         * therefore nrObjIdInAgsn (see ANNOTATION below) should be the realwolrd sequence
                         
-
                 ANNOTATION
                     * nrObjIdInAgsn: lfd.Nr. Obj. in AGSN (AGSN is defined by LFDNR not by NAME)                   
                     * nrObjIdTypeInAgsn: should be 1
@@ -1564,13 +1572,19 @@ class Xm():
                     oneAgsn=vAGSN[vAGSN['LFDNR']==lfdnr]
                    
                     dfSplitRow=oneAgsn[oneAgsn['OBJID'].str.endswith('\n')]
-                    splitRowIdx=dfSplitRow.index.values[0]                    
+                    # Test if empty Dataframe
+                    if dfSplitRow.empty:                        
+                        logger.debug("{0:s}vAGSN has no OBJID\n-Row to seperate SL/RL.".format(logStr)) 
+                        vAGSN.loc[oneAgsn.index,'Layer']=1 
+
+                    else:
+                        splitRowIdx=dfSplitRow.index.values[0]                                    
     
-                    oneAgsnSL=oneAgsn.iloc[:splitRowIdx]
-                    oneAgsnRL=oneAgsn.iloc[splitRowIdx+1:]
+                        oneAgsnSL=oneAgsn.iloc[:splitRowIdx]
+                        oneAgsnRL=oneAgsn.iloc[splitRowIdx+1:]
                                   
-                    vAGSN.loc[oneAgsnSL.index,'Layer']=1                       
-                    vAGSN.loc[oneAgsnRL.index,'Layer']=2
+                        vAGSN.loc[oneAgsnSL.index,'Layer']=1                       
+                        vAGSN.loc[oneAgsnRL.index,'Layer']=2
 
           
         except Exception as e:
@@ -1613,6 +1627,7 @@ class Xm():
                     * NAME_KREF2
                     * NAME_SWVT
                     * [NAME_RCPL] - only if RCPLs exist
+            
             sequence: Model
 
         Raises:
@@ -4525,15 +4540,20 @@ class Xm():
                 * if None 1st TIME in Mx is used
 
         Views with MX2-Results added:            
-            * vKNOT (KNOT...)
-            * vROHR (ROHR...) - only Non-VEC-Channels are added
-            * vFWVB (FWVB...)
-            * vVBEL (KNOT..._i and KNOT..._k and Q)
-            * vAGSN (vVBEL)
+            * in the Xm-Views col mx2Idx must exist 
+            * mx2Idx is considered to be the last of the Model-cols
+            * right from mx2Idx Result-cols are added if not already existing
+            * already existing Result-cols are overwritten
+            * mx2Idx-Views:
+                * vKNOT (KNOT...) 
+                * vROHR (ROHR...) - only Non-VEC-Channels are added
+                * vFWVB (FWVB...)
+                * vVBEL (KNOT..._i and KNOT..._k and Q)
+            * vAGSN (from vVBEL: KNOT..._i and KNOT..._k and Q)
 
         Notes:
             * The Add-Result is persisted if df were read from H5:        
-                        * xm.ToH5() is called if xm.h5Read is True.            
+                        * xm.ToH5() is called if xm.h5Read is True.           
 
         Raises:
             XmError
@@ -4558,7 +4578,7 @@ class Xm():
             mxVecsFileData=mx.getMxsVecsFileData(timesReq=[timeReq])[0] # 1 Zeit, alle Spalten, in den Zellen stehen die Vektoren als Tuple 
 
             vKNOT=self.__MxAddForOneDf(dfTarget=self.dataFrames['vKNOT']
-                                      ,dfSource=mxVecsFileData.filter(regex='^KNOT'),testStr='ROHR')
+                                      ,dfSource=mxVecsFileData.filter(regex='^KNOT'),testStr='KNOT')
             vROHR=self.__MxAddForOneDf(dfTarget=self.dataFrames['vROHR']
                                       ,dfSource=mxVecsFileData.filter(regex='^ROHR').filter(regex='^(?!.*VEC)'),testStr='ROHR')
             vFWVB=self.__MxAddForOneDf(dfTarget=self.dataFrames['vFWVB']
@@ -4573,12 +4593,12 @@ class Xm():
             vVBEL=self.dataFrames['vVBEL']
 
             vVBELCols=vVBEL.columns.tolist()
-            mx2IdxColVBEL=vVBELCols.index('mx2Idx')
+            mx2IdxColVBELIdx=vVBELCols.index('mx2Idx')
             vKNOTCols=vKNOT.columns.tolist()
-            mx2IdxColKNOT=vKNOTCols.index('mx2Idx')
+            mx2IdxColKNOTIdx=vKNOTCols.index('mx2Idx')
 
-            knotResultCols=vKNOTCols[mx2IdxColKNOT+1:]
-            vbelModelCols=vVBELCols[:mx2IdxColVBEL+1]
+            knotResultCols=vKNOTCols[mx2IdxColKNOTIdx+1:]
+            vbelModelCols=vVBELCols[:mx2IdxColVBELIdx+1]
 
             knotResultColsi=[col+'_i' for col in knotResultCols]
             knotResultColsk=[col+'_k' for col in knotResultCols]
@@ -4589,18 +4609,42 @@ class Xm():
                 knotResultColsiRenameDct[col]=knotResultColsi[idx]
                 knotResultColskRenameDct[col]=knotResultColsk[idx]
 
-            df=pd.merge(vVBEL,vKNOT,left_on='pk_i',right_on='pk').filter(items=vbelModelCols+knotResultCols)
+            df=pd.merge(vVBEL.loc[:,vbelModelCols],vKNOT,left_on='pk_i',right_on='pk',suffixes=['','_i']).filter(items=vbelModelCols+knotResultCols)
             df.rename(columns=knotResultColsiRenameDct,inplace=True)
-            df=pd.merge(df,vKNOT,left_on='pk_k',right_on='pk').filter(items=vbelModelCols+knotResultColsi+knotResultCols)
+            
+            df=pd.merge(df,vKNOT,left_on='pk_k',right_on='pk',suffixes=['','_k']).filter(items=vbelModelCols+knotResultColsi+knotResultCols)
             df.rename(columns=knotResultColskRenameDct,inplace=True)
+
+            # merge again for correct alignment
+            df=pd.merge(vVBEL.loc[:,vbelModelCols],df.filter(items=['tk','pk_i','pk_k']+knotResultColsi+knotResultColsk),on=['tk','pk_i','pk_k']).filter(items=vbelModelCols+knotResultColsi+knotResultColsk)
             dfResultColsOnly=df.filter(knotResultColsi+knotResultColsk)
 
-            colsAlreadyInTarget=False
             if dfResultColsOnly.columns.isin(vVBELCols).all():
-                colsAlreadyInTarget=True
+                pass
             else:
-                for col in dfResultColsOnly:
-                    vVBEL[col]=None
+                if not dfResultColsOnly.columns.isin(vVBELCols).any():
+                    # no col to be added exist
+                    for col in dfResultColsOnly:
+                        vVBEL[col]=None
+                else:
+                    # only some cols to be added exist?!       
+                    logStringFinal="{0:s}Some but - not all! - cols from dfResultColsOnly exist in dfTarget vVBEL: existing: {1:s} not existing: {2:s}".format(logStr
+                                                    ,str(list(set(vVBELCols) & set(dfResultColsOnly)))
+                                                    ,str(list(set(dfResultColsOnly) - set(vVBELCols)))
+                                                    )             
+                    logger.error(logStringFinal) 
+                    raise XmError(logStringFinal)
+
+            shapeLeft=vVBEL.loc[:,knotResultColsi+knotResultColsk].shape 
+            shapeRight=dfResultColsOnly.shape
+            if shapeLeft != shapeRight:
+                logStringFinal="{0:s}Alignment Mismatch: shapeLeft vVBEL: {1:s} <> shapeRight df: {2:s}".format(logStr
+                                                    ,str(shapeLeft)
+                                                    ,str(shapeRight)
+                                                    )
+                logger.error(logStringFinal) 
+                raise XmError(logStringFinal)
+
             vVBEL.loc[:,knotResultColsi+knotResultColsk]=dfResultColsOnly.values
 
 
@@ -4685,21 +4729,23 @@ class Xm():
             colsInTargetNet=list(set(colsInTarget)-set(colsToBeAdded))
             colsInTargetNet=[col for col in colsInTarget if col in colsInTargetNet] # preserve the original col-Sequence
 
-            colsAlreadInTarget=False
             if dfSource.columns.isin(colsInTarget).all():
-                colsAlreadInTarget=True
+                pass
             else:
                 if not dfSource.columns.isin(colsInTarget).any():
                     # no col to be added exista
+                    logString="{0:s}None of the cols from dfSource exist in dfTarget: {1:s}".format(logStr,str(colsToBeAdded))
+                    logger.debug(logString)
                     for col in colsToBeAdded:
-                        dfTarget[col]=None
+                        dfTarget[col]=None                                           
                 else:
-                    # only some cols to be added exists?!                    
-                    logger.error("{0:s}Some but - not all! - cols from dfSource exist in dfTarget: existing: {1:s} not existing: {2:s}".format(logStr
+                    # only some cols to be added exists?!       
+                    logStringFinal="{0:s}Some but - not all! - cols from dfSource exist in dfTarget: existing: {1:s} not existing: {2:s}".format(logStr
                                                     ,str(list(set(colsInTarget) & set(colsToBeAdded)))
                                                     ,str(list(set(colsToBeAdded) - set(colsInTarget)))
-                                                    )) 
-                    raise XmError
+                                                    )             
+                    logger.error(logStringFinal) 
+                    raise XmError(logStringFinal)
 
             dct={}          
             for col in colsToBeAdded:
@@ -4732,11 +4778,12 @@ class Xm():
                 shapeLeft=dfTarget.loc[[multiIndexKey],colsToBeAdded].shape
                 shapeRight=dfMerge[colsToBeAdded].shape
                 if shapeLeft != shapeRight:
-                    logger.error("{0:s}Alignment Mismatch: shapeLeft: {1:s} <> shapeRight: {2:s}".format(logStr
+                    logStringFinal="{0:s}Alignment Mismatch: shapeLeft dfTarget: {1:s} <> shapeRight dfMerge: {2:s}".format(logStr
                                                     ,str(shapeLeft)
                                                     ,str(shapeRight)
-                                                    )) 
-                    raise XmError
+                                                    )
+                    logger.error(logStringFinal) 
+                    raise XmError(logStringFinal)
                 dfTarget.loc[[multiIndexKey],colsToBeAdded]=dfMerge.filter(colsToBeAdded).values    
 
             else:
@@ -4747,11 +4794,12 @@ class Xm():
                 shapeLeft=dfTarget.loc[:,colsToBeAdded].shape
                 shapeRight=dfMerge[colsToBeAdded].shape
                 if shapeLeft != shapeRight:
-                    logger.error("{0:s}Alignment Mismatch: shapeLeft: {1:s} <> shapeRight: {2:s}".format(logStr
+                    logStringFinal="{0:s}Alignment Mismatch: shapeLeft dfTarget: {1:s} <> shapeRight dfMerge: {2:s}".format(logStr
                                                     ,str(shapeLeft)
                                                     ,str(shapeRight)
-                                                    )) 
-                    raise XmError
+                                                    )
+                    logger.error(logStringFinal) 
+                    raise XmError(logStringFinal)
                 else:
                     dfTarget.loc[:,colsToBeAdded]=dfMerge[colsToBeAdded].values
                 ###if testStr=='ROHR':                    

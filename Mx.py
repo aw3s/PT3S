@@ -524,7 +524,7 @@ class Mx():
         * (mx1File,NoH5Read=True,NoMxsRead=True): use this for a fresh start; call setResultsTo...() explicit; finalize with ToH5()
         * note that base.Y.h5-File has to be dunped explicitely with ToH5()
         * and base.Y.vec.h5-File is written implicitely while (implicit or explicit calls to) setResultsTo...() 
-        * and is deleted explicitely (mx1File,NoH5Read=True) or implicitely (because it is i.e. too old) 
+        * and is deleted explicitely (mx1File,NoH5Read=True) or implicitely (because it is i.e. to old) 
 
     Args:
         * mx1File (str): base.MX1-File (an XML-File) (base.Y.MX1-File from 90-10 on)
