@@ -14,8 +14,7 @@
     <IsWindowsApplication>False</IsWindowsApplication>
     <CommandLineArguments>--dotResolution .1</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
-    <InterpreterId>
-    </InterpreterId>
+    <InterpreterId>Global|ContinuumAnalytics|Anaconda36-64</InterpreterId>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
@@ -197,6 +196,9 @@
     <Folder Include="testdata\WDTinyWDN\B1\" />
     <Folder Include="testdata\WDTinyWDN\B1\V0\" />
     <Folder Include="testdata\WDTinyWDN\B1\V0\BZ1\" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="Global|ContinuumAnalytics|Anaconda36-64" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
