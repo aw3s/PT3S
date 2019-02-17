@@ -14,7 +14,7 @@
 ...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ','path = os.path.dirname(__file__)'," .")) 
 ...      path = os.path.dirname(__file__)
 ...   except NameError:    
-...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined and: ","from Xm import Xm")) 
+...      logger.debug("{0:s}{1:s}{2:s}".format('DOCTEST: __main__ Context: ',"path = '.' because __file__ not defined: ","from Xm import Xm follows ...")) 
 ...      path = '.'
 ...      from Xm import Xm
 ... else:
@@ -23,7 +23,7 @@
 >>> try:
 ...    from PT3S import Mx
 ... except ImportError:
-...    logger.debug("{0:s}{1:s}".format("DOCTEST: from PT3S import Mx: ImportError: ","trying import Mx maybe pip install -e . is active ..."))  
+...    logger.debug("{0:s}{1:s}".format("DOCTEST: ImportError: from PT3S import Mx: ","- trying import Mx instead ... maybe pip install -e . is active ..."))  
 ...    import Mx
 >>> # ---
 >>> # testDir
@@ -655,7 +655,7 @@ True
 """
 
 import warnings # 3.6
-#C:\Users\Wolters\Anaconda3\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+#...\Anaconda3\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
 #  from ._conv import register_converters as _register_converters
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -691,7 +691,7 @@ else:
 try:
     from PT3S import Mx
 except ImportError:
-    logger.debug("{0:s}{1:s}".format('ImportError: ','from PT3S import Mx - trying import Mx maybe pip install -e . is active ...')) 
+    logger.debug("{0:s}{1:s}".format('in MODULEFILE: ImportError: ','from PT3S import Mx - trying import Mx instead ... maybe pip install -e . is active ...')) 
     import Mx
 
 # ---
@@ -949,14 +949,13 @@ class Xm():
 
             #Determine .h5 BaseKey
 
-            #XmlFile=r'C:\3S\Modelle\MVV_FW.XML'
-            relPath2XmlromCurDir=os.path.normpath(os.path.relpath(os.path.normpath(self.xmlFile),start=os.path.normpath(os.path.curdir))) # ..\..\..\..\..\3S\Modelle\MVV_FW.XML
-            #print(repr(relPath2XmlromCurDir)) # '..\\..\\..\\..\\..\\3S\\Modelle\\MVV_FW.XML'
+            relPath2XmlromCurDir=os.path.normpath(os.path.relpath(os.path.normpath(self.xmlFile),start=os.path.normpath(os.path.curdir))) # ..\..\..\..\..\3S\Modelle\....XML
+            #print(repr(relPath2XmlromCurDir)) # '..\\..\\..\\..\\..\\3S\\Modelle\\....XML'
             h5KeySep='/'
             h5KeyCharForDot='_'
             h5KeyCharForMinus='_'
             relPath2XmlromCurDirH5BaseKey=re.sub('\.',h5KeyCharForDot,re.sub(r'\\',h5KeySep,re.sub('-',h5KeyCharForMinus,re.sub('.xml','',relPath2XmlromCurDir,flags=re.IGNORECASE))))
-            #__/__/__/__/__/3S/Modelle/MVV_FW
+            #__/__/__/__/__/3S/Modelle/...
 
             warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
             warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)
@@ -1681,7 +1680,7 @@ class Xm():
             IndstdDct=dict(zip([int(pair[0]) for pair in [item.split(sep='=') for item in items]]
                 ,[pair[1].strip()  for pair in [item.split(sep='=') for item in items]]
                      ))
-            logger.debug("{0:s}{1:s}".format(logStr,str(IndstdDct))) 
+            #logger.debug("{0:s}{1:s}".format(logStr,str(IndstdDct))) 
 
             vRART=pd.merge(self.dataFrames['RART_BZ'],self.dataFrames['RART'],left_on='fk',right_on='pk',suffixes=['_BZ',''])[['NAME','BESCHREIBUNG'
             ,'INDSTD','DWDT'
@@ -4824,6 +4823,10 @@ class Xm():
             
         Raises:
             XmError
+        >>> 1==1
+        True
+        >>> vROHR=xm.dataFrames['vROHR']
+        >>> vROHR
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -4921,6 +4924,36 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return dfTarget
 
+def setUpFct(dto):
+        """
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:      
+            pass
+            #globs={'testDir':args.testDir,'dotResolution':args.dotResolution})  
+            testDir=dto.globs['testDir']
+            dotResolution=dto.globs['dotResolution']
+            h5File=os.path.join(os.path.join(path,testDir),'OneLPipe.h5')
+#>>> if os.path.exists(h5File):                        
+#...    os.remove(h5File)
+#>>> # ---
+#>>> # Init
+#>>> # ---
+#>>> xmlFile=os.path.join(os.path.join(path,testDir),'OneLPipe.XML')
+#>>> xm=Xm(xmlFile=xmlFile)
+            
+
+                   
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
+            logger.error(logStrFinal) 
+                     
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+
 if __name__ == "__main__":
     """
     Run the Stuff or/and perform Unittests.
@@ -4954,21 +4987,49 @@ if __name__ == "__main__":
         )
 
         group = parser.add_mutually_exclusive_group()                                
-        group.add_argument("-v","--verbose", help="Debug Messages On", action="store_true",default=True)      
-        group.add_argument("-q","--quiet", help="Debug Messages Off", action="store_true")        
+        group.add_argument("-v","--verbose", help="Debug Messages On: -v (default): logging.DEBUG", action="store_true",default=True)      
+        group.add_argument("-q","--quiet", help="Debug Messages Off: -q: logging.ERROR", action="store_true",default=False)        
+                                 
+        parser.add_argument("-m","--moduleTest", help="execute the Module's Doctest On/Off: -m 1 (default)", action="store",default='1')      
+        parser.add_argument("-s","--singleTest", help="execute single Doctest: -s Xm: class' Doctest is executed", action="append",default=[])        
+
         parser.add_argument('--testDir',type=str,default='testdata',help="value for global 'testDir' i.e. testdata")
         parser.add_argument('--dotResolution',type=str,default='',help="value for global 'dotResolution' i.e. .1")             
         args = parser.parse_args()
 
-        if args.verbose:           
-            logger.setLevel(logging.DEBUG)     
-        else:            
+        if args.verbose:  # default         
+            logger.setLevel(logging.DEBUG)  
+        if args.quiet:    # Debug Messages are turned Off
             logger.setLevel(logging.ERROR)  
                       
         logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start. Argumente:',str(sys.argv))) 
 
-        suite=doctest.DocTestSuite(globs={'testDir':args.testDir,'dotResolution':args.dotResolution})   
-        unittest.TextTestRunner().run(suite)         
+        if args.moduleTest == '1':
+            dtFinder=doctest.DocTestFinder(recurse=False,verbose=False) # recurse = False findet nur den Modultest
+            suite=doctest.DocTestSuite(test_finder=dtFinder#,setUp=setUpFct
+                                   ,globs={'testDir':args.testDir,'dotResolution':args.dotResolution})   
+            unittest.TextTestRunner().run(suite)
+            
+        if len(args.singleTest)>0:
+
+            # setUp
+            # get all Testdata in Testdir and generate Xms and corresponding Mx
+            h5File=os.path.join(os.path.join('.',args.testDir),'OneLPipe.h5')
+            if os.path.exists(h5File):                        
+                os.remove(h5File)
+            xmlFile=os.path.join(os.path.join('.',args.testDir),'OneLPipe.XML')
+            xm=Xm(xmlFile=xmlFile)
+
+            dtFinder=doctest.DocTestFinder(verbose=False)
+            dtRunner=doctest.DocTestRunner(verbose=True) 
+            dTests=dtFinder.find(Xm,globs={'testDir':args.testDir
+                                           ,'dotResolution':args.dotResolution
+                                           ,'xm':xm}) 
+            for test in dTests:
+                if test.name in args.singleTest: # cccxc
+                    logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Running Test: ',test.name)) 
+                    dtRunner.run(test)
+
 
     except SystemExit:
         pass                                              
