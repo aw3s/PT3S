@@ -67,21 +67,26 @@ if __name__ == "__main__":
             import Mx, Xm, Rm
 
         # as unittests
-        logger.info("{0:s}{1:s}{2:s}".format(logStr,'Start unittests (DocTestSuite...). testDir: ',args.testDir)) 
+        logger.info("{0:s}{1:s}{2:s}".format(logStr,'Start unittests (by DocTestSuite...). testDir: ',args.testDir)) 
+        
+               
         unittest.TextTestRunner().run(doctest.DocTestSuite(Mx,globs={'testDir':args.testDir,'dotResolution':args.dotResolution}))  
-        unittest.TextTestRunner().run(doctest.DocTestSuite(Xm,globs={'testDir':args.testDir,'dotResolution':args.dotResolution})) 
+        
+        dtFinder=doctest.DocTestFinder(recurse=False) # recurse = False findet nur den Modultest 
+        unittest.TextTestRunner().run(doctest.DocTestSuite(Xm,test_finder=dtFinder,globs={'testDir':args.testDir,'dotResolution':args.dotResolution})) 
+        
         unittest.TextTestRunner().run(doctest.DocTestSuite(Rm,globs={'testDir':args.testDir,'dotResolution':args.dotResolution}))
 
         # as doctests
-        
+        logger.info("{0:s}{1:s}{2:s}".format(logStr,'Start doctests. testDir: ',args.testDir)) 
+
         dtFinder=doctest.DocTestFinder(verbose=False)
         dtRunner=doctest.DocTestRunner(verbose=False) 
-        logger.info("{0:s}{1:s}{2:s}".format(logStr,'Start doctests (DocTestFinder...). testDir: ',args.testDir)) 
 
         dTests=dtFinder.find(Mx,globs={'testDir':args.testDir,'dotResolution':args.dotResolution}) 
         dtRunner.run(dTests[0])
 
-        dTests=dtFinder.find(Xm,globs={'testDir':args.testDir,'dotResolution':args.dotResolution})
+        dTests=doctest.DocTestFinder(verbose=False,recurse=False).find(Xm,globs={'testDir':args.testDir,'dotResolution':args.dotResolution})
         dtRunner.run(dTests[0])
 
         dTests=dtFinder.find(Rm,globs={'testDir':args.testDir,'dotResolution':args.dotResolution}) 

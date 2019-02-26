@@ -599,40 +599,6 @@ True
 15    ROHR      10  164.91  107.1  V-K005  V-K006      3.8   3.9
 19    ROHR      14  109.77  107.1  V-K006  V-K007      3.8   3.9
 11    ROHR       6    68.6  160.3     V-L  V-K000      4.1  23.0
->>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults',filterColList=['mx2Idx','IptIdx','ROHR~*~*~*~SVEC'],index=True))
-    mx2Idx IptIdx  ROHR~*~*~*~SVEC
-0        0      S         0.000000
-1        0      E        88.019997
-2        1      S         0.000000
-3        1      E       405.959991
-4        2      S         0.000000
-5        2      E        83.550003
-6        3      S         0.000000
-7        3      E        88.019997
-8        5      S         0.000000
-9        5      E       195.529999
-10       7      S         0.000000
-11       7      E       109.769997
-12       8      S         0.000000
-13       8      E        76.400002
-14       9      S         0.000000
-15       9      E        83.550003
-16      10      S         0.000000
-17      10      E       164.910004
-18      11      S         0.000000
-19      11      E       195.529999
-20      12      S         0.000000
-21      12      E       405.959991
-22      13      S         0.000000
-23      13      E       164.910004
-24      14      S         0.000000
-25      14      E       109.769997
-26      15      S         0.000000
-27      15      E        76.400002
-28       4      S         0.000000
-29       4      E        73.419998
-30       6      S         0.000000
-31       6      E        68.599998
 >>> # ---
 >>> # Clean Up LocalHeatingNetwork Xm and Mx
 >>> # ---
@@ -851,7 +817,7 @@ class Xm():
                 all_records = []
                 for elementRow in root.iter(tag=tableName):
                     record = {}
-                    for elementCol in elementRow:
+                    for elementCol in elementRow:                       
                         record[elementCol.tag] = elementCol.text
                     all_records.append(record)
                 self.dataFrames[tableName]=pd.DataFrame(all_records) 
@@ -1244,6 +1210,45 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return result 
+
+    def getVersion(self,type='BASIS'):
+        """ Returns VERSION-String i.e. Sir3S-90-10.
+
+        Args:
+            * type: BASIS or VARIANTE or BZ; the DATENEBENEn-TYPe from which the VERSION-String is requested 
+     
+        Returns:
+            * VERSION-String i.e. Sir3S-90-10; Sir3S-90-09 is returned if Attribute VERSION is not available  
+        Raises:
+            XmError
+
+        >>> xm=xms['OneLPipe']
+        >>> vStr=xm.getVersion()
+        >>> import re
+        >>> m=re.search('Sir(?P<Db3s>[DBdb3Ss]{2})-(?P<Major>\d+)-(?P<Minor>\d+)$',vStr) # i.e. Sir3S-90-10
+        >>> int(m.group('Major')[0])
+        9
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+                
+        try:               
+            vStr=None
+            t=self.dataFrames['DATENEBENE']
+            if 'VERSION' not in t.columns.tolist():
+                vStr='Sir3S-90-10'
+            else:           
+                tType=t[t['TYP'].str.contains(type)]
+                vStr=tType['VERSION'].iloc[0] 
+                       
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))            
+            logger.error(logStrFinal)       
+            raise XmError(logStrFinal)               
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            return vStr
 
     def _getvXXXXAsOneString(self,vXXXX=None,start=0,end=-1,dropColList=None,filterColList=None,mapFunc={},sortList=None,fmtFunc={},index=True,header=True):
         """Returns vXXXX-Content as one String (for Doctest-Purposes).
@@ -4087,7 +4092,7 @@ class Xm():
             return vXXXX     
 
     def MxSync(self,mx=None):
-        """Mx: Sir3sID Update in Mx-Object. Xm: NEW: vNRCV_Mx1: vNRCV with MX1-Information. Some Xm-Views with MX2-Information (mx2Idx).
+        """Mx: Sir3sID Update in Mx-Object. Xm: NEW 1st Call: vNRCV_Mx1: vNRCV with MX1-Information. Some Xm-Views with MX2-Information (mx2Idx).
 
         Args:
             mx: Mx-Object
@@ -4105,8 +4110,10 @@ class Xm():
 
         Raises:
             XmError
-        """
 
+        >>> xm=xms['LocalHeatingNetwork']
+        >>> xm.MxSync()
+        """
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
@@ -4567,7 +4574,7 @@ class Xm():
             self.dataFrames['vVBEL']=dfVBEL
 
     def MxAdd(self,mx=None,timeReq=None):
-        """Add MX-Resultcolumns to some Xm-Views.
+        """Add MX-Resultcolumns to some Xm-Views.  NEW 1st Call: vROHRVecResults: vNRCV with MX1-Information.
 
         Args:
             mx: Mx-Object
@@ -4588,10 +4595,10 @@ class Xm():
                 * vFWVB (FWVB...)
                 * vVBEL (KNOT..._i and KNOT..._k and Q)
            
-            * vROHRVecResults: VEC-Channel-Results:
+            * vROHRVecResults: VEC-Channel-Results for Pipe-Interior-Pts (IPts):
                 * pk
                 * mx2Idx
-                * IptIdx: S,0,...,E
+                * IptIdx: S,0,...,E - Interior Point Index
                 * one column per VEC-Channel
 
             * vAGSN (from vVBEL: KNOT..._i and KNOT..._k and Q)
@@ -4602,6 +4609,44 @@ class Xm():
 
         Raises:
             XmError
+
+        >>> xm=xms['LocalHeatingNetwork']
+        >>> xm.MxSync()
+        >>> xm.MxAdd()
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults',filterColList=['mx2Idx','IptIdx','ROHR~*~*~*~SVEC'],index=True))
+            mx2Idx IptIdx  ROHR~*~*~*~SVEC
+        0        0      S         0.000000
+        1        0      E        88.019997
+        2        1      S         0.000000
+        3        1      E       405.959991
+        4        2      S         0.000000
+        5        2      E        83.550003
+        6        3      S         0.000000
+        7        3      E        88.019997
+        8        5      S         0.000000
+        9        5      E       195.529999
+        10       7      S         0.000000
+        11       7      E       109.769997
+        12       8      S         0.000000
+        13       8      E        76.400002
+        14       9      S         0.000000
+        15       9      E        83.550003
+        16      10      S         0.000000
+        17      10      E       164.910004
+        18      11      S         0.000000
+        19      11      E       195.529999
+        20      12      S         0.000000
+        21      12      E       405.959991
+        22      13      S         0.000000
+        23      13      E       164.910004
+        24      14      S         0.000000
+        25      14      E       109.769997
+        26      15      S         0.000000
+        27      15      E        76.400002
+        28       4      S         0.000000
+        29       4      E        73.419998
+        30       6      S         0.000000
+        31       6      E        68.599998
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -4823,10 +4868,6 @@ class Xm():
             
         Raises:
             XmError
-        >>> 1==1
-        True
-        >>> vROHR=xm.dataFrames['vROHR']
-        >>> vROHR
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -4932,21 +4973,9 @@ def setUpFct(dto):
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try:      
-            pass
-            #globs={'testDir':args.testDir,'dotResolution':args.dotResolution})  
             testDir=dto.globs['testDir']
             dotResolution=dto.globs['dotResolution']
-            h5File=os.path.join(os.path.join(path,testDir),'OneLPipe.h5')
-#>>> if os.path.exists(h5File):                        
-#...    os.remove(h5File)
-#>>> # ---
-#>>> # Init
-#>>> # ---
-#>>> xmlFile=os.path.join(os.path.join(path,testDir),'OneLPipe.XML')
-#>>> xm=Xm(xmlFile=xmlFile)
-            
-
-                   
+            h5File=os.path.join(os.path.join(path,testDir),'OneLPipe.h5')       
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
             logger.error(logStrFinal) 
@@ -4991,10 +5020,13 @@ if __name__ == "__main__":
         group.add_argument("-q","--quiet", help="Debug Messages Off: -q: logging.ERROR", action="store_true",default=False)        
                                  
         parser.add_argument("-m","--moduleTest", help="execute the Module's Doctest On/Off: -m 1 (default)", action="store",default='1')      
-        parser.add_argument("-s","--singleTest", help="execute single Doctest: -s Xm: class' Doctest is executed", action="append",default=[])        
+        parser.add_argument("-s","--singleTest", help="execute single Doctest: -s Xm: Doctest names matching Xm are executed", action="append",default=[])        
 
         parser.add_argument('--testDir',type=str,default='testdata',help="value for global 'testDir' i.e. testdata")
-        parser.add_argument('--dotResolution',type=str,default='',help="value for global 'dotResolution' i.e. .1")             
+        #parser.add_argument('--dotResolution',type=str,default='',help="value for global 'dotResolution' i.e. .1")        
+        
+
+
         args = parser.parse_args()
 
         if args.verbose:  # default         
@@ -5006,30 +5038,33 @@ if __name__ == "__main__":
 
         if args.moduleTest == '1':
             dtFinder=doctest.DocTestFinder(recurse=False,verbose=False) # recurse = False findet nur den Modultest
-            suite=doctest.DocTestSuite(test_finder=dtFinder#,setUp=setUpFct
-                                   ,globs={'testDir':args.testDir,'dotResolution':args.dotResolution})   
+            suite=doctest.DocTestSuite(test_finder=dtFinder #,setUp=setUpFct
+                                   ,globs={'testDir':args.testDir
+                                           #,'dotResolution':args.dotResolution
+                                           })   
             unittest.TextTestRunner().run(suite)
-            
+        
+        xms={}    
         if len(args.singleTest)>0:
-
-            # setUp
-            # get all Testdata in Testdir and generate Xms and corresponding Mx
-            h5File=os.path.join(os.path.join('.',args.testDir),'OneLPipe.h5')
-            if os.path.exists(h5File):                        
-                os.remove(h5File)
-            xmlFile=os.path.join(os.path.join('.',args.testDir),'OneLPipe.XML')
-            xm=Xm(xmlFile=xmlFile)
+            for testModel in ['OneLPipe','LocalHeatingNetwork']:
+                h5File=os.path.join(os.path.join('.',args.testDir),testModel+'.h5')
+                if os.path.exists(h5File):                        
+                    os.remove(h5File)
+                xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')
+                xm=Xm(xmlFile=xmlFile)
+                xms[testModel]=xm
 
             dtFinder=doctest.DocTestFinder(verbose=False)
-            dtRunner=doctest.DocTestRunner(verbose=True) 
+            dtRunner=doctest.DocTestRunner(verbose=False) 
             dTests=dtFinder.find(Xm,globs={'testDir':args.testDir
-                                           ,'dotResolution':args.dotResolution
-                                           ,'xm':xm}) 
+                                        #   ,'dotResolution':args.dotResolution
+                                           ,'xms':xms}) 
             for test in dTests:
-                if test.name in args.singleTest: # cccxc
-                    logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Running Test: ',test.name)) 
-                    dtRunner.run(test)
-
+                for expr in args.singleTest:
+                    if re.search(expr,test.name) != None:                    
+                        logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Running Test: ',test.name)) 
+                        dtRunner.run(test)
+                        break
 
     except SystemExit:
         pass                                              

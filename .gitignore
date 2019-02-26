@@ -92,3 +92,5 @@
 /testdata/TinyWDN_Backup_Ver9010_20181104_120750.mdb
 /testdata/WDLocalHeatingNetwork/B1/V0/BZ1/M-1-0-1.1.vec.h5
 /testdata/WDLocalHeatingNetwork/B1/V0/BZ1/M-1-0-1.h5.metadata
+/testdata/WDLocalHeatingNetwork/B1/V0/BZ1/M-1-0-1.h5
+*.h5
