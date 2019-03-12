@@ -4916,6 +4916,7 @@ class Xm():
             df['dx']=df.apply(lambda row: 0 if row.OBJTYPE!='ROHR' and  pd.isnull(row.dx) and row.IptIdx=='S' else row.dx,axis=1)
             df['dx']=df.apply(lambda row: 0 if row.OBJTYPE!='ROHR' and  pd.isnull(row.dx) and row.IptIdx=='E' else row.dx,axis=1)
             df['x']=df.groupby(['LFDNR','Layer'])['dx'].cumsum()
+            #df['x']=df['x'].values
 
             tLnet=df.groupby(['LFDNR','Layer'])['dx'].sum()
             tLnet=tLnet.reset_index()
@@ -4991,6 +4992,33 @@ class Xm():
                 df.drop([kiCol], axis=1, inplace=True)
                 df.drop([kkCol], axis=1, inplace=True)
                 df.drop([vecCol], axis=1, inplace=True)
+
+            for nr in df['LFDNR'].unique():                
+                for ly in df[df['LFDNR']==nr]['Layer'].unique():                    
+                    dfLy=df[(df['LFDNR']==nr) & (df['Layer']==ly)]
+                    grouped = dfLy.groupby(['OBJTYPE','OBJID'])
+                    for name, group in grouped:
+                        s=df.loc[group.index[0],:]                       
+                        if s.NAME_k == s.nextNODE:    
+                            f=1.
+                        else:    
+                            f=-1.
+                            df.loc[group.index,:]=group[::-1].values     
+                            # x zurueck
+                            df.loc[group.index,'x']=df.loc[group.index,'x'][::-1].values
+                            df.loc[group.index,'xVbel']=df.loc[group.index,'xVbel'][::-1].values
+                        
+                        if s.OBJTYPE == 'ROHR':
+                            try:
+                                df.loc[group.index,'Q']=df.loc[group.index,'ROHR~*~*~*~QMVEC'].values
+                            except:
+                                pass
+                        
+                        #Q ggf. drehen
+                        df.loc[group.index,'Q']*=f       
+
+            if 'ROHR~*~*~*~QMVEC' in df.columns.tolist():
+                df.drop(['ROHR~*~*~*~QMVEC'], axis=1, inplace=True)
 
             self.dataFrames['vAGSN']=df
 
