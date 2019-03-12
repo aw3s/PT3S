@@ -645,6 +645,8 @@ import logging
 
 import glob
 
+import networkx as nx
+
 # ---
 # --- PT3S Imports
 # ---
@@ -1325,6 +1327,7 @@ class Xm():
             * BLOB-Data 
                 * vLAYR
                 * vWBLZ
+                * vAGSN u. vAGSN_raw
             * Timeseries
                 * vLFKT
                 * vQVAR
@@ -1361,6 +1364,7 @@ class Xm():
             self.dataFrames['vLAYR']=self._vLAYR()
             self.dataFrames['vWBLZ']=self._vWBLZ()
             self.dataFrames['vAGSN']=self._vAGSN()
+            self.dataFrames['vAGSN_raw']=self.dataFrames['vAGSN']
 
             #timeseries
             self.dataFrames['vLFKT']=self._vLFKT()   
@@ -1554,11 +1558,7 @@ class Xm():
                     * LFDNR
                     * NAME
                     * AKTIV
-                    * Layer
-
-                        nur bei Netztyp 21: 1=VL, 2=RL, 0=undef (OBJIDBN-Trenner von VL und RL)\
-                        wenn keine BN-Trennzeile gefunden wird, wird VL angenommen und gesetzt
-
+                   
                     * from SIR 3S OBJ BLOB collection:
 
                         * OBJTYPE: type (i.e.ROHR) 
@@ -1574,6 +1574,11 @@ class Xm():
                 ANNOTATION
                     * nrObjIdInAgsn: lfd.Nr. Obj. in AGSN (AGSN is defined by LFDNR not by NAME)                   
                     * nrObjIdTypeInAgsn: should be 1
+
+                    * Layer
+                        0=undef
+                        bei Netztyp 21: 1=VL, 2=RL, 0=undef (OBJIDBN-Trenner von VL und RL)\
+                        wenn keine BN-Trennzeile gefunden wird, wird VL angenommen und gesetzt
 
         Raises:
             XmError                                
@@ -1602,6 +1607,7 @@ class Xm():
             tModell=self.dataFrames['MODELL']
             netzTyp=tModell['NETZTYP'][0] # '21'
 
+            vAGSN['Layer']=0
             if netzTyp == '21':
                 vAGSN['Layer']=-666
 
@@ -1622,9 +1628,6 @@ class Xm():
                         vAGSN.loc[oneAgsn.index.values[0]:splitRowIdx-1,'Layer']=1
                         vAGSN.loc[splitRowIdx+1:oneAgsn.index.values[-1],'Layer']=2
 
-
-
-          
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             if isinstance(vAGSN,pd.core.frame.DataFrame):
@@ -1636,14 +1639,6 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             return vAGSN
-
-        #dfx=pd.merge(
-        #            dfOneAgsn
-        #           ,dfVbel
-        #           ,how='inner' 
-        #           ,right_index=True 
-        #           ,left_on=['OBJTYPE','OBJID']               
-        #           ,suffixes=('', '_y'))[['NAME','OBJTYPE','OBJID','LAYR']]
 
     def _vRART(self):
         """One row per RART.
@@ -4180,10 +4175,11 @@ class Xm():
                                                                  ,dfNAME1=self.dataFrames['KNOT']
                                                                  ,NAME1Col='NAME')
             # WBLZ
-            nOfSir3sIDsUpdated=nOfSir3sIDsUpdated+self.__Mx1_Sir3sIDUpd_ObjTypeNode(mx=mx
-                                                                 ,dfUpd=df[ (df['NAME1'].str.len()==0) & (df['OBJTYPE'].isin(['WBLZ'])) ]
-                                                                 ,dfNAME1=self.dataFrames['WBLZ']
-                                                                 ,NAME1Col='NAME')
+            if 'WBLZ' in self.dataFrames.keys():
+                nOfSir3sIDsUpdated=nOfSir3sIDsUpdated+self.__Mx1_Sir3sIDUpd_ObjTypeNode(mx=mx
+                                                                     ,dfUpd=df[ (df['NAME1'].str.len()==0) & (df['OBJTYPE'].isin(['WBLZ'])) ]
+                                                                     ,dfNAME1=self.dataFrames['WBLZ']
+                                                                     ,NAME1Col='NAME')
             # RXXXX
             for ObjType in ['RSLW','RMES','RFKT','RTOT','RVGL','RHYS','RINT','RPT1','RADD','RMUL','RDIV','RMIN','RPID','RVGL']:       
                 if ObjType in self.dataFrames:
@@ -4330,46 +4326,51 @@ class Xm():
         try:             
 
             vNRCV_Mx1=None
+
+            #if 'vNRCV' in self.dataFrames.keys():
+
             vNRCV=self.dataFrames['vNRCV']
             
-            vNRCV_Mx1=vNRCV.merge(mx.mx1Df,left_on='fkOBJTYPE',right_on='OBJTYPE_PK',suffixes=['_NR','_MX1'])
+            if 'fkOBJTYPE' in vNRCV.columns.tolist():
 
-            vNRCV_Mx1=vNRCV_Mx1[(vNRCV_Mx1['cRefLfdNr']==1)
-                  &
-                  (vNRCV_Mx1['OBJTYPE_NR']==vNRCV_Mx1['OBJTYPE_MX1'])
-                  &
-                  (vNRCV_Mx1['ATTRTYPE_NR']==vNRCV_Mx1['ATTRTYPE_MX1'])
-                 ]
+                vNRCV_Mx1=vNRCV.merge(mx.mx1Df,left_on='fkOBJTYPE',right_on='OBJTYPE_PK',suffixes=['_NR','_MX1'])
 
-            # reindex:
-            vNRCV_Mx1=pd.DataFrame(vNRCV_Mx1.values,columns=vNRCV_Mx1.columns)
+                vNRCV_Mx1=vNRCV_Mx1[(vNRCV_Mx1['cRefLfdNr']==1)
+                        &
+                        (vNRCV_Mx1['OBJTYPE_NR']==vNRCV_Mx1['OBJTYPE_MX1'])
+                        &
+                        (vNRCV_Mx1['ATTRTYPE_NR']==vNRCV_Mx1['ATTRTYPE_MX1'])
+                        ]
+
+                # reindex:
+                vNRCV_Mx1=pd.DataFrame(vNRCV_Mx1.values,columns=vNRCV_Mx1.columns)
             
-            vNRCV_Mx1=vNRCV_Mx1[[  'Sir3sID'
-              ,'cRefLfdNr' 
-              # CONT
-              ,'CONT'
-              ,'CONT_ID'
-              ,'CONT_LFDNR'
-              # DPGR
-              ,'DPGR'
-               # Data (of the DPGR_ROW)
-              ,'OBJTYPE_NR'
-              ,'fkOBJTYPE'
-              ,'ATTRTYPE_NR'
-              # IDs (of the DPGR_ROW)
-              ,'pk_ROWS'
-              ,'tk_ROWS'       
-              # IDs (of the NRCV)
-              ,'pk'
-              ,'tk'
-              ,'pXYLB'
-            ]]
+                vNRCV_Mx1=vNRCV_Mx1[[  'Sir3sID'
+                    ,'cRefLfdNr' 
+                    # CONT
+                    ,'CONT'
+                    ,'CONT_ID'
+                    ,'CONT_LFDNR'
+                    # DPGR
+                    ,'DPGR'
+                    # Data (of the DPGR_ROW)
+                    ,'OBJTYPE_NR'
+                    ,'fkOBJTYPE'
+                    ,'ATTRTYPE_NR'
+                    # IDs (of the DPGR_ROW)
+                    ,'pk_ROWS'
+                    ,'tk_ROWS'       
+                    # IDs (of the NRCV)
+                    ,'pk'
+                    ,'tk'
+                    ,'pXYLB'
+                ]]
 
-            vNRCV_Mx1.rename(columns={'OBJTYPE_NR':'OBJTYPE','ATTRTYPE_NR':'ATTRTYPE'},inplace=True)  
+                vNRCV_Mx1.rename(columns={'OBJTYPE_NR':'OBJTYPE','ATTRTYPE_NR':'ATTRTYPE'},inplace=True)  
 
-            vNRCV_Mx1.sort_values(['Sir3sID'],ascending=True,inplace=True)
-            #reindex:
-            vNRCV_Mx1=pd.DataFrame(vNRCV_Mx1.values,columns=vNRCV_Mx1.columns)
+                vNRCV_Mx1.sort_values(['Sir3sID'],ascending=True,inplace=True)
+                #reindex:
+                vNRCV_Mx1=pd.DataFrame(vNRCV_Mx1.values,columns=vNRCV_Mx1.columns)
                                             
         except Exception as e:            
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -4455,6 +4456,8 @@ class Xm():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try: 
+            vFWVB=self.dataFrames['vFWVB']
+
             xksFWVBMx=mx.mx2Df[
             (mx.mx2Df['ObjType'].str.match('FWVB'))
             ]['Data'].iloc[0]
@@ -4463,8 +4466,6 @@ class Xm():
             (mx.mx2Df['ObjType'].str.match('FWVB'))
             ]['AttrType'].iloc[0]
 
-            vFWVB=self.dataFrames['vFWVB']
-
             xksFWVBXm=vFWVB[xkTypeMx.strip()]
             mxXkFwvbIdx=[xksFWVBMx.index(xk) for xk in xksFWVBXm]
 
@@ -4472,7 +4473,7 @@ class Xm():
                                                                                
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))            
-            logger.error(logStrFinal) 
+            logger.debug(logStrFinal) 
                           
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))      
@@ -4594,15 +4595,32 @@ class Xm():
                 * vROHR (ROHR...) - only Non-VEC-Channel-Results are added
                 * vFWVB (FWVB...)
                 * vVBEL (KNOT..._i and KNOT..._k and Q)
-           
+
+            * NEW 1st Call:
             * vROHRVecResults: VEC-Channel-Results for Pipe-Interior-Pts (IPts):
                 * pk
                 * mx2Idx
-                * IptIdx: S,0,...,E - Interior Point Index
+                * IptIdx: S,0,...,E - Interior Point Index; S=Start EdgeDefNode, E=End EdgeDefNode, 0=1st Ipt in EdgeDefDirection
                 * one column per VEC-Channel
 
-            * vAGSN (from vVBEL: KNOT..._i and KNOT..._k and Q)
-
+            * vAGSN
+                * from vVBEL: KNOT..._i and KNOT..._k and Q
+                * from vROHRVecResults: vecResults
+                * Topology:
+                    * nextNODE                   
+                    * IptIdx                    
+                * Geometry:
+                    * dx                       
+                    * x                        
+                    * xVbel      
+                    * Z (the corresponding Z_i, Z_k and ZVEC are droped)
+                * Results:
+                    * Q: from Q before and QMVEC; in Schnittrichtung
+                    * from KNOT...#_i, KNOT...#_k and #VEC:
+                        * #1
+                        * #2
+                        * ...
+                        the correspondig 3 columns (2 #KNOT, 1 #VEC) are droped
         Notes:
             * The Add-Result is persisted if df were read from H5:        
                         * xm.ToH5() is called if xm.h5Read is True.           
@@ -4672,8 +4690,11 @@ class Xm():
             vROHR=self.dataFrames['vROHR']
             vROHR=self.__MxAddForOneDf(dfTarget=vROHR
                                       ,dfSource=mxVecsFileData.filter(regex='^ROHR').filter(regex='^(?!.*VEC)'),testStr='ROHR')
-            vFWVB=self.__MxAddForOneDf(dfTarget=self.dataFrames['vFWVB']
-                                      ,dfSource=mxVecsFileData.filter(regex='^FWVB'),testStr='FWVB')
+
+            vFWVB=self.dataFrames['vFWVB']
+            if 'mx2Idx' in vFWVB.columns.tolist():
+                vFWVB=self.__MxAddForOneDf(dfTarget=vFWVB #self.dataFrames['vFWVB']
+                                          ,dfSource=mxVecsFileData.filter(regex='^FWVB'),testStr='FWVB')
            
             self.dataFrames['vKNOT']=vKNOT
             self.dataFrames['vROHR']=vROHR
@@ -4790,7 +4811,6 @@ class Xm():
             #DataFrame aus Dct aus Series
             vROHRVecResults=pd.DataFrame(dct)  
             
-            ###
             colsToBeAdded=vROHRVecResults.columns.tolist()
             colsMaybeAlreadyAdded=mxVecsFileData.filter(regex='^ROHR').filter(regex='^(?!.*VEC)').columns.tolist()
             colsInTarget=vROHR.columns.tolist()
@@ -4816,7 +4836,6 @@ class Xm():
             vROHRVecResults['IptIdx']=IptIdx  
             vROHRVecResults=vROHRVecResults[['mx2Idx']+['IptIdx']+colsToBeAdded]
 
-            ###
             dfMerge=pd.merge(vROHR.filter(items=colsInTargetNet),vROHRVecResults,how='inner',left_on='mx2Idx',right_on='mx2Idx')        
             logString="{0:s}The cols from dfMerge: {1:s}".format(logStr,str(dfMerge.columns.tolist()))
             logger.debug(logString)
@@ -4824,10 +4843,13 @@ class Xm():
 
             self.dataFrames['vROHRVecResults']=vROHRVecResults
 
-
             #vAGSN
-            vAGSN=self.dataFrames['vAGSN']
-
+            vAGSN=self.dataFrames['vAGSN_raw']
+            ##logString="{0:s}The shape from vAGSN {1:s}: The cols: {2:s}".format(logStr,str(vAGSN.shape),str(vAGSN.columns.tolist()))
+            ##logger.debug(logString)
+            ##logString="{0:s}vAGSN_raw: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vAGSN_raw'))
+            ##logger.debug(logString)
+           
             vAGSN=pd.merge(
                     vAGSN
                    ,vVBEL
@@ -4835,9 +4857,142 @@ class Xm():
                    ,left_on=['OBJTYPE','OBJID']  
                    ,right_index=True ,suffixes=('', '_y'))
             vAGSN.rename(columns={'tk_y':'tk_VBEL'},inplace=True)
-            self.dataFrames['vAGSN']=vAGSN
 
+            #self.dataFrames['vAGSN']=vAGSN
+
+            ##self.dataFrames['dummy']=vAGSN
+            ##logString="{0:s}vAGSN_merge: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
+            ##logger.debug(logString)
             
+            ####df=vAGSN[pd.isnull(vAGSN['tk_VBEL']) != True]
+            ####df=pd.DataFrame(vAGSN[pd.isnull(vAGSN['tk_VBEL']) != True].values,columns=vAGSN.columns)
+            df=vAGSN[pd.isnull(vAGSN['tk_VBEL']) != True].copy()
+
+            ##self.dataFrames['dummy']=df
+            ##logString="{0:s}df: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
+            ##logger.debug(logString)
+
+            df['nextNODE']=None
+            for nr in df['LFDNR'].unique():                
+                
+                for ly in df[df['LFDNR']==nr]['Layer'].unique():  
+                    nl=[]
+                    dfG=df[(df['LFDNR']==nr) & (df['Layer']==ly)]  
+                    
+
+
+                    logger.debug("{0:s}Schnitt: {1:s} Layer: {2:s}".format(logStr
+                                                                           ,str(dfG['NAME'].iloc[0])
+                                                                           ,str(dfG['Layer'].iloc[0])
+                                                                          )) 
+
+                    self.dataFrames['dummy']=dfG
+                    logString="{0:s}dfG: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
+                    logger.debug(logString)
+
+                    G=nx.from_pandas_edgelist(dfG, source='NAME_i', target='NAME_k', edge_attr=True,create_using=nx.MultiGraph())
+                    for n, datadict in G.nodes.items():                        
+                        nl.append(n)
+                    nl.pop(0)
+                    
+                    logger.debug("{0:s}Nodes: {1:s} Indices: {2:s}".format(logStr
+                                                                           ,str(nl)
+                                                                           ,str(dfG.index)
+                                                                          )) 
+
+                    df.loc[dfG.index,'nextNODE']=nl         
+                
+            ik = {'ik_tmp': ['S', 'E']}
+            dfIk = pd.DataFrame(data=ik)
+            dfIk['key_tmp'] = 0
+            df['key_tmp'] = 0
+            df=pd.merge(df,dfIk,on='key_tmp',how='outer')
+
+            df=pd.merge(df,vROHRVecResults,how='left',left_on='OBJID',right_on='pk',suffixes=['','_tmp'])
+            df=df[(df.OBJTYPE != 'ROHR') | ((df.OBJTYPE == 'ROHR') & (df.ik_tmp=='S'))]
+            df['IptIdx']=df.apply(lambda row: row.IptIdx if row.OBJTYPE=='ROHR' else row.ik_tmp,axis=1)
+            df['dx']=df.groupby(['LFDNR','OBJID','Layer'])['ROHR~*~*~*~SVEC'].shift(0)-df.groupby(['LFDNR','OBJID','Layer'])['ROHR~*~*~*~SVEC'].shift(1)
+            df['dx']=df.apply(lambda row: 0 if row.OBJTYPE=='ROHR' and  pd.isnull(row.dx) else row.dx,axis=1)
+            df['dx']=df.apply(lambda row: 0 if row.OBJTYPE!='ROHR' and  pd.isnull(row.dx) and row.IptIdx=='S' else row.dx,axis=1)
+            df['dx']=df.apply(lambda row: 0 if row.OBJTYPE!='ROHR' and  pd.isnull(row.dx) and row.IptIdx=='E' else row.dx,axis=1)
+            df['x']=df.groupby(['LFDNR','Layer'])['dx'].cumsum()
+
+            tLnet=df.groupby(['LFDNR','Layer'])['dx'].sum()
+            tLnet=tLnet.reset_index()
+            tLnet.rename(columns={'dx':'tLnet_tmp'},inplace=True)
+            df=pd.merge(df,tLnet,how='inner',on=['LFDNR','Layer'],suffixes=['','_tmp'])
+
+            df['dx_tmp']=df.apply(lambda row: row.tLnet_tmp*0.01 if row.OBJTYPE!='ROHR' and row.IptIdx=='E' else row.dx,axis=1)
+
+            df['xVbel']=df.groupby(['LFDNR','Layer'])['dx_tmp'].cumsum()
+
+            df=df.filter(items=[col for col in df.columns.tolist() if re.search('_tmp$',col) == None])
+
+            kiCols=[col for col in df.columns.tolist() if re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) != None]          
+            if 'KNOT~*~*~*~QM_i' in kiCols:
+                kiCols.remove('KNOT~*~*~*~QM_i')
+            mos=[re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) for col in kiCols]
+            cols=[mo.group('Pre')+mo.group('Channel') for mo in mos]
+            kkCols=[col+'_k' for col in cols]
+            vecCols=['ROHR~*~*~*~'+mo.group('Channel')+'VEC' for mo in mos]
+            kiColsEff=[]
+            for kiCol,kkCol,col,vecCol in zip(kiCols,kkCols,cols,vecCols):
+                if vecCol in df.columns.tolist():
+                    kiColsEff.append(kiCol)
+            kiColsEff
+            mos=[re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) for col in kiColsEff]
+            cols=[mo.group('Pre')+mo.group('Channel') for mo in mos]
+            channels=[mo.group('Channel') for mo in mos]
+            kkCols=[col+'_k' for col in cols]
+            vecCols=['ROHR~*~*~*~'+mo.group('Channel')+'VEC' for mo in mos]
+            if 'ROHR~*~*~*~ZVEC' in df.columns.tolist():
+                kiColsEff.append('Z_i')
+                kkCols.append('Z_k')
+                channels.append('Z')
+                vecCols.append('ROHR~*~*~*~ZVEC')
+            for channel in channels:
+                df[channel]=None
+
+            for nr in df['LFDNR'].unique():
+                for ly in df[df['LFDNR']==nr]['Layer'].unique():
+                    dfLy=df[(df['LFDNR']==nr) & (df['Layer']==ly)]
+        
+                    logger.debug("{0:s}Schnitt: {1:s} Layer: {2:s}".format(logStr
+                                                                           ,str(dfLy['NAME'].iloc[0])
+                                                                           ,str(dfLy['Layer'].iloc[0])
+                                                                          )) 
+                    grouped = dfLy.groupby(['OBJTYPE','OBJID'])
+                    for name, group in grouped:
+                        OBJTYPE,OBJID=name
+                        si=df.loc[group.index[0],:]
+                        sk=df.loc[group.index[-1],:]
+                        logger.debug("{0:s}OBJTYPE: {1:s} OBJID: {2:s} NAME_i: {3:s} NAME_k: {4:s}".format(logStr
+                                                                           ,OBJTYPE
+                                                                           ,OBJID
+                                                                           ,str(si['NAME_i'])
+                                                                           ,str(si['NAME_k'])
+                                                                          ))             
+            
+                        for kiCol,kkCol,col,vecCol in zip(kiColsEff,kkCols,channels,vecCols):
+                
+                
+            
+                             try:
+                                if OBJTYPE == 'ROHR':
+                                    df.loc[group.index,col]=df.loc[group.index,vecCol].values
+                                else:
+                                    df.loc[group.index[0],col]=si[kiCol]
+                                    df.loc[group.index[-1],col]=sk[kkCol]
+                   
+                             except:
+                                pass
+
+            for kiCol,kkCol,vecCol in zip(kiColsEff,kkCols,vecCols):
+                df.drop([kiCol], axis=1, inplace=True)
+                df.drop([kkCol], axis=1, inplace=True)
+                df.drop([vecCol], axis=1, inplace=True)
+
+            self.dataFrames['vAGSN']=df
 
             if self.h5Read:
                 self.ToH5()          
