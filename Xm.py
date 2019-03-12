@@ -1577,8 +1577,9 @@ class Xm():
 
                     * Layer
                         0=undef
-                        bei Netztyp 21: 1=VL, 2=RL, 0=undef (OBJIDBN-Trenner von VL und RL)\
+                        bei Netztyp 21: 1=VL, 2=RL, 0=undef 
                         wenn keine BN-Trennzeile gefunden wird, wird VL angenommen und gesetzt
+                        die BN-Trennzeile wird dem VL (1) zugerechnet
 
         Raises:
             XmError                                
@@ -1609,7 +1610,7 @@ class Xm():
 
             vAGSN['Layer']=0
             if netzTyp == '21':
-                vAGSN['Layer']=-666
+                #vAGSN['Layer']=-666
 
                 for lfdnr in sorted(vAGSN['LFDNR'].unique()):
                 
@@ -1624,9 +1625,12 @@ class Xm():
                     else:
                         splitRowIdx=dfSplitRow.index.values[0]                                    
     
-                        vAGSN.loc[splitRowIdx,'Layer']=0
+                        vAGSN.loc[splitRowIdx,'Layer']=1#0
                         vAGSN.loc[oneAgsn.index.values[0]:splitRowIdx-1,'Layer']=1
                         vAGSN.loc[splitRowIdx+1:oneAgsn.index.values[-1],'Layer']=2
+
+                        ObjId=vAGSN.loc[splitRowIdx,'OBJID']
+                        vAGSN.loc[splitRowIdx,'OBJID']=ObjId.rstrip('\n')
 
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -4615,7 +4619,7 @@ class Xm():
                     * xVbel      
                     * Z (the corresponding Z_i, Z_k and ZVEC are droped)
                 * Results:
-                    * Q: from Q before and QMVEC; in Schnittrichtung
+                    * Q: from Q before and QMVEC for PIPEs; in Schnittrichtung; QMVEC is droped
                     * from KNOT...#_i, KNOT...#_k and #VEC:
                         * #1
                         * #2
