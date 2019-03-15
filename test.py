@@ -49,7 +49,7 @@ if __name__ == "__main__":
         group.add_argument("-v","--verbose", help="Debug Messages On", action="store_true",default=True)      
         group.add_argument("-q","--quiet", help="Debug Messages Off", action="store_true")           
         parser.add_argument('--testDir',type=str,default='testdata',help="value for global 'testDir' i.e. testdata")
-        parser.add_argument('--dotResolution',type=str,default='',help="value for global 'dotResolution' i.e. .1")
+        parser.add_argument('--dotResolution',type=str,default='.1',help="value for global 'dotResolution' i.e. .1 (default); use NONE for no dotResolution")      
                                  
         parser.add_argument("-m","--moduleTest", help="execute the Module's Doctest On/Off: -m 1 (default)", action="store",default='1')      
         parser.add_argument("-s","--singleTest", help="execute single Doctest: -s Xm: Doctest names matching Xm are executed", action="append",default=[])        
@@ -65,6 +65,9 @@ if __name__ == "__main__":
         logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start. Argumente:',str(sys.argv))) 
         logger.debug("{0:s}{1:s}{2:s}".format(logStr,'testDir: ',args.testDir)) 
 
+        if args.dotResolution == 'NONE':
+            args.dotResolution=''
+
         try:
             from PT3S import Mx, Xm, Rm
         except ImportError:
@@ -74,25 +77,38 @@ if __name__ == "__main__":
         if args.moduleTest == '1':
             # as unittests
             logger.info("{0:s}{1:s}{2:s}".format(logStr,'Start unittests (by DocTestSuite...). testDir: ',args.testDir)) 
-        
-               
-            unittest.TextTestRunner().run(doctest.DocTestSuite(Mx,globs={'testDir':args.testDir,'dotResolution':args.dotResolution}))  
-        
-            dtFinder=doctest.DocTestFinder(recurse=False) # recurse = False findet nur den Modultest 
-            unittest.TextTestRunner().run(doctest.DocTestSuite(Xm,test_finder=dtFinder,globs={'testDir':args.testDir,'dotResolution':args.dotResolution})) 
-        
-            unittest.TextTestRunner().run(doctest.DocTestSuite(Rm,globs={'testDir':args.testDir,'dotResolution':args.dotResolution}))
 
+            dtFinder=doctest.DocTestFinder(recurse=False,verbose=args.verbose) # recurse = False findet nur den Modultest
+
+
+            suite=doctest.DocTestSuite(Mx,test_finder=dtFinder #,setUp=setUpFct
+                                   ,globs={'testDir':args.testDir
+                                           ,'dotResolution':args.dotResolution
+                                           })   
+            unittest.TextTestRunner().run(suite)
+
+            suite=doctest.DocTestSuite(Xm,test_finder=dtFinder #,setUp=setUpFct
+                                   ,globs={'testDir':args.testDir
+                                           ,'dotResolution':args.dotResolution
+                                           })   
+            unittest.TextTestRunner().run(suite)
+
+            suite=doctest.DocTestSuite(Rm,test_finder=dtFinder #,setUp=setUpFct
+                                   ,globs={'testDir':args.testDir
+                                           ,'dotResolution':args.dotResolution
+                                           })   
+            unittest.TextTestRunner().run(suite)
+                      
             # as doctests
             logger.info("{0:s}{1:s}{2:s}".format(logStr,'Start doctests. testDir: ',args.testDir)) 
 
-            dtFinder=doctest.DocTestFinder(verbose=False)
+            #dtFinder=doctest.DocTestFinder(verbose=False)
             dtRunner=doctest.DocTestRunner(verbose=False) 
 
             dTests=dtFinder.find(Mx,globs={'testDir':args.testDir,'dotResolution':args.dotResolution}) 
             dtRunner.run(dTests[0])
 
-            dTests=doctest.DocTestFinder(verbose=False,recurse=False).find(Xm,globs={'testDir':args.testDir,'dotResolution':args.dotResolution})
+            dTests=dtFinder.find(Xm,globs={'testDir':args.testDir,'dotResolution':args.dotResolution})
             dtRunner.run(dTests[0])
 
             dTests=dtFinder.find(Rm,globs={'testDir':args.testDir,'dotResolution':args.dotResolution}) 
