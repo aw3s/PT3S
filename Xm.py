@@ -4970,114 +4970,118 @@ class Xm():
             df=pd.merge(df,vROHRVecResults,how='left',left_on='OBJID',right_on='pk',suffixes=['','_tmp'])
             df=df[(df.OBJTYPE != 'ROHR') | ((df.OBJTYPE == 'ROHR') & (df.ik_tmp=='S'))]
             df['IptIdx']=df.apply(lambda row: row.IptIdx if row.OBJTYPE=='ROHR' else row.ik_tmp,axis=1)
-            df['dx']=df.groupby(['LFDNR','OBJID','Layer'])['ROHR~*~*~*~SVEC'].shift(0)-df.groupby(['LFDNR','OBJID','Layer'])['ROHR~*~*~*~SVEC'].shift(1)
-            df['dx']=df.apply(lambda row: 0 if row.OBJTYPE=='ROHR' and  pd.isnull(row.dx) else row.dx,axis=1)
-            df['dx']=df.apply(lambda row: 0 if row.OBJTYPE!='ROHR' and  pd.isnull(row.dx) and row.IptIdx=='S' else row.dx,axis=1)
-            df['dx']=df.apply(lambda row: 0 if row.OBJTYPE!='ROHR' and  pd.isnull(row.dx) and row.IptIdx=='E' else row.dx,axis=1)
-            df['x']=df.groupby(['LFDNR','Layer'])['dx'].cumsum()
-            #df['x']=df['x'].values
 
-            tLnet=df.groupby(['LFDNR','Layer'])['dx'].sum()
-            tLnet=tLnet.reset_index()
-            tLnet.rename(columns={'dx':'tLnet_tmp'},inplace=True)
-            df=pd.merge(df,tLnet,how='inner',on=['LFDNR','Layer'],suffixes=['','_tmp'])
+            if 'ROHR~*~*~*~SVEC' not in df.columns.tolist():
+                df=vAGSN[pd.isnull(vAGSN['tk_VBEL']) != True].copy()
+            else:
+                df['dx']=df.groupby(['LFDNR','OBJID','Layer'])['ROHR~*~*~*~SVEC'].shift(0)-df.groupby(['LFDNR','OBJID','Layer'])['ROHR~*~*~*~SVEC'].shift(1)
+                df['dx']=df.apply(lambda row: 0 if row.OBJTYPE=='ROHR' and  pd.isnull(row.dx) else row.dx,axis=1)
+                df['dx']=df.apply(lambda row: 0 if row.OBJTYPE!='ROHR' and  pd.isnull(row.dx) and row.IptIdx=='S' else row.dx,axis=1)
+                df['dx']=df.apply(lambda row: 0 if row.OBJTYPE!='ROHR' and  pd.isnull(row.dx) and row.IptIdx=='E' else row.dx,axis=1)
+                df['x']=df.groupby(['LFDNR','Layer'])['dx'].cumsum()
+                #df['x']=df['x'].values
 
-            df['dx_tmp']=df.apply(lambda row: row.tLnet_tmp*0.01 if row.OBJTYPE!='ROHR' and row.IptIdx=='E' else row.dx,axis=1)
+                tLnet=df.groupby(['LFDNR','Layer'])['dx'].sum()
+                tLnet=tLnet.reset_index()
+                tLnet.rename(columns={'dx':'tLnet_tmp'},inplace=True)
+                df=pd.merge(df,tLnet,how='inner',on=['LFDNR','Layer'],suffixes=['','_tmp'])
 
-            df['xVbel']=df.groupby(['LFDNR','Layer'])['dx_tmp'].cumsum()
+                df['dx_tmp']=df.apply(lambda row: row.tLnet_tmp*0.01 if row.OBJTYPE!='ROHR' and row.IptIdx=='E' else row.dx,axis=1)
 
-            df=df.filter(items=[col for col in df.columns.tolist() if re.search('_tmp$',col) == None])
+                df['xVbel']=df.groupby(['LFDNR','Layer'])['dx_tmp'].cumsum()
 
-            kiCols=[col for col in df.columns.tolist() if re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) != None]          
-            if 'KNOT~*~*~*~QM_i' in kiCols:
-                kiCols.remove('KNOT~*~*~*~QM_i')
-            mos=[re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) for col in kiCols]
-            cols=[mo.group('Pre')+mo.group('Channel') for mo in mos]
-            kkCols=[col+'_k' for col in cols]
-            vecCols=['ROHR~*~*~*~'+mo.group('Channel')+'VEC' for mo in mos]
-            kiColsEff=[]
-            for kiCol,kkCol,col,vecCol in zip(kiCols,kkCols,cols,vecCols):
-                if vecCol in df.columns.tolist():
-                    kiColsEff.append(kiCol)
-            kiColsEff
-            mos=[re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) for col in kiColsEff]
-            cols=[mo.group('Pre')+mo.group('Channel') for mo in mos]
-            channels=[mo.group('Channel') for mo in mos]
-            kkCols=[col+'_k' for col in cols]
-            vecCols=['ROHR~*~*~*~'+mo.group('Channel')+'VEC' for mo in mos]
-            if 'ROHR~*~*~*~ZVEC' in df.columns.tolist():
-                kiColsEff.append('Z_i')
-                kkCols.append('Z_k')
-                channels.append('Z')
-                vecCols.append('ROHR~*~*~*~ZVEC')
-            for channel in channels:
-                df[channel]=None
+                df=df.filter(items=[col for col in df.columns.tolist() if re.search('_tmp$',col) == None])
 
-            for nr in df['LFDNR'].unique():
-                for ly in df[df['LFDNR']==nr]['Layer'].unique():
-                    dfLy=df[(df['LFDNR']==nr) & (df['Layer']==ly)]
+                kiCols=[col for col in df.columns.tolist() if re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) != None]          
+                if 'KNOT~*~*~*~QM_i' in kiCols:
+                    kiCols.remove('KNOT~*~*~*~QM_i')
+                mos=[re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) for col in kiCols]
+                cols=[mo.group('Pre')+mo.group('Channel') for mo in mos]
+                kkCols=[col+'_k' for col in cols]
+                vecCols=['ROHR~*~*~*~'+mo.group('Channel')+'VEC' for mo in mos]
+                kiColsEff=[]
+                for kiCol,kkCol,col,vecCol in zip(kiCols,kkCols,cols,vecCols):
+                    if vecCol in df.columns.tolist():
+                        kiColsEff.append(kiCol)
+                kiColsEff
+                mos=[re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) for col in kiColsEff]
+                cols=[mo.group('Pre')+mo.group('Channel') for mo in mos]
+                channels=[mo.group('Channel') for mo in mos]
+                kkCols=[col+'_k' for col in cols]
+                vecCols=['ROHR~*~*~*~'+mo.group('Channel')+'VEC' for mo in mos]
+                if 'ROHR~*~*~*~ZVEC' in df.columns.tolist():
+                    kiColsEff.append('Z_i')
+                    kkCols.append('Z_k')
+                    channels.append('Z')
+                    vecCols.append('ROHR~*~*~*~ZVEC')
+                for channel in channels:
+                    df[channel]=None
+
+                for nr in df['LFDNR'].unique():
+                    for ly in df[df['LFDNR']==nr]['Layer'].unique():
+                        dfLy=df[(df['LFDNR']==nr) & (df['Layer']==ly)]
         
-                    logger.debug("{0:s}Schnitt: {1:s} Layer: {2:s}".format(logStr
-                                                                           ,str(dfLy['NAME'].iloc[0])
-                                                                           ,str(dfLy['Layer'].iloc[0])
-                                                                          )) 
-                    grouped = dfLy.groupby(['OBJTYPE','OBJID'])
-                    for name, group in grouped:
-                        OBJTYPE,OBJID=name
-                        si=df.loc[group.index[0],:]
-                        sk=df.loc[group.index[-1],:]
-                        logger.debug("{0:s}OBJTYPE: {1:s} OBJID: {2:s} NAME_i: {3:s} NAME_k: {4:s}".format(logStr
-                                                                           ,OBJTYPE
-                                                                           ,OBJID
-                                                                           ,str(si['NAME_i'])
-                                                                           ,str(si['NAME_k'])
-                                                                          ))             
+                        logger.debug("{0:s}Schnitt: {1:s} Layer: {2:s}".format(logStr
+                                                                               ,str(dfLy['NAME'].iloc[0])
+                                                                               ,str(dfLy['Layer'].iloc[0])
+                                                                              )) 
+                        grouped = dfLy.groupby(['OBJTYPE','OBJID'])
+                        for name, group in grouped:
+                            OBJTYPE,OBJID=name
+                            si=df.loc[group.index[0],:]
+                            sk=df.loc[group.index[-1],:]
+                            logger.debug("{0:s}OBJTYPE: {1:s} OBJID: {2:s} NAME_i: {3:s} NAME_k: {4:s}".format(logStr
+                                                                               ,OBJTYPE
+                                                                               ,OBJID
+                                                                               ,str(si['NAME_i'])
+                                                                               ,str(si['NAME_k'])
+                                                                              ))             
             
-                        for kiCol,kkCol,col,vecCol in zip(kiColsEff,kkCols,channels,vecCols):
+                            for kiCol,kkCol,col,vecCol in zip(kiColsEff,kkCols,channels,vecCols):
                 
                 
             
-                             try:
-                                if OBJTYPE == 'ROHR':
-                                    df.loc[group.index,col]=df.loc[group.index,vecCol].values
-                                else:
-                                    df.loc[group.index[0],col]=si[kiCol]
-                                    df.loc[group.index[-1],col]=sk[kkCol]
+                                 try:
+                                    if OBJTYPE == 'ROHR':
+                                        df.loc[group.index,col]=df.loc[group.index,vecCol].values
+                                    else:
+                                        df.loc[group.index[0],col]=si[kiCol]
+                                        df.loc[group.index[-1],col]=sk[kkCol]
                    
-                             except:
-                                pass
+                                 except:
+                                    pass
 
-            for kiCol,kkCol,vecCol in zip(kiColsEff,kkCols,vecCols):
-                df.drop([kiCol], axis=1, inplace=True)
-                df.drop([kkCol], axis=1, inplace=True)
-                df.drop([vecCol], axis=1, inplace=True)
+                for kiCol,kkCol,vecCol in zip(kiColsEff,kkCols,vecCols):
+                    df.drop([kiCol], axis=1, inplace=True)
+                    df.drop([kkCol], axis=1, inplace=True)
+                    df.drop([vecCol], axis=1, inplace=True)
 
-            for nr in df['LFDNR'].unique():                
-                for ly in df[df['LFDNR']==nr]['Layer'].unique():                    
-                    dfLy=df[(df['LFDNR']==nr) & (df['Layer']==ly)]
-                    grouped = dfLy.groupby(['OBJTYPE','OBJID'])
-                    for name, group in grouped:
-                        s=df.loc[group.index[0],:]                       
-                        if s.NAME_k == s.nextNODE:    
-                            f=1.
-                        else:    
-                            f=-1.
-                            df.loc[group.index,:]=group[::-1].values     
-                            # x zurueck
-                            df.loc[group.index,'x']=df.loc[group.index,'x'][::-1].values
-                            df.loc[group.index,'xVbel']=df.loc[group.index,'xVbel'][::-1].values
+                for nr in df['LFDNR'].unique():                
+                    for ly in df[df['LFDNR']==nr]['Layer'].unique():                    
+                        dfLy=df[(df['LFDNR']==nr) & (df['Layer']==ly)]
+                        grouped = dfLy.groupby(['OBJTYPE','OBJID'])
+                        for name, group in grouped:
+                            s=df.loc[group.index[0],:]                       
+                            if s.NAME_k == s.nextNODE:    
+                                f=1.
+                            else:    
+                                f=-1.
+                                df.loc[group.index,:]=group[::-1].values     
+                                # x zurueck
+                                df.loc[group.index,'x']=df.loc[group.index,'x'][::-1].values
+                                df.loc[group.index,'xVbel']=df.loc[group.index,'xVbel'][::-1].values
                         
-                        if s.OBJTYPE == 'ROHR':
-                            try:
-                                df.loc[group.index,'Q']=df.loc[group.index,'ROHR~*~*~*~QMVEC'].values
-                            except:
-                                pass
+                            if s.OBJTYPE == 'ROHR':
+                                try:
+                                    df.loc[group.index,'Q']=df.loc[group.index,'ROHR~*~*~*~QMVEC'].values
+                                except:
+                                    pass
                         
-                        #Q ggf. drehen
-                        df.loc[group.index,'Q']*=f       
+                            #Q ggf. drehen
+                            df.loc[group.index,'Q']*=f       
 
-            if 'ROHR~*~*~*~QMVEC' in df.columns.tolist():
-                df.drop(['ROHR~*~*~*~QMVEC'], axis=1, inplace=True)
+                if 'ROHR~*~*~*~QMVEC' in df.columns.tolist():
+                    df.drop(['ROHR~*~*~*~QMVEC'], axis=1, inplace=True)
 
             self.dataFrames['vAGSN']=df
 

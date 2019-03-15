@@ -27,13 +27,32 @@ else:
 import argparse
 import unittest
 import doctest
+import re
 
 if __name__ == "__main__":
     """
     XXX
     """
 
-    try:              
+    try:      
+        
+        # Logfile
+        logFileName = 'PT3S.log' 
+        
+        loglevel = logging.INFO
+        logging.basicConfig(filename=logFileName
+                            ,filemode='w'
+                            ,level=loglevel
+                            ,format="%(asctime)s ; %(name)-60s ; %(levelname)-7s ; %(message)s")    
+
+        fileHandler = logging.FileHandler(logFileName)        
+        logger.addHandler(fileHandler)
+
+        consoleHandler = logging.StreamHandler()
+        consoleHandler.setFormatter(logging.Formatter("%(levelname)-7s ; %(message)s"))
+        consoleHandler.setLevel(logging.INFO)
+        logger.addHandler(consoleHandler)
+
         
         logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -102,7 +121,6 @@ if __name__ == "__main__":
             # as doctests
             logger.info("{0:s}{1:s}{2:s}".format(logStr,'Start doctests. testDir: ',args.testDir)) 
 
-            #dtFinder=doctest.DocTestFinder(verbose=False)
             dtRunner=doctest.DocTestRunner(verbose=False) 
 
             dTests=dtFinder.find(Mx,globs={'testDir':args.testDir,'dotResolution':args.dotResolution}) 
@@ -113,6 +131,57 @@ if __name__ == "__main__":
 
             dTests=dtFinder.find(Rm,globs={'testDir':args.testDir,'dotResolution':args.dotResolution}) 
             dtRunner.run(dTests[0])
+
+        if len(args.singleTest)>0:
+            testModels=['OneLPipe','LocalHeatingNetwork','GPipes']
+            mxs={} 
+            for testModel in testModels:
+                mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1')) 
+                mx=Mx.Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)                                
+                mxs[testModel]=mx
+
+            xms={}   
+            for testModel in testModels:
+                h5File=os.path.join(os.path.join('.',args.testDir),testModel+'.h5')
+                if os.path.exists(h5File):                        
+                    os.remove(h5File)
+                xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')
+                xm=Xm.Xm(xmlFile=xmlFile)
+                xms[testModel]=xm
+
+            dtFinder=doctest.DocTestFinder(verbose=args.verbose)
+            dtRunner=doctest.DocTestRunner(verbose=args.verbose) 
+            dTests=dtFinder.find(Mx,globs={'testDir':args.testDir
+                                          ,'dotResolution':args.dotResolution
+                                           ,'mxs':mxs
+                                           ,'xms':xms}) 
+            dTests.extend(dtFinder.find(Xm,globs={'testDir':args.testDir
+                                          ,'dotResolution':args.dotResolution
+                                           ,'mxs':mxs
+                                           ,'xms':xms})) 
+
+            for test in dTests:
+                for expr in args.singleTest:
+                    if re.search(expr,test.name) != None:                    
+                        logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Running Test: ',test.name)) 
+                        dtRunner.run(test)
+                        break
+
+            for testModel in testModels:                                           
+                mx=mxs[testModel]
+
+                if os.path.exists(mx.h5File):                        
+                   os.remove(mx.h5File)
+                metadataFile=mx.h5File+'.metadata'
+                if os.path.exists(metadataFile):                        
+                   os.remove(metadataFile)
+                if os.path.exists(mx.mxsZipFile):                        
+                   os.remove(mx.mxsZipFile)
+                mxsDumpFile=mx.mxsFile+'.dump'
+                if os.path.exists(mxsDumpFile):                        
+                   os.remove(mxsDumpFile)
+                if os.path.exists(mx.h5FileVecs):                        
+                   os.remove(mx.h5FileVecs)
         
     except SystemExit:
         pass                                              
