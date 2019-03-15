@@ -1502,8 +1502,8 @@ class Mx():
             * because in SIR 3S'
             * 1st Time twice (SNAPSHOTTYPE: STAT+TIME) and Last Time triple (SNAPSHOTTYPE: TIME+TMIN/TMAX)  
 
-                * +TIME       is dropped                                
-                * +TMIN/TMAX are dropped
+                * +TIME       is dropped (STAT is used in df)                               
+                * +TMIN/TMAX are dropped (not used in df)
                    
             * and because resulting overlapping TIMESTAMPs due to intersections (add=True) are also dropped      
 
@@ -1516,7 +1516,12 @@ class Mx():
                 * or newMxsVecsFile        
                 
         Raises:
-            MxError                                                 
+            MxError     
+                    
+        >>> mx=mxs['GPipes']
+        >>> mx.df
+        >>> mx.setResultsToMxsFile(NewH5Vec=True)
+        1
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -2218,19 +2223,68 @@ if __name__ == "__main__":
         group.add_argument("-v","--verbose", help="Debug Messages On", action="store_true",default=True)      
         group.add_argument("-q","--quiet", help="Debug Messages Off", action="store_true")           
         parser.add_argument('--testDir',type=str,default='testdata',help="value for global 'testDir' i.e. testdata")
-        parser.add_argument('--dotResolution',type=str,default='',help="value for global 'dotResolution' i.e. .1")        
+        parser.add_argument('--dotResolution',type=str,default='.1',help="value for global 'dotResolution' i.e. .1 (default); use NONE for no dotResolution")      
+        
+        parser.add_argument("-m","--moduleTest", help="execute the Module's Doctest On/Off: -m 1 (default)", action="store",default='1')      
+        parser.add_argument("-s","--singleTest", help="execute single Doctest: -s Mx: Doctest names matching Mx are executed", action="append",default=[])        
+
         args = parser.parse_args()
 
-        if args.verbose:           
-            logger.setLevel(logging.DEBUG)     
-        else:            
+        if args.verbose:  # default         
+            logger.setLevel(logging.DEBUG)  
+        if args.quiet:    # Debug Messages are turned Off
             logger.setLevel(logging.ERROR)  
+            args.verbose=False 
                       
         logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start. Argumente:',str(sys.argv))) 
 
-        suite=doctest.DocTestSuite(globs={'testDir':args.testDir,'dotResolution':args.dotResolution})  
-        unittest.TextTestRunner().run(suite)         
+        if args.dotResolution == 'NONE':
+            args.dotResolution=''
 
+
+        if args.moduleTest == '1':
+            dtFinder=doctest.DocTestFinder(recurse=False,verbose=args.verbose) # recurse = False findet nur den Modultest
+            suite=doctest.DocTestSuite(test_finder=dtFinder #,setUp=setUpFct
+                                   ,globs={'testDir':args.testDir
+                                           ,'dotResolution':args.dotResolution
+                                           })   
+            unittest.TextTestRunner().run(suite)
+                   
+        if len(args.singleTest)>0:
+            mxs={} 
+            for testModel in ['OneLPipe','LocalHeatingNetwork','GPipes']:
+                mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1')) 
+                mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)                                
+                mxs[testModel]=mx
+
+            dtFinder=doctest.DocTestFinder(verbose=args.verbose)
+            dtRunner=doctest.DocTestRunner(verbose=args.verbose) 
+            dTests=dtFinder.find(Mx,globs={'testDir':args.testDir
+                                          ,'dotResolution':args.dotResolution
+                                           ,'mxs':mxs}) 
+            for test in dTests:
+                for expr in args.singleTest:
+                    if re.search(expr,test.name) != None:                    
+                        logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Running Test: ',test.name)) 
+                        dtRunner.run(test)
+                        break
+
+            for testModel in ['OneLPipe','LocalHeatingNetwork','GPipes']:                                           
+                mx=mxs[testModel]
+
+                if os.path.exists(mx.h5File):                        
+                   os.remove(mx.h5File)
+                metadataFile=mx.h5File+'.metadata'
+                if os.path.exists(metadataFile):                        
+                   os.remove(metadataFile)
+                if os.path.exists(mx.mxsZipFile):                        
+                   os.remove(mx.mxsZipFile)
+                mxsDumpFile=mx.mxsFile+'.dump'
+                if os.path.exists(mxsDumpFile):                        
+                   os.remove(mxsDumpFile)
+                if os.path.exists(mx.h5FileVecs):                        
+                   os.remove(mx.h5FileVecs)
+        
     except SystemExit:
         pass                                              
     except:

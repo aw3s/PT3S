@@ -4669,6 +4669,60 @@ class Xm():
         29       4      E        73.419998
         30       6      S         0.000000
         31       6      E        68.599998
+        >>> xm=xms['GPipes']
+        >>> xm.MxSync()
+        >>> xm.MxAdd()
+        >>> xm.MxAdd() # test 2nd Call
+        >>> vAGSN=xm.dataFrames['vAGSN']
+        >>> schnitt=vAGSN[vAGSN['NAME']=='LR']
+        >>> xm.dataFrames['schnitt']=schnitt
+        >>> print(xm._getvXXXXAsOneString(vXXXX='schnitt',filterColList=['OBJTYPE','NAME_i','NAME_k','IptIdx','nextNODE','x','PH'],index=True))
+            OBJTYPE NAME_i NAME_k IptIdx nextNODE         x       PH
+        79     VENT     GL     G1      S       G1       0.0       40
+        80     VENT     GL     G1      E       G1       0.0   39.974
+        81     ROHR     G1    GKS      S      GKS       0.0   39.974
+        82     ROHR     G1    GKS      0      GKS    5000.0  39.4534
+        83     ROHR     G1    GKS      1      GKS   10000.0  38.9255
+        84     ROHR     G1    GKS      2      GKS   15000.0  38.3903
+        85     ROHR     G1    GKS      3      GKS   20000.0  37.8474
+        86     ROHR     G1    GKS      4      GKS   25000.0  37.2964
+        87     ROHR     G1    GKS      5      GKS   30000.0   36.737
+        88     ROHR     G1    GKS      6      GKS   35000.0  36.1689
+        89     ROHR     G1    GKS      7      GKS   40000.0  35.5915
+        90     ROHR     G1    GKS      8      GKS   45000.0  35.0044
+        91     ROHR     G1    GKS      9      GKS   50000.0  34.4071
+        92     ROHR     G1    GKS     10      GKS   55000.0  33.7991
+        93     ROHR     G1    GKS     11      GKS   60000.0  33.1799
+        94     ROHR     G1    GKS     12      GKS   65000.0  32.5486
+        95     ROHR     G1    GKS     13      GKS   70000.0  31.9048
+        96     ROHR     G1    GKS     14      GKS   75000.0  31.2475
+        97     ROHR     G1    GKS     15      GKS   80000.0  30.5759
+        98     ROHR     G1    GKS     16      GKS   85000.0  29.8891
+        99     ROHR     G1    GKS     17      GKS   90000.0  29.1859
+        100    ROHR     G1    GKS     18      GKS   95000.0  28.4653
+        101    ROHR     G1    GKS     19      GKS  100000.0  27.7258
+        102    ROHR     G1    GKS     20      GKS  105000.0  26.9659
+        103    ROHR     G1    GKS     21      GKS  110000.0  26.1838
+        104    ROHR     G1    GKS     22      GKS  115000.0  25.3776
+        105    ROHR     G1    GKS     23      GKS  120000.0  24.5449
+        106    ROHR     G1    GKS     24      GKS  125000.0  23.6829
+        107    ROHR     G1    GKS     25      GKS  130000.0  22.7884
+        108    ROHR     G1    GKS     26      GKS  135000.0  21.8575
+        109    ROHR     G1    GKS     27      GKS  140000.0  20.8855
+        110    ROHR     G1    GKS     28      GKS  145000.0  19.8664
+        111    ROHR     G1    GKS     29      GKS  150000.0  18.7928
+        112    ROHR     G1    GKS     30      GKS  155000.0  17.6551
+        113    ROHR     G1    GKS      E      GKS  160000.0  16.4405
+        114    VENT    GKS    GKD      S      GKD  160000.0  16.4404
+        115    VENT    GKS    GKD      E      GKD  160000.0  16.3758
+        116    ROHR    GKD     G3      S       G3  160000.0  16.3758
+        117    ROHR    GKD     G3      0       G3  165000.0  15.0583
+        118    ROHR    GKD     G3      E       G3  170000.0  13.6122
+        119    ROHR     G4     G3      E       G4  170000.0  13.6122
+        120    ROHR     G4     G3      0       G4  175000.0  11.9873
+        121    ROHR     G4     G3      S       G4  180000.0  10.1062
+        122    VENT     G4     GR      S       GR  180000.0  10.1062
+        123    VENT     G4     GR      E       GR  180000.0       10
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -4677,6 +4731,7 @@ class Xm():
         try: 
             if isinstance(mx,Mx.Mx):
                 pass
+
             else:
                 (wDir,modelDir,modelName,mx1File)=self.getWDirModelDirModelName()                      
                 mx=Mx.Mx(mx1File=mx1File)
@@ -5220,11 +5275,12 @@ if __name__ == "__main__":
             logger.setLevel(logging.DEBUG)  
         if args.quiet:    # Debug Messages are turned Off
             logger.setLevel(logging.ERROR)  
+            args.verbose=False
                       
         logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start. Argumente:',str(sys.argv))) 
 
         if args.moduleTest == '1':
-            dtFinder=doctest.DocTestFinder(recurse=False,verbose=False) # recurse = False findet nur den Modultest
+            dtFinder=doctest.DocTestFinder(recurse=False,verbose=args.verbose) # recurse = False findet nur den Modultest
             suite=doctest.DocTestSuite(test_finder=dtFinder #,setUp=setUpFct
                                    ,globs={'testDir':args.testDir
                                            #,'dotResolution':args.dotResolution
@@ -5233,7 +5289,7 @@ if __name__ == "__main__":
         
         xms={}    
         if len(args.singleTest)>0:
-            for testModel in ['OneLPipe','LocalHeatingNetwork']:
+            for testModel in ['OneLPipe','LocalHeatingNetwork','GPipes']:
                 h5File=os.path.join(os.path.join('.',args.testDir),testModel+'.h5')
                 if os.path.exists(h5File):                        
                     os.remove(h5File)
@@ -5241,8 +5297,8 @@ if __name__ == "__main__":
                 xm=Xm(xmlFile=xmlFile)
                 xms[testModel]=xm
 
-            dtFinder=doctest.DocTestFinder(verbose=False)
-            dtRunner=doctest.DocTestRunner(verbose=False) 
+            dtFinder=doctest.DocTestFinder(verbose=args.verbose)
+            dtRunner=doctest.DocTestRunner(verbose=args.verbose) 
             dTests=dtFinder.find(Xm,globs={'testDir':args.testDir
                                         #   ,'dotResolution':args.dotResolution
                                            ,'xms':xms}) 
