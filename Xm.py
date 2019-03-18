@@ -4848,7 +4848,8 @@ class Xm():
             self.dataFrames['vVBEL']=vVBEL
 
             #VEC
-            dfSource=mxVecsFileData.filter(regex='(VEC$)').filter(regex='(^ROHR)')
+            reExpNegLookAhead='(?P<ObjType>\S+)~(?P<Name_i>\S*)~(?P<Name_k>\S*)~(?!\d+)(?P<ObjId>[\*\d]*)~(?P<ChannelType>\S+)'
+            dfSource=mxVecsFileData.filter(regex='(VEC$)').filter(regex='(^ROHR)').filter(regex=reExpNegLookAhead)
             dct={}
             for col in dfSource.columns.tolist():
                             #eine Spalte eines Frames liefert eine Series ...
@@ -4896,8 +4897,8 @@ class Xm():
             vROHRVecResults=vROHRVecResults[['mx2Idx']+['IptIdx']+colsToBeAdded]
 
             dfMerge=pd.merge(vROHR.filter(items=colsInTargetNet),vROHRVecResults,how='inner',left_on='mx2Idx',right_on='mx2Idx')        
-            logString="{0:s}The cols from dfMerge: {1:s}".format(logStr,str(dfMerge.columns.tolist()))
-            logger.debug(logString)
+            #logString="{0:s}The cols from dfMerge: {1:s}".format(logStr,str(dfMerge.columns.tolist()))
+            #logger.debug(logString)
             vROHRVecResults=dfMerge[['pk']+['mx2Idx']+['IptIdx']+colsToBeAdded]
 
             self.dataFrames['vROHRVecResults']=vROHRVecResults
