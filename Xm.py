@@ -4410,7 +4410,7 @@ class Xm():
             (mx.mx2Df['ObjType'].str.match('ROHR'))
             &
             ~(mx.mx2Df['AttrType'].str.contains('N_OF_POINTS'))
-            ]['Data'].iloc[0]
+            ]['Data'].iloc[0] # Liste der IDs in Mx2
 
             xkTypeMx=mx.mx2Df[
             (mx.mx2Df['ObjType'].str.match('ROHR'))
@@ -4419,21 +4419,25 @@ class Xm():
             ]['AttrType'].iloc[0]
 
             vROHR=self.dataFrames['vROHR']
-            xksROHRXm=vROHR[xkTypeMx.strip()]
+            xksROHRXm=vROHR[xkTypeMx.strip()] # Liste der IDs in vROHR
 
-            mxXkRohrIdx=[xksROHRMx.index(xk) for xk in xksROHRXm]
+            mxXkRohrIdx=[xksROHRMx.index(xk) for xk in xksROHRXm] # zugeh. Liste der mx2Idx in vROHR
 
-            #vROHR['mx2Idx']=pd.Series(mxXkRohrIdx)
+            ##vROHR['mx2Idx']=pd.Series(mxXkRohrIdx)
             
             nOfPtsROHRMx=mx.mx2Df[
             (mx.mx2Df['ObjType'].str.match('ROHR'))
             &
             (mx.mx2Df['AttrType'].str.contains('N_OF_POINTS'))
-            ]['Data'].iloc[0]
+            ]['Data'].iloc[0]  # Liste der NOfPts in Mx2
 
-            vROHR['mx2NofPts']=pd.Series(nOfPtsROHRMx)
+            nOfPtsROHRMxXk=[nOfPtsROHRMx[mx2Idx] for mx2Idx in mxXkRohrIdx] # zugeh. Liste der NOfPts in vROHR
+
+            
+            vROHR['mx2NofPts']=pd.Series(nOfPtsROHRMxXk)#nOfPtsROHRMx)
+            vROHR['mx2Idx']=pd.Series(mxXkRohrIdx) # Abschluss mit mx2Idx
             ##
-            vROHR['mx2Idx']=pd.Series(mxXkRohrIdx)
+            ####vROHR['mx2Idx']=pd.Series(mxXkRohrIdx)
                                                                    
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))            
@@ -4872,16 +4876,18 @@ class Xm():
             vROHRVecResults=pd.DataFrame(dct)  
             
             colsToBeAdded=vROHRVecResults.columns.tolist()
-            colsMaybeAlreadyAdded=mxVecsFileData.filter(regex='^ROHR').filter(regex='^(?!.*VEC)').columns.tolist()
+            colsMaybeAlreadyAdded=mxVecsFileData.filter(regex='(VEC$)').filter(regex='(^ROHR)').filter(regex=reExpNegLookAhead).columns.tolist()
+            #.filter(regex='^ROHR').filter(regex='^(?!.*VEC)')
+            #.columns.tolist()
             colsInTarget=vROHR.columns.tolist()
             colsInTargetNet=list(set(colsInTarget)-set(colsToBeAdded)-set(colsMaybeAlreadyAdded))
             colsInTargetNet=[col for col in colsInTarget if col in colsInTargetNet] # preserve the original col-Sequence
 
 
-            rVecMx2Idx=[] #[0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15]
+            rVecMx2Idx=[] 
             IptIdx=[] 
 
-            for row in vROHR.sort_values(['mx2Idx']).itertuples():
+            for row in vROHR.sort_values(['mx2Idx']).itertuples(): # Mx2-Records sind in Mx2-Reihenfolge und muessen auch so annotiert werden ...
                 oneVecIdx=np.empty(row.mx2NofPts,dtype=int) 
                 oneVecIdx.fill(row.mx2Idx)                
                 rVecMx2Idx.extend(oneVecIdx)
