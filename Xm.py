@@ -4939,34 +4939,115 @@ class Xm():
             ##logger.debug(logString)
 
             df['nextNODE']=None
+            df['compNr']=None
+
             for nr in df['LFDNR'].unique():                
                 
                 for ly in df[df['LFDNR']==nr]['Layer'].unique():  
                     nl=[]
+                    compNrl=[]
+                    ie=0
+
                     dfG=df[(df['LFDNR']==nr) & (df['Layer']==ly)]  
-                    
-
-
-                    logger.debug("{0:s}Schnitt: {1:s} Layer: {2:s}".format(logStr
+                    #print(str(dfG['NAME'].iloc[0]))                    
+                    logger.debug("{0:s}Schnitt: {1:s} Nr: {2:s} Layer: {3:s}".format(logStr
                                                                            ,str(dfG['NAME'].iloc[0])
+                                                                           ,str(dfG['LFDNR'].iloc[0])
                                                                            ,str(dfG['Layer'].iloc[0])
                                                                           )) 
-
                     self.dataFrames['dummy']=dfG
                     logString="{0:s}dfG: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
                     logger.debug(logString)
 
-                    G=nx.from_pandas_edgelist(dfG, source='NAME_i', target='NAME_k', edge_attr=True,create_using=nx.MultiGraph())
-                    for n, datadict in G.nodes.items():                        
-                        nl.append(n)
-                    nl.pop(0)
+                    G=nx.from_pandas_edgelist(dfG, source='NAME_i', target='NAME_k', edge_attr=True,create_using=nx.Graph())
                     
-                    logger.debug("{0:s}Nodes: {1:s} Indices: {2:s}".format(logStr
-                                                                           ,str(nl)
-                                                                           ,str(dfG.index)
-                                                                          )) 
+                    iComp=0
+                    for comp in nx.connected_components(G):
+                        iComp+=1
 
-                    df.loc[dfG.index,'nextNODE']=nl         
+                        logger.debug("{0:s}CompNr.: {1:s}".format(logStr,str(iComp))) 
+                        
+                        GComp=G.subgraph(comp)
+                                                
+                        # Knoten der ersten Kante                        
+                        for u,v, datadict in sorted(GComp.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):                            
+                            logger.debug("{0:s}1st: i: {1:s} k:{2:s}".format(logStr,u,v)) 
+                            sourceKi=u
+                            sourceKk=v      
+                            break
+                        # Knoten der letzten Kante
+                        ieComp=0
+                        for u,v, datadict in sorted(GComp.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']): #for e, datadict in GComp.edges.items():                                                        
+                            ieComp+=1
+                            logger.debug("{0:s}i: {1:s} k:{2:s}".format(logStr,u,v)) 
+                        logger.debug("{0:s}Last: i: {1:s} k:{2:s}".format(logStr,u,v)) 
+                        targetKi=u
+                        targetKk=v
+                        
+                        # laengster Pfad zwischen den Knoten der ersten und letzten Kante (4 Möglichkeiten)
+                        nlComp=nx.shortest_path(GComp,sourceKi,targetKk)
+                        nlCompTmp=nx.shortest_path(GComp,sourceKk,targetKk)
+                        if len(nlCompTmp)>len(nlComp):
+                            nlComp=nlCompTmp
+                        nlCompTmp=nx.shortest_path(GComp,sourceKi,targetKi)
+                        if len(nlCompTmp)>len(nlComp):
+                            nlComp=nlCompTmp
+                        nlCompTmp=nx.shortest_path(GComp,sourceKk,targetKi)
+                        if len(nlCompTmp)>len(nlComp):
+                            nlComp=nlCompTmp                                
+                            
+                        logger.debug("{0:s}NodeList per Comp: {1:s}".format(logStr,str(nlComp)))                        
+                        nl.extend(nlComp[1:])
+                        
+                        compNr=np.empty(ieComp,dtype=int) 
+                        compNr.fill(iComp)   
+                        logger.debug("{0:s}compNrList per Comp: {1:s}".format(logStr,str(compNr))) 
+                        compNrl.extend(compNr)
+                        
+                        
+                        ie+=ieComp
+                        
+                    #print(nl)
+                    #print(compNrl)
+                    #print(ie)
+
+                    logger.debug("{0:s}NodeList: {1:s}".format(logStr,str(nl)))                                               
+                    logger.debug("{0:s}compNrList: {1:s}".format(logStr,str(compNrl))) 
+
+                    df.loc[dfG.index,'nextNODE']=nl   
+                    df.loc[dfG.index,'compNr']=compNrl 
+                                                        
+
+
+            #df['nextNODE']=None
+            #for nr in df['LFDNR'].unique():                
+                
+            #    for ly in df[df['LFDNR']==nr]['Layer'].unique():  
+            #        nl=[]
+            #        dfG=df[(df['LFDNR']==nr) & (df['Layer']==ly)]  
+                    
+
+
+            #        logger.debug("{0:s}Schnitt: {1:s} Layer: {2:s}".format(logStr
+            #                                                               ,str(dfG['NAME'].iloc[0])
+            #                                                               ,str(dfG['Layer'].iloc[0])
+            #                                                              )) 
+
+            #        self.dataFrames['dummy']=dfG
+            #        logString="{0:s}dfG: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
+            #        logger.debug(logString)
+
+            #        G=nx.from_pandas_edgelist(dfG, source='NAME_i', target='NAME_k', edge_attr=True,create_using=nx.MultiGraph())
+            #        for n, datadict in G.nodes.items():                        
+            #            nl.append(n)
+            #        nl.pop(0)
+                    
+            #        logger.debug("{0:s}Nodes: {1:s} Indices: {2:s}".format(logStr
+            #                                                               ,str(nl)
+            #                                                               ,str(dfG.index)
+            #                                                              )) 
+
+            #        df.loc[dfG.index,'nextNODE']=nl         
                 
             ik = {'ik_tmp': ['S', 'E']}
             dfIk = pd.DataFrame(data=ik)
