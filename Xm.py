@@ -4979,7 +4979,7 @@ class Xm():
                         ieComp=0
                         for u,v, datadict in sorted(GComp.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']): #for e, datadict in GComp.edges.items():                                                        
                             ieComp+=1
-                            logger.debug("{0:s}i: {1:s} k:{2:s}".format(logStr,u,v)) 
+                            #logger.debug("{0:s}i: {1:s} k:{2:s}".format(logStr,u,v)) 
                         logger.debug("{0:s}Last: i: {1:s} k:{2:s}".format(logStr,u,v)) 
                         targetKi=u
                         targetKk=v
@@ -4995,24 +4995,25 @@ class Xm():
                         nlCompTmp=nx.shortest_path(GComp,sourceKk,targetKi)
                         if len(nlCompTmp)>len(nlComp):
                             nlComp=nlCompTmp                                
-                            
-                        logger.debug("{0:s}NodeList per Comp: {1:s}".format(logStr,str(nlComp)))                        
-                        nl.extend(nlComp[1:])
-                        
+                                                                                                                 
                         compNr=np.empty(ieComp,dtype=int) 
-                        compNr.fill(iComp)   
-                        logger.debug("{0:s}compNrList per Comp: {1:s}".format(logStr,str(compNr))) 
+                        compNr.fill(iComp)
+                        
+                        logger.debug("{0:s}NodeList (with 1st Node) per Comp: {1:s}".format(logStr,str(nlComp)))   
+                        logger.debug("{0:s}Length NodeList (without 1st Node) per Comp: {1:d} Length compNrList per Comp: {2:d} compNr: {3:d}".format(logStr,len(nlComp[1:]),len(compNr),iComp)) 
+
+                        nl.extend(nlComp[1:])
                         compNrl.extend(compNr)
-                        
-                        
+                                                
                         ie+=ieComp
                         
                     #print(nl)
                     #print(compNrl)
                     #print(ie)
 
-                    logger.debug("{0:s}NodeList: {1:s}".format(logStr,str(nl)))                                               
-                    logger.debug("{0:s}compNrList: {1:s}".format(logStr,str(compNrl))) 
+                    logger.debug("{0:s}NodeList: 1st: {1:s} Last: {2:s} Length: {3:d}".format(logStr,str(nl[0]),str(nl[-1]),len(nl)))                                               
+                    logger.debug("{0:s}compNrList: Value: {1:s} Length: {2:d}".format(logStr,str(compNrl[0]),len(compNrl))) 
+                    logger.debug("{0:s}dfG.index: Length: {1:d}".format(logStr,len(dfG.index))) 
 
                     df.loc[dfG.index,'nextNODE']=nl   
                     df.loc[dfG.index,'compNr']=compNrl 
