@@ -1740,18 +1740,25 @@ class Xm():
                                                 
                         # Knoten der ersten Kante                        
                         for u,v, datadict in sorted(GSchnittComp.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):                            
-                            logger.debug("{0:s}1st: i: {1:s} (Graph: {2:s}) k:{3:s} (Graph: {4:s})".format(logStr,datadict['NAME_i'],u,datadict['NAME_k'],v)) 
+                            #logger.debug("{0:s}1st: i: {1:s} (Graph: {2:s}) k:{3:s} (Graph: {4:s})".format(logStr,datadict['NAME_i'],u,datadict['NAME_k'],v)) 
                             sourceKi=datadict['NAME_i']
                             sourceKk=datadict['NAME_k']      
                             break
-                        # Knoten der letzten Kante
+                        # Knoten der letzten Kante; sowie Ausgabe über alle Kanten
                         ieComp=0
                         for u,v, datadict in sorted(GSchnittComp.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):                                                        
                             ieComp+=1
-                            logger.debug("{0:s}ieComp: {1:d} i: {2:s} (Graph: {3:s}) k:{4:s} (Graph: {5:s})".format(logStr,ieComp,datadict['NAME_i'],u,datadict['NAME_k'],v)) 
-                        logger.debug("{0:s}Lst: i: {1:s} (Graph: {2:s}) k:{3:s} (Graph: {4:s})".format(logStr,datadict['NAME_i'],u,datadict['NAME_k'],v)) 
+                            if datadict['NAME_i']==u and datadict['NAME_k']==v:
+                                GraphStr="="
+                            elif datadict['NAME_i']==v and datadict['NAME_k']==u:                                                                                            
+                                GraphStr="{0:s}>{1:s}".format(u,v)
+                            else:
+                                GraphStr="Fehler: Die NX-Kante ist ungl. der SIR 3S Kante?!"
+                            logger.debug("{0:s}iComp: {1:d} ieComp: {2:d} idx: {3:d} NX i: {4:s} > NX k:{5:s} (SIR 3S Kantendef.: {6:s})".format(logStr,iComp,ieComp,datadict['index'],u,v,GraphStr)) 
+                        #logger.debug("{0:s}Lst: i: {1:s} (Graph: {2:s}) k:{3:s} (Graph: {4:s})".format(logStr,datadict['NAME_i'],u,datadict['NAME_k'],v)) 
                         targetKi=datadict['NAME_i']
                         targetKk=datadict['NAME_k']
+                        
                         
                         # laengster Pfad zwischen den Knoten der ersten und letzten Kante (4 Möglichkeiten)
                         nlComp=nx.shortest_path(GSchnittComp,sourceKi,targetKk)
@@ -1763,7 +1770,9 @@ class Xm():
                             nlComp=nlCompTmp
                         nlCompTmp=nx.shortest_path(GSchnittComp,sourceKk,targetKi)
                         if len(nlCompTmp)>len(nlComp):
-                            nlComp=nlCompTmp          
+                            nlComp=nlCompTmp        
+                        
+                        logger.debug("{0:s}Pfad: Start: {1:s} > Ende: {2:s}".format(logStr,nlComp[0],nlComp[-1])) 
                                                 
                         # SP-Kanten ermitteln (es koennten Abzweige dabei sein; die sind dann im SP-Graphen nicht enthalten)
                         GSchnittCompSP=GSchnittComp.subgraph(nlComp)
@@ -1771,14 +1780,18 @@ class Xm():
                         ieComp=0
                         for u,v, datadict in sorted(GSchnittCompSP.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):                                                        
                             ieComp+=1
-                            logger.debug("{0:s}ieCompSP: {1:d} i: {2:s} (Graph: {3:s}) k:{4:s} (Graph: {5:s})".format(logStr,ieComp,datadict['NAME_i'],u,datadict['NAME_k'],v)) 
+                            if datadict['NAME_i']==u and datadict['NAME_k']==v:
+                                GraphStr="="
+                            elif datadict['NAME_i']==v and datadict['NAME_k']==u:                                                                                            
+                                GraphStr="{0:s}>{1:s}".format(u,v)
+                            else:
+                                GraphStr="Fehler: Die NX-Kante ist ungl. der SIR 3S Kante?!"
+                            logger.debug("{0:s}iComp: {1:d} ieCompSP: {2:d} idx: {3:d} NX i: {4:s} > NX k:{5:s} (SIR 3S Kantendef.: {6:s})".format(logStr,iComp,ieComp,datadict['index'],u,v,GraphStr)) 
 
                         # index-Liste der SP-Kanten
                         idxLst=[]
                         for u,v, datadict in sorted(GSchnittCompSP.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):                                                        
                             idxLst.append(datadict['index'])
-                        logger.debug("{0:s}Len IdxList                 : {1:d}".format(logStr,len(idxLst)))   
-                        logger.debug("{0:s}IdxList                 : {1:s}".format(logStr,str(idxLst)))   
                         
                         # parallele Kanten bis auf eine aus der index-Liste eliminieren
                         idxLstWithoutP=[idx for idx in idxLst]
@@ -1798,7 +1811,13 @@ class Xm():
                                         if ip>1:
                                             idx=datadict['index']
                                             if idx in idxLstWithoutP:
-                                                logger.debug("{0:s}ieCompSPPara: {1:d} i: {2:s} (Graph: {3:s}) k:{4:s} (Graph: {5:s})".format(logStr,ip,datadict['NAME_i'],u,datadict['NAME_k'],v))                                              
+                                                if datadict['NAME_i']==u and datadict['NAME_k']==v:
+                                                    GraphStr="="
+                                                elif datadict['NAME_i']==v and datadict['NAME_k']==u:                                                                                            
+                                                    GraphStr="{0:s}>{1:s}".format(u,v)
+                                                else:
+                                                    GraphStr="Fehler: Die NX-Kante ist ungl. der SIR 3S Kante?!"
+                                                logger.debug("{0:s}idx: {1:d} parallele Kante: NX i: {2:s} > NX k:{3:s} (SIR 3S Kantendef.: {4:s})".format(logStr,idx,u,v,GraphStr))                                                                                               
                                                 idxLstWithoutP.remove(idx)
                                                 idxLstOnlyP.append(idx)
                                                 nrOfParallel.append(ip-1)                                            
@@ -1807,15 +1826,15 @@ class Xm():
                         # compNr-List: Laenge = Anzahl der Kanten  (parallele sind dabei)                                                                        
                         compNr=np.empty(GSchnittCompSP.number_of_edges(),dtype=int) 
                         compNr.fill(iComp)
-
+                                                                           
                         logger.debug("{0:s}Len NodeList (with 1st Node): {1:d}".format(logStr,len(nlComp)))   
-                        logger.debug("{0:s}Len CompList                : {1:d}".format(logStr,len(compNr)))   
-                       
+                        logger.debug("{0:s}Len CompList                : {1:d}".format(logStr,len(compNr)))         
+                        logger.debug("{0:s}Len IdxList                 : {1:d}".format(logStr,len(idxLst)))
                         logger.debug("{0:s}Len IdxListWithoutP         : {1:d}".format(logStr,len(idxLstWithoutP)))   
 
                         logger.debug("{0:s}NodeList (with 1st Node): {1:s}".format(logStr,str(nlComp)))   
                         logger.debug("{0:s}CompList                : {1:s}".format(logStr,str(compNr)))   
-                       
+                        logger.debug("{0:s}IdxList                 : {1:s}".format(logStr,str(idxLst)))   
                         logger.debug("{0:s}IdxListWithoutP         : {1:s}".format(logStr,str(idxLstWithoutP)))   
 
                         df.loc[idxLstWithoutP,'nextNODE']=nlComp[1:]  
@@ -1824,6 +1843,11 @@ class Xm():
                        
             df['pEdgeNr']=df['pEdgeNr'].astype(int)
             df.drop(['SOURCE_i', 'SOURCE_k'], axis=1,inplace=True)
+
+            # Testausgabe
+            self.dataFrames['vAGSN_raw']=df[['LFDNR','NAME','OBJTYPE','nrObjIdInAgsn','Layer','NAME_i','NAME_k','L','D','nextNODE','compNr','pEdgeNr']]
+            logger.debug("{0:s}df: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vAGSN_raw',index=True)))
+
             vAGSN=df[(df['pEdgeNr']==0) & (pd.notnull(df['compNr']))].filter(items=[
                         'LFDNR'
                         ,'NAME'
@@ -5132,124 +5156,34 @@ class Xm():
                    ,right_index=True ,suffixes=('', '_y'))
             vAGSN.rename(columns={'tk_y':'tk_VBEL'},inplace=True)
 
-            #self.dataFrames['vAGSN']=vAGSN
-
             ##self.dataFrames['dummy']=vAGSN
             ##logString="{0:s}vAGSN_merge: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
             ##logger.debug(logString)
-            
-            ####df=vAGSN[pd.isnull(vAGSN['tk_VBEL']) != True]
-            ####df=pd.DataFrame(vAGSN[pd.isnull(vAGSN['tk_VBEL']) != True].values,columns=vAGSN.columns)
+           
             df=vAGSN[pd.isnull(vAGSN['tk_VBEL']) != True].copy()
-
-            ##self.dataFrames['dummy']=df
-            ##logString="{0:s}df: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
-            ##logger.debug(logString)
-
-            #df['nextNODE']=None
-            #df['compNr']=None
-
-            #for nr in df['LFDNR'].unique():                
-                
-            #    for ly in df[df['LFDNR']==nr]['Layer'].unique():  
-            #        nl=[]
-            #        compNrl=[]
-            #        ie=0
-
-            #        dfG=df[(df['LFDNR']==nr) & (df['Layer']==ly)]  
-            #        #print(str(dfG['NAME'].iloc[0]))                    
-            #        logger.debug("{0:s}Schnitt: {1:s} Nr: {2:s} Layer: {3:s}".format(logStr
-            #                                                               ,str(dfG['NAME'].iloc[0])
-            #                                                               ,str(dfG['LFDNR'].iloc[0])
-            #                                                               ,str(dfG['Layer'].iloc[0])
-            #                                                              )) 
-            #        self.dataFrames['dummy']=dfG
-            #        logString="{0:s}dfG: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
-            #        logger.debug(logString)
-
-            #        G=nx.from_pandas_edgelist(dfG, source='NAME_i', target='NAME_k', edge_attr=True,create_using=nx.Graph())
-                    
-            #        iComp=0
-            #        for comp in nx.connected_components(G):
-            #            iComp+=1
-
-            #            logger.debug("{0:s}CompNr.: {1:s}".format(logStr,str(iComp))) 
-                        
-            #            GComp=G.subgraph(comp)
-                                                
-            #            # Knoten der ersten Kante                        
-            #            for u,v, datadict in sorted(GComp.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):                            
-            #                logger.debug("{0:s}1st: i: {1:s} k:{2:s}".format(logStr,u,v)) 
-            #                sourceKi=u
-            #                sourceKk=v      
-            #                break
-            #            # Knoten der letzten Kante
-            #            ieComp=0
-            #            for u,v, datadict in sorted(GComp.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']): #for e, datadict in GComp.edges.items():                                                        
-            #                ieComp+=1
-            #                #logger.debug("{0:s}i: {1:s} k:{2:s}".format(logStr,u,v)) 
-            #            logger.debug("{0:s}Last: i: {1:s} k:{2:s}".format(logStr,u,v)) 
-            #            targetKi=u
-            #            targetKk=v
-                        
-            #            # laengster Pfad zwischen den Knoten der ersten und letzten Kante (4 Möglichkeiten)
-            #            nlComp=nx.shortest_path(GComp,sourceKi,targetKk)
-            #            nlCompTmp=nx.shortest_path(GComp,sourceKk,targetKk)
-            #            if len(nlCompTmp)>len(nlComp):
-            #                nlComp=nlCompTmp
-            #            nlCompTmp=nx.shortest_path(GComp,sourceKi,targetKi)
-            #            if len(nlCompTmp)>len(nlComp):
-            #                nlComp=nlCompTmp
-            #            nlCompTmp=nx.shortest_path(GComp,sourceKk,targetKi)
-            #            if len(nlCompTmp)>len(nlComp):
-            #                nlComp=nlCompTmp                                
-                                                                                                                 
-            #            compNr=np.empty(ieComp,dtype=int) 
-            #            compNr.fill(iComp)
-
-            #            if len(compNr) != len(nlComp[1:]):
-            #                for n,d in nx.degree(GComp):
-            #                    if d>2:
-            #                         logger.debug("{0:s}Node {1:s} Degree>2: {2:d}".format(logStr,str(n),d))   
-                        
-            #            logger.debug("{0:s}NodeList (with 1st Node) per Comp: {1:s}".format(logStr,str(nlComp)))   
-            #            logger.debug("{0:s}Length NodeList (without 1st Node) per Comp: {1:d} Length compNrList per Comp: {2:d} compNr: {3:d}".format(logStr,len(nlComp[1:]),len(compNr),iComp)) 
-
-            #            nl.extend(nlComp[1:])
-            #            compNrl.extend(compNr)
-                                                
-            #            ie+=ieComp
-                        
-            #        #print(nl)
-            #        #print(compNrl)
-            #        #print(ie)
-
-            #        logger.debug("{0:s}NodeList: 1st: {1:s} Last: {2:s} Length: {3:d}".format(logStr,str(nl[0]),str(nl[-1]),len(nl)))                                               
-            #        logger.debug("{0:s}compNrList: Value: {1:s} Length: {2:d}".format(logStr,str(compNrl[0]),len(compNrl))) 
-            #        logger.debug("{0:s}dfG.index: Length: {1:d}".format(logStr,len(dfG.index))) 
-
-            #        df.loc[dfG.index,'nextNODE']=nl   
-            #        df.loc[dfG.index,'compNr']=compNrl 
-                                                                        
+            
+            # mit S E verdoppeln 
             ik = {'ik_tmp': ['S', 'E']}
             dfIk = pd.DataFrame(data=ik)
             dfIk['key_tmp'] = 0
             df['key_tmp'] = 0
             df=pd.merge(df,dfIk,on='key_tmp',how='outer')
 
+            # Vecs ergaenzen
             df=pd.merge(df,vROHRVecResults,how='left',left_on='OBJID',right_on='pk',suffixes=['','_tmp'])
+            # ROHRE mit E loeschen
             df=df[(df.OBJTYPE != 'ROHR') | ((df.OBJTYPE == 'ROHR') & (df.ik_tmp=='S'))]
             df['IptIdx']=df.apply(lambda row: row.IptIdx if row.OBJTYPE=='ROHR' else row.ik_tmp,axis=1)
 
             if 'ROHR~*~*~*~SVEC' not in df.columns.tolist():
                 df=vAGSN[pd.isnull(vAGSN['tk_VBEL']) != True].copy()
             else:
+                # x
                 df['dx']=df.groupby(['LFDNR','OBJID','Layer'])['ROHR~*~*~*~SVEC'].shift(0)-df.groupby(['LFDNR','OBJID','Layer'])['ROHR~*~*~*~SVEC'].shift(1)
                 df['dx']=df.apply(lambda row: 0 if row.OBJTYPE=='ROHR' and  pd.isnull(row.dx) else row.dx,axis=1)
                 df['dx']=df.apply(lambda row: 0 if row.OBJTYPE!='ROHR' and  pd.isnull(row.dx) and row.IptIdx=='S' else row.dx,axis=1)
                 df['dx']=df.apply(lambda row: 0 if row.OBJTYPE!='ROHR' and  pd.isnull(row.dx) and row.IptIdx=='E' else row.dx,axis=1)
-                df['x']=df.groupby(['LFDNR','Layer'])['dx'].cumsum()
-                #df['x']=df['x'].values
+                df['x']=df.groupby(['LFDNR','Layer'])['dx'].cumsum()                
 
                 tLnet=df.groupby(['LFDNR','Layer'])['dx'].sum()
                 tLnet=tLnet.reset_index()
@@ -5260,8 +5194,10 @@ class Xm():
 
                 df['xVbel']=df.groupby(['LFDNR','Layer'])['dx_tmp'].cumsum()
 
+                # alle _tmp loeschen
                 df=df.filter(items=[col for col in df.columns.tolist() if re.search('_tmp$',col) == None])
 
+                # cols belegen
                 kiCols=[col for col in df.columns.tolist() if re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) != None]          
                 if 'KNOT~*~*~*~QM_i' in kiCols:
                     kiCols.remove('KNOT~*~*~*~QM_i')
@@ -5273,7 +5209,7 @@ class Xm():
                 for kiCol,kkCol,col,vecCol in zip(kiCols,kkCols,cols,vecCols):
                     if vecCol in df.columns.tolist():
                         kiColsEff.append(kiCol)
-                kiColsEff
+                ###kiColsEff
                 mos=[re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) for col in kiColsEff]
                 cols=[mo.group('Pre')+mo.group('Channel') for mo in mos]
                 channels=[mo.group('Channel') for mo in mos]
@@ -5307,10 +5243,7 @@ class Xm():
                                                                                ,str(si['NAME_k'])
                                                                               ))             
             
-                            for kiCol,kkCol,col,vecCol in zip(kiColsEff,kkCols,channels,vecCols):
-                
-                
-            
+                            for kiCol,kkCol,col,vecCol in zip(kiColsEff,kkCols,channels,vecCols):                                            
                                  try:
                                     if OBJTYPE == 'ROHR':
                                         df.loc[group.index,col]=df.loc[group.index,vecCol].values
@@ -5326,6 +5259,7 @@ class Xm():
                     df.drop([kkCol], axis=1, inplace=True)
                     df.drop([vecCol], axis=1, inplace=True)
 
+                # rows ggf. invertieren        
                 for nr in df['LFDNR'].unique():                
                     for ly in df[df['LFDNR']==nr]['Layer'].unique():                    
                         dfLy=df[(df['LFDNR']==nr) & (df['Layer']==ly)]
