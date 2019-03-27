@@ -198,14 +198,14 @@ False
 >>> # vAGSN
 >>> # ---
 >>> print(xm._getvXXXXAsOneString(vXXXX='vAGSN',end=7,dropColList=['nrObjIdTypeInAgsn']))
-  LFDNR                                      NAME AKTIV OBJTYPE                OBJID                   pk                   tk  nrObjIdInAgsn  Layer
-0     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4939422678063487923  5252525269080005909  5252525269080005909              1      1
-1     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4984202422877610920  5252525269080005909  5252525269080005909              2      1
-2     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4789218195240364437  5252525269080005909  5252525269080005909              3      1
-3     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4614949065966596185  5252525269080005909  5252525269080005909              4      1
-4     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5037777106796980248  5252525269080005909  5252525269080005909              5      1
-5     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4713733238627697042  5252525269080005909  5252525269080005909              6      1
-6     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5123819811204259837  5252525269080005909  5252525269080005909              7      1
+  LFDNR                                      NAME AKTIV OBJTYPE                OBJID                   pk                   tk  nrObjIdInAgsn  Layer nextNODE  compNr
+0     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4939422678063487923  5252525269080005909  5252525269080005909              1      1   V-K000       1
+1     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4984202422877610920  5252525269080005909  5252525269080005909              2      1   V-K001       1
+2     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4789218195240364437  5252525269080005909  5252525269080005909              3      1   V-K002       1
+3     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4614949065966596185  5252525269080005909  5252525269080005909              4      1   V-K003       1
+4     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5037777106796980248  5252525269080005909  5252525269080005909              5      1   V-K004       1
+5     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  4713733238627697042  5252525269080005909  5252525269080005909              6      1   V-K005       1
+6     1  Netzdruckdiagramm VL/RL: BHKW - Netzende   101    ROHR  5123819811204259837  5252525269080005909  5252525269080005909              7      1   V-K006       1
 >>> # ---
 >>> # vFWVB
 >>> # ---
@@ -705,7 +705,7 @@ class Xm():
             * some Views as pandas DataFrames 
                 * i.e. vKNOT, vROHR, ...
                 * The Views are designed to deal with tedious groundwork.
-                * The Views are aggregated somhwat arbitrary.
+                * The Views are aggregated somewhat arbitrary.
                 * However: Usage of SIR 3S Modeldata is more convenient and efficient with appropriate Views.      
         * pXCorZero, pYCorZero
    
@@ -1363,8 +1363,8 @@ class Xm():
             #BLOB-Data
             self.dataFrames['vLAYR']=self._vLAYR()
             self.dataFrames['vWBLZ']=self._vWBLZ()
-            self.dataFrames['vAGSN']=self._vAGSN()
-            self.dataFrames['vAGSN_raw']=self.dataFrames['vAGSN']
+            #self.dataFrames['vAGSN']=self._vAGSN()
+            #self.dataFrames['vAGSN_raw']=self.dataFrames['vAGSN']
 
             #timeseries
             self.dataFrames['vLFKT']=self._vLFKT()   
@@ -1403,6 +1403,9 @@ class Xm():
 
             #all edges
             self.dataFrames['vVBEL']=self._vVBEL(vKNOT=self.dataFrames['vKNOT'])
+
+            self.dataFrames['vAGSN']=self._vAGSN()
+            self.dataFrames['vAGSN_raw']=self.dataFrames['vAGSN']
 
             #miscellanea
             self.dataFrames['vRART']=self._vRART()          
@@ -1572,17 +1575,80 @@ class Xm():
                         * therefore nrObjIdInAgsn (see ANNOTATION below) should be the realwolrd sequence
                         
                 ANNOTATION
-                    * nrObjIdInAgsn: lfd.Nr. Obj. in AGSN (AGSN is defined by LFDNR not by NAME)                   
-                    * nrObjIdTypeInAgsn: should be 1
-
+                    * nrObjIdInAgsn: lfd.Nr. (in Schnittreihenfolge) Obj. (der Kante) in AGSN (AGSN is defined by LFDNR not by NAME)                      
+                    * nrObjIdTypeInAgsn: should be 1 determined by raw data
+                        * nrObjIdTypeInAgsn>1 - if any - are not part of the view
+                        * the 1st occurance is in the view 
                     * Layer
                         0=undef
                         bei Netztyp 21: 1=VL, 2=RL, 0=undef 
                         wenn keine BN-Trennzeile gefunden wird, wird VL angenommen und gesetzt
                         die BN-Trennzeile wird dem VL (1) zugerechnet
+                    * nextNODE: node which is connected by the edge
+                        * the cut-direction is defined (per cut and comp) by edge-sequence
+                        * the cut node-sequence ist the (longest shortest) path between the nodes of the 1st and last edge                         
+                        * in case of 1 edge cut-direction  is edge-definition and cut node-sequence is edge-definition
+                        * the nextNODEs are the node-sequence omitting the start-node ... 
+                        * ... nextNODE of an edge is the node connected by this edge in cut-direction; so nextNODE might be the i-node (the source-node) of the edge
+                        * if edge-direction is cut-direction nextNODE is the k-node (the sink-node) of the edge
+                    * compNr
+                        * all 1 if all edges in the cut are connected
+                        * otherwise the compNr (starting with 1) the edge belongs to
+                        * the comp-Sequence is defined by the edge-sequence 
+                        * the nodes of the 1st and last edge in cut-definition of the comp are defining the node-Sequence of the (longest shortest) path in the comp 
+                    * parallel Edges 
+                        * are omitted in the cut-Result; the 1st edge in cut-definition is in the edge
+                    * Abzweige
+                        * are omitted in the cut-Result
+                        * the nodes of the 1st and last edge in cut-definition are defining the node-Sequence of the (longest shortest) path (comp-wise)
+                        * only edges implementing this path are in the cut-Result
 
         Raises:
-            XmError                                
+            XmError             
+            
+        >>> xmlFile=ms['GPipes']   
+        >>> from Xm import Xm
+        >>> xm=Xm(xmlFile=xmlFile)
+        >>> vAGSN=xm.dataFrames['vAGSN']
+        >>> schnitt=vAGSN[vAGSN['NAME']=='LR']
+        >>> xm.dataFrames['schnitt']=schnitt.reset_index()
+        >>> print(xm._getvXXXXAsOneString(vXXXX='schnitt',index=True))
+           index LFDNR NAME AKTIV OBJTYPE                OBJID                   pk                   tk  nrObjIdInAgsn  nrObjIdTypeInAgsn  Layer nextNODE compNr
+        0      7    14   LR   101    VENT  5309992331398639768  5625063016896368599  5625063016896368599              1                  1      0       G1      1
+        1      8    14   LR   101    ROHR  5244313507655010738  5625063016896368599  5625063016896368599              2                  1      0      GKS      1
+        2      9    14   LR   101    VENT  5508684139418025293  5625063016896368599  5625063016896368599              3                  1      0      GKD      1
+        3     10    14   LR   101    ROHR  5114681686941855110  5625063016896368599  5625063016896368599              4                  1      0       G3      1
+        4     11    14   LR   101    ROHR  4979507900871287244  5625063016896368599  5625063016896368599              5                  1      0       G4      1
+        5     12    14   LR   101    VENT  5745097345184516675  5625063016896368599  5625063016896368599              6                  1      0       GR      1
+        >>> schnitt=vAGSN[vAGSN['NAME']=='LR-Lücke']
+        >>> xm.dataFrames['schnitt']=schnitt.reset_index()
+        >>> print(xm._getvXXXXAsOneString(vXXXX='schnitt',index=True))
+           index LFDNR      NAME AKTIV OBJTYPE                OBJID                   pk                   tk  nrObjIdInAgsn  nrObjIdTypeInAgsn  Layer nextNODE compNr
+        0     13    16  LR-Lücke   101    VENT  5309992331398639768  5630543731618051887  5630543731618051887              1                  1      0       G1      1
+        1     14    16  LR-Lücke   101    ROHR  5244313507655010738  5630543731618051887  5630543731618051887              2                  1      0      GKS      1
+        2     15    16  LR-Lücke   101    ROHR  5114681686941855110  5630543731618051887  5630543731618051887              3                  1      0       G3      2
+        3     16    16  LR-Lücke   101    ROHR  4979507900871287244  5630543731618051887  5630543731618051887              4                  1      0       G4      2
+        4     17    16  LR-Lücke   101    VENT  5745097345184516675  5630543731618051887  5630543731618051887              5                  1      0       GR      2
+        >>> schnitt=vAGSN[vAGSN['NAME']=='LR-Flansch']
+        >>> xm.dataFrames['schnitt']=schnitt.reset_index()
+        >>> print(xm._getvXXXXAsOneString(vXXXX='schnitt',index=True))    
+           index LFDNR        NAME AKTIV OBJTYPE                OBJID                   pk                   tk  nrObjIdInAgsn  nrObjIdTypeInAgsn  Layer nextNODE compNr
+        0     18    18  LR-Flansch   101    VENT  5309992331398639768  5134530907542044265  5134530907542044265              1                  1      0       G1      1
+        1     19    18  LR-Flansch   101    ROHR  5244313507655010738  5134530907542044265  5134530907542044265              2                  1      0      GKS      1
+        2     20    18  LR-Flansch   101    VENT  5508684139418025293  5134530907542044265  5134530907542044265              3                  1      0      GKD      1
+        3     21    18  LR-Flansch   101    ROHR  5114681686941855110  5134530907542044265  5134530907542044265              4                  1      0       G3      1
+        4     22    18  LR-Flansch   101    ROHR  4979507900871287244  5134530907542044265  5134530907542044265              5                  1      0       G4      1
+        5     24    18  LR-Flansch   101    VENT  5745097345184516675  5134530907542044265  5134530907542044265              7                  1      0       GR      1
+        >>> schnitt=vAGSN[vAGSN['NAME']=='LR-Parallel']
+        >>> xm.dataFrames['schnitt']=schnitt.reset_index()
+        >>> print(xm._getvXXXXAsOneString(vXXXX='schnitt',index=True))          
+           index LFDNR         NAME AKTIV OBJTYPE                OBJID                   pk                   tk  nrObjIdInAgsn  nrObjIdTypeInAgsn  Layer nextNODE compNr
+        0     25    20  LR-Parallel   101    VENT  5309992331398639768  4694969854935170169  4694969854935170169              1                  1      0       G1      1
+        1     26    20  LR-Parallel   101    ROHR  5244313507655010738  4694969854935170169  4694969854935170169              2                  1      0      GKS      1
+        2     27    20  LR-Parallel   101    VENT  5116489323526156845  4694969854935170169  4694969854935170169              3                  1      0      GKD      1
+        3     29    20  LR-Parallel   101    ROHR  5114681686941855110  4694969854935170169  4694969854935170169              5                  1      0       G3      1
+        4     30    20  LR-Parallel   101    ROHR  4979507900871287244  4694969854935170169  4694969854935170169              6                  1      0       G4      1
+        5     31    20  LR-Parallel   101    VENT  5745097345184516675  4694969854935170169  4694969854935170169              7                  1      0       GR      1
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1631,6 +1697,148 @@ class Xm():
 
                         ObjId=vAGSN.loc[splitRowIdx,'OBJID']
                         vAGSN.loc[splitRowIdx,'OBJID']=ObjId.rstrip('\n')
+
+            df=pd.merge(
+                    vAGSN[vAGSN['nrObjIdTypeInAgsn']==1] # mehrfach vorkommende selbe VBEL im selben Schnitt ausschliessen
+                   ,self.dataFrames['vVBEL']
+                   ,how='left' 
+                   ,left_on=['OBJTYPE','OBJID']  
+                   ,right_index=True ,suffixes=('', '_y'))
+            df.rename(columns={'tk_y':'tk_VBEL'},inplace=True)
+            df=df[pd.isnull(df['tk_VBEL']) != True].copy()
+
+            df['nextNODE']=None
+            df['compNr']=None
+            df['pEdgeNr']=0
+            df['SOURCE_i']=df['NAME_i']
+            df['SOURCE_k']=df['NAME_k']
+
+            for nr in df['LFDNR'].unique():                
+                
+                for ly in df[df['LFDNR']==nr]['Layer'].unique():                                        
+
+                    dfSchnitt=df[(df['LFDNR']==nr) & (df['Layer']==ly)]                                      
+                    logger.debug("{0:s}Schnitt: {1:s} Nr: {2:s} Layer: {3:s}".format(logStr
+                                                                           ,str(dfSchnitt['NAME'].iloc[0])
+                                                                           ,str(dfSchnitt['LFDNR'].iloc[0])
+                                                                           ,str(dfSchnitt['Layer'].iloc[0])
+                                                                          )) 
+                    self.dataFrames['dummy']=dfSchnitt
+                    logString="{0:s}dfSchnitt: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
+                    logger.debug(logString)
+                  
+                    dfSchnitt=dfSchnitt.reset_index() # stores index as a column
+                    GSchnitt=nx.from_pandas_edgelist(dfSchnitt, source='SOURCE_i', target='SOURCE_k', edge_attr=True,create_using=nx.MultiGraph())
+                    
+                    iComp=0
+                    for comp in nx.connected_components(GSchnitt):
+                        iComp+=1
+
+                        logger.debug("{0:s}CompNr.: {1:s}".format(logStr,str(iComp))) 
+                        
+                        GSchnittComp=GSchnitt.subgraph(comp)
+                                                
+                        # Knoten der ersten Kante                        
+                        for u,v, datadict in sorted(GSchnittComp.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):                            
+                            logger.debug("{0:s}1st: i: {1:s} (Graph: {2:s}) k:{3:s} (Graph: {4:s})".format(logStr,datadict['NAME_i'],u,datadict['NAME_k'],v)) 
+                            sourceKi=datadict['NAME_i']
+                            sourceKk=datadict['NAME_k']      
+                            break
+                        # Knoten der letzten Kante
+                        ieComp=0
+                        for u,v, datadict in sorted(GSchnittComp.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):                                                        
+                            ieComp+=1
+                            logger.debug("{0:s}ieComp: {1:d} i: {2:s} (Graph: {3:s}) k:{4:s} (Graph: {5:s})".format(logStr,ieComp,datadict['NAME_i'],u,datadict['NAME_k'],v)) 
+                        logger.debug("{0:s}Lst: i: {1:s} (Graph: {2:s}) k:{3:s} (Graph: {4:s})".format(logStr,datadict['NAME_i'],u,datadict['NAME_k'],v)) 
+                        targetKi=datadict['NAME_i']
+                        targetKk=datadict['NAME_k']
+                        
+                        # laengster Pfad zwischen den Knoten der ersten und letzten Kante (4 Möglichkeiten)
+                        nlComp=nx.shortest_path(GSchnittComp,sourceKi,targetKk)
+                        nlCompTmp=nx.shortest_path(GSchnittComp,sourceKk,targetKk)
+                        if len(nlCompTmp)>len(nlComp):
+                            nlComp=nlCompTmp
+                        nlCompTmp=nx.shortest_path(GSchnittComp,sourceKi,targetKi)
+                        if len(nlCompTmp)>len(nlComp):
+                            nlComp=nlCompTmp
+                        nlCompTmp=nx.shortest_path(GSchnittComp,sourceKk,targetKi)
+                        if len(nlCompTmp)>len(nlComp):
+                            nlComp=nlCompTmp          
+                                                
+                        # SP-Kanten ermitteln (es koennten Abzweige dabei sein; die sind dann im SP-Graphen nicht enthalten)
+                        GSchnittCompSP=GSchnittComp.subgraph(nlComp)
+                        # SP-Kanten Ausgabe
+                        ieComp=0
+                        for u,v, datadict in sorted(GSchnittCompSP.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):                                                        
+                            ieComp+=1
+                            logger.debug("{0:s}ieCompSP: {1:d} i: {2:s} (Graph: {3:s}) k:{4:s} (Graph: {5:s})".format(logStr,ieComp,datadict['NAME_i'],u,datadict['NAME_k'],v)) 
+
+                        # index-Liste der SP-Kanten
+                        idxLst=[]
+                        for u,v, datadict in sorted(GSchnittCompSP.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):                                                        
+                            idxLst.append(datadict['index'])
+                        logger.debug("{0:s}Len IdxList                 : {1:d}".format(logStr,len(idxLst)))   
+                        logger.debug("{0:s}IdxList                 : {1:s}".format(logStr,str(idxLst)))   
+                        
+                        # parallele Kanten bis auf eine aus der index-Liste eliminieren
+                        idxLstWithoutP=[idx for idx in idxLst]
+                        idxLstOnlyP=[]
+                        nrOfParallel=[]
+                        # For every node in graph
+                        for node in GSchnittCompSP.nodes(): 
+                            # We look for adjacent nodes
+                            for adj_node in GSchnittCompSP[node]: 
+                                # If adjacent node has an edge to the first node
+                                # Or our graph as several edges from the first to the adjacent node
+                                if node in GSchnittCompSP[adj_node] or len(GSchnittCompSP[node][adj_node]) > 1: 
+                                    #
+                                    GSchnittCompSPParallel=GSchnittCompSP.subgraph([node,adj_node])
+                                    ip=1
+                                    for u,v, datadict in sorted(GSchnittCompSPParallel.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):                                                                                       
+                                        if ip>1:
+                                            idx=datadict['index']
+                                            if idx in idxLstWithoutP:
+                                                logger.debug("{0:s}ieCompSPPara: {1:d} i: {2:s} (Graph: {3:s}) k:{4:s} (Graph: {5:s})".format(logStr,ip,datadict['NAME_i'],u,datadict['NAME_k'],v))                                              
+                                                idxLstWithoutP.remove(idx)
+                                                idxLstOnlyP.append(idx)
+                                                nrOfParallel.append(ip-1)                                            
+                                        ip+=1                      
+
+                        # compNr-List: Laenge = Anzahl der Kanten  (parallele sind dabei)                                                                        
+                        compNr=np.empty(GSchnittCompSP.number_of_edges(),dtype=int) 
+                        compNr.fill(iComp)
+
+                        logger.debug("{0:s}Len NodeList (with 1st Node): {1:d}".format(logStr,len(nlComp)))   
+                        logger.debug("{0:s}Len CompList                : {1:d}".format(logStr,len(compNr)))   
+                       
+                        logger.debug("{0:s}Len IdxListWithoutP         : {1:d}".format(logStr,len(idxLstWithoutP)))   
+
+                        logger.debug("{0:s}NodeList (with 1st Node): {1:s}".format(logStr,str(nlComp)))   
+                        logger.debug("{0:s}CompList                : {1:s}".format(logStr,str(compNr)))   
+                       
+                        logger.debug("{0:s}IdxListWithoutP         : {1:s}".format(logStr,str(idxLstWithoutP)))   
+
+                        df.loc[idxLstWithoutP,'nextNODE']=nlComp[1:]  
+                        df.loc[idxLst,'compNr']=compNr
+                        df.loc[idxLstOnlyP,'pEdgeNr']=nrOfParallel
+                       
+            df['pEdgeNr']=df['pEdgeNr'].astype(int)
+            df.drop(['SOURCE_i', 'SOURCE_k'], axis=1,inplace=True)
+            vAGSN=df[(df['pEdgeNr']==0) & (pd.notnull(df['compNr']))].filter(items=[
+                        'LFDNR'
+                        ,'NAME'
+                        ,'AKTIV'
+                        ,'OBJTYPE'
+                        ,'OBJID'
+                        ,'pk'
+                        ,'tk'
+                        ,'nrObjIdInAgsn'
+                        ,'nrObjIdTypeInAgsn'
+                        ,'Layer'
+                        ,'nextNODE'
+                        ,'compNr'
+                        #,'pEdgeNr'
+                        ])
 
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -4938,118 +5146,91 @@ class Xm():
             ##logString="{0:s}df: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
             ##logger.debug(logString)
 
-            df['nextNODE']=None
-            df['compNr']=None
-
-            for nr in df['LFDNR'].unique():                
-                
-                for ly in df[df['LFDNR']==nr]['Layer'].unique():  
-                    nl=[]
-                    compNrl=[]
-                    ie=0
-
-                    dfG=df[(df['LFDNR']==nr) & (df['Layer']==ly)]  
-                    #print(str(dfG['NAME'].iloc[0]))                    
-                    logger.debug("{0:s}Schnitt: {1:s} Nr: {2:s} Layer: {3:s}".format(logStr
-                                                                           ,str(dfG['NAME'].iloc[0])
-                                                                           ,str(dfG['LFDNR'].iloc[0])
-                                                                           ,str(dfG['Layer'].iloc[0])
-                                                                          )) 
-                    self.dataFrames['dummy']=dfG
-                    logString="{0:s}dfG: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
-                    logger.debug(logString)
-
-                    G=nx.from_pandas_edgelist(dfG, source='NAME_i', target='NAME_k', edge_attr=True,create_using=nx.Graph())
-                    
-                    iComp=0
-                    for comp in nx.connected_components(G):
-                        iComp+=1
-
-                        logger.debug("{0:s}CompNr.: {1:s}".format(logStr,str(iComp))) 
-                        
-                        GComp=G.subgraph(comp)
-                                                
-                        # Knoten der ersten Kante                        
-                        for u,v, datadict in sorted(GComp.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):                            
-                            logger.debug("{0:s}1st: i: {1:s} k:{2:s}".format(logStr,u,v)) 
-                            sourceKi=u
-                            sourceKk=v      
-                            break
-                        # Knoten der letzten Kante
-                        ieComp=0
-                        for u,v, datadict in sorted(GComp.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']): #for e, datadict in GComp.edges.items():                                                        
-                            ieComp+=1
-                            #logger.debug("{0:s}i: {1:s} k:{2:s}".format(logStr,u,v)) 
-                        logger.debug("{0:s}Last: i: {1:s} k:{2:s}".format(logStr,u,v)) 
-                        targetKi=u
-                        targetKk=v
-                        
-                        # laengster Pfad zwischen den Knoten der ersten und letzten Kante (4 Möglichkeiten)
-                        nlComp=nx.shortest_path(GComp,sourceKi,targetKk)
-                        nlCompTmp=nx.shortest_path(GComp,sourceKk,targetKk)
-                        if len(nlCompTmp)>len(nlComp):
-                            nlComp=nlCompTmp
-                        nlCompTmp=nx.shortest_path(GComp,sourceKi,targetKi)
-                        if len(nlCompTmp)>len(nlComp):
-                            nlComp=nlCompTmp
-                        nlCompTmp=nx.shortest_path(GComp,sourceKk,targetKi)
-                        if len(nlCompTmp)>len(nlComp):
-                            nlComp=nlCompTmp                                
-                                                                                                                 
-                        compNr=np.empty(ieComp,dtype=int) 
-                        compNr.fill(iComp)
-                        
-                        logger.debug("{0:s}NodeList (with 1st Node) per Comp: {1:s}".format(logStr,str(nlComp)))   
-                        logger.debug("{0:s}Length NodeList (without 1st Node) per Comp: {1:d} Length compNrList per Comp: {2:d} compNr: {3:d}".format(logStr,len(nlComp[1:]),len(compNr),iComp)) 
-
-                        nl.extend(nlComp[1:])
-                        compNrl.extend(compNr)
-                                                
-                        ie+=ieComp
-                        
-                    #print(nl)
-                    #print(compNrl)
-                    #print(ie)
-
-                    logger.debug("{0:s}NodeList: 1st: {1:s} Last: {2:s} Length: {3:d}".format(logStr,str(nl[0]),str(nl[-1]),len(nl)))                                               
-                    logger.debug("{0:s}compNrList: Value: {1:s} Length: {2:d}".format(logStr,str(compNrl[0]),len(compNrl))) 
-                    logger.debug("{0:s}dfG.index: Length: {1:d}".format(logStr,len(dfG.index))) 
-
-                    df.loc[dfG.index,'nextNODE']=nl   
-                    df.loc[dfG.index,'compNr']=compNrl 
-                                                        
-
-
             #df['nextNODE']=None
+            #df['compNr']=None
+
             #for nr in df['LFDNR'].unique():                
                 
             #    for ly in df[df['LFDNR']==nr]['Layer'].unique():  
             #        nl=[]
+            #        compNrl=[]
+            #        ie=0
+
             #        dfG=df[(df['LFDNR']==nr) & (df['Layer']==ly)]  
-                    
-
-
-            #        logger.debug("{0:s}Schnitt: {1:s} Layer: {2:s}".format(logStr
+            #        #print(str(dfG['NAME'].iloc[0]))                    
+            #        logger.debug("{0:s}Schnitt: {1:s} Nr: {2:s} Layer: {3:s}".format(logStr
             #                                                               ,str(dfG['NAME'].iloc[0])
+            #                                                               ,str(dfG['LFDNR'].iloc[0])
             #                                                               ,str(dfG['Layer'].iloc[0])
             #                                                              )) 
-
             #        self.dataFrames['dummy']=dfG
             #        logString="{0:s}dfG: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
             #        logger.debug(logString)
 
-            #        G=nx.from_pandas_edgelist(dfG, source='NAME_i', target='NAME_k', edge_attr=True,create_using=nx.MultiGraph())
-            #        for n, datadict in G.nodes.items():                        
-            #            nl.append(n)
-            #        nl.pop(0)
+            #        G=nx.from_pandas_edgelist(dfG, source='NAME_i', target='NAME_k', edge_attr=True,create_using=nx.Graph())
                     
-            #        logger.debug("{0:s}Nodes: {1:s} Indices: {2:s}".format(logStr
-            #                                                               ,str(nl)
-            #                                                               ,str(dfG.index)
-            #                                                              )) 
+            #        iComp=0
+            #        for comp in nx.connected_components(G):
+            #            iComp+=1
 
-            #        df.loc[dfG.index,'nextNODE']=nl         
-                
+            #            logger.debug("{0:s}CompNr.: {1:s}".format(logStr,str(iComp))) 
+                        
+            #            GComp=G.subgraph(comp)
+                                                
+            #            # Knoten der ersten Kante                        
+            #            for u,v, datadict in sorted(GComp.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):                            
+            #                logger.debug("{0:s}1st: i: {1:s} k:{2:s}".format(logStr,u,v)) 
+            #                sourceKi=u
+            #                sourceKk=v      
+            #                break
+            #            # Knoten der letzten Kante
+            #            ieComp=0
+            #            for u,v, datadict in sorted(GComp.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']): #for e, datadict in GComp.edges.items():                                                        
+            #                ieComp+=1
+            #                #logger.debug("{0:s}i: {1:s} k:{2:s}".format(logStr,u,v)) 
+            #            logger.debug("{0:s}Last: i: {1:s} k:{2:s}".format(logStr,u,v)) 
+            #            targetKi=u
+            #            targetKk=v
+                        
+            #            # laengster Pfad zwischen den Knoten der ersten und letzten Kante (4 Möglichkeiten)
+            #            nlComp=nx.shortest_path(GComp,sourceKi,targetKk)
+            #            nlCompTmp=nx.shortest_path(GComp,sourceKk,targetKk)
+            #            if len(nlCompTmp)>len(nlComp):
+            #                nlComp=nlCompTmp
+            #            nlCompTmp=nx.shortest_path(GComp,sourceKi,targetKi)
+            #            if len(nlCompTmp)>len(nlComp):
+            #                nlComp=nlCompTmp
+            #            nlCompTmp=nx.shortest_path(GComp,sourceKk,targetKi)
+            #            if len(nlCompTmp)>len(nlComp):
+            #                nlComp=nlCompTmp                                
+                                                                                                                 
+            #            compNr=np.empty(ieComp,dtype=int) 
+            #            compNr.fill(iComp)
+
+            #            if len(compNr) != len(nlComp[1:]):
+            #                for n,d in nx.degree(GComp):
+            #                    if d>2:
+            #                         logger.debug("{0:s}Node {1:s} Degree>2: {2:d}".format(logStr,str(n),d))   
+                        
+            #            logger.debug("{0:s}NodeList (with 1st Node) per Comp: {1:s}".format(logStr,str(nlComp)))   
+            #            logger.debug("{0:s}Length NodeList (without 1st Node) per Comp: {1:d} Length compNrList per Comp: {2:d} compNr: {3:d}".format(logStr,len(nlComp[1:]),len(compNr),iComp)) 
+
+            #            nl.extend(nlComp[1:])
+            #            compNrl.extend(compNr)
+                                                
+            #            ie+=ieComp
+                        
+            #        #print(nl)
+            #        #print(compNrl)
+            #        #print(ie)
+
+            #        logger.debug("{0:s}NodeList: 1st: {1:s} Last: {2:s} Length: {3:d}".format(logStr,str(nl[0]),str(nl[-1]),len(nl)))                                               
+            #        logger.debug("{0:s}compNrList: Value: {1:s} Length: {2:d}".format(logStr,str(compNrl[0]),len(compNrl))) 
+            #        logger.debug("{0:s}dfG.index: Length: {1:d}".format(logStr,len(dfG.index))) 
+
+            #        df.loc[dfG.index,'nextNODE']=nl   
+            #        df.loc[dfG.index,'compNr']=compNrl 
+                                                                        
             ik = {'ik_tmp': ['S', 'E']}
             dfIk = pd.DataFrame(data=ik)
             dfIk['key_tmp'] = 0
@@ -5357,11 +5538,8 @@ if __name__ == "__main__":
         parser.add_argument("-m","--moduleTest", help="execute the Module's Doctest On/Off: -m 1 (default)", action="store",default='1')      
         parser.add_argument("-s","--singleTest", help="execute single Doctest: -s Xm: Doctest names matching Xm are executed", action="append",default=[])        
 
-        parser.add_argument('--testDir',type=str,default='testdata',help="value for global 'testDir' i.e. testdata")
-        #parser.add_argument('--dotResolution',type=str,default='',help="value for global 'dotResolution' i.e. .1")        
+        parser.add_argument('--testDir',type=str,default='testdata',help="value for global 'testDir' i.e. testdata")     
         
-
-
         args = parser.parse_args()
 
         if args.verbose:  # default         
@@ -5375,26 +5553,27 @@ if __name__ == "__main__":
         if args.moduleTest == '1':
             dtFinder=doctest.DocTestFinder(recurse=False,verbose=args.verbose) # recurse = False findet nur den Modultest
             suite=doctest.DocTestSuite(test_finder=dtFinder #,setUp=setUpFct
-                                   ,globs={'testDir':args.testDir
-                                           #,'dotResolution':args.dotResolution
+                                   ,globs={'testDir':args.testDir                                          
                                            })   
             unittest.TextTestRunner().run(suite)
         
-        xms={}    
+        xms={}   
+        modelFiles={}
         if len(args.singleTest)>0:
             for testModel in ['OneLPipe','LocalHeatingNetwork','GPipes']:
                 h5File=os.path.join(os.path.join('.',args.testDir),testModel+'.h5')
                 if os.path.exists(h5File):                        
                     os.remove(h5File)
                 xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')
+                modelFiles[testModel]=xmlFile
                 xm=Xm(xmlFile=xmlFile)
                 xms[testModel]=xm
 
             dtFinder=doctest.DocTestFinder(verbose=args.verbose)
             dtRunner=doctest.DocTestRunner(verbose=args.verbose) 
-            dTests=dtFinder.find(Xm,globs={'testDir':args.testDir
-                                        #   ,'dotResolution':args.dotResolution
-                                           ,'xms':xms}) 
+            dTests=dtFinder.find(Xm,globs={'testDir':args.testDir                                       
+                                           ,'xms':xms
+                                           ,'ms':modelFiles}) 
             for test in dTests:
                 for expr in args.singleTest:
                     if re.search(expr,test.name) != None:                    
