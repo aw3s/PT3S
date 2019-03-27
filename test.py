@@ -141,11 +141,13 @@ if __name__ == "__main__":
                 mxs[testModel]=mx
 
             xms={}   
+            modelFiles={}
             for testModel in testModels:
                 h5File=os.path.join(os.path.join('.',args.testDir),testModel+'.h5')
                 if os.path.exists(h5File):                        
                     os.remove(h5File)
                 xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')
+                modelFiles[testModel]=xmlFile
                 xm=Xm.Xm(xmlFile=xmlFile)
                 xms[testModel]=xm
 
@@ -156,9 +158,10 @@ if __name__ == "__main__":
                                            ,'mxs':mxs
                                            ,'xms':xms}) 
             dTests.extend(dtFinder.find(Xm,globs={'testDir':args.testDir
-                                          ,'dotResolution':args.dotResolution
+                                         # ,'dotResolution':args.dotResolution
                                            ,'mxs':mxs
-                                           ,'xms':xms})) 
+                                           ,'xms':xms
+                                           ,'ms':modelFiles})) 
 
             for test in dTests:
                 for expr in args.singleTest:
