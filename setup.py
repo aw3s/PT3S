@@ -24,7 +24,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='90.11.01.07.dev1',
+    version='90.11.01.08.dev1',
 
     description='Python Tools 3S',
     long_description=long_description,
@@ -81,7 +81,7 @@ setup(
         'PT3S': [           
             'PT3S.ipynb'
            ,'PT3S.html'
-           ,'PT3S.pdf'
+           ,'PT3S.pdf'           
            ,'testdata\OneLPipe.XML'
            ,'testdata\OneLPipe.mdb'
            ,'testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.1.MX1'
@@ -97,6 +97,10 @@ setup(
            ,'testdata\WDTinyWDN\B1\V0\BZ1\M-1-0-1.1.MX1'
            ,'testdata\WDTinyWDN\B1\V0\BZ1\M-1-0-1.MX2'
            ,'testdata\WDTinyWDN\B1\V0\BZ1\M-1-0-1.1.MXS'
+           ,'testdata\GPipes.XML'
+           ,'testdata\WDGPipes\B1\V0\BZ1\M-1-0-1.1.MX1'
+           ,'testdata\WDGPipes\B1\V0\BZ1\M-1-0-1.MX2'
+           ,'testdata\WDGPipes\B1\V0\BZ1\M-1-0-1.1.MXS'
            ,'testdata\GPipe.XML'
            ,'testdata\GPipe.mdb'
            ,'testdata\WDGPipe\B1\V0\BZ1\M-1-0-1.1.MX1'

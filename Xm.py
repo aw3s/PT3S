@@ -4856,11 +4856,10 @@ class Xm():
                     * Z (the corresponding Z_i, Z_k and ZVEC are droped)
                 * Results:
                     * Q: from Q before and QMVEC for PIPEs; in Schnittrichtung; QMVEC is droped
-                    * from KNOT...#_i, KNOT...#_k and #VEC:
-                        * #1
-                        * #2
-                        * ...
-                        the correspondig 3 columns (2 #KNOT, 1 #VEC) are droped
+                    * for available KNOT...#_i, KNOT...#_k and ...#VEC:
+                        * i.e. KNOT~*~*~*~P_i KNOT~*~*~*~P_k  ROHR~*~*~*~PVEC
+                        * P is new column
+                        * the correspondig 3 columns are droped
         Notes:
             * The Add-Result is persisted if df were read from H5:        
                         * xm.ToH5() is called if xm.h5Read is True.           
@@ -5209,7 +5208,7 @@ class Xm():
                 for kiCol,kkCol,col,vecCol in zip(kiCols,kkCols,cols,vecCols):
                     if vecCol in df.columns.tolist():
                         kiColsEff.append(kiCol)
-                ###kiColsEff
+                
                 mos=[re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) for col in kiColsEff]
                 cols=[mo.group('Pre')+mo.group('Channel') for mo in mos]
                 channels=[mo.group('Channel') for mo in mos]
@@ -5223,6 +5222,9 @@ class Xm():
                 for channel in channels:
                     df[channel]=None
 
+                for kiCol,kkCol,col,vecCol in zip(kiColsEff,kkCols,channels,vecCols):    
+                    logger.debug("{0:s} kiCol {1:20s} kkCol {2:20s} channel {3:20s} vecCol {4:20s}".format(logStr,kiCol,kkCol,col,vecCol))
+
                 for nr in df['LFDNR'].unique():
                     for ly in df[df['LFDNR']==nr]['Layer'].unique():
                         dfLy=df[(df['LFDNR']==nr) & (df['Layer']==ly)]
@@ -5231,29 +5233,32 @@ class Xm():
                                                                                ,str(dfLy['NAME'].iloc[0])
                                                                                ,str(dfLy['Layer'].iloc[0])
                                                                               )) 
-                        grouped = dfLy.groupby(['OBJTYPE','OBJID'])
-                        for name, group in grouped:
-                            OBJTYPE,OBJID=name
-                            si=df.loc[group.index[0],:]
-                            sk=df.loc[group.index[-1],:]
-                            logger.debug("{0:s}OBJTYPE: {1:s} OBJID: {2:s} NAME_i: {3:s} NAME_k: {4:s}".format(logStr
-                                                                               ,OBJTYPE
-                                                                               ,OBJID
-                                                                               ,str(si['NAME_i'])
-                                                                               ,str(si['NAME_k'])
-                                                                              ))             
-            
-                            for kiCol,kkCol,col,vecCol in zip(kiColsEff,kkCols,channels,vecCols):                                            
-                                 try:
-                                    if OBJTYPE == 'ROHR':
-                                        df.loc[group.index,col]=df.loc[group.index,vecCol].values
-                                    else:
-                                        df.loc[group.index[0],col]=si[kiCol]
-                                        df.loc[group.index[-1],col]=sk[kkCol]
+                        grouped = dfLy.groupby(['OBJTYPE','OBJID','nrObjIdInAgsn'])                        
+                        for name, group in sorted(grouped,key=lambda x: x[0][2]):
+                                 OBJTYPE,OBJID,nrObjIdInAgsn=name
+                                 si=df.loc[group.index[0],:]
+                                 sk=df.loc[group.index[-1],:]
+                                 logger.debug("{0:s}LfdNr: {1:d} OBJTYPE: {2:s} OBJID: {3:s} NAME_i: {4:s} NAME_k: {5:s}".format(logStr
+                                                                                   ,nrObjIdInAgsn
+                                                                                   ,OBJTYPE
+                                                                                   ,OBJID
+                                                                                   ,str(si['NAME_i'])
+                                                                                   ,str(si['NAME_k'])
+                                                                                  ))   
+                                 
+                                 for kiCol,kkCol,col,vecCol in zip(kiColsEff,kkCols,channels,vecCols):                
+                                     try:
+                                        if OBJTYPE == 'ROHR':
+                                            df.loc[group.index,col]=df.loc[group.index,vecCol].values
+                                        else:
+                                            df.loc[group.index[0],col]=si[kiCol]
+                                            df.loc[group.index[-1],col]=sk[kkCol]
                    
-                                 except:
-                                    pass
+                                     except  Exception as e:
+                                        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
+                                        logger.error(logStrFinal)                                         
 
+                # die verarbeiteten Kanaele loeschen ...
                 for kiCol,kkCol,vecCol in zip(kiColsEff,kkCols,vecCols):
                     df.drop([kiCol], axis=1, inplace=True)
                     df.drop([kkCol], axis=1, inplace=True)
@@ -5263,9 +5268,24 @@ class Xm():
                 for nr in df['LFDNR'].unique():                
                     for ly in df[df['LFDNR']==nr]['Layer'].unique():                    
                         dfLy=df[(df['LFDNR']==nr) & (df['Layer']==ly)]
-                        grouped = dfLy.groupby(['OBJTYPE','OBJID'])
-                        for name, group in grouped:
+
+                        logger.debug("{0:s}Schnitt: {1:s} Layer: {2:s}".format(logStr
+                                                                               ,str(dfLy['NAME'].iloc[0])
+                                                                               ,str(dfLy['Layer'].iloc[0])
+                                                                              )) 
+
+
+                        grouped = dfLy.groupby(['OBJTYPE','OBJID','nrObjIdInAgsn'])                        
+                        for name, group in sorted(grouped,key=lambda x: x[0][2]):
+                            OBJTYPE,OBJID,nrObjIdInAgsn=name
                             s=df.loc[group.index[0],:]                       
+                            logger.debug("{0:s}LfdNr: {1:d} OBJTYPE: {2:s} OBJID: {3:s} NAME_i: {4:s} NAME_k: {5:s}".format(logStr
+                                                                               ,nrObjIdInAgsn
+                                                                               ,OBJTYPE
+                                                                               ,OBJID
+                                                                               ,str(s['NAME_i'])
+                                                                               ,str(s['NAME_k'])
+                                                                              ))                                                     
                             if s.NAME_k == s.nextNODE:    
                                 f=1.
                             else:    
