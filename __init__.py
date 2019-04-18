@@ -10,13 +10,13 @@ import re
 try:              
     
     # -------------------------------------- 
-    logger = logging.getLogger('PT3S').addHandler(logging.NullHandler())      
+    logger = logging.getLogger('PT3S')
+    logger.addHandler(logging.NullHandler())      
     # -------------------------------------- 
     
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
 
-    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-    logger.debug("{:s}Logfile: {:s}".format(logStr,logFileName)) 
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.'))     
 
     #H5
     warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
@@ -25,7 +25,7 @@ try:
 except Exception as e:
     logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
     logger.error(logStrFinal)
-    logger.error("{0:s}{1:s}".format(logStr,"logging.exception('') ...")) 
+    logger.error("{0:s}{1:s}".format(logStr,"the call to logging.exception('') follows ...")) 
     logging.exception('')  
 
 finally:

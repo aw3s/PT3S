@@ -5238,13 +5238,13 @@ class Xm():
                                  OBJTYPE,OBJID,nrObjIdInAgsn=name
                                  si=df.loc[group.index[0],:]
                                  sk=df.loc[group.index[-1],:]
-                                 logger.debug("{0:s}LfdNr: {1:d} OBJTYPE: {2:s} OBJID: {3:s} NAME_i: {4:s} NAME_k: {5:s}".format(logStr
-                                                                                   ,nrObjIdInAgsn
-                                                                                   ,OBJTYPE
-                                                                                   ,OBJID
-                                                                                   ,str(si['NAME_i'])
-                                                                                   ,str(si['NAME_k'])
-                                                                                  ))   
+                                 #logger.debug("{0:s}LfdNr: {1:d} OBJTYPE: {2:s} OBJID: {3:s} NAME_i: {4:s} NAME_k: {5:s}".format(logStr
+                                 #                                                  ,nrObjIdInAgsn
+                                 #                                                  ,OBJTYPE
+                                 #                                                  ,OBJID
+                                 #                                                  ,str(si['NAME_i'])
+                                 #                                                  ,str(si['NAME_k'])
+                                 #                                                 ))   
                                  
                                  for kiCol,kkCol,col,vecCol in zip(kiColsEff,kkCols,channels,vecCols):                
                                      try:
@@ -5279,13 +5279,13 @@ class Xm():
                         for name, group in sorted(grouped,key=lambda x: x[0][2]):
                             OBJTYPE,OBJID,nrObjIdInAgsn=name
                             s=df.loc[group.index[0],:]                       
-                            logger.debug("{0:s}LfdNr: {1:d} OBJTYPE: {2:s} OBJID: {3:s} NAME_i: {4:s} NAME_k: {5:s}".format(logStr
-                                                                               ,nrObjIdInAgsn
-                                                                               ,OBJTYPE
-                                                                               ,OBJID
-                                                                               ,str(s['NAME_i'])
-                                                                               ,str(s['NAME_k'])
-                                                                              ))                                                     
+                            #logger.debug("{0:s}LfdNr: {1:d} OBJTYPE: {2:s} OBJID: {3:s} NAME_i: {4:s} NAME_k: {5:s}".format(logStr
+                            #                                                   ,nrObjIdInAgsn
+                            #                                                   ,OBJTYPE
+                            #                                                   ,OBJID
+                            #                                                   ,str(s['NAME_i'])
+                            #                                                   ,str(s['NAME_k'])
+                            #                                                  ))                                                     
                             if s.NAME_k == s.nextNODE:    
                                 f=1.
                             else:    
