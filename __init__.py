@@ -5,32 +5,14 @@ import sys
 import logging
 import pandas as pd
 
-#import tables
 import re
 
 try:              
-    # Logfile
-    logFileName = os.path.join(os.path.dirname(__file__),'PT3S.log')
-        
-    loglevel = logging.DEBUG
-    logging.basicConfig(filename=logFileName
-                        ,filemode='w'
-                        ,level=loglevel
-                        ,format="%(asctime)s ; %(name)-60s ; %(levelname)-7s ; %(message)s")    
-
-    fileHandler = logging.FileHandler(logFileName)     
     
     # -------------------------------------- 
-    logger = logging.getLogger('PT3S')      
+    logger = logging.getLogger('PT3S').addHandler(logging.NullHandler())      
     # -------------------------------------- 
     
-    logger.addHandler(fileHandler)
-
-    consoleHandler = logging.StreamHandler()
-    consoleHandler.setFormatter(logging.Formatter("%(levelname)-7s ; %(message)s"))
-    consoleHandler.setLevel(logging.INFO)
-    logger.addHandler(consoleHandler)
-
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
 
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
