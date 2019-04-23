@@ -712,6 +712,188 @@ class Xm():
     Raises:
         XmError
     """
+
+    @classmethod
+    def constructNewMultiindexFromCols(cls,df=None,mColNames=['OBJTYPE','pk'],mIdxNames=['OBJTYPE','OBJID']):
+            """Constructs a new Multiindex from existing cols and returns the constructed df.
+
+            Args:
+                * df: dataFrame without Multiindex              
+                * mColNames: list of columns which shall be used as Multiindex; the columns must exist; the columns will be droped
+                * mIdxNames: list of names for the indices for the Cols above
+
+            Returns:
+                * df with Multiindex       
+                * None if an Error occured
+                       
+            >>> d = {'OBJTYPE': ['ROHR', 'VENT'], 'pk': [123, 345], 'data': ['abc', 'def']}
+            >>> import pandas as pd
+            >>> df = pd.DataFrame(data=d)
+            >>> from Xm import Xm
+            >>> df=Xm.constructNewMultiindexFromCols(df=df,mColNames=['OBJTYPE','pk'],mIdxNames=['OBJTYPE','OBJID'])
+            >>> df['data']
+            OBJTYPE  OBJID
+            ROHR     123      abc
+            VENT     345      def
+            Name: data, dtype: object
+            """
+
+            logStr = "{0:s}.{1:s} (classmethod): ".format(__class__.__name__, sys._getframe().f_code.co_name)
+            logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+            try:                    
+                arrays=[]
+                for col in mColNames:
+                    arrays.append(df[col].tolist())
+                tuples = list(zip(*(arrays)))
+                index = pd.MultiIndex.from_tuples(tuples,names=mIdxNames)
+                df.drop(mColNames,axis=1,inplace=True)   
+                df=pd.DataFrame(df.values,index=index,columns=df.columns)
+            except Exception as e:
+                logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                logger.debug(logStrFinal)    
+                df=None
+            finally:
+                logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
+                return df   
+
+    @classmethod            
+    def constructShortestPathFromNodeList(cls,df=None,sourceCol='NAME_i',targetCol='NAME_k',nl=None,weight=None):    
+            """Returns a DataFrame with Edges (one per row) implementing the shortest Path over NodeList.
+    
+                Args:
+                    * df: DataFrame with (all) Edges (one per row)
+                    * nl: NodeList
+                    * weight: columnName of the weight attribute
+            
+                        # Der kürzeste Weg zwischen zwei Knoten in einem
+                        # zusammenhängenden Graphen ist derjenige, bei dem die
+                        # Summe der Gewichte über die durchlaufenen Kanten den
+                        # kleinstmöglichen Wert annimmt.
+
+                        # also bei konstantem Kantengewicht die kleinste Kantenanzahl
+                        # kürzeste Weglaenge: L als Gewicht
+                        # Durchflussstärkster Weg: 1 / Abs(Q) (Flüsse mit 0 oder Kanten ohne Flusswert müssen vorher eliminiert werden ...
+                        # ... birgt die Gefahr, dass es dann keinen Weg mehr gibt)
+                        # Durchflussschwächster Weg: Q
+
+                        * examples for weight: 
+                            * 'L': converted to float before usage here
+                            * if 'Q' is already a column in df:
+                                * non Null Q-rows filtered here - then:
+                                * 'QAbs': constructed here
+                                * 'QAbsInv': constructed here
+
+                Returns:
+                    columns
+                        * OBJTYPE
+                        * OBJID
+                        * nextNODE
+                        * compNr
+                            * starts with 1
+                            * the number of the connected component
+                            * 1 for all edges if all nodes in NodeList are connected
+
+                >>> xmlFile=ms['GPipes']   
+                >>> from Xm import Xm
+                >>> xm=Xm(xmlFile=xmlFile,NoH5Read=True)       
+                >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['GL','GR'])
+                  OBJTYPE                OBJID nextNODE  compNr
+                0    VENT  5309992331398639768       G1       1
+                1    ROHR  5244313507655010738      GKS       1
+                2    VENT  5116489323526156845      GKD       1
+                3    ROHR  5114681686941855110       G3       1
+                4    ROHR  4979507900871287244       G4       1
+                5    VENT  5745097345184516675       GR       1
+            """
+
+            logStr = "{0:s}.{1:s} (classmethod): ".format(__class__.__name__, sys._getframe().f_code.co_name)
+            logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+            try:          
+                
+                # Graphen konstruieren ###############################################################
+               
+                # adjusting/constructing some cols and some content before constructing the Graph          
+                if 'L' in df.columns.tolist():              
+                    df['L']=df['L'].astype('float')
+
+                if 'Q' in df.columns.tolist():
+                    # nur durchflossene Kanten
+                    df=df[pd.isnull(df['Q']) == False]
+                    df=df[df['Q'] != 0]
+                    df['QAbs']=df['Q'].apply(lambda x: math.fabs(x))
+                    df['QAbsInv']=df['QAbs'].apply(lambda x: 1/x)
+
+                df['SOURCE_i']=df[sourceCol]
+                df['SOURCE_k']=df[targetCol]
+
+                G=nx.from_pandas_edgelist(df, source='SOURCE_i', target='SOURCE_k', edge_attr=True,create_using=nx.MultiGraph())
+
+                # Pfad suchen über Knotenliste ######################################################
+                # Kantengewicht
+                if weight not in df.columns.tolist():   
+                    weight=None
+    
+                dfList=[]
+    
+                # Knotenpaare ermitteln
+                pathPairs = list(zip(nl[:-1],nl[1:]))
+                logger.debug("{:s}:Knotenpaare zwischen denen Abschnittsweise ein Pfad gesucht wird: {:s}".format(logStr,str(pathPairs))) 
+    
+                # Pfad suchen über Knotenpaar #######################################################
+                for source,target in pathPairs:
+                    logger.debug("{:s}:     Knotenpaar: source: {:s} target: {:s}".format(logStr,source,target)) 
+        
+                    compNr=1
+        
+                    # Pfad suchen
+                    try:            
+                        pathNodes=nx.shortest_path(G,source,target,weight=weight)
+                        # Kanten
+                        pathEdges = list(zip(pathNodes[:-1],pathNodes[1:]))
+                        # ueber alle Kanten
+                        for u,v in pathEdges:
+                                logger.debug("{:s}:          Kante: {:s} {:s}".format(logStr,u,v))
+                    
+                                dct=G[u][v]
+                    
+                                idxEdge=0
+                                if weight==None:
+                                    pass # die 1. Kante bei Multigraphen
+                                else:    
+                                    edgeData=dct[idxEdge]
+                                    w=edgeData[weight]
+                                    # die "kleinste" Kante bei Multigraphen                        
+                                    for edgeIdx,edgeDct in dct.items():                            
+                                        if edgeDct[weight] < w:
+                                            idxEdge=edgeIdx
+            
+                                edgeData=dct[idxEdge] 
+                                # benoetigte Attribute der Kante
+                                cols=[]
+                                for col in ['OBJTYPE','OBJID']:
+                                    cols.append(edgeData[col])
+                                # weitere Attribute
+                                cols.append(v) # nextNODE
+                                cols.append(compNr) # compNr
+                                df=pd.DataFrame([cols],columns=['OBJTYPE','OBJID','nextNODE','compNr'])
+                                dfList.append(df)
+                                            
+                    except nx.NetworkXNoPath:            
+                        logger.debug("{:s}:     Knotenpaar: source: {:s} target: {:s}: Kein Pfad!".format(logStr,source,target)) 
+                        compNr+=1
+        
+                df=pd.concat(dfList).reset_index(drop=True) 
+                                
+            except Exception as e:
+                logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                logger.debug(logStrFinal)    
+                df=None
+            finally:
+                logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
+                return df                   
+                              
     def __init__(self,xmlFile,NoH5Read=False):
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1558,7 +1740,7 @@ class Xm():
         Returns:
             columns
                 AGSN
-                    * LFDNR
+                    * LFDNR 
                     * NAME
                     * AKTIV
                    
@@ -1668,6 +1850,7 @@ class Xm():
             #IDs
             ,'pk','tk'
             ]]
+            #vAGSN['LFDNR']=vAGSN['LFDNR'].astype('int')
             vAGSN=vAGSN.assign(nrObjIdInAgsn=vAGSN.groupby(['LFDNR']).cumcount()+1) # dieses VBEL-Obj. ist im Schnitt Nr. x
             vAGSN=vAGSN.assign(nrObjIdTypeInAgsn=vAGSN.groupby(['LFDNR','OBJTYPE','OBJID']).cumcount()+1) # dieses VBEL-Obj kommt im Schnitt zum x. Mal vor
 
@@ -1698,6 +1881,8 @@ class Xm():
                         ObjId=vAGSN.loc[splitRowIdx,'OBJID']
                         vAGSN.loc[splitRowIdx,'OBJID']=ObjId.rstrip('\n')
 
+            #vAGSN['Layer']=vAGSN['Layer'].astype('int')
+
             df=pd.merge(
                     vAGSN[vAGSN['nrObjIdTypeInAgsn']==1] # mehrfach vorkommende selbe VBEL im selben Schnitt ausschliessen
                    ,self.dataFrames['vVBEL']
@@ -1727,7 +1912,7 @@ class Xm():
                     logString="{0:s}dfSchnitt: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
                     logger.debug(logString)
                   
-                    dfSchnitt=dfSchnitt.reset_index() # stores index as a column
+                    dfSchnitt=dfSchnitt.reset_index() # stores index as a column named index
                     GSchnitt=nx.from_pandas_edgelist(dfSchnitt, source='SOURCE_i', target='SOURCE_k', edge_attr=True,create_using=nx.MultiGraph())
                     
                     iComp=0
@@ -1749,9 +1934,10 @@ class Xm():
                         for u,v, datadict in sorted(GSchnittComp.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):                                                        
                             ieComp+=1
                             if datadict['NAME_i']==u and datadict['NAME_k']==v:
-                                GraphStr="="
+                                GraphStr="=" # die SIR 3S Kantendef. ist = der nx-Kantendefinition
                             elif datadict['NAME_i']==v and datadict['NAME_k']==u:                                                                                            
-                                GraphStr="{0:s}>{1:s}".format(u,v)
+                                GraphStr="{0:s}>{1:s}".format(u,v) # die SIR 3S Kantendef. ist u>v und nicht v>u wie bei nx
+                            # die nx-Kante ist definiert durch u und v; die Reihenfolge ist für nx egal da kein gerichteter Graph 
                             else:
                                 GraphStr="Fehler: Die NX-Kante ist ungl. der SIR 3S Kante?!"
                             logger.debug("{0:s}iComp: {1:d} ieComp: {2:d} idx: {3:d} NX i: {4:s} > NX k:{5:s} (SIR 3S Kantendef.: {6:s})".format(logStr,iComp,ieComp,datadict['index'],u,v,GraphStr)) 
@@ -1774,27 +1960,26 @@ class Xm():
                         
                         logger.debug("{0:s}Pfad: Start: {1:s} > Ende: {2:s}".format(logStr,nlComp[0],nlComp[-1])) 
                                                 
-                        # SP-Kanten ermitteln (es koennten Abzweige dabei sein; die sind dann im SP-Graphen nicht enthalten)
+                        # SP-Kanten ermitteln (es koennten Abzweige in GSchnittComp dabei sein; die sind in GSchnittCompSP dann nicht mehr enthalten)
                         GSchnittCompSP=GSchnittComp.subgraph(nlComp)
-                        # SP-Kanten Ausgabe
+                        # index-Liste der SP-Kanten
+                        idxLst=[]                        
                         ieComp=0
-                        for u,v, datadict in sorted(GSchnittCompSP.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):                                                        
+                        for u,v, datadict in sorted(GSchnittCompSP.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):              
+                            idxLst.append(datadict['index'])
+                            # SP-Kanten Ausgabe
                             ieComp+=1
                             if datadict['NAME_i']==u and datadict['NAME_k']==v:
-                                GraphStr="="
+                                GraphStr="=" # die SIR 3S Kantendef. ist = der nx-Kantendefinition
                             elif datadict['NAME_i']==v and datadict['NAME_k']==u:                                                                                            
-                                GraphStr="{0:s}>{1:s}".format(u,v)
+                                GraphStr="{0:s}>{1:s}".format(u,v) # die SIR 3S Kantendef. ist u>v und nicht v>u wie bei nx
+                            # die nx-Kante ist definiert durch u und v; die Reihenfolge ist für nx egal da kein gerichteter Graph 
                             else:
                                 GraphStr="Fehler: Die NX-Kante ist ungl. der SIR 3S Kante?!"
-                            logger.debug("{0:s}iComp: {1:d} ieCompSP: {2:d} idx: {3:d} NX i: {4:s} > NX k:{5:s} (SIR 3S Kantendef.: {6:s})".format(logStr,iComp,ieComp,datadict['index'],u,v,GraphStr)) 
-
-                        # index-Liste der SP-Kanten
-                        idxLst=[]
-                        for u,v, datadict in sorted(GSchnittCompSP.edges(data=True), key=lambda x: x[2]['nrObjIdInAgsn']):                                                        
-                            idxLst.append(datadict['index'])
+                            ###logger.debug("{0:s}iComp: {1:d} ieCompSP: {2:d} idx: {3:d} NX i: {4:s} > NX k:{5:s} (SIR 3S Kantendef.: {6:s})".format(logStr,iComp,ieComp,datadict['index'],u,v,GraphStr)) 
                         
                         # parallele Kanten bis auf eine aus der index-Liste eliminieren
-                        idxLstWithoutP=[idx for idx in idxLst]
+                        idxLstWithoutP=[idx for idx in idxLst] # Belegung mit allen Kanten; parallele Kanten werden entnommen
                         idxLstOnlyP=[]
                         nrOfParallel=[]
                         # For every node in graph
@@ -1812,18 +1997,19 @@ class Xm():
                                             idx=datadict['index']
                                             if idx in idxLstWithoutP:
                                                 if datadict['NAME_i']==u and datadict['NAME_k']==v:
-                                                    GraphStr="="
+                                                    GraphStr="="  # die SIR 3S Kantendef. ist = der nx-Kantendefinition
                                                 elif datadict['NAME_i']==v and datadict['NAME_k']==u:                                                                                            
-                                                    GraphStr="{0:s}>{1:s}".format(u,v)
+                                                    GraphStr="{0:s}>{1:s}".format(u,v) # die SIR 3S Kantendef. ist u>v und nicht v>u wie bei nx
+                                                # die nx-Kante ist definiert durch u und v; die Reihenfolge ist für nx egal da kein gerichteter Graph 
                                                 else:
                                                     GraphStr="Fehler: Die NX-Kante ist ungl. der SIR 3S Kante?!"
-                                                logger.debug("{0:s}idx: {1:d} parallele Kante: NX i: {2:s} > NX k:{3:s} (SIR 3S Kantendef.: {4:s})".format(logStr,idx,u,v,GraphStr))                                                                                               
+                                                ###logger.debug("{0:s}idx: {1:d} parallele Kante: NX i: {2:s} > NX k:{3:s} (SIR 3S Kantendef.: {4:s})".format(logStr,idx,u,v,GraphStr))                                                                                               
                                                 idxLstWithoutP.remove(idx)
                                                 idxLstOnlyP.append(idx)
                                                 nrOfParallel.append(ip-1)                                            
                                         ip+=1                      
 
-                        # compNr-List: Laenge = Anzahl der Kanten  (parallele sind dabei)                                                                        
+                        # compNr-List: Laenge = Anzahl der Kanten  (parallele sind in GSchnittCompSP dabei ...)                                                                        
                         compNr=np.empty(GSchnittCompSP.number_of_edges(),dtype=int) 
                         compNr.fill(iComp)
                                                                            
@@ -1837,9 +2023,9 @@ class Xm():
                         logger.debug("{0:s}IdxList                 : {1:s}".format(logStr,str(idxLst)))   
                         logger.debug("{0:s}IdxListWithoutP         : {1:s}".format(logStr,str(idxLstWithoutP)))   
 
-                        df.loc[idxLstWithoutP,'nextNODE']=nlComp[1:]  
-                        df.loc[idxLst,'compNr']=compNr
-                        df.loc[idxLstOnlyP,'pEdgeNr']=nrOfParallel
+                        df.loc[idxLstWithoutP,'nextNODE']=nlComp[1:]  # parallele Kanten ohne nextNODE-Eintrag
+                        df.loc[idxLst,'compNr']=compNr # alle Kanten (ausser Abzweige) mit compNr-Eintrag > Eliminierung Abzweige weiter unten
+                        df.loc[idxLstOnlyP,'pEdgeNr']=nrOfParallel # nur parallle Kanten mit pEdgeNr-Eintrag > Eliminierung paralleler Kanten weiter unten
                        
             df['pEdgeNr']=df['pEdgeNr'].astype(int)
             df.drop(['SOURCE_i', 'SOURCE_k'], axis=1,inplace=True)
@@ -1848,7 +2034,10 @@ class Xm():
             self.dataFrames['vAGSN_raw']=df[['LFDNR','NAME','OBJTYPE','nrObjIdInAgsn','Layer','NAME_i','NAME_k','L','D','nextNODE','compNr','pEdgeNr']]
             logger.debug("{0:s}df: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vAGSN_raw',index=True)))
 
-            vAGSN=df[(df['pEdgeNr']==0) & (pd.notnull(df['compNr']))].filter(items=[
+            vAGSN=df[(df['pEdgeNr']==0) # als parallel markierte Kanten eliminieren
+                     & 
+                     (pd.notnull(df['compNr'])) # als Abzweige erkannte Kanten eliminieren
+                     ].filter(items=[
                         'LFDNR'
                         ,'NAME'
                         ,'AKTIV'
@@ -1875,6 +2064,201 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             return vAGSN
+
+    def getvVBELwithNodeAttributeAdded(self,nodeAttribute='KVR',preserveMultiindex=False):
+        """Adds a nodeAttribute (not already in vVBEL) to vVBEL and returns the df.
+
+        Args:
+            * nodeAttribute (default: 'KVR'): the Node Attribute which shall be added
+            * preserveMultiindex (default: False): if True an existing Multiindex will be preserved; False: existing Index(Indices) will be col(s)
+        Returns:
+            df (which might be incomplete, corrupt or empty if an error occurs; vVBEL is unchanged)
+
+        Raises:
+            XmError  
+                        
+        >>> xmlFile=ms['LocalHeatingNetwork']   
+        >>> from Xm import Xm
+        >>> xm=Xm(xmlFile=xmlFile,NoH5Read=True)
+        >>> df=xm.getvVBELwithNodeAttributeAdded()
+        >>> xm.dataFrames['tmp']=df
+        >>> print(xm._getvXXXXAsOneString(vXXXX='tmp',index=True,filterColList=['OBJTYPE','OBJID','NAME_i','NAME_k','KVR_i','KVR_k']))
+           OBJTYPE                OBJID       NAME_i  NAME_k KVR_i KVR_k
+        0     FWES  5638756766880678918           R3     V-1     2     1
+        1     FWVB  4643800032883366034       V-K002  R-K002     1     2
+        2     ROHR  5266224553324203132       R-K001  R-K002     2     2
+        3     ROHR  4614949065966596185       V-K002  V-K003     1     1
+        4     FWVB  4704603947372595298       V-K004  R-K004     1     2
+        5     ROHR  4637102239750163477       R-K003  R-K004     2     2
+        6     ROHR  4713733238627697042       V-K004  V-K005     1     1
+        7     FWVB  5121101823283893406       V-K005  R-K005     1     2
+        8     ROHR  4613782368750024999       R-K004  R-K005     2     2
+        9     ROHR  5123819811204259837       V-K005  V-K006     1     1
+        10    FWVB  5400405917816384862       V-K007  R-K007     1     2
+        11    ROHR  4945727430885351042       R-K006  R-K007     2     2
+        12    FWVB  5695730293103267172       V-K003  R-K003     1     2
+        13    ROHR  5379365049009065623       R-K002  R-K003     2     2
+        14    ROHR  5037777106796980248       V-K003  V-K004     1     1
+        15    KLAP  4801110583764519435           R2      R3     2     2
+        16    PGRP  4986517622672493603          R-1      R3     2     2
+        17    PUMP  5481331875203087055          R-1      R2     2     2
+        18    ROHR  4769996343148550485          R-L  R-K000     2     2
+        19    VENT  4897018421024717974          R-L     R-1     2     2
+        20    VENT  5525310316015533093  PKON-Knoten     R-1     2     2
+        21    ROHR  4789218195240364437       V-K001  V-K002     1     1
+        22    ROHR  4939422678063487923          V-L  V-K000     1     1
+        23    ROHR  4984202422877610920       V-K000  V-K001     1     1
+        24    ROHR  5611703699850694889       R-K005  R-K006     2     2
+        25    ROHR  5620197984230756681       V-K006  V-K007     1     1
+        26    ROHR  5647213228462830353       R-K000  R-K001     2     2
+        27    VENT  4678923650983295610          V-1     V-L     1     1
+        >>> len(df.columns.tolist())
+        20
+        >>> df.index.names
+        FrozenList([None])
+        >>> df=xm.getvVBELwithNodeAttributeAdded(preserveMultiindex=True)
+        >>> len(df.columns.tolist())
+        18
+        >>> df.index.names
+        FrozenList(['OBJTYPE', 'OBJID'])
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            vVBEL=self.dataFrames['vVBEL']
+            vKNOT=self.dataFrames['vKNOT']
+
+            vVBELCols_raw=vVBEL.columns.tolist()
+                       
+            # get indexNames before resetting them to cols
+            if isinstance(vVBEL.index,pd.MultiIndex):
+                indexColNames=vVBEL.index.names                
+            df=vVBEL.reset_index() # stores index as a column and returns DataFrame with the new index 
+            vVBELCols=df.columns.tolist() # with old indexCol(s)
+
+            df=pd.merge(df,vKNOT,left_on='pk_i',right_on='pk',suffixes=['','_i']).filter(items=vVBELCols+[nodeAttribute])
+            df.rename(columns={nodeAttribute: nodeAttribute+'_i'},inplace=True)
+            df=pd.merge(df,vKNOT,left_on='pk_k',right_on='pk',suffixes=['','_k']).filter(items=vVBELCols+[nodeAttribute+'_i']+[nodeAttribute])
+            df.rename(columns={nodeAttribute: nodeAttribute+'_k'},inplace=True)
+
+            if isinstance(vVBEL.index,pd.MultiIndex) and preserveMultiindex:                                
+                df=Xm.constructNewMultiindexFromCols(df=df,mColNames=indexColNames,mIdxNames=indexColNames)
+
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            if isinstance(df,pd.core.frame.DataFrame):
+                logger.error(logStrFinal) 
+            else:
+                logger.debug(logStrFinal) 
+                df=pd.DataFrame()   
+                                                                                     
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+            return df
+        
+    def vAGSN_Add(self,nl=None,weight=None,Layer=0,AKTIV=None,NAME='NEU'):
+        """Adds a new User-defined Cut to the Model-defined Cuts. 
+
+        Arguments:
+            * nl: NodeList for the Cut
+             * weight: columnName of the weight attribute 
+             * Layer
+             * AKTIV
+             * NAME
+
+        Raises:
+            XmError             
+            
+        >>> xmlFile=ms['GPipes']   
+        >>> from Xm import Xm
+        >>> xm=Xm(xmlFile=xmlFile,NoH5Read=True)       
+        >>> xm.vAGSN_Add(nl=['GL','GR'])           
+        >>> import pandas as pd
+        >>> pd.set_option('display.max_columns',None)
+        >>> pd.set_option('display.max_rows',None)
+        >>> pd.set_option('display.max_colwidth',666666)   
+        >>> pd.set_option('display.width',666666666)
+        >>> xm.dataFrames['vAGSN_raw']        
+           LFDNR         NAME AKTIV OBJTYPE                OBJID                   pk                   tk  nrObjIdInAgsn  nrObjIdTypeInAgsn  Layer nextNODE compNr
+        0      2       1 Rohr   101    ROHR  5244313507655010738  5015814781412926392  5015814781412926392              1                  1      0      GKS      1
+        1      6       V-Rohr   101    VENT  5309992331398639768  5396484903084432138  5396484903084432138              1                  1      0       G1      1
+        2      6       V-Rohr   101    ROHR  5244313507655010738  5396484903084432138  5396484903084432138              2                  1      0      GKS      1
+        3      8       Rohr-V   101    ROHR  4979507900871287244  4989935433418681990  4989935433418681990              1                  1      0       G4      1
+        4      8       Rohr-V   101    VENT  5745097345184516675  4989935433418681990  4989935433418681990              2                  1      0       GR      1
+        5     12      2 Rohre   101    ROHR  5114681686941855110  5748019382126004712  5748019382126004712              1                  1      0       G3      1
+        6     12      2 Rohre   101    ROHR  4979507900871287244  5748019382126004712  5748019382126004712              2                  1      0       G4      1
+        7     14           LR   101    VENT  5309992331398639768  5625063016896368599  5625063016896368599              1                  1      0       G1      1
+        8     14           LR   101    ROHR  5244313507655010738  5625063016896368599  5625063016896368599              2                  1      0      GKS      1
+        9     14           LR   101    VENT  5508684139418025293  5625063016896368599  5625063016896368599              3                  1      0      GKD      1
+        10    14           LR   101    ROHR  5114681686941855110  5625063016896368599  5625063016896368599              4                  1      0       G3      1
+        11    14           LR   101    ROHR  4979507900871287244  5625063016896368599  5625063016896368599              5                  1      0       G4      1
+        12    14           LR   101    VENT  5745097345184516675  5625063016896368599  5625063016896368599              6                  1      0       GR      1
+        13    16     LR-Lücke   101    VENT  5309992331398639768  5630543731618051887  5630543731618051887              1                  1      0       G1      1
+        14    16     LR-Lücke   101    ROHR  5244313507655010738  5630543731618051887  5630543731618051887              2                  1      0      GKS      1
+        15    16     LR-Lücke   101    ROHR  5114681686941855110  5630543731618051887  5630543731618051887              3                  1      0       G3      2
+        16    16     LR-Lücke   101    ROHR  4979507900871287244  5630543731618051887  5630543731618051887              4                  1      0       G4      2
+        17    16     LR-Lücke   101    VENT  5745097345184516675  5630543731618051887  5630543731618051887              5                  1      0       GR      2
+        18    18   LR-Flansch   101    VENT  5309992331398639768  5134530907542044265  5134530907542044265              1                  1      0       G1      1
+        19    18   LR-Flansch   101    ROHR  5244313507655010738  5134530907542044265  5134530907542044265              2                  1      0      GKS      1
+        20    18   LR-Flansch   101    VENT  5508684139418025293  5134530907542044265  5134530907542044265              3                  1      0      GKD      1
+        21    18   LR-Flansch   101    ROHR  5114681686941855110  5134530907542044265  5134530907542044265              4                  1      0       G3      1
+        22    18   LR-Flansch   101    ROHR  4979507900871287244  5134530907542044265  5134530907542044265              5                  1      0       G4      1
+        23    18   LR-Flansch   101    VENT  5745097345184516675  5134530907542044265  5134530907542044265              7                  1      0       GR      1
+        24    20  LR-Parallel   101    VENT  5309992331398639768  4694969854935170169  4694969854935170169              1                  1      0       G1      1
+        25    20  LR-Parallel   101    ROHR  5244313507655010738  4694969854935170169  4694969854935170169              2                  1      0      GKS      1
+        26    20  LR-Parallel   101    VENT  5116489323526156845  4694969854935170169  4694969854935170169              3                  1      0      GKD      1
+        27    20  LR-Parallel   101    ROHR  5114681686941855110  4694969854935170169  4694969854935170169              5                  1      0       G3      1
+        28    20  LR-Parallel   101    ROHR  4979507900871287244  4694969854935170169  4694969854935170169              6                  1      0       G4      1
+        29    20  LR-Parallel   101    VENT  5745097345184516675  4694969854935170169  4694969854935170169              7                  1      0       GR      1
+        30    21          NEU  None    VENT  5309992331398639768                 PT3S                 PT3S              1                  1      0       G1      1
+        31    21          NEU  None    ROHR  5244313507655010738                 PT3S                 PT3S              2                  1      0      GKS      1
+        32    21          NEU  None    VENT  5116489323526156845                 PT3S                 PT3S              3                  1      0      GKD      1
+        33    21          NEU  None    ROHR  5114681686941855110                 PT3S                 PT3S              4                  1      0       G3      1
+        34    21          NEU  None    ROHR  4979507900871287244                 PT3S                 PT3S              5                  1      0       G4      1
+        35    21          NEU  None    VENT  5745097345184516675                 PT3S                 PT3S              6                  1      0       GR      1
+        >>> xm.MxSync()
+        >>> xm.MxAdd()
+        >>> xm.MxAdd() # test 2nd Call
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            
+            df=self.getvVBELwithNodeAttributeAdded()
+            df=Xm.constructShortestPathFromNodeList(df=df,nl=nl,weight=weight)  
+
+            vAGSN_raw=self.dataFrames['vAGSN_raw']
+
+            df['Layer']=0
+            df['AKTIV']=None
+            df['NAME']='NEU'
+            nr=vAGSN_raw['LFDNR'].astype('int')
+            df['LFDNR']=nr.max()+1 
+
+            df=df.assign(nrObjIdInAgsn=df.groupby(['LFDNR']).cumcount()+1) # dieses VBEL-Obj. ist im Schnitt Nr. x
+            df=df.assign(nrObjIdTypeInAgsn=df.groupby(['LFDNR','OBJTYPE','OBJID']).cumcount()+1) # dieses VBEL-Obj kommt im Schnitt zum x. Mal vor
+
+            df['pk']='PT3S'
+            df['tk']='PT3S'
+
+            cols=vAGSN_raw.columns.tolist() # ['LFDNR','NAME','AKTIV','OBJTYPE','OBJID','pk','tk','nrObjIdInAgsn','nrObjIdTypeInAgsn','Layer','nextNODE','compNr']  
+            df = df[cols] 
+
+            vAGSN_rawNew=pd.concat([vAGSN_raw,df])
+
+            self.dataFrames['vAGSN_raw']=vAGSN_rawNew.reset_index(drop=True)#=#pd.DataFrame(vAGSN_rawNew.values,columns=vAGSN_rawNew.columns)         
+            
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.debug(logStrFinal)                 
+                                                                              
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+            return 
 
     def _vRART(self):
         """One row per RART.
@@ -4139,15 +4523,15 @@ class Xm():
     #        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
 
-    def _vVBEL(self,vKNOT=None,edges=vVBEL_edges,edgesD=vVBEL_edgesD,indices=['OBJTYPE','pk'],mIdxNames=['OBJTYPE','OBJID']):
+    def _vVBEL(self,vKNOT=None,edges=vVBEL_edges,edgesD=vVBEL_edgesD,mColNames=['OBJTYPE','pk'],mIdxNames=['OBJTYPE','OBJID']):
         """One row per Edge.
 
         Args:
             * vKNOT: df 
             * edges: list of strs
             * edgesD: list of strs
-            * indices: list of columns which shall be used as MIndex; the columns will be droped; the columns must be delivered by _vVBEL_XXXX
-            * mIdxNames: list of names for the indices above
+            * mColNames: list of columns which shall be used as MIndex; the columns will be droped; the columns must be delivered by _vVBEL_XXXX
+            * mIdxNames: list of names for the indices for the columns above
 
         Returns:
             Edge-df
@@ -4189,13 +4573,7 @@ class Xm():
             vVBEL=pd.concat(vVBEL_UnionList)
 
             # MIndices
-            arrays=[]
-            for col in indices:
-                arrays.append(vVBEL[col].tolist())
-            tuples = list(zip(*(arrays)))
-            index = pd.MultiIndex.from_tuples(tuples,names=mIdxNames)
-            vVBEL.drop(indices,axis=1,inplace=True)   
-            vVBEL=pd.DataFrame(vVBEL.values,index=index,columns=vVBEL.columns)
+            vVBEL=Xm.constructNewMultiindexFromCols(df=vVBEL,mColNames=mColNames,mIdxNames=mIdxNames)
 
             # Gruppenzugeh. ergaenzen
             vVBEL['LAYR']=[list() for dummy in vVBEL['tk']]
@@ -4815,7 +5193,7 @@ class Xm():
             self.dataFrames['vVBEL']=dfVBEL
 
     def MxAdd(self,mx=None,timeReq=None):
-        """Add MX-Resultcolumns to some Xm-Views.  NEW 1st Call: vROHRVecResults: vNRCV with MX1-Information.
+        """Add MX-Resultcolumns to some Xm-Views.  NEW 1st Call: vROHRVecResults, vAGSN
 
         Args:
             mx: Mx-Object
@@ -4837,29 +5215,31 @@ class Xm():
                 * vVBEL (KNOT..._i and KNOT..._k and Q)
 
             * NEW 1st Call:
-            * vROHRVecResults: VEC-Channel-Results for Pipe-Interior-Pts (IPts):
-                * pk
-                * mx2Idx
-                * IptIdx: S,0,...,E - Interior Point Index; S=Start EdgeDefNode, E=End EdgeDefNode, 0=1st Ipt in EdgeDefDirection
-                * one column per VEC-Channel
 
-            * vAGSN
-                * from vVBEL: KNOT..._i and KNOT..._k and Q
-                * from vROHRVecResults: vecResults
-                * Topology:
-                    * nextNODE                   
-                    * IptIdx                    
-                * Geometry:
-                    * dx                       
-                    * x                        
-                    * xVbel      
-                    * Z (the corresponding Z_i, Z_k and ZVEC are droped)
-                * Results:
-                    * Q: from Q before and QMVEC for PIPEs; in Schnittrichtung; QMVEC is droped
-                    * for available KNOT...#_i, KNOT...#_k and ...#VEC:
-                        * i.e. KNOT~*~*~*~P_i KNOT~*~*~*~P_k  ROHR~*~*~*~PVEC
-                        * P is new column
-                        * the correspondig 3 columns are droped
+                * vROHRVecResults: VEC-Channel-Results for Pipe-Interior-Pts (IPts):
+                    * pk
+                    * mx2Idx
+                    * IptIdx: S,0,...,E - Interior Point Index; S=Start EdgeDefNode, E=End EdgeDefNode, 0=1st Ipt in EdgeDefDirection
+                    * one column per VEC-Channel
+
+                * vAGSN
+                    * from vVBEL: KNOT..._i and KNOT..._k and Q
+                    * from vROHRVecResults: vecResults
+                    * Topology:
+                        * nextNODE                   
+                        * IptIdx                    
+                    * Geometry:
+                        * dx                       
+                        * x                        
+                        * xVbel      
+                        * Z (the corresponding Z_i, Z_k and ZVEC are droped)
+                    * Results:
+                        * Q: from Q before and QMVEC for PIPEs; in Schnittrichtung; QMVEC is droped
+                        * for available KNOT...#_i, KNOT...#_k and ...#VEC:
+                            * i.e. KNOT~*~*~*~P_i KNOT~*~*~*~P_k  ROHR~*~*~*~PVEC
+                            * P is new column
+                            * the correspondig 3 columns are droped
+        
         Notes:
             * The Add-Result is persisted if df were read from H5:        
                         * xm.ToH5() is called if xm.h5Read is True.           
@@ -4904,60 +5284,6 @@ class Xm():
         29       4      E        73.419998
         30       6      S         0.000000
         31       6      E        68.599998
-        >>> xm=xms['GPipes']
-        >>> xm.MxSync()
-        >>> xm.MxAdd()
-        >>> xm.MxAdd() # test 2nd Call
-        >>> vAGSN=xm.dataFrames['vAGSN']
-        >>> schnitt=vAGSN[vAGSN['NAME']=='LR']
-        >>> xm.dataFrames['schnitt']=schnitt
-        >>> print(xm._getvXXXXAsOneString(vXXXX='schnitt',filterColList=['OBJTYPE','NAME_i','NAME_k','IptIdx','nextNODE','x','PH'],index=True))
-            OBJTYPE NAME_i NAME_k IptIdx nextNODE         x       PH
-        79     VENT     GL     G1      S       G1       0.0       40
-        80     VENT     GL     G1      E       G1       0.0   39.974
-        81     ROHR     G1    GKS      S      GKS       0.0   39.974
-        82     ROHR     G1    GKS      0      GKS    5000.0  39.4534
-        83     ROHR     G1    GKS      1      GKS   10000.0  38.9255
-        84     ROHR     G1    GKS      2      GKS   15000.0  38.3903
-        85     ROHR     G1    GKS      3      GKS   20000.0  37.8474
-        86     ROHR     G1    GKS      4      GKS   25000.0  37.2964
-        87     ROHR     G1    GKS      5      GKS   30000.0   36.737
-        88     ROHR     G1    GKS      6      GKS   35000.0  36.1689
-        89     ROHR     G1    GKS      7      GKS   40000.0  35.5915
-        90     ROHR     G1    GKS      8      GKS   45000.0  35.0044
-        91     ROHR     G1    GKS      9      GKS   50000.0  34.4071
-        92     ROHR     G1    GKS     10      GKS   55000.0  33.7991
-        93     ROHR     G1    GKS     11      GKS   60000.0  33.1799
-        94     ROHR     G1    GKS     12      GKS   65000.0  32.5486
-        95     ROHR     G1    GKS     13      GKS   70000.0  31.9048
-        96     ROHR     G1    GKS     14      GKS   75000.0  31.2475
-        97     ROHR     G1    GKS     15      GKS   80000.0  30.5759
-        98     ROHR     G1    GKS     16      GKS   85000.0  29.8891
-        99     ROHR     G1    GKS     17      GKS   90000.0  29.1859
-        100    ROHR     G1    GKS     18      GKS   95000.0  28.4653
-        101    ROHR     G1    GKS     19      GKS  100000.0  27.7258
-        102    ROHR     G1    GKS     20      GKS  105000.0  26.9659
-        103    ROHR     G1    GKS     21      GKS  110000.0  26.1838
-        104    ROHR     G1    GKS     22      GKS  115000.0  25.3776
-        105    ROHR     G1    GKS     23      GKS  120000.0  24.5449
-        106    ROHR     G1    GKS     24      GKS  125000.0  23.6829
-        107    ROHR     G1    GKS     25      GKS  130000.0  22.7884
-        108    ROHR     G1    GKS     26      GKS  135000.0  21.8575
-        109    ROHR     G1    GKS     27      GKS  140000.0  20.8855
-        110    ROHR     G1    GKS     28      GKS  145000.0  19.8664
-        111    ROHR     G1    GKS     29      GKS  150000.0  18.7928
-        112    ROHR     G1    GKS     30      GKS  155000.0  17.6551
-        113    ROHR     G1    GKS      E      GKS  160000.0  16.4405
-        114    VENT    GKS    GKD      S      GKD  160000.0  16.4404
-        115    VENT    GKS    GKD      E      GKD  160000.0  16.3758
-        116    ROHR    GKD     G3      S       G3  160000.0  16.3758
-        117    ROHR    GKD     G3      0       G3  165000.0  15.0583
-        118    ROHR    GKD     G3      E       G3  170000.0  13.6122
-        119    ROHR     G4     G3      E       G4  170000.0  13.6122
-        120    ROHR     G4     G3      0       G4  175000.0  11.9873
-        121    ROHR     G4     G3      S       G4  180000.0  10.1062
-        122    VENT     G4     GR      S       GR  180000.0  10.1062
-        123    VENT     G4     GR      E       GR  180000.0       10
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -4994,6 +5320,45 @@ class Xm():
             self.dataFrames['vROHR']=vROHR
             self.dataFrames['vFWVB']=vFWVB
 
+            self._MxAddvVBEL(mxVecsFileData=mxVecsFileData)
+            self._MxAddvROHRVecResults(mxVecsFileData=mxVecsFileData)
+            self._MxAddvAGSN()
+
+            if self.h5Read:
+                self.ToH5()          
+                                                  
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
+            logger.error(logStrFinal) 
+                     
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+
+    def _MxAddvVBEL(self,mxVecsFileData):
+        """(Re-)constructing vVBEL.
+
+        Arguments:
+            mxVecsFileData
+
+        Result:
+            View with MX2-Results added:            
+                * in the Xm-View below col mx2Idx must exist 
+                * mx2Idx is considered to be the last of the Model-cols
+                * right from mx2Idx Result-cols are added if not already existing
+                * already existing Result-cols are overwritten
+                * mx2Idx-View:
+                    * ...                 
+                    * vVBEL (KNOT..._i and KNOT..._k and Q)
+         
+        Raises:
+            XmError
+      
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:             
             #vVBEL - Knoten
             vKNOT=self.dataFrames['vKNOT']
             vVBEL=self.dataFrames['vVBEL']
@@ -5080,8 +5445,37 @@ class Xm():
 
                 #logger.debug("{0:s}vVBEL Liste: {1:s}".format(logStr,str(vVBEL.columns.tolist())))  
 
-            self.dataFrames['vVBEL']=vVBEL
+            self.dataFrames['vVBEL']=vVBEL           
+                                                  
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
+            logger.error(logStrFinal) 
+                     
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
+    def _MxAddvROHRVecResults(self,mxVecsFileData):
+        """(Re-)constructing vROHRVecResults.
+
+        Arguments:
+            mxVecsFileData
+
+        Result:
+            * vROHRVecResults: VEC-Channel-Results for Pipe-Interior-Pts (IPts):
+                * pk
+                * mx2Idx
+                * IptIdx: S,0,...,E - Interior Point Index; S=Start EdgeDefNode, E=End EdgeDefNode, 0=1st Ipt in EdgeDefDirection
+                * one column per VEC-Channel
+         
+        Raises:
+            XmError
+      
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:       
             #VEC
             reExpNegLookAhead='(?P<ObjType>\S+)~(?P<Name_i>\S*)~(?P<Name_k>\S*)~(?!\d+)(?P<ObjId>[\*\d]*)~(?P<ChannelType>\S+)'
             dfSource=mxVecsFileData.filter(regex='(VEC$)').filter(regex='(^ROHR)').filter(regex=reExpNegLookAhead)
@@ -5110,6 +5504,7 @@ class Xm():
             colsMaybeAlreadyAdded=mxVecsFileData.filter(regex='(VEC$)').filter(regex='(^ROHR)').filter(regex=reExpNegLookAhead).columns.tolist()
             #.filter(regex='^ROHR').filter(regex='^(?!.*VEC)')
             #.columns.tolist()
+            vROHR=self.dataFrames['vROHR']
             colsInTarget=vROHR.columns.tolist()
             colsInTargetNet=list(set(colsInTarget)-set(colsToBeAdded)-set(colsMaybeAlreadyAdded))
             colsInTargetNet=[col for col in colsInTarget if col in colsInTargetNet] # preserve the original col-Sequence
@@ -5138,15 +5533,106 @@ class Xm():
             #logger.debug(logString)
             vROHRVecResults=dfMerge[['pk']+['mx2Idx']+['IptIdx']+colsToBeAdded]
 
-            self.dataFrames['vROHRVecResults']=vROHRVecResults
+            self.dataFrames['vROHRVecResults']=vROHRVecResults            
+        
+                                                  
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
+            logger.error(logStrFinal) 
+                     
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
-            #vAGSN
-            vAGSN=self.dataFrames['vAGSN_raw']
-            ##logString="{0:s}The shape from vAGSN {1:s}: The cols: {2:s}".format(logStr,str(vAGSN.shape),str(vAGSN.columns.tolist()))
-            ##logger.debug(logString)
-            ##logString="{0:s}vAGSN_raw: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vAGSN_raw'))
-            ##logger.debug(logString)
+    def _MxAddvAGSN(self):
+        """(Re-)constructing vAGSN.
+
+        Result:
+
+            * vAGSN
+                * from vVBEL: KNOT..._i and KNOT..._k and Q
+                * from vROHRVecResults: vecResults
+                * Topology:
+                    * nextNODE                   
+                    * IptIdx                    
+                * Geometry:
+                    * dx                       
+                    * x                        
+                    * xVbel      
+                    * Z (the corresponding Z_i, Z_k and ZVEC are droped)
+                * Results:
+                    * Q: from Q before and QMVEC for PIPEs; in Schnittrichtung; QMVEC is droped
+                    * for available KNOT...#_i, KNOT...#_k and ...#VEC:
+                        * i.e. KNOT~*~*~*~P_i KNOT~*~*~*~P_k  ROHR~*~*~*~PVEC
+                        * P is new column
+                        * the correspondig 3 columns are droped
+        Raises:
+            XmError
+
+        >>> xm=xms['GPipes']
+        >>> xm.MxSync()
+        >>> xm.MxAdd()
+        >>> xm.MxAdd() # test 2nd Call
+        >>> vAGSN=xm.dataFrames['vAGSN']
+        >>> schnitt=vAGSN[vAGSN['NAME']=='LR']
+        >>> xm.dataFrames['schnitt']=schnitt
+        >>> print(xm._getvXXXXAsOneString(vXXXX='schnitt',filterColList=['OBJTYPE','NAME_i','NAME_k','IptIdx','nextNODE','x','PH'],index=True))
+            OBJTYPE NAME_i NAME_k IptIdx nextNODE         x       PH
+        79     VENT     GL     G1      S       G1       0.0       40
+        80     VENT     GL     G1      E       G1       0.0   39.974
+        81     ROHR     G1    GKS      S      GKS       0.0   39.974
+        82     ROHR     G1    GKS      0      GKS    5000.0  39.4534
+        83     ROHR     G1    GKS      1      GKS   10000.0  38.9255
+        84     ROHR     G1    GKS      2      GKS   15000.0  38.3903
+        85     ROHR     G1    GKS      3      GKS   20000.0  37.8474
+        86     ROHR     G1    GKS      4      GKS   25000.0  37.2964
+        87     ROHR     G1    GKS      5      GKS   30000.0   36.737
+        88     ROHR     G1    GKS      6      GKS   35000.0  36.1689
+        89     ROHR     G1    GKS      7      GKS   40000.0  35.5915
+        90     ROHR     G1    GKS      8      GKS   45000.0  35.0044
+        91     ROHR     G1    GKS      9      GKS   50000.0  34.4071
+        92     ROHR     G1    GKS     10      GKS   55000.0  33.7991
+        93     ROHR     G1    GKS     11      GKS   60000.0  33.1799
+        94     ROHR     G1    GKS     12      GKS   65000.0  32.5486
+        95     ROHR     G1    GKS     13      GKS   70000.0  31.9048
+        96     ROHR     G1    GKS     14      GKS   75000.0  31.2475
+        97     ROHR     G1    GKS     15      GKS   80000.0  30.5759
+        98     ROHR     G1    GKS     16      GKS   85000.0  29.8891
+        99     ROHR     G1    GKS     17      GKS   90000.0  29.1859
+        100    ROHR     G1    GKS     18      GKS   95000.0  28.4653
+        101    ROHR     G1    GKS     19      GKS  100000.0  27.7258
+        102    ROHR     G1    GKS     20      GKS  105000.0  26.9659
+        103    ROHR     G1    GKS     21      GKS  110000.0  26.1838
+        104    ROHR     G1    GKS     22      GKS  115000.0  25.3776
+        105    ROHR     G1    GKS     23      GKS  120000.0  24.5449
+        106    ROHR     G1    GKS     24      GKS  125000.0  23.6829
+        107    ROHR     G1    GKS     25      GKS  130000.0  22.7884
+        108    ROHR     G1    GKS     26      GKS  135000.0  21.8575
+        109    ROHR     G1    GKS     27      GKS  140000.0  20.8855
+        110    ROHR     G1    GKS     28      GKS  145000.0  19.8664
+        111    ROHR     G1    GKS     29      GKS  150000.0  18.7928
+        112    ROHR     G1    GKS     30      GKS  155000.0  17.6551
+        113    ROHR     G1    GKS      E      GKS  160000.0  16.4405
+        114    VENT    GKS    GKD      S      GKD  160000.0  16.4404
+        115    VENT    GKS    GKD      E      GKD  160000.0  16.3758
+        116    ROHR    GKD     G3      S       G3  160000.0  16.3758
+        117    ROHR    GKD     G3      0       G3  165000.0  15.0583
+        118    ROHR    GKD     G3      E       G3  170000.0  13.6122
+        119    ROHR     G4     G3      E       G4  170000.0  13.6122
+        120    ROHR     G4     G3      0       G4  175000.0  11.9873
+        121    ROHR     G4     G3      S       G4  180000.0  10.1062
+        122    VENT     G4     GR      S       GR  180000.0  10.1062
+        123    VENT     G4     GR      E       GR  180000.0       10
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
            
+            vAGSN=self.dataFrames['vAGSN_raw']
+            vVBEL=self.dataFrames['vVBEL']
+            vROHRVecResults=self.dataFrames['vROHRVecResults']
+                       
             vAGSN=pd.merge(
                     vAGSN
                    ,vVBEL
@@ -5173,7 +5659,7 @@ class Xm():
             # ROHRE mit E loeschen
             df=df[(df.OBJTYPE != 'ROHR') | ((df.OBJTYPE == 'ROHR') & (df.ik_tmp=='S'))]
             df['IptIdx']=df.apply(lambda row: row.IptIdx if row.OBJTYPE=='ROHR' else row.ik_tmp,axis=1)
-
+            
             if 'ROHR~*~*~*~SVEC' not in df.columns.tolist():
                 df=vAGSN[pd.isnull(vAGSN['tk_VBEL']) != True].copy()
             else:
@@ -5308,9 +5794,6 @@ class Xm():
                     df.drop(['ROHR~*~*~*~QMVEC'], axis=1, inplace=True)
 
             self.dataFrames['vAGSN']=df
-
-            if self.h5Read:
-                self.ToH5()          
                                                   
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
