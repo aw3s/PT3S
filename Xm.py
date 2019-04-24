@@ -646,6 +646,7 @@ import logging
 import glob
 
 import networkx as nx
+import math
 
 # ---
 # --- PT3S Imports
@@ -758,7 +759,7 @@ class Xm():
                 return df   
 
     @classmethod            
-    def constructShortestPathFromNodeList(cls,df=None,sourceCol='NAME_i',targetCol='NAME_k',nl=None,weight=None):    
+    def constructShortestPathFromNodeList(cls,df=None,sourceCol='NAME_i',targetCol='NAME_k',nl=None,weight=None,query=None,fmask=None):    
             """Returns a DataFrame with Edges (one per row) implementing the shortest Path over NodeList.
     
                 Args:
@@ -783,8 +784,15 @@ class Xm():
                                 * non Null Q-rows filtered here - then:
                                 * 'QAbs': constructed here
                                 * 'QAbsInv': constructed here
+                        def vAGSN_Add(self,nl=None,weight=None,Layer=0,AKTIV=None,NAME='NEU',mask=None,fmask=None):
+       
+                        * query: query to filter vVBEL (to filter Edges) before constructing the Graph 
+                        * fmask: function to filter vVBEL (to filter Edges) before constructing the Graph 
+                        * query and fmask are used both if not None
 
                 Returns:
+                    df: DataFrame with Edges (one per row) implementing the shortest Path over NodeList
+                    None is returned if an error occurs
                     columns
                         * OBJTYPE
                         * OBJID
@@ -794,10 +802,11 @@ class Xm():
                             * the number of the connected component
                             * 1 for all edges if all nodes in NodeList are connected
 
+             
                 >>> xmlFile=ms['GPipes']   
                 >>> from Xm import Xm
                 >>> xm=Xm(xmlFile=xmlFile,NoH5Read=True)       
-                >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['GL','GR'])
+                >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['GL','GR'])                
                   OBJTYPE                OBJID nextNODE  compNr
                 0    VENT  5309992331398639768       G1       1
                 1    ROHR  5244313507655010738      GKS       1
@@ -805,28 +814,85 @@ class Xm():
                 3    ROHR  5114681686941855110       G3       1
                 4    ROHR  4979507900871287244       G4       1
                 5    VENT  5745097345184516675       GR       1
+                >>> xm.MxSync()
+                >>> xm.MxAdd()    
+                >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['GL','GR'],weight='QAbsInv')  # durchflussstaerkster Weg
+                  OBJTYPE                OBJID nextNODE  compNr
+                0    VENT  5309992331398639768       G1       1
+                1    ROHR  5244313507655010738      GKS       1
+                2    VENT  5508684139418025293      GKD       1
+                3    ROHR  5114681686941855110       G3       1
+                4    ROHR  4979507900871287244       G4       1
+                5    VENT  5745097345184516675       GR       1
+                >>> xmlFile=ms['LocalHeatingNetwork']                   
+                >>> xm=Xm(xmlFile=xmlFile,NoH5Read=True)       
+                >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['V-L','V-K07'])     
+                >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['V-L','V-K007'])   
+                  OBJTYPE                OBJID nextNODE  compNr
+                0    ROHR  4939422678063487923   V-K000       1
+                1    ROHR  4984202422877610920   V-K001       1
+                2    ROHR  4789218195240364437   V-K002       1
+                3    ROHR  4614949065966596185   V-K003       1
+                4    ROHR  5037777106796980248   V-K004       1
+                5    ROHR  4713733238627697042   V-K005       1
+                6    ROHR  5123819811204259837   V-K006       1
+                7    ROHR  5620197984230756681   V-K007       1
+                >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['V-K007','R-K007'])   
+                  OBJTYPE                OBJID nextNODE  compNr
+                0    FWVB  5400405917816384862   R-K007       1
+                >>> f=lambda row: True if row.KVR_i=='2' and row.KVR_k=='2' else False 
+                >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['V-K007','R-K007'],fmask=f)  
+                >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['R-K007','V-K007'],query="OBJTYPE not in ['FWVB','PGRP']")       
+                   OBJTYPE                OBJID nextNODE  compNr
+                0     ROHR  4945727430885351042   R-K006       1
+                1     ROHR  5611703699850694889   R-K005       1
+                2     ROHR  4613782368750024999   R-K004       1
+                3     ROHR  4637102239750163477   R-K003       1
+                4     ROHR  5379365049009065623   R-K002       1
+                5     ROHR  5266224553324203132   R-K001       1
+                6     ROHR  5647213228462830353   R-K000       1
+                7     ROHR  4769996343148550485      R-L       1
+                8     VENT  4897018421024717974      R-1       1
+                9     PUMP  5481331875203087055       R2       1
+                10    KLAP  4801110583764519435       R3       1
+                11    FWES  5638756766880678918      V-1       1
+                12    VENT  4678923650983295610      V-L       1
+                13    ROHR  4939422678063487923   V-K000       1
+                14    ROHR  4984202422877610920   V-K001       1
+                15    ROHR  4789218195240364437   V-K002       1
+                16    ROHR  4614949065966596185   V-K003       1
+                17    ROHR  5037777106796980248   V-K004       1
+                18    ROHR  4713733238627697042   V-K005       1
+                19    ROHR  5123819811204259837   V-K006       1
+                20    ROHR  5620197984230756681   V-K007       1
             """
 
             logStr = "{0:s}.{1:s} (classmethod): ".format(__class__.__name__, sys._getframe().f_code.co_name)
             logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
-            try:          
+            try:         
+                              
+                # Kanten ggf. filtern
+                if query != None:                    
+                    df=pd.DataFrame(df.query(query).values,columns=df.columns)
+                if fmask != None:
+                    df=pd.DataFrame(df[df.apply(f,axis=1)].values,columns=df.columns)                   
                 
                 # Graphen konstruieren ###############################################################
                
                 # adjusting/constructing some cols and some content before constructing the Graph          
                 if 'L' in df.columns.tolist():              
-                    df['L']=df['L'].astype('float')
+                    df.loc[:,'L']=df['L'].astype('float').values
 
                 if 'Q' in df.columns.tolist():
                     # nur durchflossene Kanten
                     df=df[pd.isnull(df['Q']) == False]
                     df=df[df['Q'] != 0]
-                    df['QAbs']=df['Q'].apply(lambda x: math.fabs(x))
-                    df['QAbsInv']=df['QAbs'].apply(lambda x: 1/x)
+                    df.loc[:,'QAbs']=df['Q'].apply(lambda x: math.fabs(x))
+                    df.loc[:,'QAbsInv']=df['QAbs'].apply(lambda x: 1/x)
 
-                df['SOURCE_i']=df[sourceCol]
-                df['SOURCE_k']=df[targetCol]
+                df.loc[:,'SOURCE_i']=df[sourceCol].values
+                df.loc[:,'SOURCE_k']=df[targetCol].values
 
                 G=nx.from_pandas_edgelist(df, source='SOURCE_i', target='SOURCE_k', edge_attr=True,create_using=nx.MultiGraph())
 
@@ -839,11 +905,12 @@ class Xm():
     
                 # Knotenpaare ermitteln
                 pathPairs = list(zip(nl[:-1],nl[1:]))
-                logger.debug("{:s}:Knotenpaare zwischen denen Abschnittsweise ein Pfad gesucht wird: {:s}".format(logStr,str(pathPairs))) 
+                logger.debug("{:s}Knotenpaare zwischen denen Abschnittsweise ein Pfad gesucht wird: {:s}".format(logStr,str(pathPairs))) 
     
+                error=False
                 # Pfad suchen über Knotenpaar #######################################################
                 for source,target in pathPairs:
-                    logger.debug("{:s}:     Knotenpaar: source: {:s} target: {:s}".format(logStr,source,target)) 
+                    logger.debug("{:s}     Knotenpaar: source: {:s} target: {:s}".format(logStr,source,target)) 
         
                     compNr=1
         
@@ -854,7 +921,7 @@ class Xm():
                         pathEdges = list(zip(pathNodes[:-1],pathNodes[1:]))
                         # ueber alle Kanten
                         for u,v in pathEdges:
-                                logger.debug("{:s}:          Kante: {:s} {:s}".format(logStr,u,v))
+                                logger.debug("{:s}          Kante: {:s} {:s}".format(logStr,u,v))
                     
                                 dct=G[u][v]
                     
@@ -879,12 +946,27 @@ class Xm():
                                 cols.append(compNr) # compNr
                                 df=pd.DataFrame([cols],columns=['OBJTYPE','OBJID','nextNODE','compNr'])
                                 dfList.append(df)
-                                            
-                    except nx.NetworkXNoPath:            
-                        logger.debug("{:s}:     Knotenpaar: source: {:s} target: {:s}: Kein Pfad!".format(logStr,source,target)) 
+
+                    except ValueError as e:
+                        logger.debug("{:s}     Knotenpaar: source: {:s} target: {:s}: Fehler bei Pfadermittlung:".format(logStr,source,target)) 
+                        logStrTmp="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                        logger.debug(logStrTmp)  
+                        error=True
+                        break     
+                               
+                    except nx.NodeNotFound as e:
+                        logger.debug("{:s}     Knotenpaar: source: {:s} target: {:s}: Knoten nicht gefunden!".format(logStr,source,target)) 
+                        error=True
+                        break                                              
+
+                    except nx.NetworkXNoPath as e:                        
+                        logger.debug("{:s}     Knotenpaar: source: {:s} target: {:s}: Kein Pfad!".format(logStr,source,target)) 
                         compNr+=1
         
-                df=pd.concat(dfList).reset_index(drop=True) 
+                if not error:
+                    df=pd.concat(dfList).reset_index(drop=True)
+                else:
+                    df=None
                                 
             except Exception as e:
                 logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -2158,7 +2240,7 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             return df
         
-    def vAGSN_Add(self,nl=None,weight=None,Layer=0,AKTIV=None,NAME='NEU'):
+    def vAGSN_Add(self,nl=None,weight=None,Layer=0,AKTIV=None,NAME='NEU',query=None,fmask=None):
         """Adds a new User-defined Cut to the Model-defined Cuts. 
 
         Arguments:
@@ -2167,6 +2249,9 @@ class Xm():
              * Layer
              * AKTIV
              * NAME
+             * query: mask to filter vVBEL (to filter Edges) before constructing the Graph 
+             * fmask: function to filter vVBEL (to filter Edges) before constructing the Graph 
+             * query and fmask are used both if not None
 
         Raises:
             XmError             
@@ -2219,8 +2304,13 @@ class Xm():
         34    21          NEU  None    ROHR  4979507900871287244                 PT3S                 PT3S              5                  1      0       G4      1
         35    21          NEU  None    VENT  5745097345184516675                 PT3S                 PT3S              6                  1      0       GR      1
         >>> xm.MxSync()
-        >>> xm.MxAdd()
-        >>> xm.MxAdd() # test 2nd Call
+        >>> xm.MxAdd()    
+        >>> xm.vAGSN_Add(nl=['GL','GR'],weight='QAbsInv')  # durchflussstaerksten Weg erzwingen  
+        >>> df=xm.dataFrames['vAGSN_raw']
+        >>> df.query("LFDNR in [21,22] and nextNODE=='GKD'")
+           LFDNR NAME AKTIV OBJTYPE                OBJID    pk    tk  nrObjIdInAgsn  nrObjIdTypeInAgsn  Layer nextNODE compNr
+        32    21  NEU  None    VENT  5116489323526156845  PT3S  PT3S              3                  1      0      GKD      1
+        38    22  NEU  None    VENT  5508684139418025293  PT3S  PT3S              3                  1      0      GKD      1
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -2229,7 +2319,7 @@ class Xm():
         try: 
             
             df=self.getvVBELwithNodeAttributeAdded()
-            df=Xm.constructShortestPathFromNodeList(df=df,nl=nl,weight=weight)  
+            df=Xm.constructShortestPathFromNodeList(df=df,nl=nl,weight=weight,query=query,fmask=fmask)  
 
             vAGSN_raw=self.dataFrames['vAGSN_raw']
 
