@@ -725,7 +725,7 @@ class Xm():
 
             Returns:
                 * df with Multiindex       
-                * None if an Error occured
+                * empty DataFrame is returned if an Error occurs
                        
             >>> d = {'OBJTYPE': ['ROHR', 'VENT'], 'pk': [123, 345], 'data': ['abc', 'def']}
             >>> import pandas as pd
@@ -753,7 +753,7 @@ class Xm():
             except Exception as e:
                 logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
                 logger.debug(logStrFinal)    
-                df=None
+                df=pd.DataFrame()
             finally:
                 logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
                 return df   
@@ -792,7 +792,7 @@ class Xm():
 
                 Returns:
                     df: DataFrame with Edges (one per row) implementing the shortest Path over NodeList
-                    None is returned if an error occurs
+                    empty DataFrame is returned if an error occurs
                     columns
                         * OBJTYPE
                         * OBJID
@@ -827,6 +827,9 @@ class Xm():
                 >>> xmlFile=ms['LocalHeatingNetwork']                   
                 >>> xm=Xm(xmlFile=xmlFile,NoH5Read=True)       
                 >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['V-L','V-K07'])     
+                Empty DataFrame
+                Columns: []
+                Index: []
                 >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['V-L','V-K007'])   
                   OBJTYPE                OBJID nextNODE  compNr
                 0    ROHR  4939422678063487923   V-K000       1
@@ -842,6 +845,9 @@ class Xm():
                 0    FWVB  5400405917816384862   R-K007       1
                 >>> f=lambda row: True if row.KVR_i=='2' and row.KVR_k=='2' else False 
                 >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['V-K007','R-K007'],fmask=f)  
+                Empty DataFrame
+                Columns: []
+                Index: []
                 >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['R-K007','V-K007'],query="OBJTYPE not in ['FWVB','PGRP']")       
                    OBJTYPE                OBJID nextNODE  compNr
                 0     ROHR  4945727430885351042   R-K006       1
@@ -876,7 +882,7 @@ class Xm():
                 if query != None:                    
                     df=pd.DataFrame(df.query(query).values,columns=df.columns)
                 if fmask != None:
-                    df=pd.DataFrame(df[df.apply(f,axis=1)].values,columns=df.columns)                   
+                    df=pd.DataFrame(df[df.apply(fmask,axis=1)].values,columns=df.columns)                   
                 
                 # Graphen konstruieren ###############################################################
                
@@ -903,6 +909,8 @@ class Xm():
     
                 dfList=[]
     
+                logger.debug("{:s}Knotenliste: {:s}".format(logStr,str(nl))) 
+
                 # Knotenpaare ermitteln
                 pathPairs = list(zip(nl[:-1],nl[1:]))
                 logger.debug("{:s}Knotenpaare zwischen denen Abschnittsweise ein Pfad gesucht wird: {:s}".format(logStr,str(pathPairs))) 
@@ -966,12 +974,12 @@ class Xm():
                 if not error:
                     df=pd.concat(dfList).reset_index(drop=True)
                 else:
-                    df=None
+                    df=pd.DataFrame()
                                 
             except Exception as e:
                 logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
                 logger.debug(logStrFinal)    
-                df=None
+                df=pd.DataFrame()
             finally:
                 logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
                 return df                   
@@ -1516,7 +1524,7 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vStr
 
-    def _getvXXXXAsOneString(self,vXXXX=None,start=0,end=-1,dropColList=None,filterColList=None,mapFunc={},sortList=None,fmtFunc={},index=True,header=True):
+    def _getvXXXXAsOneString(self,vXXXX=None,start=0,end=-1,dropColList=None,filterColList=None,mapFunc={},sortList=None,ascending=True,fmtFunc={},index=True,header=True):
         """Returns vXXXX-Content as one String (for Doctest-Purposes).
 
         Args:
@@ -1527,6 +1535,7 @@ class Xm():
             * filterColList
             * mapFunc: col:func: df[col].map(func)
             * sortList
+            * ascending
             * fmtFunc: col:func: passed to df.to_string(formatters=fmtFunc, ...)
             * index
             * header
@@ -1570,7 +1579,7 @@ class Xm():
 
         # sort 
         if isinstance(sortList,list):
-            df=df.sort_values(sortList,ascending=True)    
+            df=df.sort_values(sortList,ascending=ascending)    
 
         try:                 
             dfContentAsOneString=df.to_string(formatters=fmtFunc,index=index,header=header)                                                                            
@@ -2321,26 +2330,31 @@ class Xm():
             df=self.getvVBELwithNodeAttributeAdded()
             df=Xm.constructShortestPathFromNodeList(df=df,nl=nl,weight=weight,query=query,fmask=fmask)  
 
-            vAGSN_raw=self.dataFrames['vAGSN_raw']
+            if not df.empty:
 
-            df['Layer']=0
-            df['AKTIV']=None
-            df['NAME']='NEU'
-            nr=vAGSN_raw['LFDNR'].astype('int')
-            df['LFDNR']=nr.max()+1 
+                vAGSN_raw=self.dataFrames['vAGSN_raw']
 
-            df=df.assign(nrObjIdInAgsn=df.groupby(['LFDNR']).cumcount()+1) # dieses VBEL-Obj. ist im Schnitt Nr. x
-            df=df.assign(nrObjIdTypeInAgsn=df.groupby(['LFDNR','OBJTYPE','OBJID']).cumcount()+1) # dieses VBEL-Obj kommt im Schnitt zum x. Mal vor
+                df['Layer']=0
+                df['AKTIV']=None
+                df['NAME']=NAME
+                nr=vAGSN_raw['LFDNR'].astype('int')
+                df['LFDNR']=nr.max()+1 
 
-            df['pk']='PT3S'
-            df['tk']='PT3S'
+                df=df.assign(nrObjIdInAgsn=df.groupby(['LFDNR']).cumcount()+1) # dieses VBEL-Obj. ist im Schnitt Nr. x
+                df=df.assign(nrObjIdTypeInAgsn=df.groupby(['LFDNR','OBJTYPE','OBJID']).cumcount()+1) # dieses VBEL-Obj kommt im Schnitt zum x. Mal vor
 
-            cols=vAGSN_raw.columns.tolist() # ['LFDNR','NAME','AKTIV','OBJTYPE','OBJID','pk','tk','nrObjIdInAgsn','nrObjIdTypeInAgsn','Layer','nextNODE','compNr']  
-            df = df[cols] 
+                df['pk']='PT3S'
+                df['tk']='PT3S'
 
-            vAGSN_rawNew=pd.concat([vAGSN_raw,df])
+                cols=vAGSN_raw.columns.tolist() # ['LFDNR','NAME','AKTIV','OBJTYPE','OBJID','pk','tk','nrObjIdInAgsn','nrObjIdTypeInAgsn','Layer','nextNODE','compNr']  
+                df = df[cols] 
 
-            self.dataFrames['vAGSN_raw']=vAGSN_rawNew.reset_index(drop=True)#=#pd.DataFrame(vAGSN_rawNew.values,columns=vAGSN_rawNew.columns)         
+                vAGSN_rawNew=pd.concat([vAGSN_raw,df])
+
+                self.dataFrames['vAGSN_raw']=vAGSN_rawNew.reset_index(drop=True)
+            else:
+                logger.debug("{0:s}Fehler: Schnitt {1:s} konnte nicht erzeugt werden!".format(logStr,NAME))    
+                
             
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -5335,45 +5349,7 @@ class Xm():
                         * xm.ToH5() is called if xm.h5Read is True.           
 
         Raises:
-            XmError
-
-        >>> xm=xms['LocalHeatingNetwork']
-        >>> xm.MxSync()
-        >>> xm.MxAdd()
-        >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults',filterColList=['mx2Idx','IptIdx','ROHR~*~*~*~SVEC'],index=True))
-            mx2Idx IptIdx  ROHR~*~*~*~SVEC
-        0        0      S         0.000000
-        1        0      E        88.019997
-        2        1      S         0.000000
-        3        1      E       405.959991
-        4        2      S         0.000000
-        5        2      E        83.550003
-        6        3      S         0.000000
-        7        3      E        88.019997
-        8        5      S         0.000000
-        9        5      E       195.529999
-        10       7      S         0.000000
-        11       7      E       109.769997
-        12       8      S         0.000000
-        13       8      E        76.400002
-        14       9      S         0.000000
-        15       9      E        83.550003
-        16      10      S         0.000000
-        17      10      E       164.910004
-        18      11      S         0.000000
-        19      11      E       195.529999
-        20      12      S         0.000000
-        21      12      E       405.959991
-        22      13      S         0.000000
-        23      13      E       164.910004
-        24      14      S         0.000000
-        25      14      E       109.769997
-        26      15      S         0.000000
-        27      15      E        76.400002
-        28       4      S         0.000000
-        29       4      E        73.419998
-        30       6      S         0.000000
-        31       6      E        68.599998
+            XmError          
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -5425,7 +5401,7 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
     def _MxAddvVBEL(self,mxVecsFileData):
-        """(Re-)constructing vVBEL.
+        """(Re-)constructing vVBEL with MX2-Results.
 
         Arguments:
             mxVecsFileData
@@ -5442,7 +5418,66 @@ class Xm():
          
         Raises:
             XmError
-      
+
+        >>> xm=xms['GPipes']
+        >>> xm.MxSync()
+        >>> xm.MxAdd()    
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',filterColList=['BESCHREIBUNG','IDREFERENZ','tk NAME_i','CONT_i',' CONT_VKNO_i','Z_i','pk_i']))
+                                     BESCHREIBUNG             IDREFERENZ   CONT_i  Z_i                 pk_i
+        OBJTYPE OBJID                                                                                      
+        ROHR    4979507900871287244  _Split_Split  3S4979507900871287244  M-1-0-1    0  4731210032713520411
+                5114681686941855110        _Split  3S5114681686941855110  M-1-0-1    0  5709889458254995435
+                5244313507655010738           NaN  3S5244313507655010738  M-1-0-1    0  5256558483525770176
+                5694016449043789006           NaN  3S5694016449043789006  M-1-0-1    0  4731210032713520411
+        VENT    5116489323526156845           NaN  3S5508684139418025293  M-1-0-1  100  4683988347517083361
+                5309992331398639768           NaN  3S5309992331398639768  M-1-0-1    0  5046108271210239718
+                5508684139418025293           NaN  3S5508684139418025293  M-1-0-1  100  4683988347517083361
+                5745097345184516675           NaN  3S5745097345184516675  M-1-0-1    0  4731210032713520411
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',filterColList=['BESCHREIBUNG','IDREFERENZ','tk NAME_k','CONT_k',' CONT_VKNO_k','Z_k','pk_k']))
+                                     BESCHREIBUNG             IDREFERENZ   CONT_k  Z_k                 pk_k
+        OBJTYPE OBJID                                                                                      
+        ROHR    4979507900871287244  _Split_Split  3S4979507900871287244  M-1-0-1    0  5441322867018839631
+                5114681686941855110        _Split  3S5114681686941855110  M-1-0-1    0  5441322867018839631
+                5244313507655010738           NaN  3S5244313507655010738  M-1-0-1  100  4683988347517083361
+                5694016449043789006           NaN  3S5694016449043789006  M-1-0-1    0  5061043246189134395
+        VENT    5116489323526156845           NaN  3S5508684139418025293  M-1-0-1    0  5709889458254995435
+                5309992331398639768           NaN  3S5309992331398639768  M-1-0-1    0  5256558483525770176
+                5508684139418025293           NaN  3S5508684139418025293  M-1-0-1    0  5709889458254995435
+                5745097345184516675           NaN  3S5745097345184516675  M-1-0-1    0  5308591811899364960
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',filterColList=['LAYR','L','D','mx2Idx']))
+                                    LAYR           L    D  mx2Idx
+        OBJTYPE OBJID                                            
+        ROHR    4979507900871287244   []       10000  500       2
+                5114681686941855110   []       10000  500       1
+                5244313507655010738   []      160000  500       0
+                5694016449043789006   []  100.498688  450       3
+        VENT    5116489323526156845   []           0  666       3
+                5309992331398639768   []           0  800       0
+                5508684139418025293   []           0  800       2
+                5745097345184516675   []           0  800       1
+
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',filterColList=['KNOT~*~*~*~RHON_i','KNOT~*~*~*~H_i','KNOT~*~*~*~LFAKTAKT_i','KNOT~*~*~*~P_i','KNOT~*~*~*~PH_i','KNOT~*~*~*~PH_EIN_i','KNOT~*~*~*~QM_i','KNOT~*~*~*~RHO_i','KNOT~*~*~*~T_i','KNOT~*~*~*~EH_i']))         
+                                     KNOT~*~*~*~RHON_i  KNOT~*~*~*~H_i  KNOT~*~*~*~LFAKTAKT_i  KNOT~*~*~*~P_i  KNOT~*~*~*~PH_i  KNOT~*~*~*~PH_EIN_i  KNOT~*~*~*~QM_i  KNOT~*~*~*~RHO_i  KNOT~*~*~*~T_i  KNOT~*~*~*~EH_i
+        OBJTYPE OBJID                                                                                                                                                                                                  
+        ROHR    4979507900871287244               0.83    10106.165039                    1.0       11.106165        10.106165            10.106165          0.00000          7.888546       49.020111     13046.647461
+                5114681686941855110               0.83    16375.773438                    1.0       17.375772        16.375772            16.375772          0.00000         12.826390       40.874298     13008.437500
+                5244313507655010738               0.83    39973.992188                    1.0       40.973991        39.973991            39.973991          0.00000         31.891241       39.985443     12777.368164
+                5694016449043789006               0.83    10106.165039                    1.0       11.106165        10.106165            10.106165          0.00000          7.888546       49.020111     13046.647461
+        VENT    5116489323526156845               0.83    16440.441406                    1.0       17.440441        16.440441            16.440441          0.00000         12.874356       40.910797     13111.193359
+                5309992331398639768               0.83    40000.000000                    1.0       41.000000        40.000000            40.000000     118257.53125         31.911810       40.000000     12777.444336
+                5508684139418025293               0.83    16440.441406                    1.0       17.440441        16.440441            16.440441          0.00000         12.874356       40.910797     13111.193359
+                5745097345184516675               0.83    10106.165039                    1.0       11.106165        10.106165            10.106165          0.00000          7.888546       49.020111     13046.647461
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',filterColList=['KNOT~*~*~*~HMAX_INST_i','KNOT~*~*~*~HMIN_INST_i','KNOT~*~*~*~PMAX_INST_i','KNOT~*~*~*~PMIN_INST_i','KNOT~*~*~*~IAKTIV_i','KNOT~*~*~*~PDAMPF_i']))
+                                     KNOT~*~*~*~HMAX_INST_i  KNOT~*~*~*~HMIN_INST_i  KNOT~*~*~*~PMAX_INST_i  KNOT~*~*~*~PMIN_INST_i  KNOT~*~*~*~IAKTIV_i  KNOT~*~*~*~PDAMPF_i
+        OBJTYPE OBJID                                                                                                                                                        
+        ROHR    4979507900871287244            10106.165039            10106.165039               11.106165               11.106165                  0.0                  0.0
+                5114681686941855110            16375.773438            16375.773438               17.375772               17.375772                  0.0                  0.0
+                5244313507655010738            39973.992188            39973.992188               40.973991               40.973991                  0.0                  0.0
+                5694016449043789006            10106.165039            10106.165039               11.106165               11.106165                  0.0                  0.0
+        VENT    5116489323526156845            16440.441406            16440.441406               17.440441               17.440441                  0.0                  0.0
+                5309992331398639768            40000.000000            40000.000000               41.000000               41.000000                  0.0                  0.0
+                5508684139418025293            16440.441406            16440.441406               17.440441               17.440441                  0.0                  0.0
+                5745097345184516675            10106.165039            10106.165039               11.106165               11.106165                  0.0                  0.0
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -5559,7 +5594,90 @@ class Xm():
          
         Raises:
             XmError
-      
+
+        >>> xm=xms['GPipes']
+        >>> xm.MxSync()
+        >>> xm.MxAdd()    
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults',sortList=['ROHR~*~*~*~PHVEC','ROHR~*~*~*~SVEC'],ascending=False))
+                             pk  mx2Idx IptIdx  ROHR~*~*~*~SVEC  ROHR~*~*~*~TVEC  ROHR~*~*~*~ZVEC  ROHR~*~*~*~PVEC  ROHR~*~*~*~MVEC  ROHR~*~*~*~RHOVEC  ROHR~*~*~*~PHVEC  ROHR~*~*~*~QMVEC
+        8   5244313507655010738       0      S         0.000000        39.985443            0.000        40.973988        27.264917          31.891241         39.973988       3077.763672
+        9   5244313507655010738       0      0      5000.000000        40.407806            3.125        40.453373        27.264917          31.443642         39.453373       3121.575439
+        10  5244313507655010738       0      1     10000.000000        40.397430            6.250        39.925545        27.264917          30.999212         38.925545       3166.328857
+        11  5244313507655010738       0      2     15000.000000        40.387299            9.375        39.390327        27.264917          30.549555         38.390327       3212.934082
+        12  5244313507655010738       0      3     20000.000000        40.377533           12.500        38.847401        27.264917          30.094410         37.847401       3261.526123
+        13  5244313507655010738       0      4     25000.000000        40.368195           15.625        38.296429        27.264917          29.633537         37.296429       3312.250732
+        14  5244313507655010738       0      5     30000.000000        40.359253           18.750        37.737045        27.264917          29.166674         36.737045       3365.269043
+        15  5244313507655010738       0      6     35000.000000        40.350830           21.875        37.168861        27.264917          28.693537         36.168861       3420.760010
+        16  5244313507655010738       0      7     40000.000000        40.342926           25.000        36.591457        27.264917          28.213825         35.591457       3478.922119
+        17  5244313507655010738       0      8     45000.000000        40.335602           28.125        36.004372        27.264917          27.727211         35.004372       3539.977539
+        18  5244313507655010738       0      9     50000.000000        40.328918           31.250        35.407112        27.264917          27.233337         34.407112       3604.174561
+        19  5244313507655010738       0     10     55000.000000        40.322968           34.375        34.799137        27.264917          26.731815         33.799137       3671.793457
+        20  5244313507655010738       0     11     60000.000000        40.317780           37.500        34.179863        27.264917          26.222223         33.179863       3743.149414
+        21  5244313507655010738       0     12     65000.000000        40.313477           40.625        33.548645        27.264917          25.704098         32.548645       3818.601318
+        22  5244313507655010738       0     13     70000.000000        40.310181           43.750        32.904778        27.264917          25.176931         31.904778       3898.557129
+        23  5244313507655010738       0     14     75000.000000        40.308014           46.875        32.247482        27.264917          24.640163         31.247482       3983.484131
+        24  5244313507655010738       0     15     80000.000000        40.307098           50.000        31.575897        27.264917          24.093176         30.575897       4073.921387
+        25  5244313507655010738       0     16     85000.000000        40.307587           53.125        30.889069        27.264917          23.535278         29.889069       4170.492676
+        26  5244313507655010738       0     17     90000.000000        40.309753           56.250        30.185926        27.264917          22.965700         29.185926       4273.925781
+        27  5244313507655010738       0     18     95000.000000        40.313782           59.375        29.465275        27.264917          22.383583         28.465275       4385.075684
+        28  5244313507655010738       0     19    100000.000000        40.320038           62.500        28.725761        27.264917          21.787949         27.725761       4504.953613
+        29  5244313507655010738       0     20    105000.000000        40.328827           65.625        27.965855        27.264917          21.177694         26.965855       4634.768066
+        30  5244313507655010738       0     21    110000.000000        40.340607           68.750        27.183802        27.264917          20.551556         26.183802       4775.974121
+        31  5244313507655010738       0     22    115000.000000        40.355988           71.875        26.377584        27.264917          19.908077         25.377584       4930.345703
+        32  5244313507655010738       0     23    120000.000000        40.375671           75.000        25.544865        27.264917          19.245565         24.544865       5100.068359
+        33  5244313507655010738       0     24    125000.000000        40.400543           78.125        24.682890        27.264917          18.562040         23.682890       5287.872559
+        34  5244313507655010738       0     25    130000.000000        40.431854           81.250        23.788412        27.264917          17.855148         22.788412       5497.221191
+        35  5244313507655010738       0     26    135000.000000        40.471252           84.375        22.857525        27.264917          17.122063         21.857525       5732.586426
+        36  5244313507655010738       0     27    140000.000000        40.520874           87.500        21.885471        27.264917          16.359346         20.885471       5999.854980
+        37  5244313507655010738       0     28    145000.000000        40.583862           90.625        20.866375        27.264917          15.562735         19.866375       6306.970215
+        38  5244313507655010738       0     29    150000.000000        40.664673           93.750        19.792791        27.264917          14.726833         18.792791       6664.956543
+        39  5244313507655010738       0     30    155000.000000        40.770111           96.875        18.655102        27.264917          13.844651         17.655102       7089.647949
+        40  5244313507655010738       0      E    160000.000000        40.910797          100.000        17.440462        27.264917          12.906846         16.440462       7604.778320
+        5   5114681686941855110       1      S         0.000000        40.874298            0.000        17.375792        27.264917          12.826405         16.375792       7652.472168
+        6   5114681686941855110       1      0      5000.000000        43.653412            0.000        16.058306        27.264917          11.750417         15.058306       8353.209961
+        7   5114681686941855110       1      E     10000.000000        43.972473            0.000        14.612197        27.264917          10.651937         13.612197       9214.634766
+        4   4979507900871287244       2      E     10000.000000        43.972504            0.000        14.612185       -27.264917          10.620180         13.612185      -9242.188477
+        3   4979507900871287244       2      0      5000.000000        48.149719            0.000        12.987305       -27.264917           9.317566         11.987305     -10534.264648
+        2   4979507900871287244       2      S         0.000000        49.020142            0.000        11.106176       -27.264917           7.919193         10.106176     -12394.407227
+        0   5694016449043789006       3      S         0.000000        10.000000            0.000        11.106160         0.000000           6.933107         10.106160          0.000000
+        1   5694016449043789006       3      E       100.498688        10.000000            0.000         1.000000         0.000000           0.791800          0.000000          0.000000
+        >>> xm=xms['LocalHeatingNetwork']
+        >>> xm.MxSync()
+        >>> xm.MxAdd()          
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults',filterColList=['mx2Idx','IptIdx','ROHR~*~*~*~SVEC'],index=True))
+            mx2Idx IptIdx  ROHR~*~*~*~SVEC
+        0        0      S         0.000000
+        1        0      E        88.019997
+        2        1      S         0.000000
+        3        1      E       405.959991
+        4        2      S         0.000000
+        5        2      E        83.550003
+        6        3      S         0.000000
+        7        3      E        88.019997
+        8        5      S         0.000000
+        9        5      E       195.529999
+        10       7      S         0.000000
+        11       7      E       109.769997
+        12       8      S         0.000000
+        13       8      E        76.400002
+        14       9      S         0.000000
+        15       9      E        83.550003
+        16      10      S         0.000000
+        17      10      E       164.910004
+        18      11      S         0.000000
+        19      11      E       195.529999
+        20      12      S         0.000000
+        21      12      E       405.959991
+        22      13      S         0.000000
+        23      13      E       164.910004
+        24      14      S         0.000000
+        25      14      E       109.769997
+        26      15      S         0.000000
+        27      15      E        76.400002
+        28       4      S         0.000000
+        29       4      E        73.419998
+        30       6      S         0.000000
+        31       6      E        68.599998
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -5660,8 +5778,7 @@ class Xm():
 
         >>> xm=xms['GPipes']
         >>> xm.MxSync()
-        >>> xm.MxAdd()
-        >>> xm.MxAdd() # test 2nd Call
+        >>> xm.MxAdd()       
         >>> vAGSN=xm.dataFrames['vAGSN']
         >>> schnitt=vAGSN[vAGSN['NAME']=='LR']
         >>> xm.dataFrames['schnitt']=schnitt
@@ -5720,6 +5837,14 @@ class Xm():
         try: 
            
             vAGSN=self.dataFrames['vAGSN_raw']
+            
+            ###
+            heavyLog=True
+
+            if heavyLog: ###
+                logString="{0:s}vAGSN_raw: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vAGSN_raw'))
+                logger.debug(logString)
+            
             vVBEL=self.dataFrames['vVBEL']
             vROHRVecResults=self.dataFrames['vROHRVecResults']
                        
@@ -5731,25 +5856,46 @@ class Xm():
                    ,right_index=True ,suffixes=('', '_y'))
             vAGSN.rename(columns={'tk_y':'tk_VBEL'},inplace=True)
 
-            ##self.dataFrames['dummy']=vAGSN
-            ##logString="{0:s}vAGSN_merge: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
-            ##logger.debug(logString)
+            if heavyLog: ###
+                self.dataFrames['dummy']=vAGSN
+                logString="{0:s}vAGSN_merge: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
+                logger.debug(logString)
            
-            df=vAGSN[pd.isnull(vAGSN['tk_VBEL']) != True].copy()
+            df=vAGSN[pd.isnull(vAGSN['tk_VBEL']) != True].copy() # nur VBEL, die in vVBEL enthalten sind; das sollten alle sein ...
+            # ... 
+            if heavyLog: ###                
+                dfTest=vAGSN[pd.isnull(vAGSN['tk_VBEL']) == True].copy()
+                if not dfTest.empty:
+                    self.dataFrames['dummy']=dfTest
+                    logString="{0:s}dfTest: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
+                    logger.error(logString)                    
             
-            # mit S E verdoppeln 
+            # 1 Zeile pro VBEL mit S/E verdoppeln; S/E in Spalte ik_tmp
             ik = {'ik_tmp': ['S', 'E']}
             dfIk = pd.DataFrame(data=ik)
             dfIk['key_tmp'] = 0
             df['key_tmp'] = 0
             df=pd.merge(df,dfIk,on='key_tmp',how='outer')
 
-            # Vecs ergaenzen
-            df=pd.merge(df,vROHRVecResults,how='left',left_on='OBJID',right_on='pk',suffixes=['','_tmp'])
-            # ROHRE mit E loeschen
-            df=df[(df.OBJTYPE != 'ROHR') | ((df.OBJTYPE == 'ROHR') & (df.ik_tmp=='S'))]
+            if heavyLog: ###
+                self.dataFrames['dummy']=df
+                logString="{0:s}df S E: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
+                logger.debug(logString)
+
+            # ROHRE mit E loeschen (da Vecs sonst doppelt ergaenzt werden) und Vecs fuer Rohre ergaenzen
+            df=df[(df.OBJTYPE != 'ROHR') | ((df.OBJTYPE == 'ROHR') & (df.ik_tmp=='S'))]           
+            df=pd.merge(df,vROHRVecResults,how='left',left_on='OBJID',right_on='pk',suffixes=['','_tmp']) # Spalte IptIdx sowie weitere Spalten kommen für Rohre befuellt dazu
+            # Spalte IptIdx fuer alle Objekttypen verwenden:
             df['IptIdx']=df.apply(lambda row: row.IptIdx if row.OBJTYPE=='ROHR' else row.ik_tmp,axis=1)
-            
+
+            # alle _tmp eliminieren
+            df=df.filter(items=[col for col in df.columns.tolist() if re.search('_tmp$',col) == None])
+
+            if heavyLog: ###
+                self.dataFrames['dummy']=df
+                logString="{0:s}df nach Vecs-Erg. und IptIdx-Aktualisieurng: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy'))
+                logger.debug(logString)
+
             if 'ROHR~*~*~*~SVEC' not in df.columns.tolist():
                 df=vAGSN[pd.isnull(vAGSN['tk_VBEL']) != True].copy()
             else:
@@ -5760,22 +5906,35 @@ class Xm():
                 df['dx']=df.apply(lambda row: 0 if row.OBJTYPE!='ROHR' and  pd.isnull(row.dx) and row.IptIdx=='E' else row.dx,axis=1)
                 df['x']=df.groupby(['LFDNR','Layer'])['dx'].cumsum()                
 
+                # x mit Laengen fuer VBEL ungl. ROHR ...
                 tLnet=df.groupby(['LFDNR','Layer'])['dx'].sum()
                 tLnet=tLnet.reset_index()
                 tLnet.rename(columns={'dx':'tLnet_tmp'},inplace=True)
                 df=pd.merge(df,tLnet,how='inner',on=['LFDNR','Layer'],suffixes=['','_tmp'])
-
+                # ... derzeit 1% der Schnittlaenge
                 df['dx_tmp']=df.apply(lambda row: row.tLnet_tmp*0.01 if row.OBJTYPE!='ROHR' and row.IptIdx=='E' else row.dx,axis=1)
-
                 df['xVbel']=df.groupby(['LFDNR','Layer'])['dx_tmp'].cumsum()
 
-                # alle _tmp loeschen
+                # alle _tmp eliminieren
                 df=df.filter(items=[col for col in df.columns.tolist() if re.search('_tmp$',col) == None])
 
-                # cols belegen
+                if heavyLog: ###
+                    self.dataFrames['dummy']=df
+                    logString="{0:s}df nach x/xVbel: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy',filterColList=['LFDNR','NAME','OBJTYPE','OBJID','pk','nrObjIdInAgsn','nrObjIdTypeInAgsn','Layer','nextNODE','compNr'
+                                                                                                                                 ,'NAME_i','NAME_k','mx2Idx' #Ende Sachdaten
+                                                                                                                                 #I
+                                                                                                                                 #K
+                                                                                                                                 ,'Q' #Ende Ergebnisdaten
+                                                                                                                                 ,'IptIdx' #Start Vecs
+                                                                                                                                 #Vecs
+                                                                                                                                 #
+                                                                                                                                 ,'x']))
+                    logger.debug(logString)
+
+                # ErgCols identifizieren ...
                 kiCols=[col for col in df.columns.tolist() if re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) != None]          
                 if 'KNOT~*~*~*~QM_i' in kiCols:
-                    kiCols.remove('KNOT~*~*~*~QM_i')
+                    kiCols.remove('KNOT~*~*~*~QM_i') 
                 mos=[re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) for col in kiCols]
                 cols=[mo.group('Pre')+mo.group('Channel') for mo in mos]
                 kkCols=[col+'_k' for col in cols]
@@ -5794,15 +5953,30 @@ class Xm():
                     kiColsEff.append('Z_i')
                     kkCols.append('Z_k')
                     channels.append('Z')
-                    vecCols.append('ROHR~*~*~*~ZVEC')
-                for channel in channels:
+                    vecCols.append('ROHR~*~*~*~ZVEC')                
+                for channel in channels:                   
                     df[channel]=None
 
-                for kiCol,kkCol,col,vecCol in zip(kiColsEff,kkCols,channels,vecCols):    
-                    logger.debug("{0:s} kiCol {1:20s} kkCol {2:20s} channel {3:20s} vecCol {4:20s}".format(logStr,kiCol,kkCol,col,vecCol))
+                # ... ErgSpalteI/ErgSpalteK/ErgSpalteLfd/korrespondierende VecSpalte     
+                for idx,(kiCol,kkCol,col,vecCol) in enumerate(zip(kiColsEff,kkCols,channels,vecCols)):    
+                    logger.debug("{:s}Schnitt-Zustandsgroesse Nr.:{:d} kiCol {:20s} kkCol {:20s} channel {:20s} vecCol {:20s}".format(logStr,idx+1,kiCol,kkCol,col,vecCol))
+
+
+                if heavyLog: ###
+                    self.dataFrames['dummy']=df
+                    logString="{0:s}df vor Ergspaltenbefuellung: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy',filterColList=['LFDNR','NAME','OBJTYPE','OBJID','pk','nrObjIdInAgsn','nrObjIdTypeInAgsn','Layer','nextNODE','compNr'
+                                                                                                                                 ,'NAME_i','NAME_k','mx2Idx' #Ende Sachdaten
+                                                                                                                                 #I
+                                                                                                                                 #K
+                                                                                                                                 ,'Q' #Ende Ergebnisdaten
+                                                                                                                                 ,'IptIdx' #Start Vecs
+                                                                                                                                 #Vecs
+                                                                                                                                 #
+                                                                                                                                 ,'x']+channels+kiColsEff+kkCols+vecCols))
+                    logger.debug(logString)
 
                 for nr in df['LFDNR'].unique():
-                    for ly in df[df['LFDNR']==nr]['Layer'].unique():
+                    for idxLy,ly in enumerate(df[df['LFDNR']==nr]['Layer'].unique()):
                         dfLy=df[(df['LFDNR']==nr) & (df['Layer']==ly)]
         
                         logger.debug("{0:s}Schnitt: {1:s} Layer: {2:s}".format(logStr
@@ -5811,16 +5985,23 @@ class Xm():
                                                                               )) 
                         grouped = dfLy.groupby(['OBJTYPE','OBJID','nrObjIdInAgsn'])                        
                         for name, group in sorted(grouped,key=lambda x: x[0][2]):
+
+                                 if idxLy==0:
+                                     pass
+
                                  OBJTYPE,OBJID,nrObjIdInAgsn=name
                                  si=df.loc[group.index[0],:]
                                  sk=df.loc[group.index[-1],:]
-                                 #logger.debug("{0:s}LfdNr: {1:d} OBJTYPE: {2:s} OBJID: {3:s} NAME_i: {4:s} NAME_k: {5:s}".format(logStr
-                                 #                                                  ,nrObjIdInAgsn
-                                 #                                                  ,OBJTYPE
-                                 #                                                  ,OBJID
-                                 #                                                  ,str(si['NAME_i'])
-                                 #                                                  ,str(si['NAME_k'])
-                                 #                                                 ))   
+
+                                 if heavyLog: ###
+                                     logger.debug("{:s}nrObjIdInAgsn: {:d} OBJTYPE: {:s} OBJID: {:s} NAME_i: {:s} NAME_k: {:s} nextNODE: {:s} ".format(logStr
+                                                                                       ,nrObjIdInAgsn
+                                                                                       ,OBJTYPE
+                                                                                       ,OBJID
+                                                                                       ,str(si['NAME_i'])
+                                                                                       ,str(si['NAME_k'])
+                                                                                       ,str(si['nextNODE'])
+                                                                                      ))   
                                  
                                  for kiCol,kkCol,col,vecCol in zip(kiColsEff,kkCols,channels,vecCols):                
                                      try:
@@ -5832,58 +6013,58 @@ class Xm():
                    
                                      except  Exception as e:
                                         logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
-                                        logger.error(logStrFinal)                                         
+                                        logger.error(logStrFinal)    
 
+                                 if OBJTYPE == 'ROHR':
+                                    if 'ROHR~*~*~*~QMVEC' in df.columns.tolist():                                
+                                        df.loc[group.index,'Q']=df.loc[group.index,'ROHR~*~*~*~QMVEC'].values
+
+                                 if heavyLog: ###
+                                    self.dataFrames['dummy']=df.loc[group.index,:]
+                                    logString="{0:s}1 VBEL in 1 Schnitt in 1 Layer: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy',filterColList=[                                                                                                                                                    
+                                                                                                                                                    'Q' #Ende Ergebnisdaten
+                                                                                                                                                    ,'IptIdx' #Start Vecs
+                                                                                                                                                    #Vecs
+                                                                                                                                                    #
+                                                                                                                                                    ,'x']+channels))
+                                    logger.debug(logString)
+
+                                 # rows ggf. invertieren und Durchfluss ggf. in Schnittrichtung drehen  
+                                 if si.NAME_k == si.nextNODE:    
+                                    pass
+                                 else:                   
+                                    
+                                    # invertieren 
+                                    df.loc[group.index,:]=df.loc[group.index,:][::-1].values#group[::-1].values     
+                                    # x zurueck invertieren
+                                    df.loc[group.index,'x']=df.loc[group.index,'x'][::-1].values
+                                    df.loc[group.index,'xVbel']=df.loc[group.index,'xVbel'][::-1].values
+                                    # drehen
+                                    df.loc[group.index,'Q']*=-1.  
+
+                                    if heavyLog: ###
+                                        self.dataFrames['dummy']=df.loc[group.index,:]
+                                        logString="{0:s}1 VBEL in 1 Schnitt in 1 Layer - invertiert: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy',filterColList=[                                                                                                                                                    
+                                                                                                                                                        'Q' #Ende Ergebnisdaten
+                                                                                                                                                        ,'IptIdx' #Start Vecs
+                                                                                                                                                        #Vecs
+                                                                                                                                                        #
+                                                                                                                                                        ,'x']+channels))
+                                        logger.debug(logString)
+                                      
                 # die verarbeiteten Kanaele loeschen ...
                 for kiCol,kkCol,vecCol in zip(kiColsEff,kkCols,vecCols):
                     df.drop([kiCol], axis=1, inplace=True)
                     df.drop([kkCol], axis=1, inplace=True)
                     df.drop([vecCol], axis=1, inplace=True)
-
-                # rows ggf. invertieren        
-                for nr in df['LFDNR'].unique():                
-                    for ly in df[df['LFDNR']==nr]['Layer'].unique():                    
-                        dfLy=df[(df['LFDNR']==nr) & (df['Layer']==ly)]
-
-                        logger.debug("{0:s}Schnitt: {1:s} Layer: {2:s}".format(logStr
-                                                                               ,str(dfLy['NAME'].iloc[0])
-                                                                               ,str(dfLy['Layer'].iloc[0])
-                                                                              )) 
-
-
-                        grouped = dfLy.groupby(['OBJTYPE','OBJID','nrObjIdInAgsn'])                        
-                        for name, group in sorted(grouped,key=lambda x: x[0][2]):
-                            OBJTYPE,OBJID,nrObjIdInAgsn=name
-                            s=df.loc[group.index[0],:]                       
-                            #logger.debug("{0:s}LfdNr: {1:d} OBJTYPE: {2:s} OBJID: {3:s} NAME_i: {4:s} NAME_k: {5:s}".format(logStr
-                            #                                                   ,nrObjIdInAgsn
-                            #                                                   ,OBJTYPE
-                            #                                                   ,OBJID
-                            #                                                   ,str(s['NAME_i'])
-                            #                                                   ,str(s['NAME_k'])
-                            #                                                  ))                                                     
-                            if s.NAME_k == s.nextNODE:    
-                                f=1.
-                            else:    
-                                f=-1.
-                                df.loc[group.index,:]=group[::-1].values     
-                                # x zurueck
-                                df.loc[group.index,'x']=df.loc[group.index,'x'][::-1].values
-                                df.loc[group.index,'xVbel']=df.loc[group.index,'xVbel'][::-1].values
-                        
-                            if s.OBJTYPE == 'ROHR':
-                                try:
-                                    df.loc[group.index,'Q']=df.loc[group.index,'ROHR~*~*~*~QMVEC'].values
-                                except:
-                                    pass
-                        
-                            #Q ggf. drehen
-                            df.loc[group.index,'Q']*=f       
-
                 if 'ROHR~*~*~*~QMVEC' in df.columns.tolist():
                     df.drop(['ROHR~*~*~*~QMVEC'], axis=1, inplace=True)
 
             self.dataFrames['vAGSN']=df
+
+            if heavyLog: ###                                   
+                logString="{0:s}vAGSN-Ergebnis: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vAGSN'))
+                logger.debug(logString)
                                                   
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
@@ -6093,7 +6274,7 @@ if __name__ == "__main__":
                     os.remove(h5File)
                 xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')
                 modelFiles[testModel]=xmlFile
-                xm=Xm(xmlFile=xmlFile)
+                xm=Xm(xmlFile=xmlFile,NoH5Read=True)
                 xms[testModel]=xm
 
             dtFinder=doctest.DocTestFinder(verbose=args.verbose)
