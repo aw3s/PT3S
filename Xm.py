@@ -5837,17 +5837,21 @@ class Xm():
         try: 
            
             vAGSN=self.dataFrames['vAGSN_raw']
+            vAGSN_rawCols=vAGSN.columns.tolist()
             
             ###
-            heavyLog=True
+            heavyLog=False
 
             if heavyLog: ###
                 logString="{0:s}vAGSN_raw: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vAGSN_raw'))
                 logger.debug(logString)
             
             vVBEL=self.dataFrames['vVBEL']
+            vVBEL_rawCols=vVBEL.columns.tolist()
+
             vROHRVecResults=self.dataFrames['vROHRVecResults']
-                       
+            vROHRVecResults_rawCols=vROHRVecResults.columns.tolist()
+                        
             vAGSN=pd.merge(
                     vAGSN
                    ,vVBEL
@@ -5888,6 +5892,9 @@ class Xm():
             # Spalte IptIdx fuer alle Objekttypen verwenden:
             df['IptIdx']=df.apply(lambda row: row.IptIdx if row.OBJTYPE=='ROHR' else row.ik_tmp,axis=1)
 
+            vAGSNGeomCols=[]
+            vAGSNGeomCols.append('IptIdx')
+
             # alle _tmp eliminieren
             df=df.filter(items=[col for col in df.columns.tolist() if re.search('_tmp$',col) == None])
 
@@ -5918,61 +5925,64 @@ class Xm():
                 # alle _tmp eliminieren
                 df=df.filter(items=[col for col in df.columns.tolist() if re.search('_tmp$',col) == None])
 
+                vAGSNGeomCols.append('dx')
+                vAGSNGeomCols.append('x')
+                vAGSNGeomCols.append('xVbel')
+
                 if heavyLog: ###
                     self.dataFrames['dummy']=df
-                    logString="{0:s}df nach x/xVbel: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy',filterColList=['LFDNR','NAME','OBJTYPE','OBJID','pk','nrObjIdInAgsn','nrObjIdTypeInAgsn','Layer','nextNODE','compNr'
-                                                                                                                                 ,'NAME_i','NAME_k','mx2Idx' #Ende Sachdaten
+                    logString="{0:s}df nach x/xVbel: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy',filterColList=vAGSN_rawCols+[
+                                                                                                                                 'NAME_i','NAME_k','mx2Idx'] #Ende Sachdaten
                                                                                                                                  #I
                                                                                                                                  #K
-                                                                                                                                 ,'Q' #Ende Ergebnisdaten
-                                                                                                                                 ,'IptIdx' #Start Vecs
-                                                                                                                                 #Vecs
-                                                                                                                                 #
-                                                                                                                                 ,'x']))
+                                                                                                                                 +['Q'] #Ende Ergebnisdaten
+                                                                                                                                 +vAGSNGeomCols))
                     logger.debug(logString)
 
                 # ErgCols identifizieren ...
-                kiCols=[col for col in df.columns.tolist() if re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) != None]          
-                if 'KNOT~*~*~*~QM_i' in kiCols:
-                    kiCols.remove('KNOT~*~*~*~QM_i') 
-                mos=[re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) for col in kiCols]
+                # ki
+                kiColsAll=[col for col in df.columns.tolist() if re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) != None]          
+                if 'KNOT~*~*~*~QM_i' in kiColsAll:
+                    kiColsAll.remove('KNOT~*~*~*~QM_i') 
+                mos=[re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) for col in kiColsAll]
                 cols=[mo.group('Pre')+mo.group('Channel') for mo in mos]
-                kkCols=[col+'_k' for col in cols]
-                vecCols=['ROHR~*~*~*~'+mo.group('Channel')+'VEC' for mo in mos]
-                kiColsEff=[]
-                for kiCol,kkCol,col,vecCol in zip(kiCols,kkCols,cols,vecCols):
+                # kk
+                kkColsAll=[col+'_k' for col in cols]
+                # gibt es korrespondierende vecCol?!
+                vecErgColsAll=['ROHR~*~*~*~'+mo.group('Channel')+'VEC' for mo in mos]
+                vAGSNErgCols_src_ki=[]
+                for kiCol,kkCol,col,vecCol in zip(kiColsAll,kkColsAll,cols,vecErgColsAll):
                     if vecCol in df.columns.tolist():
-                        kiColsEff.append(kiCol)
+                        vAGSNErgCols_src_ki.append(kiCol)
                 
-                mos=[re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) for col in kiColsEff]
+                # ErgCols identifizieren final ...
+                mos=[re.search('^(?P<Pre>KNOT~\*~\*~\*~)(?P<Channel>[a-zA-Z_]+)(?P<Post>_i$)',col) for col in vAGSNErgCols_src_ki]
                 cols=[mo.group('Pre')+mo.group('Channel') for mo in mos]
-                channels=[mo.group('Channel') for mo in mos]
-                kkCols=[col+'_k' for col in cols]
-                vecCols=['ROHR~*~*~*~'+mo.group('Channel')+'VEC' for mo in mos]
+                vAGSNErgCols=[mo.group('Channel') for mo in mos]
+                vAGSNErgCols_src_kk=[col+'_k' for col in cols]
+                vAGSNErgCols_src_vec=['ROHR~*~*~*~'+mo.group('Channel')+'VEC' for mo in mos]
                 if 'ROHR~*~*~*~ZVEC' in df.columns.tolist():
-                    kiColsEff.append('Z_i')
-                    kkCols.append('Z_k')
-                    channels.append('Z')
-                    vecCols.append('ROHR~*~*~*~ZVEC')                
-                for channel in channels:                   
+                    vAGSNErgCols.append('Z')
+                    vAGSNErgCols_src_ki.append('Z_i')
+                    vAGSNErgCols_src_kk.append('Z_k')                    
+                    vAGSNErgCols_src_vec.append('ROHR~*~*~*~ZVEC')                
+                for channel in vAGSNErgCols:                   
                     df[channel]=None
+                
+                # ... ErgSpalte aus folgenden ErgSpalteI/ErgSpalteK/VecSpalte     
+                for idx,(col,kiCol,kkCol,vecCol) in enumerate(zip(vAGSNErgCols,vAGSNErgCols_src_ki,vAGSNErgCols_src_kk,vAGSNErgCols_src_vec)):    
+                    logger.debug("{:s}Schnitt-Zustandsgroesse Nr.:{:d}: col {:20s} Quellen: kiCol {:20s} kkCol {:20s} vecCol {:20s}".format(logStr,idx+1,col,kiCol,kkCol,vecCol))
 
-                # ... ErgSpalteI/ErgSpalteK/ErgSpalteLfd/korrespondierende VecSpalte     
-                for idx,(kiCol,kkCol,col,vecCol) in enumerate(zip(kiColsEff,kkCols,channels,vecCols)):    
-                    logger.debug("{:s}Schnitt-Zustandsgroesse Nr.:{:d} kiCol {:20s} kkCol {:20s} channel {:20s} vecCol {:20s}".format(logStr,idx+1,kiCol,kkCol,col,vecCol))
-
-
+                df=df.copy() 
                 if heavyLog: ###
                     self.dataFrames['dummy']=df
-                    logString="{0:s}df vor Ergspaltenbefuellung: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy',filterColList=['LFDNR','NAME','OBJTYPE','OBJID','pk','nrObjIdInAgsn','nrObjIdTypeInAgsn','Layer','nextNODE','compNr'
-                                                                                                                                 ,'NAME_i','NAME_k','mx2Idx' #Ende Sachdaten
+                    logString="{0:s}df vor Ergspaltenbefuellung: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy',filterColList=vAGSN_rawCols+[
+                                                                                                                                 'NAME_i','NAME_k','mx2Idx'] #Ende Sachdaten
                                                                                                                                  #I
                                                                                                                                  #K
-                                                                                                                                 ,'Q' #Ende Ergebnisdaten
-                                                                                                                                 ,'IptIdx' #Start Vecs
-                                                                                                                                 #Vecs
-                                                                                                                                 #
-                                                                                                                                 ,'x']+channels+kiColsEff+kkCols+vecCols))
+                                                                                                                                 +['Q'] #Ende Ergebnisdaten
+                                                                                                                                 +vAGSNGeomCols
+                                                                                                                                 +vAGSNErgCols+vAGSNErgCols_src_ki+vAGSNErgCols_src_kk+vAGSNErgCols_src_vec))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
                     logger.debug(logString)
 
                 for nr in df['LFDNR'].unique():
@@ -5984,7 +5994,7 @@ class Xm():
                                                                                ,str(dfLy['Layer'].iloc[0])
                                                                               )) 
                         grouped = dfLy.groupby(['OBJTYPE','OBJID','nrObjIdInAgsn'])                        
-                        for name, group in sorted(grouped,key=lambda x: x[0][2]):
+                        for name, group in grouped: #sorted(grouped,key=lambda x: x[0][2]):
 
                                  if idxLy==0:
                                      pass
@@ -6003,7 +6013,7 @@ class Xm():
                                                                                        ,str(si['nextNODE'])
                                                                                       ))   
                                  
-                                 for kiCol,kkCol,col,vecCol in zip(kiColsEff,kkCols,channels,vecCols):                
+                                 for kiCol,kkCol,col,vecCol in zip(vAGSNErgCols_src_ki,vAGSNErgCols_src_kk,vAGSNErgCols,vAGSNErgCols_src_vec):                
                                      try:
                                         if OBJTYPE == 'ROHR':
                                             df.loc[group.index,col]=df.loc[group.index,vecCol].values
@@ -6026,7 +6036,7 @@ class Xm():
                                                                                                                                                     ,'IptIdx' #Start Vecs
                                                                                                                                                     #Vecs
                                                                                                                                                     #
-                                                                                                                                                    ,'x']+channels))
+                                                                                                                                                    ,'x']+vAGSNErgCols))
                                     logger.debug(logString)
 
                                  # rows ggf. invertieren und Durchfluss ggf. in Schnittrichtung drehen  
@@ -6049,22 +6059,33 @@ class Xm():
                                                                                                                                                         ,'IptIdx' #Start Vecs
                                                                                                                                                         #Vecs
                                                                                                                                                         #
-                                                                                                                                                        ,'x']+channels))
+                                                                                                                                                        ,'x']+vAGSNErgCols))
                                         logger.debug(logString)
                                       
                 # die verarbeiteten Kanaele loeschen ...
-                for kiCol,kkCol,vecCol in zip(kiColsEff,kkCols,vecCols):
+                for kiCol,kkCol,vecCol in zip(vAGSNErgCols_src_ki,vAGSNErgCols_src_kk,vAGSNErgCols_src_vec):
                     df.drop([kiCol], axis=1, inplace=True)
                     df.drop([kkCol], axis=1, inplace=True)
                     df.drop([vecCol], axis=1, inplace=True)
                 if 'ROHR~*~*~*~QMVEC' in df.columns.tolist():
                     df.drop(['ROHR~*~*~*~QMVEC'], axis=1, inplace=True)
+                if 'ROHR~*~*~*~SVEC' in df.columns.tolist():
+                    df.drop(['ROHR~*~*~*~SVEC'], axis=1, inplace=True)
+
+
+            if heavyLog: ###       
+                cols1=vAGSN_rawCols+['NAME_i','NAME_k','mx2Idx']+['Q']+vAGSNGeomCols+vAGSNErgCols
+                logString="{0:s}vAGSN-Ergebnis: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vAGSN',filterColList=cols1))                                                                                                                                                                                                                                                                                                                                                                                                         
+                logger.debug(logString)
+                cols2=list(set(df.columns.tolist())-set(cols1))
+                cols2Ordered=[]
+                for col in df.columns.tolist():
+                    if col in cols2:
+                        cols2Ordered.append(col)
+                logString="{0:s}vAGSN-Ergebnis-weitere Spalten: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vAGSN',filterColList=cols2Ordered))                                                                                                                                                                                                                                                                                                                                                                                                         
+                logger.debug(logString)
 
             self.dataFrames['vAGSN']=df
-
-            if heavyLog: ###                                   
-                logString="{0:s}vAGSN-Ergebnis: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vAGSN'))
-                logger.debug(logString)
                                                   
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
