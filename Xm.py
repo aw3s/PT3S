@@ -2337,8 +2337,11 @@ class Xm():
                 df['Layer']=0
                 df['AKTIV']=None
                 df['NAME']=NAME
-                nr=vAGSN_raw['LFDNR'].astype('int')
-                df['LFDNR']=nr.max()+1 
+                if not vAGSN_raw.empty:
+                    nr=vAGSN_raw['LFDNR'].astype('int')
+                    df['LFDNR']=nr.max()+1 
+                else:
+                    df['LFDNR']=1
 
                 df=df.assign(nrObjIdInAgsn=df.groupby(['LFDNR']).cumcount()+1) # dieses VBEL-Obj. ist im Schnitt Nr. x
                 df=df.assign(nrObjIdTypeInAgsn=df.groupby(['LFDNR','OBJTYPE','OBJID']).cumcount()+1) # dieses VBEL-Obj kommt im Schnitt zum x. Mal vor
@@ -5579,11 +5582,12 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
-    def _MxAddvROHRVecResults(self,mxVecsFileData):
+    def _MxAddvROHRVecResults(self,mxVecsFileData,reverse=False):
         """(Re-)constructing vROHRVecResults.
 
         Arguments:
-            mxVecsFileData
+            * mxVecsFileData
+            * reverse (default: False): True delivers Vecs in reverse Order
 
         Result:
             * vROHRVecResults: VEC-Channel-Results for Pipe-Interior-Pts (IPts):
@@ -5596,8 +5600,13 @@ class Xm():
             XmError
 
         >>> xm=xms['GPipes']
-        >>> xm.MxSync()
-        >>> xm.MxAdd()    
+        >>> xm.MxSync()        
+        >>> xm.MxAdd()   
+        >>> #(wDir,modelDir,modelName,mx1File)=xm.getWDirModelDirModelName()     
+        >>> #import Mx
+        >>> #mx=Mx.Mx(mx1File=mx1File)
+        >>> #mxVecsFileData=mx.getMxsVecsFileData()
+        >>> #xm._MxAddvROHRVecResults(mxVecsFileData=mxVecsFileData[0])   
         >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults',sortList=['ROHR~*~*~*~PHVEC','ROHR~*~*~*~SVEC'],ascending=False))
                              pk  mx2Idx IptIdx  ROHR~*~*~*~SVEC  ROHR~*~*~*~TVEC  ROHR~*~*~*~ZVEC  ROHR~*~*~*~PVEC  ROHR~*~*~*~MVEC  ROHR~*~*~*~RHOVEC  ROHR~*~*~*~PHVEC  ROHR~*~*~*~QMVEC
         8   5244313507655010738       0      S         0.000000        39.985443            0.000        40.973988        27.264917          31.891241         39.973988       3077.763672
@@ -5701,6 +5710,8 @@ class Xm():
     
                             #Series aus Tuple
                             vecsFileDataOneColResultSeries=pd.Series(vecsFileDataOneColResult)
+                            #if reverse:
+                            #    vecsFileDataOneColResultSeries=vecsFileDataOneColResultSeries[::-1]
                 
                             #Series merken
                             dct[col]=vecsFileDataOneColResultSeries
@@ -5782,53 +5793,53 @@ class Xm():
         >>> vAGSN=xm.dataFrames['vAGSN']
         >>> schnitt=vAGSN[vAGSN['NAME']=='LR']
         >>> xm.dataFrames['schnitt']=schnitt
-        >>> print(xm._getvXXXXAsOneString(vXXXX='schnitt',filterColList=['OBJTYPE','NAME_i','NAME_k','IptIdx','nextNODE','x','PH'],index=True))
-            OBJTYPE NAME_i NAME_k IptIdx nextNODE         x       PH
-        79     VENT     GL     G1      S       G1       0.0       40
-        80     VENT     GL     G1      E       G1       0.0   39.974
-        81     ROHR     G1    GKS      S      GKS       0.0   39.974
-        82     ROHR     G1    GKS      0      GKS    5000.0  39.4534
-        83     ROHR     G1    GKS      1      GKS   10000.0  38.9255
-        84     ROHR     G1    GKS      2      GKS   15000.0  38.3903
-        85     ROHR     G1    GKS      3      GKS   20000.0  37.8474
-        86     ROHR     G1    GKS      4      GKS   25000.0  37.2964
-        87     ROHR     G1    GKS      5      GKS   30000.0   36.737
-        88     ROHR     G1    GKS      6      GKS   35000.0  36.1689
-        89     ROHR     G1    GKS      7      GKS   40000.0  35.5915
-        90     ROHR     G1    GKS      8      GKS   45000.0  35.0044
-        91     ROHR     G1    GKS      9      GKS   50000.0  34.4071
-        92     ROHR     G1    GKS     10      GKS   55000.0  33.7991
-        93     ROHR     G1    GKS     11      GKS   60000.0  33.1799
-        94     ROHR     G1    GKS     12      GKS   65000.0  32.5486
-        95     ROHR     G1    GKS     13      GKS   70000.0  31.9048
-        96     ROHR     G1    GKS     14      GKS   75000.0  31.2475
-        97     ROHR     G1    GKS     15      GKS   80000.0  30.5759
-        98     ROHR     G1    GKS     16      GKS   85000.0  29.8891
-        99     ROHR     G1    GKS     17      GKS   90000.0  29.1859
-        100    ROHR     G1    GKS     18      GKS   95000.0  28.4653
-        101    ROHR     G1    GKS     19      GKS  100000.0  27.7258
-        102    ROHR     G1    GKS     20      GKS  105000.0  26.9659
-        103    ROHR     G1    GKS     21      GKS  110000.0  26.1838
-        104    ROHR     G1    GKS     22      GKS  115000.0  25.3776
-        105    ROHR     G1    GKS     23      GKS  120000.0  24.5449
-        106    ROHR     G1    GKS     24      GKS  125000.0  23.6829
-        107    ROHR     G1    GKS     25      GKS  130000.0  22.7884
-        108    ROHR     G1    GKS     26      GKS  135000.0  21.8575
-        109    ROHR     G1    GKS     27      GKS  140000.0  20.8855
-        110    ROHR     G1    GKS     28      GKS  145000.0  19.8664
-        111    ROHR     G1    GKS     29      GKS  150000.0  18.7928
-        112    ROHR     G1    GKS     30      GKS  155000.0  17.6551
-        113    ROHR     G1    GKS      E      GKS  160000.0  16.4405
-        114    VENT    GKS    GKD      S      GKD  160000.0  16.4404
-        115    VENT    GKS    GKD      E      GKD  160000.0  16.3758
-        116    ROHR    GKD     G3      S       G3  160000.0  16.3758
-        117    ROHR    GKD     G3      0       G3  165000.0  15.0583
-        118    ROHR    GKD     G3      E       G3  170000.0  13.6122
-        119    ROHR     G4     G3      E       G4  170000.0  13.6122
-        120    ROHR     G4     G3      0       G4  175000.0  11.9873
-        121    ROHR     G4     G3      S       G4  180000.0  10.1062
-        122    VENT     G4     GR      S       GR  180000.0  10.1062
-        123    VENT     G4     GR      E       GR  180000.0       10
+        >>> print(xm._getvXXXXAsOneString(vXXXX='schnitt',filterColList=['OBJTYPE','NAME_i','NAME_k','IptIdx','nextNODE','x','PH','Q'],index=True))
+            OBJTYPE NAME_i NAME_k IptIdx nextNODE         x       PH        Q
+        79     VENT     GL     G1      S       G1       0.0       40   118258
+        80     VENT     GL     G1      E       G1       0.0   39.974   118258
+        81     ROHR     G1    GKS      S      GKS       0.0   39.974  3077.76
+        82     ROHR     G1    GKS      0      GKS    5000.0  39.4534  3121.58
+        83     ROHR     G1    GKS      1      GKS   10000.0  38.9255  3166.33
+        84     ROHR     G1    GKS      2      GKS   15000.0  38.3903  3212.93
+        85     ROHR     G1    GKS      3      GKS   20000.0  37.8474  3261.53
+        86     ROHR     G1    GKS      4      GKS   25000.0  37.2964  3312.25
+        87     ROHR     G1    GKS      5      GKS   30000.0   36.737  3365.27
+        88     ROHR     G1    GKS      6      GKS   35000.0  36.1689  3420.76
+        89     ROHR     G1    GKS      7      GKS   40000.0  35.5915  3478.92
+        90     ROHR     G1    GKS      8      GKS   45000.0  35.0044  3539.98
+        91     ROHR     G1    GKS      9      GKS   50000.0  34.4071  3604.17
+        92     ROHR     G1    GKS     10      GKS   55000.0  33.7991  3671.79
+        93     ROHR     G1    GKS     11      GKS   60000.0  33.1799  3743.15
+        94     ROHR     G1    GKS     12      GKS   65000.0  32.5486   3818.6
+        95     ROHR     G1    GKS     13      GKS   70000.0  31.9048  3898.56
+        96     ROHR     G1    GKS     14      GKS   75000.0  31.2475  3983.48
+        97     ROHR     G1    GKS     15      GKS   80000.0  30.5759  4073.92
+        98     ROHR     G1    GKS     16      GKS   85000.0  29.8891  4170.49
+        99     ROHR     G1    GKS     17      GKS   90000.0  29.1859  4273.93
+        100    ROHR     G1    GKS     18      GKS   95000.0  28.4653  4385.08
+        101    ROHR     G1    GKS     19      GKS  100000.0  27.7258  4504.95
+        102    ROHR     G1    GKS     20      GKS  105000.0  26.9659  4634.77
+        103    ROHR     G1    GKS     21      GKS  110000.0  26.1838  4775.97
+        104    ROHR     G1    GKS     22      GKS  115000.0  25.3776  4930.35
+        105    ROHR     G1    GKS     23      GKS  120000.0  24.5449  5100.07
+        106    ROHR     G1    GKS     24      GKS  125000.0  23.6829  5287.87
+        107    ROHR     G1    GKS     25      GKS  130000.0  22.7884  5497.22
+        108    ROHR     G1    GKS     26      GKS  135000.0  21.8575  5732.59
+        109    ROHR     G1    GKS     27      GKS  140000.0  20.8855  5999.85
+        110    ROHR     G1    GKS     28      GKS  145000.0  19.8664  6306.97
+        111    ROHR     G1    GKS     29      GKS  150000.0  18.7928  6664.96
+        112    ROHR     G1    GKS     30      GKS  155000.0  17.6551  7089.65
+        113    ROHR     G1    GKS      E      GKS  160000.0  16.4405  7604.78
+        114    VENT    GKS    GKD      S      GKD  160000.0  16.4404   118258
+        115    VENT    GKS    GKD      E      GKD  160000.0  16.3758   118258
+        116    ROHR    GKD     G3      S       G3  160000.0  16.3758  7652.47
+        117    ROHR    GKD     G3      0       G3  165000.0  15.0583  8353.21
+        118    ROHR    GKD     G3      E       G3  170000.0  13.6122  9214.63
+        119    ROHR     G4     G3      E       G4  170000.0  13.6122  9242.19
+        120    ROHR     G4     G3      0       G4  175000.0  11.9873  10534.3
+        121    ROHR     G4     G3      S       G4  180000.0  10.1062  12394.4
+        122    VENT     G4     GR      S       GR  180000.0  10.1062   118258
+        123    VENT     G4     GR      E       GR  180000.0       10   118258
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -5968,12 +5979,18 @@ class Xm():
                     vAGSNErgCols_src_vec.append('ROHR~*~*~*~ZVEC')                
                 for channel in vAGSNErgCols:                   
                     df[channel]=None
+                    #df[channel]=df[channel].astype('float64')
+                #df['Q']=df['Q'].astype('float64')
                 
                 # ... ErgSpalte aus folgenden ErgSpalteI/ErgSpalteK/VecSpalte     
                 for idx,(col,kiCol,kkCol,vecCol) in enumerate(zip(vAGSNErgCols,vAGSNErgCols_src_ki,vAGSNErgCols_src_kk,vAGSNErgCols_src_vec)):    
                     logger.debug("{:s}Schnitt-Zustandsgroesse Nr.:{:d}: col {:20s} Quellen: kiCol {:20s} kkCol {:20s} vecCol {:20s}".format(logStr,idx+1,col,kiCol,kkCol,vecCol))
 
-                df=df.copy() 
+                logger.debug("{:s}Vor copy.".format(logStr))
+                #df=df.copy() 
+                #dfForGrouped=df.copy() 
+                logger.debug("{:s}Nach copy.".format(logStr))
+
                 if heavyLog: ###
                     self.dataFrames['dummy']=df
                     logString="{0:s}df vor Ergspaltenbefuellung: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy',filterColList=vAGSN_rawCols+[
@@ -5985,83 +6002,217 @@ class Xm():
                                                                                                                                  +vAGSNErgCols+vAGSNErgCols_src_ki+vAGSNErgCols_src_kk+vAGSNErgCols_src_vec))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
                     logger.debug(logString)
 
-                for nr in df['LFDNR'].unique():
-                    for idxLy,ly in enumerate(df[df['LFDNR']==nr]['Layer'].unique()):
-                        dfLy=df[(df['LFDNR']==nr) & (df['Layer']==ly)]
+                #for nr in df['LFDNR'].unique():
+                #    for idxLy,ly in enumerate(df[df['LFDNR']==nr]['Layer'].unique()):
+                #        dfLy=df[(df['LFDNR']==nr) & (df['Layer']==ly)]
         
-                        logger.debug("{0:s}Schnitt: {1:s} Layer: {2:s}".format(logStr
-                                                                               ,str(dfLy['NAME'].iloc[0])
-                                                                               ,str(dfLy['Layer'].iloc[0])
-                                                                              )) 
-                        grouped = dfLy.groupby(['OBJTYPE','OBJID','nrObjIdInAgsn'])                        
-                        for name, group in grouped: #sorted(grouped,key=lambda x: x[0][2]):
+                #        logger.debug("{0:s}Schnitt: {1:s} Layer: {2:s}".format(logStr
+                #                                                               ,str(dfLy['NAME'].iloc[0])
+                #                                                               ,str(dfLy['Layer'].iloc[0])
+                #                                                              )) 
+                #        grouped = dfLy.groupby(['OBJTYPE','OBJID','nrObjIdInAgsn'])                        
+                #        for name, group in grouped: #sorted(grouped,key=lambda x: x[0][2]):
 
-                                 if idxLy==0:
-                                     pass
+                #                 if idxLy==0:
+                #                     pass
 
-                                 OBJTYPE,OBJID,nrObjIdInAgsn=name
-                                 si=df.loc[group.index[0],:]
-                                 sk=df.loc[group.index[-1],:]
+                #                 OBJTYPE,OBJID,nrObjIdInAgsn=name
+                #                 si=df.loc[group.index[0],:]
+                #                 sk=df.loc[group.index[-1],:]
 
-                                 if heavyLog: ###
-                                     logger.debug("{:s}nrObjIdInAgsn: {:d} OBJTYPE: {:s} OBJID: {:s} NAME_i: {:s} NAME_k: {:s} nextNODE: {:s} ".format(logStr
-                                                                                       ,nrObjIdInAgsn
-                                                                                       ,OBJTYPE
-                                                                                       ,OBJID
-                                                                                       ,str(si['NAME_i'])
-                                                                                       ,str(si['NAME_k'])
-                                                                                       ,str(si['nextNODE'])
-                                                                                      ))   
+                #                 if heavyLog: ###
+                #                     logger.debug("{:s}nrObjIdInAgsn: {:d} OBJTYPE: {:s} OBJID: {:s} NAME_i: {:s} NAME_k: {:s} nextNODE: {:s} ".format(logStr
+                #                                                                       ,nrObjIdInAgsn
+                #                                                                       ,OBJTYPE
+                #                                                                       ,OBJID
+                #                                                                       ,str(si['NAME_i'])
+                #                                                                       ,str(si['NAME_k'])
+                #                                                                       ,str(si['nextNODE'])
+                #                                                                      ))   
                                  
-                                 for kiCol,kkCol,col,vecCol in zip(vAGSNErgCols_src_ki,vAGSNErgCols_src_kk,vAGSNErgCols,vAGSNErgCols_src_vec):                
-                                     try:
-                                        if OBJTYPE == 'ROHR':
-                                            df.loc[group.index,col]=df.loc[group.index,vecCol].values
-                                        else:
-                                            df.loc[group.index[0],col]=si[kiCol]
-                                            df.loc[group.index[-1],col]=sk[kkCol]
+                #                 for kiCol,kkCol,col,vecCol in zip(vAGSNErgCols_src_ki,vAGSNErgCols_src_kk,vAGSNErgCols,vAGSNErgCols_src_vec):                
+                #                     try:
+                #                        if OBJTYPE == 'ROHR':
+                #                            df.loc[group.index,col]=df.loc[group.index,vecCol].values
+                #                        else:
+                #                            df.loc[group.index[0],col]=si[kiCol]
+                #                            df.loc[group.index[-1],col]=sk[kkCol]
                    
-                                     except  Exception as e:
-                                        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
-                                        logger.error(logStrFinal)    
+                #                     except  Exception as e:
+                #                        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
+                #                        logger.error(logStrFinal)    
+
+                #                 if OBJTYPE == 'ROHR':
+                #                    if 'ROHR~*~*~*~QMVEC' in df.columns.tolist():                                
+                #                        df.loc[group.index,'Q']=df.loc[group.index,'ROHR~*~*~*~QMVEC'].values
+
+                #                 if heavyLog: ###
+                #                    self.dataFrames['dummy']=df.loc[group.index,:]
+                #                    logString="{0:s}1 VBEL in 1 Schnitt in 1 Layer: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy',filterColList=[                                                                                                                                                    
+                #                                                                                                                                    'Q' #Ende Ergebnisdaten
+                #                                                                                                                                    ,'IptIdx' #Start Vecs
+                #                                                                                                                                    #Vecs
+                #                                                                                                                                    #
+                #                                                                                                                                    ,'x']+vAGSNErgCols))
+                #                    logger.debug(logString)
+
+                #                 # rows ggf. invertieren und Durchfluss ggf. in Schnittrichtung drehen  
+                #                 if si.NAME_k == si.nextNODE:    
+                #                    pass
+                #                 else:                   
+                                    
+                #                    # invertieren 
+                #                    df.loc[group.index,:]=df.loc[group.index,:][::-1].values#group[::-1].values     
+                #                    # x zurueck invertieren
+                #                    df.loc[group.index,'x']=df.loc[group.index,'x'][::-1].values
+                #                    df.loc[group.index,'xVbel']=df.loc[group.index,'xVbel'][::-1].values
+                #                    # drehen
+                #                    df.loc[group.index,'Q']*=-1.  
+
+                #                    if heavyLog: ###
+                #                        self.dataFrames['dummy']=df.loc[group.index,:]
+                #                        logString="{0:s}1 VBEL in 1 Schnitt in 1 Layer - invertiert: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy',filterColList=[                                                                                                                                                    
+                #                                                                                                                                        'Q' #Ende Ergebnisdaten
+                #                                                                                                                                        ,'IptIdx' #Start Vecs
+                #                                                                                                                                        #Vecs
+                #                                                                                                                                        #
+                #                                                                                                                                        ,'x']+vAGSNErgCols))
+                #                        logger.debug(logString)
+
+                vAGSNErgColsIdx=[]
+                for col in vAGSNErgCols:
+                     vAGSNErgColsIdx.append(df.columns.get_loc(col))
+
+                vAGSNErgCols_src_kiIdx=[]
+                for col in vAGSNErgCols_src_ki:
+                     vAGSNErgCols_src_kiIdx.append(df.columns.get_loc(col))
+
+                vAGSNErgCols_src_kkIdx=[]
+                for col in vAGSNErgCols_src_kk:
+                     vAGSNErgCols_src_kkIdx.append(df.columns.get_loc(col))
+
+                vAGSNErgCols_src_vecIdx=[]
+                for col in vAGSNErgCols_src_vec:
+                     vAGSNErgCols_src_vecIdx.append(df.columns.get_loc(col))
+
+                QIdx=df.columns.get_loc('Q')
+                if 'ROHR~*~*~*~QMVEC' in df.columns.tolist():              
+                    QVecIdx=df.columns.get_loc('ROHR~*~*~*~QMVEC')
+
+                xIdx=df.columns.get_loc('x')
+                xVbelIdx=df.columns.get_loc('xVbel')
+
+                logger.debug("{:s}S1A.".format(logStr))                                      
+                grouped = df.groupby(['LFDNR','Layer','OBJTYPE','OBJID','nrObjIdInAgsn']) 
+                #grouped = dfForGrouped.groupby(['LFDNR','Layer','OBJTYPE','OBJID','nrObjIdInAgsn'])
+
+                vAGSNErgRows_src_vecIdx=[]
+                vAGSNErgRows_src_kiIdx=[]
+                vAGSNErgRows_src_kkIdx=[]
+                vAGSNErgRowsInv=[]
+                #idx=0
+                for name, group in grouped: 
+
+
+                                 LFDNR,Layer,OBJTYPE,OBJID,nrObjIdInAgsn=name
+                                 si=df.loc[group.index[0],:]
+                                 #si=df.loc[group.index[0],:]
+                                 #sk=df.loc[group.index[-1],:]
+                                
+                                 #for kiCol,kkCol,col,vecCol in zip(vAGSNErgCols_src_ki,vAGSNErgCols_src_kk,vAGSNErgCols,vAGSNErgCols_src_vec):                
+                                 #    try:
+                                 #       if OBJTYPE == 'ROHR':
+                                 #           df.loc[group.index,col]=df.loc[group.index,vecCol].values
+                                 #       else:
+                                 #           df.loc[group.index[0],col]=si[kiCol]
+                                 #           df.loc[group.index[-1],col]=sk[kkCol]
+                   
+                                 #    except  Exception as e:
+                                 #       logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
+                                 #       logger.error(logStrFinal)    
+
+
+                                 try:
+                                    if OBJTYPE == 'ROHR':
+                                        #df.loc[group.index,vAGSNErgCols]=df.loc[group.index,vAGSNErgCols_src_vec].values
+                                        ###df.iloc[group.index,vAGSNErgColsIdx]=df.iloc[group.index,vAGSNErgCols_src_vecIdx].values #.to_numpy(dtype=np.float64,copy=True)     
+                                        vAGSNErgRows_src_vecIdx.extend(group.index.values)
+                                                                                                                          
+                                    else:
+                                        #df.loc[group.index[0],vAGSNErgCols]=df.loc[group.index[0],vAGSNErgCols_src_ki].values #si[vAGSNErgCols_src_ki]
+                                        ###df.iloc[group.index[0],vAGSNErgColsIdx]=df.iloc[group.index[0],vAGSNErgCols_src_kiIdx].values #si[vAGSNErgCols_src_ki]
+                                        #df.loc[group.index[-1],vAGSNErgCols]=df.loc[group.index[-1],vAGSNErgCols_src_kk].values #sk[vAGSNErgCols_src_kk]
+                                        ###df.iloc[group.index[-1],vAGSNErgColsIdx]=df.iloc[group.index[-1],vAGSNErgCols_src_kkIdx].values #sk[vAGSNErgCols_src_kk]
+                                                                              
+                                        if si.NAME_k == si.nextNODE:              
+                                             vAGSNErgRows_src_kiIdx.append(group.index[0])     
+                                             vAGSNErgRows_src_kkIdx.append(group.index[-1])  
+                                        else:
+                                             vAGSNErgRows_src_kiIdx.append(group.index[-1])     
+                                             vAGSNErgRows_src_kkIdx.append(group.index[0])  
+
+                   
+                                 except  Exception as e:
+                                    logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
+                                    logger.error(logStrFinal)    
 
                                  if OBJTYPE == 'ROHR':
-                                    if 'ROHR~*~*~*~QMVEC' in df.columns.tolist():                                
-                                        df.loc[group.index,'Q']=df.loc[group.index,'ROHR~*~*~*~QMVEC'].values
+                                    if 'ROHR~*~*~*~QMVEC' in df.columns.tolist():           
+                                        pass
+                                        #df.loc[group.index,'Q']=df.loc[group.index,'ROHR~*~*~*~QMVEC'].values
+                                        #df.iloc[group.index,QIdx]=df.iloc[group.index,QVecIdx].values
 
-                                 if heavyLog: ###
-                                    self.dataFrames['dummy']=df.loc[group.index,:]
-                                    logString="{0:s}1 VBEL in 1 Schnitt in 1 Layer: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy',filterColList=[                                                                                                                                                    
-                                                                                                                                                    'Q' #Ende Ergebnisdaten
-                                                                                                                                                    ,'IptIdx' #Start Vecs
-                                                                                                                                                    #Vecs
-                                                                                                                                                    #
-                                                                                                                                                    ,'x']+vAGSNErgCols))
-                                    logger.debug(logString)
+                                 ###si=df.loc[group.index[0],:]
+                                 if si.NAME_k == si.nextNODE:              
+                                     pass
+                                 else:
+                                     vAGSNErgRowsInv.extend(group.index.values)
 
-                                 # rows ggf. invertieren und Durchfluss ggf. in Schnittrichtung drehen  
-                                 if si.NAME_k == si.nextNODE:    
-                                    pass
-                                 else:                   
+
+                df.loc[vAGSNErgRows_src_vecIdx,vAGSNErgCols]=df.loc[vAGSNErgRows_src_vecIdx,vAGSNErgCols_src_vec].values 
+                df.loc[vAGSNErgRows_src_kiIdx,vAGSNErgCols]=df.loc[vAGSNErgRows_src_kiIdx,vAGSNErgCols_src_ki].values 
+                df.loc[vAGSNErgRows_src_kkIdx,vAGSNErgCols]=df.loc[vAGSNErgRows_src_kkIdx,vAGSNErgCols_src_kk].values                       
+                if 'ROHR~*~*~*~QMVEC' in df.columns.tolist():                                
+                    df.loc[vAGSNErgRows_src_vecIdx,'Q']=df.loc[vAGSNErgRows_src_vecIdx,'ROHR~*~*~*~QMVEC'].values 
+                                        
+                #df.loc[vAGSNErgRowsInv,:]=df.loc[vAGSNErgRowsInv,:][::-1].values 
+                #df.loc[vAGSNErgRowsInv,'x']=df.loc[vAGSNErgRowsInv,'x'][::-1].values 
+                #df.loc[vAGSNErgRowsInv,'xVbel']=df.loc[vAGSNErgRowsInv,'xVbel'][::-1].values 
+                df.loc[vAGSNErgRowsInv,'Q']*=-1. 
+
+                logger.debug("{:s}S1Z.".format(logStr))
+                
+                for name, group in grouped: 
+
+                                 LFDNR,Layer,OBJTYPE,OBJID,nrObjIdInAgsn=name
+
+                                 if OBJTYPE != 'ROHR':
+                                     pass
+                                 else:
+
+                                     # rows ggf. invertieren und Durchfluss ggf. in Schnittrichtung drehen  
+                                     #si=df.loc[group.index[0],:]
+                                     si=df.iloc[group.index[0],:]
+                                     if si.NAME_k == si.nextNODE:    
+                                        pass
+                                     else:                   
                                     
-                                    # invertieren 
-                                    df.loc[group.index,:]=df.loc[group.index,:][::-1].values#group[::-1].values     
-                                    # x zurueck invertieren
-                                    df.loc[group.index,'x']=df.loc[group.index,'x'][::-1].values
-                                    df.loc[group.index,'xVbel']=df.loc[group.index,'xVbel'][::-1].values
-                                    # drehen
-                                    df.loc[group.index,'Q']*=-1.  
+                                        # invertieren 
+                                        #df.loc[group.index,:]=df.loc[group.index,:][::-1].values  
+                                        df.iloc[group.index,:]=df.iloc[group.index,:][::-1].values  
+                                        # x zurueck invertieren
+                                        #df.loc[group.index,'x']=df.loc[group.index,'x'][::-1].values
+                                        df.iloc[group.index,xIdx]=df.iloc[group.index,xIdx][::-1].values
+                                        #df.loc[group.index,'xVbel']=df.loc[group.index,'xVbel'][::-1].values
+                                        df.iloc[group.index,xVbelIdx]=df.iloc[group.index,xVbelIdx][::-1].values
+                                        # drehen
+                                        #df.loc[group.index,'Q']*=-1.  
+                                        ###df.iloc[group.index,QIdx]*=-1.  
 
-                                    if heavyLog: ###
-                                        self.dataFrames['dummy']=df.loc[group.index,:]
-                                        logString="{0:s}1 VBEL in 1 Schnitt in 1 Layer - invertiert: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy',filterColList=[                                                                                                                                                    
-                                                                                                                                                        'Q' #Ende Ergebnisdaten
-                                                                                                                                                        ,'IptIdx' #Start Vecs
-                                                                                                                                                        #Vecs
-                                                                                                                                                        #
-                                                                                                                                                        ,'x']+vAGSNErgCols))
-                                        logger.debug(logString)
-                                      
+                                 #idx+=1
+
+                logger.debug("{:s}S1E.".format(logStr))   
+               
                 # die verarbeiteten Kanaele loeschen ...
                 for kiCol,kkCol,vecCol in zip(vAGSNErgCols_src_ki,vAGSNErgCols_src_kk,vAGSNErgCols_src_vec):
                     df.drop([kiCol], axis=1, inplace=True)
@@ -6073,19 +6224,20 @@ class Xm():
                     df.drop(['ROHR~*~*~*~SVEC'], axis=1, inplace=True)
 
 
-            if heavyLog: ###       
-                cols1=vAGSN_rawCols+['NAME_i','NAME_k','mx2Idx']+['Q']+vAGSNGeomCols+vAGSNErgCols
-                logString="{0:s}vAGSN-Ergebnis: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vAGSN',filterColList=cols1))                                                                                                                                                                                                                                                                                                                                                                                                         
-                logger.debug(logString)
-                cols2=list(set(df.columns.tolist())-set(cols1))
-                cols2Ordered=[]
-                for col in df.columns.tolist():
-                    if col in cols2:
-                        cols2Ordered.append(col)
-                logString="{0:s}vAGSN-Ergebnis-weitere Spalten: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vAGSN',filterColList=cols2Ordered))                                                                                                                                                                                                                                                                                                                                                                                                         
-                logger.debug(logString)
+                if heavyLog: ###       
+                    cols1=vAGSN_rawCols+['NAME_i','NAME_k','mx2Idx']+['Q']+vAGSNGeomCols+vAGSNErgCols
+                    self.dataFrames['dummy']=df
+                    logString="{0:s}vAGSN-Ergebnis: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy',filterColList=cols1))                                                                                                                                                                                                                                                                                                                                                                                                         
+                    logger.debug(logString)
+                    cols2=list(set(df.columns.tolist())-set(cols1))
+                    cols2Ordered=[]
+                    for col in df.columns.tolist():
+                        if col in cols2:
+                            cols2Ordered.append(col)
+                    logString="{0:s}vAGSN-Ergebnis-weitere Spalten: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vAGSN',filterColList=cols2Ordered))                                                                                                                                                                                                                                                                                                                                                                                                         
+                    logger.debug(logString)
 
-            self.dataFrames['vAGSN']=df
+                self.dataFrames['vAGSN']=df
                                                   
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
