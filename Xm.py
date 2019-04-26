@@ -383,7 +383,7 @@ Nahwärmenetz mit 1000 kW Anschlussleistu  1001  -1                             
 (16, 74)
 >>> 'vNRCV_Mx1' in xm.dataFrames
 False
->>> xm.MxSync()
+>>> mx=xm.MxSync()
 >>> 'vNRCV_Mx1' in xm.dataFrames
 True
 >>> vROHR.shape
@@ -687,7 +687,7 @@ class Xm():
         * xmlFile (str): SIR 3S modelFile
         * NoH5Read (bool): 
                 False (default): 
-                    * An existing and newer h5File will be read _instead of xmlFile.
+                    * An existing _and newer h5File will be read _instead of xmlFile.
                     * xmlFile will _not be read (it does even not have to exist)
                 True:
                     * An existing h5File will be deleted.
@@ -814,7 +814,7 @@ class Xm():
                 3    ROHR  5114681686941855110       G3       1
                 4    ROHR  4979507900871287244       G4       1
                 5    VENT  5745097345184516675       GR       1
-                >>> xm.MxSync()
+                >>> mx=xm.MxSync()
                 >>> xm.MxAdd()    
                 >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['GL','GR'],weight='QAbsInv')  # durchflussstaerkster Weg
                   OBJTYPE                OBJID nextNODE  compNr
@@ -2312,7 +2312,7 @@ class Xm():
         33    21          NEU  None    ROHR  5114681686941855110                 PT3S                 PT3S              4                  1      0       G3      1
         34    21          NEU  None    ROHR  4979507900871287244                 PT3S                 PT3S              5                  1      0       G4      1
         35    21          NEU  None    VENT  5745097345184516675                 PT3S                 PT3S              6                  1      0       GR      1
-        >>> xm.MxSync()
+        >>> mx=xm.MxSync()
         >>> xm.MxAdd()    
         >>> xm.vAGSN_Add(nl=['GL','GR'],weight='QAbsInv')  # durchflussstaerksten Weg erzwingen  
         >>> df=xm.dataFrames['vAGSN_raw']
@@ -4807,11 +4807,11 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
             return vXXXX     
 
-    def MxSync(self,mx=None):
-        """Mx: Sir3sID Update in Mx-Object. Xm: NEW 1st Call: vNRCV_Mx1: vNRCV with MX1-Information. Some Xm-Views with MX2-Information (mx2Idx).
+    def MxSync(self,mx=None,ForceNoH5ReadForMx=False):
+        """Xm: NEW 1st Call: vNRCV_Mx1: vNRCV with MX1-Information. Some Xm-Views with MX2-Information (mx2Idx).Mx: Sir3sID Update in Mx-Object. 
 
         Args:
-            mx: Mx-Object
+            mx (default: None): Mx-Object
                 * If no Mx-Object is given the Mx-Object is constructed.       
                 * Notes:
 
@@ -4819,27 +4819,41 @@ class Xm():
                     * Method MxSync can be considered as a Sync between Xm and a particular Mx-Object.
                     * The Sync has to be done before the 1st MxAdd-Call with the Mx-Object.
 
-                    * The Sync-Result is persisted if dfs were read from H5:
+                    * The Sync-Result in Xm is persisted if dfs were read from H5:
                     
                         * xm.ToH5() is called if xm.h5Read is True. 
-                        * mx.ToH5() is called (from __Mx1_Sir3sIDUpd) if Sir3sID-Updates occured and mx.h5Read is True. 
+                        * mx.ToH5() is called (from __Mx1_Sir3sIDUpd) if Sir3sID-Updates occured and mx.h5Read is True.
+
+            ForceNoH5ReadForMx (deafault: False): a new Mx-Object is constructed with NoH5Read=True
+                * ForceNoH5ReadForMx = False: 
+
+                    * a new Mx-Object is constructed with NoH5Read = not self.h5Read 
+                    * if the Xm was read from H5 the Mx is constructed with NoH5Read=False
+                    * if the Xm was not read from H5 the Mx is constructed with NoH5Read=True
+                       
+        Returns:
+            Mx-Object if no Mx-Object was given; Nothing else
 
         Raises:
             XmError
 
         >>> xm=xms['LocalHeatingNetwork']
-        >>> xm.MxSync()
+        >>> mx=xm.MxSync()
         """
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try: 
-            if isinstance(mx,Mx.Mx):
-                pass
+            returnNothing=False
+            if isinstance(mx,Mx.Mx):                
+                returnNothing=True
             else:
-                (wDir,modelDir,modelName,mx1File)=self.getWDirModelDirModelName()                      
-                mx=Mx.Mx(mx1File=mx1File)
-
+                (wDir,modelDir,modelName,mx1File)=self.getWDirModelDirModelName()   
+                if not ForceNoH5ReadForMx:
+                    MxNoH5Read=not self.h5Read
+                else:
+                    MxNoH5Read=True
+                mx=Mx.Mx(mx1File=mx1File,NoH5Read=MxNoH5Read)
 
             self.__Mx1_Sir3sIDUpd(mx) # Sir3sID
 
@@ -4859,6 +4873,8 @@ class Xm():
                      
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            if not returnNothing:
+                return mx
 
     def __Mx1_Sir3sIDUpd(self,mx):
         """Update NAME1,2 and Sir3sID in mx.mx1Df and mx.df.
@@ -5423,7 +5439,7 @@ class Xm():
             XmError
 
         >>> xm=xms['GPipes']
-        >>> xm.MxSync()
+        >>> mx=xm.MxSync()
         >>> xm.MxAdd()    
         >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',filterColList=['BESCHREIBUNG','IDREFERENZ','tk NAME_i','CONT_i',' CONT_VKNO_i','Z_i','pk_i']))
                                      BESCHREIBUNG             IDREFERENZ   CONT_i  Z_i                 pk_i
@@ -5600,13 +5616,9 @@ class Xm():
             XmError
 
         >>> xm=xms['GPipes']
-        >>> xm.MxSync()        
-        >>> xm.MxAdd()   
-        >>> #(wDir,modelDir,modelName,mx1File)=xm.getWDirModelDirModelName()     
-        >>> #import Mx
-        >>> #mx=Mx.Mx(mx1File=mx1File)
-        >>> #mxVecsFileData=mx.getMxsVecsFileData()
-        >>> #xm._MxAddvROHRVecResults(mxVecsFileData=mxVecsFileData[0])   
+        >>> mx=xm.MxSync()               
+        >>> mxVecsFileData=mx.getMxsVecsFileData()
+        >>> xm._MxAddvROHRVecResults(mxVecsFileData=mxVecsFileData[0])   
         >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults',sortList=['ROHR~*~*~*~PHVEC','ROHR~*~*~*~SVEC'],ascending=False))
                              pk  mx2Idx IptIdx  ROHR~*~*~*~SVEC  ROHR~*~*~*~TVEC  ROHR~*~*~*~ZVEC  ROHR~*~*~*~PVEC  ROHR~*~*~*~MVEC  ROHR~*~*~*~RHOVEC  ROHR~*~*~*~PHVEC  ROHR~*~*~*~QMVEC
         8   5244313507655010738       0      S         0.000000        39.985443            0.000        40.973988        27.264917          31.891241         39.973988       3077.763672
@@ -5651,7 +5663,7 @@ class Xm():
         0   5694016449043789006       3      S         0.000000        10.000000            0.000        11.106160         0.000000           6.933107         10.106160          0.000000
         1   5694016449043789006       3      E       100.498688        10.000000            0.000         1.000000         0.000000           0.791800          0.000000          0.000000
         >>> xm=xms['LocalHeatingNetwork']
-        >>> xm.MxSync()
+        >>> mx=xm.MxSync()
         >>> xm.MxAdd()          
         >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults',filterColList=['mx2Idx','IptIdx','ROHR~*~*~*~SVEC'],index=True))
             mx2Idx IptIdx  ROHR~*~*~*~SVEC
@@ -5788,7 +5800,7 @@ class Xm():
             XmError
 
         >>> xm=xms['GPipes']
-        >>> xm.MxSync()
+        >>> mx=xm.MxSync()
         >>> xm.MxAdd()       
         >>> vAGSN=xm.dataFrames['vAGSN']
         >>> schnitt=vAGSN[vAGSN['NAME']=='LR']
