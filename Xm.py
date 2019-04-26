@@ -5451,7 +5451,7 @@ class Xm():
         VENT    5116489323526156845           NaN  3S5508684139418025293  M-1-0-1  100  4683988347517083361
                 5309992331398639768           NaN  3S5309992331398639768  M-1-0-1    0  5046108271210239718
                 5508684139418025293           NaN  3S5508684139418025293  M-1-0-1  100  4683988347517083361
-                5745097345184516675           NaN  3S5745097345184516675  M-1-0-1    0  4731210032713520411
+                5745097345184516675           NaN  3S5745097345184516675  M-1-0-1    0  5308591811899364960
         >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',filterColList=['BESCHREIBUNG','IDREFERENZ','tk NAME_k','CONT_k',' CONT_VKNO_k','Z_k','pk_k']))
                                      BESCHREIBUNG             IDREFERENZ   CONT_k  Z_k                 pk_k
         OBJTYPE OBJID                                                                                      
@@ -5462,7 +5462,7 @@ class Xm():
         VENT    5116489323526156845           NaN  3S5508684139418025293  M-1-0-1    0  5709889458254995435
                 5309992331398639768           NaN  3S5309992331398639768  M-1-0-1    0  5256558483525770176
                 5508684139418025293           NaN  3S5508684139418025293  M-1-0-1    0  5709889458254995435
-                5745097345184516675           NaN  3S5745097345184516675  M-1-0-1    0  5308591811899364960
+                5745097345184516675           NaN  3S5745097345184516675  M-1-0-1    0  4731210032713520411
         >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',filterColList=['LAYR','L','D','mx2Idx']))
                                     LAYR           L    D  mx2Idx
         OBJTYPE OBJID                                            
@@ -5485,7 +5485,7 @@ class Xm():
         VENT    5116489323526156845               0.83    16440.441406                    1.0       17.440441        16.440441            16.440441          0.00000         12.874356       40.910797     13111.193359
                 5309992331398639768               0.83    40000.000000                    1.0       41.000000        40.000000            40.000000     118257.53125         31.911810       40.000000     12777.444336
                 5508684139418025293               0.83    16440.441406                    1.0       17.440441        16.440441            16.440441          0.00000         12.874356       40.910797     13111.193359
-                5745097345184516675               0.83    10106.165039                    1.0       11.106165        10.106165            10.106165          0.00000          7.888546       49.020111     13046.647461
+                5745097345184516675               0.83    10000.000000                    1.0       11.000000        10.000000            10.000000    -118257.53125          7.812713       48.967743     13034.717773
         >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',filterColList=['KNOT~*~*~*~HMAX_INST_i','KNOT~*~*~*~HMIN_INST_i','KNOT~*~*~*~PMAX_INST_i','KNOT~*~*~*~PMIN_INST_i','KNOT~*~*~*~IAKTIV_i','KNOT~*~*~*~PDAMPF_i']))
                                      KNOT~*~*~*~HMAX_INST_i  KNOT~*~*~*~HMIN_INST_i  KNOT~*~*~*~PMAX_INST_i  KNOT~*~*~*~PMIN_INST_i  KNOT~*~*~*~IAKTIV_i  KNOT~*~*~*~PDAMPF_i
         OBJTYPE OBJID                                                                                                                                                        
@@ -5496,7 +5496,7 @@ class Xm():
         VENT    5116489323526156845            16440.441406            16440.441406               17.440441               17.440441                  0.0                  0.0
                 5309992331398639768            40000.000000            40000.000000               41.000000               41.000000                  0.0                  0.0
                 5508684139418025293            16440.441406            16440.441406               17.440441               17.440441                  0.0                  0.0
-                5745097345184516675            10106.165039            10106.165039               11.106165               11.106165                  0.0                  0.0
+                5745097345184516675            10000.000000            10000.000000               11.000000               11.000000                  0.0                  0.0
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -5836,7 +5836,7 @@ class Xm():
                     * for available KNOT...#_i, KNOT...#_k and ...#VEC:
                         * i.e. KNOT~*~*~*~P_i KNOT~*~*~*~P_k  ROHR~*~*~*~PVEC
                         * P is new column
-                        * the correspondig 3 columns are droped
+                        * the correspondig 3 source-columns are droped
         Raises:
             XmError
 
@@ -5888,11 +5888,11 @@ class Xm():
         116    ROHR    GKD     G3      S       G3  160000.0  16.3758  7652.47
         117    ROHR    GKD     G3      0       G3  165000.0  15.0583  8353.21
         118    ROHR    GKD     G3      E       G3  170000.0  13.6122  9214.63
-        119    ROHR     G4     G3      E       G4  170000.0  13.6122  9242.19
+        119    ROHR     G4     G3      S       G4  170000.0  13.6122  9242.19
         120    ROHR     G4     G3      0       G4  175000.0  11.9873  10534.3
-        121    ROHR     G4     G3      S       G4  180000.0  10.1062  12394.4
-        122    VENT     G4     GR      S       GR  180000.0  10.1062   118258
-        123    VENT     G4     GR      E       GR  180000.0       10   118258
+        121    ROHR     G4     G3      E       G4  180000.0  10.1062  12394.4
+        122    VENT     GR     G4      S       GR  180000.0  10.1062   118258
+        123    VENT     GR     G4      E       GR  180000.0       10   118258
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -6160,6 +6160,7 @@ class Xm():
                 #grouped = dfForGrouped.groupby(['LFDNR','Layer','OBJTYPE','OBJID','nrObjIdInAgsn'])
 
                 vAGSNErgRows_src_vecIdx=[]
+                vAGSNErgRows_src_vecIdxSource=[]
                 vAGSNErgRows_src_kiIdx=[]
                 vAGSNErgRows_src_kkIdx=[]
                 vAGSNErgRowsInv=[]
@@ -6190,6 +6191,10 @@ class Xm():
                                         #df.loc[group.index,vAGSNErgCols]=df.loc[group.index,vAGSNErgCols_src_vec].values
                                         ###df.iloc[group.index,vAGSNErgColsIdx]=df.iloc[group.index,vAGSNErgCols_src_vecIdx].values #.to_numpy(dtype=np.float64,copy=True)     
                                         vAGSNErgRows_src_vecIdx.extend(group.index.values)
+                                        if si.NAME_k == si.nextNODE:              
+                                            vAGSNErgRows_src_vecIdxSource.extend(group.index.values)
+                                        else:
+                                            vAGSNErgRows_src_vecIdxSource.extend(group.index.values[::-1])
                                                                                                                           
                                     else:
                                         #df.loc[group.index[0],vAGSNErgCols]=df.loc[group.index[0],vAGSNErgCols_src_ki].values #si[vAGSNErgCols_src_ki]
@@ -6222,11 +6227,11 @@ class Xm():
                                      vAGSNErgRowsInv.extend(group.index.values)
 
 
-                df.loc[vAGSNErgRows_src_vecIdx,vAGSNErgCols]=df.loc[vAGSNErgRows_src_vecIdx,vAGSNErgCols_src_vec].values 
+                df.loc[vAGSNErgRows_src_vecIdx,vAGSNErgCols]=df.loc[vAGSNErgRows_src_vecIdxSource,vAGSNErgCols_src_vec].values 
                 df.loc[vAGSNErgRows_src_kiIdx,vAGSNErgCols]=df.loc[vAGSNErgRows_src_kiIdx,vAGSNErgCols_src_ki].values 
                 df.loc[vAGSNErgRows_src_kkIdx,vAGSNErgCols]=df.loc[vAGSNErgRows_src_kkIdx,vAGSNErgCols_src_kk].values                       
                 if 'ROHR~*~*~*~QMVEC' in df.columns.tolist():                                
-                    df.loc[vAGSNErgRows_src_vecIdx,'Q']=df.loc[vAGSNErgRows_src_vecIdx,'ROHR~*~*~*~QMVEC'].values 
+                    df.loc[vAGSNErgRows_src_vecIdx,'Q']=df.loc[vAGSNErgRows_src_vecIdxSource,'ROHR~*~*~*~QMVEC'].values 
                                         
                 #df.loc[vAGSNErgRowsInv,:]=df.loc[vAGSNErgRowsInv,:][::-1].values 
                 #df.loc[vAGSNErgRowsInv,'x']=df.loc[vAGSNErgRowsInv,'x'][::-1].values 
@@ -6235,34 +6240,34 @@ class Xm():
 
                 logger.debug("{:s}S1Z.".format(logStr))
                 
-                for name, group in grouped: 
+                #for name, group in grouped: 
 
-                                 LFDNR,Layer,OBJTYPE,OBJID,nrObjIdInAgsn=name
+                #                 LFDNR,Layer,OBJTYPE,OBJID,nrObjIdInAgsn=name
 
-                                 if OBJTYPE != 'ROHR':
-                                     pass
-                                 else:
+                #                 if OBJTYPE != 'ROHR':
+                #                     pass
+                #                 else:
 
-                                     # rows ggf. invertieren und Durchfluss ggf. in Schnittrichtung drehen  
-                                     #si=df.loc[group.index[0],:]
-                                     si=df.iloc[group.index[0],:]
-                                     if si.NAME_k == si.nextNODE:    
-                                        pass
-                                     else:                   
+                #                     # rows ggf. invertieren und Durchfluss ggf. in Schnittrichtung drehen  
+                #                     #si=df.loc[group.index[0],:]
+                #                     si=df.iloc[group.index[0],:]
+                #                     if si.NAME_k == si.nextNODE:    
+                #                        pass
+                #                     else:                   
                                     
-                                        # invertieren 
-                                        #df.loc[group.index,:]=df.loc[group.index,:][::-1].values  
-                                        df.iloc[group.index,:]=df.iloc[group.index,:][::-1].values  
-                                        # x zurueck invertieren
-                                        #df.loc[group.index,'x']=df.loc[group.index,'x'][::-1].values
-                                        df.iloc[group.index,xIdx]=df.iloc[group.index,xIdx][::-1].values
-                                        #df.loc[group.index,'xVbel']=df.loc[group.index,'xVbel'][::-1].values
-                                        df.iloc[group.index,xVbelIdx]=df.iloc[group.index,xVbelIdx][::-1].values
-                                        # drehen
-                                        #df.loc[group.index,'Q']*=-1.  
-                                        ###df.iloc[group.index,QIdx]*=-1.  
+                #                        # invertieren 
+                #                        #df.loc[group.index,:]=df.loc[group.index,:][::-1].values  
+                #                        df.iloc[group.index,:]=df.iloc[group.index,:][::-1].values  
+                #                        # x zurueck invertieren
+                #                        #df.loc[group.index,'x']=df.loc[group.index,'x'][::-1].values
+                #                        df.iloc[group.index,xIdx]=df.iloc[group.index,xIdx][::-1].values
+                #                        #df.loc[group.index,'xVbel']=df.loc[group.index,'xVbel'][::-1].values
+                #                        df.iloc[group.index,xVbelIdx]=df.iloc[group.index,xVbelIdx][::-1].values
+                #                        # drehen
+                #                        #df.loc[group.index,'Q']*=-1.  
+                #                        ###df.iloc[group.index,QIdx]*=-1.  
 
-                                 #idx+=1
+                #                 #idx+=1
 
                 logger.debug("{:s}S1E.".format(logStr))   
                
