@@ -501,7 +501,7 @@ WBLZ~~~5262603207038486299~WVERL  1                                      BHKW  1
 >>> if 'vNRCV_Mx1' in xm.dataFrames:
 ...    del xm.dataFrames['vNRCV_Mx1'] # delete MxSync-Result to force MxSync-Call in MxAdd
 >>> oldShape=xm.dataFrames['vKNOT'].shape
->>> xm.MxAdd()
+>>> mx=xm.MxAdd()
 >>> firstShape=xm.dataFrames['vKNOT'].shape
 >>> oldShape[1]<firstShape[1]
 True
@@ -815,7 +815,7 @@ class Xm():
                 4    ROHR  4979507900871287244       G4       1
                 5    VENT  5745097345184516675       GR       1
                 >>> mx=xm.MxSync()
-                >>> xm.MxAdd()    
+                >>> xm.MxAdd(mx=mx)    
                 >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['GL','GR'],weight='QAbsInv')  # durchflussstaerkster Weg
                   OBJTYPE                OBJID nextNODE  compNr
                 0    VENT  5309992331398639768       G1       1
@@ -2313,7 +2313,7 @@ class Xm():
         34    21          NEU  None    ROHR  4979507900871287244                 PT3S                 PT3S              5                  1      0       G4      1
         35    21          NEU  None    VENT  5745097345184516675                 PT3S                 PT3S              6                  1      0       GR      1
         >>> mx=xm.MxSync()
-        >>> xm.MxAdd()    
+        >>> xm.MxAdd(mx=mx)    
         >>> xm.vAGSN_Add(nl=['GL','GR'],weight='QAbsInv')  # durchflussstaerksten Weg erzwingen  
         >>> df=xm.dataFrames['vAGSN_raw']
         >>> df.query("LFDNR in [21,22] and nextNODE=='GKD'")
@@ -4812,22 +4812,18 @@ class Xm():
 
         Args:
             mx (default: None): Mx-Object
-                * If no Mx-Object is given the Mx-Object is constructed.       
-                * Notes:
-
-                    * Xm holds no Mx-Object.
-                    * Method MxSync can be considered as a Sync between Xm and a particular Mx-Object.
-                    * The Sync has to be done before the 1st MxAdd-Call with the Mx-Object.
-
-                    * The Sync-Result in Xm is persisted if dfs were read from H5:
-                    
+                * If no Mx-Object is given the Mx-Object corresponding to the Xm-Object is constructed and returned.       
+                * Notes:                  
+                    * The Sync-Result in Xm is persisted if xm were read from H5:                    
                         * xm.ToH5() is called if xm.h5Read is True. 
+                    * The Sync-Result in Mx is persisted if mx were read from H5:    
                         * mx.ToH5() is called (from __Mx1_Sir3sIDUpd) if Sir3sID-Updates occured and mx.h5Read is True.
 
-            ForceNoH5ReadForMx (deafault: False): a new Mx-Object is constructed with NoH5Read=True
+            ForceNoH5ReadForMx (deafault: False): has an Effect onlx if a new Mx-Object is constructed
+                * ForceNoH5ReadForMx = True:
+                    * the new Mx-Object is constructed with NoH5Read=True
                 * ForceNoH5ReadForMx = False: 
-
-                    * a new Mx-Object is constructed with NoH5Read = not self.h5Read 
+                    * the new Mx-Object is constructed with NoH5Read = not self.h5Read 
                     * if the Xm was read from H5 the Mx is constructed with NoH5Read=False
                     * if the Xm was not read from H5 the Mx is constructed with NoH5Read=True
                        
@@ -4848,13 +4844,8 @@ class Xm():
             if isinstance(mx,Mx.Mx):                
                 returnNothing=True
             else:
-                (wDir,modelDir,modelName,mx1File)=self.getWDirModelDirModelName()   
-                if not ForceNoH5ReadForMx:
-                    MxNoH5Read=not self.h5Read
-                else:
-                    MxNoH5Read=True
-                mx=Mx.Mx(mx1File=mx1File,NoH5Read=MxNoH5Read)
-
+                mx=self._MxSyncAddMx(ForceNoH5ReadForMx=ForceNoH5ReadForMx)
+             
             self.__Mx1_Sir3sIDUpd(mx) # Sir3sID
 
             self.__Mx1_vNRCV(mx) # vNRCV
@@ -4875,6 +4866,44 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             if not returnNothing:
                 return mx
+
+    def _MxSyncAddMx(self,ForceNoH5ReadForMx=False):
+        """Mx-Object corresponding to the Xm-Object is constructed and returned. 
+
+            ForceNoH5ReadForMx (deafault: False)
+                * ForceNoH5ReadForMx = True:
+                    * the new Mx-Object is constructed with NoH5Read=True
+                * ForceNoH5ReadForMx = False: 
+                    * the new Mx-Object is constructed with NoH5Read = not self.h5Read 
+                        * if the Xm was read from H5 the Mx is constructed with NoH5Read=False
+                        * if the Xm was not read from H5 the Mx is constructed with NoH5Read=True
+                       
+        Returns:
+            Mx-Object
+
+        Raises:
+            XmError
+
+        """
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            (wDir,modelDir,modelName,mx1File)=self.getWDirModelDirModelName()   
+            if not ForceNoH5ReadForMx:
+                MxNoH5Read=not self.h5Read
+            else:
+                MxNoH5Read=True
+            mx=Mx.Mx(mx1File=mx1File,NoH5Read=MxNoH5Read)
+
+                                                       
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
+            logger.error(logStrFinal) 
+                     
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))             
+            return mx
 
     def __Mx1_Sir3sIDUpd(self,mx):
         """Update NAME1,2 and Sir3sID in mx.mx1Df and mx.df.
@@ -5315,19 +5344,22 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             self.dataFrames['vVBEL']=dfVBEL
 
-    def MxAdd(self,mx=None,timeReq=None):
-        """Add MX-Resultcolumns to some Xm-Views.  NEW 1st Call: vROHRVecResults, vAGSN
+    def MxAdd(self
+              # same Args as MxSync:
+              ,mx=None
+              ,ForceNoH5ReadForMx=False
+              # Args special to MxAdd
+              ,timeReq=None):
+        """Add MX-Resultcolumns to some Xm-Views.  NEW 1st Call: vROHRVecResults, vAGSN.
 
-        Args:
-            mx: Mx-Object
-                * If no Mx-Object is given the Mx-Object is constructed.    
-                
+        Args:               
+            mx, ForceNoH5ReadForMx: same Args as for MxSync; see description there
             timeReq:
                 * TIMESTAMP 
                 * if None 1st TIME in Mx is used
 
         Views with MX2-Results added:            
-            * in the Xm-Views below col mx2Idx must exist 
+            * in the Xm-Views below col mx2Idx must exist (i.e. MxSync mus have been called)
             * mx2Idx is considered to be the last of the Model-cols
             * right from mx2Idx Result-cols are added if not already existing
             * already existing Result-cols are overwritten
@@ -5367,6 +5399,9 @@ class Xm():
             * The Add-Result is persisted if df were read from H5:        
                         * xm.ToH5() is called if xm.h5Read is True.           
 
+        Returns:
+            Mx-Object if no Mx-Object was given; Nothing else
+
         Raises:
             XmError          
         """
@@ -5375,13 +5410,13 @@ class Xm():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try: 
-            if isinstance(mx,Mx.Mx):
-                pass
 
+            returnNothing=False
+            if isinstance(mx,Mx.Mx):                
+                returnNothing=True
             else:
-                (wDir,modelDir,modelName,mx1File)=self.getWDirModelDirModelName()                      
-                mx=Mx.Mx(mx1File=mx1File)
-            
+                mx=self._MxSyncAddMx(ForceNoH5ReadForMx=ForceNoH5ReadForMx)
+                      
             if 'vNRCV_Mx1' not in self.dataFrames:
                 self.MxSync(mx=mx)
 
@@ -5397,8 +5432,9 @@ class Xm():
                                       ,dfSource=mxVecsFileData.filter(regex='^ROHR').filter(regex='^(?!.*VEC)'),testStr='ROHR')
 
             vFWVB=self.dataFrames['vFWVB']
-            if 'mx2Idx' in vFWVB.columns.tolist():
-                vFWVB=self.__MxAddForOneDf(dfTarget=vFWVB #self.dataFrames['vFWVB']
+            #if 'mx2Idx' in vFWVB.columns.tolist(): # diente als Pruefung, ob vFWVB ueberhaupt befuellt ist; mx2Idx muss existieren wenn vFWVB befuellt ist
+            if not vFWVB.empty:
+                vFWVB=self.__MxAddForOneDf(dfTarget=vFWVB 
                                           ,dfSource=mxVecsFileData.filter(regex='^FWVB'),testStr='FWVB')
            
             self.dataFrames['vKNOT']=vKNOT
@@ -5418,6 +5454,8 @@ class Xm():
                      
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            if not returnNothing:
+                return mx
 
     def _MxAddvVBEL(self,mxVecsFileData):
         """(Re-)constructing vVBEL with MX2-Results.
@@ -5440,7 +5478,7 @@ class Xm():
 
         >>> xm=xms['GPipes']
         >>> mx=xm.MxSync()
-        >>> xm.MxAdd()    
+        >>> xm.MxAdd(mx=mx)    
         >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',filterColList=['BESCHREIBUNG','IDREFERENZ','tk NAME_i','CONT_i',' CONT_VKNO_i','Z_i','pk_i']))
                                      BESCHREIBUNG             IDREFERENZ   CONT_i  Z_i                 pk_i
         OBJTYPE OBJID                                                                                      
@@ -5707,7 +5745,7 @@ class Xm():
         40  5244313507655010738       0      E    160000.000000        40.910797          100.000        17.440462        27.264917          12.906846         16.440462       7604.778320
         >>> xm=xms['LocalHeatingNetwork']
         >>> mx=xm.MxSync()
-        >>> xm.MxAdd()          
+        >>> xm.MxAdd(mx=mx)          
         >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults',filterColList=['mx2Idx','IptIdx','ROHR~*~*~*~SVEC'],index=True))
             mx2Idx IptIdx  ROHR~*~*~*~SVEC
         0        0      S         0.000000
@@ -5842,7 +5880,7 @@ class Xm():
 
         >>> xm=xms['GPipes']
         >>> mx=xm.MxSync()
-        >>> xm.MxAdd()       
+        >>> xm.MxAdd(mx=mx)       
         >>> vAGSN=xm.dataFrames['vAGSN']
         >>> schnitt=vAGSN[vAGSN['NAME']=='LR']
         >>> xm.dataFrames['schnitt']=schnitt
@@ -6032,17 +6070,10 @@ class Xm():
                     vAGSNErgCols_src_vec.append('ROHR~*~*~*~ZVEC')                
                 for channel in vAGSNErgCols:                   
                     df[channel]=None
-                    #df[channel]=df[channel].astype('float64')
-                #df['Q']=df['Q'].astype('float64')
                 
                 # ... ErgSpalte aus folgenden ErgSpalteI/ErgSpalteK/VecSpalte     
                 for idx,(col,kiCol,kkCol,vecCol) in enumerate(zip(vAGSNErgCols,vAGSNErgCols_src_ki,vAGSNErgCols_src_kk,vAGSNErgCols_src_vec)):    
                     logger.debug("{:s}Schnitt-Zustandsgroesse Nr.:{:d}: col {:20s} Quellen: kiCol {:20s} kkCol {:20s} vecCol {:20s}".format(logStr,idx+1,col,kiCol,kkCol,vecCol))
-
-                logger.debug("{:s}Vor copy.".format(logStr))
-                #df=df.copy() 
-                #dfForGrouped=df.copy() 
-                logger.debug("{:s}Nach copy.".format(logStr))
 
                 if heavyLog: ###
                     self.dataFrames['dummy']=df
@@ -6055,222 +6086,53 @@ class Xm():
                                                                                                                                  +vAGSNErgCols+vAGSNErgCols_src_ki+vAGSNErgCols_src_kk+vAGSNErgCols_src_vec))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
                     logger.debug(logString)
 
-                #for nr in df['LFDNR'].unique():
-                #    for idxLy,ly in enumerate(df[df['LFDNR']==nr]['Layer'].unique()):
-                #        dfLy=df[(df['LFDNR']==nr) & (df['Layer']==ly)]
-        
-                #        logger.debug("{0:s}Schnitt: {1:s} Layer: {2:s}".format(logStr
-                #                                                               ,str(dfLy['NAME'].iloc[0])
-                #                                                               ,str(dfLy['Layer'].iloc[0])
-                #                                                              )) 
-                #        grouped = dfLy.groupby(['OBJTYPE','OBJID','nrObjIdInAgsn'])                        
-                #        for name, group in grouped: #sorted(grouped,key=lambda x: x[0][2]):
-
-                #                 if idxLy==0:
-                #                     pass
-
-                #                 OBJTYPE,OBJID,nrObjIdInAgsn=name
-                #                 si=df.loc[group.index[0],:]
-                #                 sk=df.loc[group.index[-1],:]
-
-                #                 if heavyLog: ###
-                #                     logger.debug("{:s}nrObjIdInAgsn: {:d} OBJTYPE: {:s} OBJID: {:s} NAME_i: {:s} NAME_k: {:s} nextNODE: {:s} ".format(logStr
-                #                                                                       ,nrObjIdInAgsn
-                #                                                                       ,OBJTYPE
-                #                                                                       ,OBJID
-                #                                                                       ,str(si['NAME_i'])
-                #                                                                       ,str(si['NAME_k'])
-                #                                                                       ,str(si['nextNODE'])
-                #                                                                      ))   
-                                 
-                #                 for kiCol,kkCol,col,vecCol in zip(vAGSNErgCols_src_ki,vAGSNErgCols_src_kk,vAGSNErgCols,vAGSNErgCols_src_vec):                
-                #                     try:
-                #                        if OBJTYPE == 'ROHR':
-                #                            df.loc[group.index,col]=df.loc[group.index,vecCol].values
-                #                        else:
-                #                            df.loc[group.index[0],col]=si[kiCol]
-                #                            df.loc[group.index[-1],col]=sk[kkCol]
-                   
-                #                     except  Exception as e:
-                #                        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
-                #                        logger.error(logStrFinal)    
-
-                #                 if OBJTYPE == 'ROHR':
-                #                    if 'ROHR~*~*~*~QMVEC' in df.columns.tolist():                                
-                #                        df.loc[group.index,'Q']=df.loc[group.index,'ROHR~*~*~*~QMVEC'].values
-
-                #                 if heavyLog: ###
-                #                    self.dataFrames['dummy']=df.loc[group.index,:]
-                #                    logString="{0:s}1 VBEL in 1 Schnitt in 1 Layer: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy',filterColList=[                                                                                                                                                    
-                #                                                                                                                                    'Q' #Ende Ergebnisdaten
-                #                                                                                                                                    ,'IptIdx' #Start Vecs
-                #                                                                                                                                    #Vecs
-                #                                                                                                                                    #
-                #                                                                                                                                    ,'x']+vAGSNErgCols))
-                #                    logger.debug(logString)
-
-                #                 # rows ggf. invertieren und Durchfluss ggf. in Schnittrichtung drehen  
-                #                 if si.NAME_k == si.nextNODE:    
-                #                    pass
-                #                 else:                   
-                                    
-                #                    # invertieren 
-                #                    df.loc[group.index,:]=df.loc[group.index,:][::-1].values#group[::-1].values     
-                #                    # x zurueck invertieren
-                #                    df.loc[group.index,'x']=df.loc[group.index,'x'][::-1].values
-                #                    df.loc[group.index,'xVbel']=df.loc[group.index,'xVbel'][::-1].values
-                #                    # drehen
-                #                    df.loc[group.index,'Q']*=-1.  
-
-                #                    if heavyLog: ###
-                #                        self.dataFrames['dummy']=df.loc[group.index,:]
-                #                        logString="{0:s}1 VBEL in 1 Schnitt in 1 Layer - invertiert: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='dummy',filterColList=[                                                                                                                                                    
-                #                                                                                                                                        'Q' #Ende Ergebnisdaten
-                #                                                                                                                                        ,'IptIdx' #Start Vecs
-                #                                                                                                                                        #Vecs
-                #                                                                                                                                        #
-                #                                                                                                                                        ,'x']+vAGSNErgCols))
-                #                        logger.debug(logString)
-
-                vAGSNErgColsIdx=[]
-                for col in vAGSNErgCols:
-                     vAGSNErgColsIdx.append(df.columns.get_loc(col))
-
-                vAGSNErgCols_src_kiIdx=[]
-                for col in vAGSNErgCols_src_ki:
-                     vAGSNErgCols_src_kiIdx.append(df.columns.get_loc(col))
-
-                vAGSNErgCols_src_kkIdx=[]
-                for col in vAGSNErgCols_src_kk:
-                     vAGSNErgCols_src_kkIdx.append(df.columns.get_loc(col))
-
-                vAGSNErgCols_src_vecIdx=[]
-                for col in vAGSNErgCols_src_vec:
-                     vAGSNErgCols_src_vecIdx.append(df.columns.get_loc(col))
-
-                QIdx=df.columns.get_loc('Q')
-                if 'ROHR~*~*~*~QMVEC' in df.columns.tolist():              
-                    QVecIdx=df.columns.get_loc('ROHR~*~*~*~QMVEC')
-
-                xIdx=df.columns.get_loc('x')
-                xVbelIdx=df.columns.get_loc('xVbel')
-
-                logger.debug("{:s}S1A.".format(logStr))                                      
-                grouped = df.groupby(['LFDNR','Layer','OBJTYPE','OBJID','nrObjIdInAgsn']) 
-                #grouped = dfForGrouped.groupby(['LFDNR','Layer','OBJTYPE','OBJID','nrObjIdInAgsn'])
-
+                vAGSNErgRows_tgt_vecIdx=[]
                 vAGSNErgRows_src_vecIdx=[]
-                vAGSNErgRows_src_vecIdxSource=[]
-                vAGSNErgRows_src_kiIdx=[]
-                vAGSNErgRows_src_kkIdx=[]
-                vAGSNErgRowsInv=[]
-                #idx=0
+                vAGSNErgRows_kiIdx=[]
+                vAGSNErgRows_kkIdx=[]
+                vAGSNErgRowsInvIdx=[]
+                
+                grouped = df.groupby(['LFDNR','Layer','OBJTYPE','OBJID','nrObjIdInAgsn'])        
+                logger.debug("{:s}SA.".format(logStr))          
                 for name, group in grouped: 
-
 
                                  LFDNR,Layer,OBJTYPE,OBJID,nrObjIdInAgsn=name
                                  si=df.loc[group.index[0],:]
-                                 #si=df.loc[group.index[0],:]
-                                 #sk=df.loc[group.index[-1],:]
-                                
-                                 #for kiCol,kkCol,col,vecCol in zip(vAGSNErgCols_src_ki,vAGSNErgCols_src_kk,vAGSNErgCols,vAGSNErgCols_src_vec):                
-                                 #    try:
-                                 #       if OBJTYPE == 'ROHR':
-                                 #           df.loc[group.index,col]=df.loc[group.index,vecCol].values
-                                 #       else:
-                                 #           df.loc[group.index[0],col]=si[kiCol]
-                                 #           df.loc[group.index[-1],col]=sk[kkCol]
-                   
-                                 #    except  Exception as e:
-                                 #       logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
-                                 #       logger.error(logStrFinal)    
-
-
+                              
                                  try:
-                                    if OBJTYPE == 'ROHR':
-                                        #df.loc[group.index,vAGSNErgCols]=df.loc[group.index,vAGSNErgCols_src_vec].values
-                                        ###df.iloc[group.index,vAGSNErgColsIdx]=df.iloc[group.index,vAGSNErgCols_src_vecIdx].values #.to_numpy(dtype=np.float64,copy=True)     
-                                        vAGSNErgRows_src_vecIdx.extend(group.index.values)
+                                    if OBJTYPE == 'ROHR':                                        
+                                        vAGSNErgRows_tgt_vecIdx.extend(group.index.values)
                                         if si.NAME_k == si.nextNODE:              
-                                            vAGSNErgRows_src_vecIdxSource.extend(group.index.values)
+                                            vAGSNErgRows_src_vecIdx.extend(group.index.values)
                                         else:
-                                            vAGSNErgRows_src_vecIdxSource.extend(group.index.values[::-1])
+                                            vAGSNErgRows_src_vecIdx.extend(group.index.values[::-1])
                                                                                                                           
-                                    else:
-                                        #df.loc[group.index[0],vAGSNErgCols]=df.loc[group.index[0],vAGSNErgCols_src_ki].values #si[vAGSNErgCols_src_ki]
-                                        ###df.iloc[group.index[0],vAGSNErgColsIdx]=df.iloc[group.index[0],vAGSNErgCols_src_kiIdx].values #si[vAGSNErgCols_src_ki]
-                                        #df.loc[group.index[-1],vAGSNErgCols]=df.loc[group.index[-1],vAGSNErgCols_src_kk].values #sk[vAGSNErgCols_src_kk]
-                                        ###df.iloc[group.index[-1],vAGSNErgColsIdx]=df.iloc[group.index[-1],vAGSNErgCols_src_kkIdx].values #sk[vAGSNErgCols_src_kk]
-                                                                              
+                                    else:                                                                                                                      
                                         if si.NAME_k == si.nextNODE:              
-                                             vAGSNErgRows_src_kiIdx.append(group.index[0])     
-                                             vAGSNErgRows_src_kkIdx.append(group.index[-1])  
+                                             vAGSNErgRows_kiIdx.append(group.index[0])     
+                                             vAGSNErgRows_kkIdx.append(group.index[-1])  
                                         else:
-                                             vAGSNErgRows_src_kiIdx.append(group.index[-1])     
-                                             vAGSNErgRows_src_kkIdx.append(group.index[0])  
+                                             vAGSNErgRows_kiIdx.append(group.index[-1])     
+                                             vAGSNErgRows_kkIdx.append(group.index[0])  
 
+                                    if si.NAME_k == si.nextNODE:              
+                                         pass
+                                    else:
+                                         vAGSNErgRowsInvIdx.extend(group.index.values)
                    
                                  except  Exception as e:
                                     logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
                                     logger.error(logStrFinal)    
+                logger.debug("{:s}SE.".format(logStr))                                              
 
-                                 if OBJTYPE == 'ROHR':
-                                    if 'ROHR~*~*~*~QMVEC' in df.columns.tolist():           
-                                        pass
-                                        #df.loc[group.index,'Q']=df.loc[group.index,'ROHR~*~*~*~QMVEC'].values
-                                        #df.iloc[group.index,QIdx]=df.iloc[group.index,QVecIdx].values
-
-                                 ###si=df.loc[group.index[0],:]
-                                 if si.NAME_k == si.nextNODE:              
-                                     pass
-                                 else:
-                                     vAGSNErgRowsInv.extend(group.index.values)
-
-
-                df.loc[vAGSNErgRows_src_vecIdx,vAGSNErgCols]=df.loc[vAGSNErgRows_src_vecIdxSource,vAGSNErgCols_src_vec].values 
-                df.loc[vAGSNErgRows_src_kiIdx,vAGSNErgCols]=df.loc[vAGSNErgRows_src_kiIdx,vAGSNErgCols_src_ki].values 
-                df.loc[vAGSNErgRows_src_kkIdx,vAGSNErgCols]=df.loc[vAGSNErgRows_src_kkIdx,vAGSNErgCols_src_kk].values                       
+                df.loc[vAGSNErgRows_tgt_vecIdx,vAGSNErgCols]=df.loc[vAGSNErgRows_src_vecIdx,vAGSNErgCols_src_vec].values 
+                df.loc[vAGSNErgRows_kiIdx,vAGSNErgCols]=df.loc[vAGSNErgRows_kiIdx,vAGSNErgCols_src_ki].values 
+                df.loc[vAGSNErgRows_kkIdx,vAGSNErgCols]=df.loc[vAGSNErgRows_kkIdx,vAGSNErgCols_src_kk].values                       
                 if 'ROHR~*~*~*~QMVEC' in df.columns.tolist():                                
-                    df.loc[vAGSNErgRows_src_vecIdx,'Q']=df.loc[vAGSNErgRows_src_vecIdxSource,'ROHR~*~*~*~QMVEC'].values 
-                                        
-                #df.loc[vAGSNErgRowsInv,:]=df.loc[vAGSNErgRowsInv,:][::-1].values 
-                #df.loc[vAGSNErgRowsInv,'x']=df.loc[vAGSNErgRowsInv,'x'][::-1].values 
-                #df.loc[vAGSNErgRowsInv,'xVbel']=df.loc[vAGSNErgRowsInv,'xVbel'][::-1].values 
-                df.loc[vAGSNErgRowsInv,'Q']*=-1. 
-
-                logger.debug("{:s}S1Z.".format(logStr))
-                
-                #for name, group in grouped: 
-
-                #                 LFDNR,Layer,OBJTYPE,OBJID,nrObjIdInAgsn=name
-
-                #                 if OBJTYPE != 'ROHR':
-                #                     pass
-                #                 else:
-
-                #                     # rows ggf. invertieren und Durchfluss ggf. in Schnittrichtung drehen  
-                #                     #si=df.loc[group.index[0],:]
-                #                     si=df.iloc[group.index[0],:]
-                #                     if si.NAME_k == si.nextNODE:    
-                #                        pass
-                #                     else:                   
-                                    
-                #                        # invertieren 
-                #                        #df.loc[group.index,:]=df.loc[group.index,:][::-1].values  
-                #                        df.iloc[group.index,:]=df.iloc[group.index,:][::-1].values  
-                #                        # x zurueck invertieren
-                #                        #df.loc[group.index,'x']=df.loc[group.index,'x'][::-1].values
-                #                        df.iloc[group.index,xIdx]=df.iloc[group.index,xIdx][::-1].values
-                #                        #df.loc[group.index,'xVbel']=df.loc[group.index,'xVbel'][::-1].values
-                #                        df.iloc[group.index,xVbelIdx]=df.iloc[group.index,xVbelIdx][::-1].values
-                #                        # drehen
-                #                        #df.loc[group.index,'Q']*=-1.  
-                #                        ###df.iloc[group.index,QIdx]*=-1.  
-
-                #                 #idx+=1
-
-                logger.debug("{:s}S1E.".format(logStr))   
-               
+                    df.loc[vAGSNErgRows_tgt_vecIdx,'Q']=df.loc[vAGSNErgRows_src_vecIdx,'ROHR~*~*~*~QMVEC'].values                                                      
+                df.loc[vAGSNErgRowsInvIdx,'Q']*=-1. 
+                logger.debug("{:s}SZ.".format(logStr))
+                               
                 # die verarbeiteten Kanaele loeschen ...
                 for kiCol,kkCol,vecCol in zip(vAGSNErgCols_src_ki,vAGSNErgCols_src_kk,vAGSNErgCols_src_vec):
                     df.drop([kiCol], axis=1, inplace=True)
