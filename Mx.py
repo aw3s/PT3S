@@ -1896,30 +1896,49 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                
 
     def getMxsVecsFileData(self,timesReq=None,mode=None):
-        """Returns dfs with mxsVecsFileData. One TIMESTAMP (index) per df.   
+        """Returns List of dfs with mxsVecsFileData. One TIMESTAMP (index) per df.   
 
         Args:
             * timesReq: List of TIMESTAMPs
                 * if None: a List with a single time only, the 1st Time, is constructed as timesReq
             * mode (default: None): 
                 * None: Time-Results are returned
-                * not None: 
-                    * Timespan-Results are returned
-                    * needs at least 2 Times                
-                    * each Timepair defines a Timespan
-                    * if len(timesReq)==1 the last Time is added as 2nd Time
-                    * if n Times are given in timesReq, n-1 Timespan-Results are returned
-                    * with result = Mode=... between [] the Timespans
-                    * TIMESTAMP per Timespan is the Beginning of the Timespan
+                * not None:                     
+                    * NOT IMPLEMENTED       
                           
         Returns:
             * List of dfs with mxsVecsFileData 
-            * empty List if not TIMESTAMP could be found
-            * one TIMESTAMP per df
+            * empty List if no TIMESTAMP could be found
+            * one df per TIMESTAMP
             * index: TIMESTAMP
 
         Raises:
             MxError
+
+
+        >>> mx=mxs['LocalHeatingNetwork']
+        >>> import os.path
+        >>> if os.path.exists(mx.h5File):                        
+        ...     os.remove(mx.h5File)
+        >>> metadataFile=mx.h5File+'.metadata'
+        >>> if os.path.exists(metadataFile):                        
+        ...     os.remove(metadataFile)               
+        >>> if os.path.exists(mx.h5FileVecs):                        
+        ...     os.remove(mx.h5FileVecs)        
+        >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading
+        5
+        >>> mxVecsFileDataLst=mx.getMxsVecsFileData()
+        >>> len(mxVecsFileDataLst)
+        1
+        >>> mxVecsFileData=mxVecsFileDataLst[0]
+        >>> type(mxVecsFileData)
+        <class 'pandas.core.frame.DataFrame'>
+        >>> mxVecsFileData.index[0]
+        Timestamp('2004-09-22 08:30:00+0000', tz='UTC')
+        >>> vecsFileDataOneCol=mxVecsFileData['ROHR~*~*~*~SVEC']
+        >>> vecsFileDataOneColResult=vecsFileDataOneCol[0]
+        >>> vecsFileDataOneColResult[-1]
+        76.4000015258789
         """
 
         logStr = "{0:s}.{1:s}: {2:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name,self.mx1File)
@@ -1984,10 +2003,10 @@ class Mx():
                             logStrAdditional="{:s}{:s}: .Key {:s} (for Time requested {:s}) also as TIMESTAMP NOT available".format(logStr,self.h5FileVecs,h5KeyReq,str(timesReq[idx]))
 
                     if not df.empty:
-                        logger.debug("{:s}    Stored: Time requested: {:s} corresponding Key: {:s} Time stored: {:s} logStrAdditional: {:s}.".format(logStr,str(timesReq[idx]),h5KeyReq,str(df.index[0]),logStrAdditional))
+                        logger.debug("{:s}    Stored: Time requested: {:s} corresponding Key: {:20s} Time stored: {:s} logStrAdditional: {:s}.".format(logStr,str(timesReq[idx]),h5KeyReq,str(df.index[0]),logStrAdditional))
                         mxsVecsDfs.append(df)  
                     else:
-                        logger.debug("{:s}NOT Stored: Time requested: {:s} corresponding Key: {:s} logStrAdditional: {:s}.".format(logStr,str(timesReq[idx]),h5KeyReq,logStrAdditional))
+                        logger.debug("{:s}NOT Stored: Time requested: {:s} corresponding Key: {:20s} logStrAdditional: {:s}.".format(logStr,str(timesReq[idx]),h5KeyReq,logStrAdditional))
                                                 
         except MxError:
             raise
@@ -1998,6 +2017,358 @@ class Mx():
         finally:                      
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             return mxsVecsDfs
+
+    def unPackMxsVecsFileDataDf(self,mxVecsFileData,mIndex,returnMultiIndex=True):
+        """Unpacks mxVecsFileData-Content into a returned df.   
+
+        Args:
+            * mxVecsFileData: the stuff returned by getMxsVecsFileData is: List of dfs with mxsVecsFileData. One TIMESTAMP (index) per df. One of these dfs.   
+            * mIndex: MultiIndex to be used
+                * 1st Level: Timestamps
+                * 2nd Level: cols (Sir3sIds to be unpacked)   
+            * returnMultiIndex (default: True):
+                * if True, the data is unpacked row-wise (stored in cols) and the index is mIndex and the col-Labels are mx2Idx
+                * if False, the data is unpacked col-wise (stored in rows) and the index is mx2Idx and th col-Labels are the cols (the Sir3sIds)
+        Returns:
+            * df           
+
+        Raises:
+            MxError
+
+        >>> mx=mxs['LocalHeatingNetwork']      
+        >>> import os.path
+        >>> if os.path.exists(mx.h5File):                        
+        ...     os.remove(mx.h5File)
+        >>> metadataFile=mx.h5File+'.metadata'
+        >>> if os.path.exists(metadataFile):                        
+        ...     os.remove(metadataFile)               
+        >>> if os.path.exists(mx.h5FileVecs):                        
+        ...     os.remove(mx.h5FileVecs)        
+        >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading
+        5
+        >>> timesReq=list(mx.df.index[:]) # all times       
+        >>> mxVecsFileDataLst=mx.getMxsVecsFileData(timesReq=timesReq)      
+        >>> len(mxVecsFileDataLst)
+        5
+        >>> mxVecsFileData=mxVecsFileDataLst[0]           
+        >>> # construct MultiIndex Start ... ---
+        >>> colsToBeUnpacked=['ROHR~*~*~*~SVEC','ROHR~*~*~*~QMAV','KNOT~*~*~*~PH'] # mxVecsFileData.columns.tolist() for all columns        
+        >>> arrays=[[mxVecsFileData.index[0]]*len(colsToBeUnpacked),colsToBeUnpacked]
+        >>> tuples = list(zip(*arrays))
+        >>> import pandas as pd
+        >>> mIndex = pd.MultiIndex.from_tuples(tuples, names=['Timestamp', 'Sir3sId'])        
+        >>> mIndex
+        MultiIndex(levels=[[2004-09-22 08:30:00+00:00], ['KNOT~*~*~*~PH', 'ROHR~*~*~*~QMAV', 'ROHR~*~*~*~SVEC']],
+                   labels=[[0, 0, 0], [2, 1, 0]],
+                   names=['Timestamp', 'Sir3sId'])
+        >>> colIdx=mIndex.get_level_values('Sir3sId')
+        >>> colIdx
+        Index(['ROHR~*~*~*~SVEC', 'ROHR~*~*~*~QMAV', 'KNOT~*~*~*~PH'], dtype='object', name='Sir3sId')
+        >>> colIdx.values.tolist()      
+        ['ROHR~*~*~*~SVEC', 'ROHR~*~*~*~QMAV', 'KNOT~*~*~*~PH']
+        >>> # construct MultiIndex End ... ---
+        >>> mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex,returnMultiIndex=False)
+            ROHR~*~*~*~SVEC  ROHR~*~*~*~QMAV  KNOT~*~*~*~PH
+        0          0.000000        -8.509475       2.302971
+        1         88.019997        19.059780       3.985846
+        2          0.000000       -15.378901       4.083384
+        3        405.959991         8.509476       4.121495
+        4          0.000000       -22.987946       2.043288
+        5         83.550003        22.987946       2.283565
+        6          0.000000        22.987947       2.004937
+        7         88.019997        -3.928166       4.311307
+        8          0.000000        22.987947       4.126019
+        9         73.419998        15.378901       2.309655
+        10         0.000000         3.928167       4.291591
+        11       195.529999       -22.987946       2.000133
+        12         0.000000       -19.059778       2.141440
+        13        68.599998        -3.928166       3.825970
+        14         0.000000         3.928167       2.000000
+        15       109.769997       -22.987946       3.819467
+        16         0.000000              NaN       2.314658
+        17        76.400002              NaN       3.816599
+        18         0.000000              NaN       2.312659
+        19        83.550003              NaN       2.000000
+        20         0.000000              NaN       3.845104
+        21       164.910004              NaN       4.125885
+        22         0.000000              NaN       3.814690
+        23       195.529999              NaN            NaN
+        24         0.000000              NaN            NaN
+        25       405.959991              NaN            NaN
+        26         0.000000              NaN            NaN
+        27       164.910004              NaN            NaN
+        28         0.000000              NaN            NaN
+        29       109.769997              NaN            NaN
+        30         0.000000              NaN            NaN
+        31        76.400002              NaN            NaN
+        >>> mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex)        
+                                                         0          1          2           3          4          5          6          7          8          9         10          11         12         13        14          15        16         17        18         19        20          21       22          23   24          25   26          27   28          29   30         31
+        Timestamp                 Sir3sId                                                                                                                                                                                                                                                                                                                                                
+        2004-09-22 08:30:00+00:00 ROHR~*~*~*~SVEC  0.000000  88.019997   0.000000  405.959991   0.000000  83.550003   0.000000  88.019997   0.000000  73.419998  0.000000  195.529999   0.000000  68.599998  0.000000  109.769997  0.000000  76.400002  0.000000  83.550003  0.000000  164.910004  0.00000  195.529999  0.0  405.959991  0.0  164.910004  0.0  109.769997  0.0  76.400002
+                                  ROHR~*~*~*~QMAV -8.509475  19.059780 -15.378901    8.509476 -22.987946  22.987946  22.987947  -3.928166  22.987947  15.378901  3.928167  -22.987946 -19.059778  -3.928166  3.928167  -22.987946       NaN        NaN       NaN        NaN       NaN         NaN      NaN         NaN  NaN         NaN  NaN         NaN  NaN         NaN  NaN        NaN
+                                  KNOT~*~*~*~PH    2.302971   3.985846   4.083384    4.121495   2.043288   2.283565   2.004937   4.311307   4.126019   2.309655  4.291591    2.000133   2.141440   3.825970  2.000000    3.819467  2.314658   3.816599  2.312659   2.000000  3.845104    4.125885  3.81469         NaN  NaN         NaN  NaN         NaN  NaN         NaN  NaN        NaN
+        >>> dfs=[]
+        >>> for idx,mxVecsFileData in enumerate(mxVecsFileDataLst):
+        ...     arrays=[[mxVecsFileData.index[0]]*len(colsToBeUnpacked),colsToBeUnpacked]
+        ...     tuples = list(zip(*arrays))        
+        ...     mIndex = pd.MultiIndex.from_tuples(tuples, names=['Timestamp', 'Sir3sId'])               
+        ...     dfs.append(mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex))        
+        >>> df=pd.concat(dfs)        
+        >>> idx=pd.IndexSlice
+        >>> dfOneVecChannel=df.loc[(idx[:],'KNOT~*~*~*~PH'),idx[:]] # df.loc[(idx[:],idx[:]),idx[:]]: everything   
+        >>> dfOneVecChannel
+                                                       0         1         2         3         4         5         6         7         8         9         10        11        12        13   14        15        16        17        18   19        20        21        22  23  24  25  26  27  28  29  30  31
+        Timestamp                 Sir3sId                                                                                                                                                                                                                                                                      
+        2004-09-22 08:30:00+00:00 KNOT~*~*~*~PH  2.302971  3.985846  4.083384  4.121495  2.043288  2.283565  2.004937  4.311307  4.126019  2.309655  4.291591  2.000133  2.141440  3.825970  2.0  3.819467  2.314658  3.816599  2.312659  2.0  3.845104  4.125885  3.814690 NaN NaN NaN NaN NaN NaN NaN NaN NaN
+        2004-09-22 08:30:15+00:00 KNOT~*~*~*~PH  2.272133  3.034820  3.123339  3.157926  2.039330  2.255054  2.004493  3.331398  3.162040  2.277968  3.311887  2.000120  2.128487  2.892818  2.0  2.887151  2.282320  2.884661  2.280581  2.0  2.909634  3.161918  2.883003 NaN NaN NaN NaN NaN NaN NaN NaN NaN
+        2004-09-22 08:30:30+00:00 KNOT~*~*~*~PH  2.144123  2.528542  2.576208  2.594833  2.021343  2.135238  2.002467  2.694164  2.597075  2.147196  2.676144  2.000063  2.069655  2.455464  2.0  2.452505  2.149524  2.451183  2.148594  2.0  2.464144  2.597010  2.450303 NaN NaN NaN NaN NaN NaN NaN NaN NaN
+        2004-09-22 08:30:45+00:00 KNOT~*~*~*~PH  2.052100  2.183028  2.200011  2.206647  2.007717  2.048865  2.000910  2.248923  2.207463  2.053240  2.234365  2.000021  2.025138  2.156905  2.0  2.155822  2.054124  2.155325  2.053771  2.0  2.160025  2.207441  2.154995 NaN NaN NaN NaN NaN NaN NaN NaN NaN
+        2004-09-22 08:31:00+00:00 KNOT~*~*~*~PH  2.302971  3.985825  4.083363  4.121474  2.043288  2.283566  2.004937  4.311287  4.125999  2.309655  4.291570  2.000133  2.141440  3.825950  2.0  3.819447  2.314658  3.816579  2.312659  2.0  3.845083  4.125864  3.814670 NaN NaN NaN NaN NaN NaN NaN NaN NaN
+        >>> dfOneVecChannel.min()
+        0     2.052100
+        1     2.183028
+        2     2.200011
+        3     2.206647
+        4     2.007717
+        5     2.048865
+        6     2.000910
+        7     2.248923
+        8     2.207463
+        9     2.053240
+        10    2.234365
+        11    2.000021
+        12    2.025138
+        13    2.156905
+        14    2.000000
+        15    2.155822
+        16    2.054124
+        17    2.155325
+        18    2.053771
+        19    2.000000
+        20    2.160025
+        21    2.207441
+        22    2.154995
+        23         NaN
+        24         NaN
+        25         NaN
+        26         NaN
+        27         NaN
+        28         NaN
+        29         NaN
+        30         NaN
+        31         NaN
+        dtype: float64
+        >>> df.min(level=1)
+                               0          1          2           3          4          5         6          7         8          9         10          11         12         13       14          15        16         17        18         19        20          21        22          23   24          25   26          27   28          29   30         31
+        Sir3sId                                                                                                                                                                                                                                                                                                                                              
+        ROHR~*~*~*~SVEC  0.000000  88.019997   0.000000  405.959991   0.000000  83.550003  0.000000  88.019997  0.000000  73.419998  0.000000  195.529999   0.000000  68.599998  0.00000  109.769997  0.000000  76.400002  0.000000  83.550003  0.000000  164.910004  0.000000  195.529999  0.0  405.959991  0.0  164.910004  0.0  109.769997  0.0  76.400002
+        ROHR~*~*~*~QMAV -8.509475   7.394749 -15.378901    3.256006 -22.987946   9.266180  9.266181  -3.928166  9.266181   5.923044  1.496261  -22.987946 -19.059778  -3.928166  1.49626  -22.987946       NaN        NaN       NaN        NaN       NaN         NaN       NaN         NaN  NaN         NaN  NaN         NaN  NaN         NaN  NaN        NaN
+        KNOT~*~*~*~PH    2.052100   2.183028   2.200011    2.206647   2.007717   2.048865  2.000910   2.248923  2.207463   2.053240  2.234365    2.000021   2.025138   2.156905  2.00000    2.155822  2.054124   2.155325  2.053771   2.000000  2.160025    2.207441  2.154995         NaN  NaN         NaN  NaN         NaN  NaN         NaN  NaN        NaN
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try:
+            df=pd.DataFrame()
+            colsToBeUnpacked=mIndex.get_level_values(1).values.tolist()      
+      
+            anError=False
+            dct={}     
+            colsUnpacked=[]
+            for col in colsToBeUnpacked:
+                #eine Spalte eines Frames liefert eine Series ...
+                #2004-09-22 08:30:00+00:00  (-8.509474754333496,...)
+                #Name: ROHR~*~*~*~QMAV
+                try:
+                    vecsFileDataOneCol=mxVecsFileData[col]
+                                
+                    #erster Wert der Series:
+                    #Tuple:
+                    #(-8.509474754333496,...)
+                    vecsFileDataOneColResult=vecsFileDataOneCol[0]
+    
+                    #Series aus Tuple
+                    vecsFileDataOneColResultSeries=pd.Series(vecsFileDataOneColResult)
+                
+                    #Series merken
+                    dct[col]=vecsFileDataOneColResultSeries
+
+                    colsUnpacked.append(col)
+                except:                   
+                    anError=True
+            if anError:
+                logger.error("{0:s}An error occured. Probably not all requested cols are available. Cols not available: {1:s}.".format(logStr,str(list(set(colsToBeUnpacked)-set(colsUnpacked)))))  
+            #DataFrame aus Dct aus Series
+            df=pd.DataFrame(dct)
+            if returnMultiIndex:
+                dfT=df.transpose(copy=True)
+                df=pd.DataFrame(dfT.values,index=mIndex,columns=dfT.columns)
+                                          
+        except MxError:
+            raise
+        except Exception as e:
+            logStrFinal="{:s}h5File: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,h5File,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)                           
+        finally:                      
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+            return df
+
+    def getMxsVecsFileDataAgg(self,time1st=None,time1stIncluded=True,time2nd=None,time2ndIncluded=True):
+        """Returns Aggregates (Min, Max, ...) of mxsVecsFileData between the 2 Times per df.   
+
+        Args:
+            * time1st: TIMESTAMP (first if None)
+            * time2nd: TIMESTAMP (last if None)
+                           
+        Returns:
+            * dfs with MultiIndex: 
+                * Level 0: 'MIN', 'MAX', ...
+                * Lecel 1: col (Sir3sId)
+                cols: mx2Idx
+
+        Raises:
+            MxError
+
+        >>> mx=mxs['LocalHeatingNetwork']   
+        >>> import os.path
+        >>> if os.path.exists(mx.h5File):                        
+        ...     os.remove(mx.h5File)
+        >>> metadataFile=mx.h5File+'.metadata'
+        >>> if os.path.exists(metadataFile):                        
+        ...     os.remove(metadataFile)               
+        >>> if os.path.exists(mx.h5FileVecs):                        
+        ...     os.remove(mx.h5FileVecs)        
+        >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading
+        5
+        >>> df=mx.getMxsVecsFileDataAgg()
+        >>> import pandas as pd
+        >>> idx=pd.IndexSlice
+        >>> df.loc[(idx[:],'KNOT~*~*~*~PH'),idx[:]]
+                                 0         1         2         3         4         5         6         7         8         9         10        11        12        13   14        15        16        17        18   19        20        21        22  23  24  25  26  27  28  29  30  31
+        Agg Sir3sId                                                                                                                                                                                                                                                                      
+        MIN KNOT~*~*~*~PH  2.052100  2.183028  2.200011  2.206647  2.007717  2.048865  2.000910  2.248923  2.207463  2.053240  2.234365  2.000021  2.025138  2.156905  2.0  2.155822  2.054124  2.155325  2.053771  2.0  2.160025  2.207441  2.154995 NaN NaN NaN NaN NaN NaN NaN NaN NaN
+        MAX KNOT~*~*~*~PH  2.302971  3.985846  4.083384  4.121495  2.043288  2.283566  2.004937  4.311307  4.126019  2.309655  4.291591  2.000133  2.141440  3.825970  2.0  3.819467  2.314658  3.816599  2.312659  2.0  3.845104  4.125885  3.814690 NaN NaN NaN NaN NaN NaN NaN NaN NaN
+        >>> dfT=df.loc[('MIN',idx[:]),idx[:]].transpose(copy=True)   
+        >>> colIndex=dfT.columns.droplevel(level=0)
+        >>> colIndex.name=None
+        >>> pd.DataFrame(dfT.values,columns=colIndex)[['ROHR~*~*~*~SVEC', 'ROHR~*~*~*~QMAV', 'KNOT~*~*~*~PH']]
+            ROHR~*~*~*~SVEC  ROHR~*~*~*~QMAV  KNOT~*~*~*~PH
+        0          0.000000        -8.509475       2.052100
+        1         88.019997         7.394749       2.183028
+        2          0.000000       -15.378901       2.200011
+        3        405.959991         3.256006       2.206647
+        4          0.000000       -22.987946       2.007717
+        5         83.550003         9.266180       2.048865
+        6          0.000000         9.266181       2.000910
+        7         88.019997        -3.928166       2.248923
+        8          0.000000         9.266181       2.207463
+        9         73.419998         5.923044       2.053240
+        10         0.000000         1.496261       2.234365
+        11       195.529999       -22.987946       2.000021
+        12         0.000000       -19.059778       2.025138
+        13        68.599998        -3.928166       2.156905
+        14         0.000000         1.496260       2.000000
+        15       109.769997       -22.987946       2.155822
+        16         0.000000              NaN       2.054124
+        17        76.400002              NaN       2.155325
+        18         0.000000              NaN       2.053771
+        19        83.550003              NaN       2.000000
+        20         0.000000              NaN       2.160025
+        21       164.910004              NaN       2.207441
+        22         0.000000              NaN       2.154995
+        23       195.529999              NaN            NaN
+        24         0.000000              NaN            NaN
+        25       405.959991              NaN            NaN
+        26         0.000000              NaN            NaN
+        27       164.910004              NaN            NaN
+        28         0.000000              NaN            NaN
+        29       109.769997              NaN            NaN
+        30         0.000000              NaN            NaN
+        31        76.400002              NaN            NaN
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try:           
+            df=pd.DataFrame()
+
+            if time1st==None:
+                time1st=self.df.index[0]
+            if time2nd==None:
+                time2nd=self.df.index[-1]
+
+            if time2nd <= time1st:
+                logger.error("{:s}Time2nd: {:s} <= Time1st {:s} ?!".format(logStr,str(time2nd),str(time1st)))    
+                raise MxError
+           
+            if time1st not in self.df.index:
+                logger.error("{:s}Time1st {:s} not available ?!".format(logStr,str(time1st)))    
+                raise MxError      
+            else:
+                time1stIdx=self.df.index.get_loc(time1st)
+                        
+            if time2nd not in self.df.index:
+                logger.error("{:s}Time2nd {:s} not available ?!".format(logStr,str(time2nd)))    
+                raise MxError   
+            else:
+                time2ndIdx=self.df.index.get_loc(time2nd)
+
+            if time2ndIncluded:
+                time2ndIncludedOffset=1
+            else:
+                time2ndIncludedOffset=0
+            if time1stIncluded:
+                time1stIncludedOffset=0
+            else:
+                time1stIncludedOffset=1
+            timesReq=list(self.df.index[time1stIdx+time1stIncludedOffset:time2ndIdx+time2ndIncludedOffset])  
+  
+            # read the Times
+            logger.debug("{:s}Times to read: {:s}".format(logStr,str(timesReq)))    
+            mxVecsFileDataLst=self.getMxsVecsFileData(timesReq=timesReq)   
+            
+            colsToBeUnpacked=mxVecsFileDataLst[0].columns.tolist()
+            dfs=[]
+            for idx,mxVecsFileData in enumerate(mxVecsFileDataLst):
+                arrays=[[mxVecsFileData.index[0]]*len(colsToBeUnpacked),colsToBeUnpacked]
+                tuples = list(zip(*arrays))        
+                mIndex = pd.MultiIndex.from_tuples(tuples, names=['Timestamp', 'Sir3sId'])               
+                dfs.append(mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex))        
+            df=pd.concat(dfs)      
+            
+            # dfAggs
+            dfAggs=[]    
+            
+            # min        
+            dfAgg=df.min(level=1)                
+            # construct mIndex for Agg
+            arrays=[['MIN']*len(colsToBeUnpacked),colsToBeUnpacked]
+            tuples = list(zip(*arrays))        
+            mIndex = pd.MultiIndex.from_tuples(tuples, names=['Agg', 'Sir3sId'])     
+            dfAggs.append(pd.DataFrame(dfAgg.values,index=mIndex,columns=dfAgg.columns))
+
+            # max        
+            dfAgg=df.max(level=1)                
+            # construct mIndex for Agg
+            arrays=[['MAX']*len(colsToBeUnpacked),colsToBeUnpacked]
+            tuples = list(zip(*arrays))        
+            mIndex = pd.MultiIndex.from_tuples(tuples, names=['Agg', 'Sir3sId'])     
+            dfAggs.append(pd.DataFrame(dfAgg.values,index=mIndex,columns=dfAgg.columns))
+
+            df=pd.concat(dfAggs)    
+                                          
+        except MxError:
+            raise
+        except Exception as e:
+            logStrFinal="{:s}h5File: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,h5File,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)                           
+        finally:                      
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+            return df
 
     def dumpInMxsFormat(self,mxsDumpFile=None):
         """Dumps in MXS-Format to mxsDumpFile (for testing purposes). 
