@@ -2245,20 +2245,20 @@ class Mx():
 
         Raises:
             MxError
-
+        
         >>> mx=mxs['LocalHeatingNetwork']   
         >>> mx.delFiles()      
         >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading
         5
         >>> df=mx.getMxsVecsFileDataAgg()
         >>> import pandas as pd
-        >>> idx=pd.IndexSlice
-        >>> df.loc[(idx[:],'KNOT~*~*~*~PH'),idx[:]]
+        >>> #idx=pd.IndexSlice        
+        >>> df.loc[(['MIN','MAX'],'KNOT~*~*~*~PH'),:] ## df.loc[(slice(None),'KNOT~*~*~*~PH'),slice(None)] # df.loc[(idx[:],'KNOT~*~*~*~PH'),idx[:]]
                                  0         1         2         3         4         5         6         7         8         9         10        11        12        13   14        15        16        17        18   19        20        21        22  23  24  25  26  27  28  29  30  31
         Agg Sir3sID                                                                                                                                                                                                                                                                      
         MIN KNOT~*~*~*~PH  2.052100  2.183028  2.200011  2.206647  2.007717  2.048865  2.000910  2.248923  2.207463  2.053240  2.234365  2.000021  2.025138  2.156905  2.0  2.155822  2.054124  2.155325  2.053771  2.0  2.160025  2.207441  2.154995 NaN NaN NaN NaN NaN NaN NaN NaN NaN
         MAX KNOT~*~*~*~PH  2.302971  3.985846  4.083384  4.121495  2.043288  2.283566  2.004937  4.311307  4.126019  2.309655  4.291591  2.000133  2.141440  3.825970  2.0  3.819467  2.314658  3.816599  2.312659  2.0  3.845104  4.125885  3.814690 NaN NaN NaN NaN NaN NaN NaN NaN NaN
-        >>> dfT=df.loc[('MIN',idx[:]),idx[:]].transpose(copy=True)   
+        >>> dfT=df.loc[('MIN',df.index.get_level_values(1).tolist()),:].transpose(copy=True) ## dfT=df.loc[('MIN',slice(None)),:].transpose(copy=True)   # dfT=df.loc[('MIN',idx[:]),idx[:]].transpose(copy=True)   
         >>> colIndex=dfT.columns.droplevel(level=0)
         >>> colIndex.name=None
         >>> pd.DataFrame(dfT.values,columns=colIndex)[['ROHR~*~*~*~SVEC', 'ROHR~*~*~*~QMAV', 'KNOT~*~*~*~PH']]
@@ -2344,7 +2344,7 @@ class Mx():
                 arrays=[[mxVecsFileData.index[0]]*len(colsToBeUnpacked),colsToBeUnpacked]
                 tuples = list(zip(*arrays))        
                 mIndex = pd.MultiIndex.from_tuples(tuples, names=['Timestamp', 'Sir3sID'])               
-                dfs.append(mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex))        
+                dfs.append(self.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex))        
             df=pd.concat(dfs)      
             
             # dfAggs
@@ -2668,11 +2668,10 @@ if __name__ == "__main__":
                                           ,'dotResolution':args.dotResolution
                                            ,'mxs':mxs}) 
             for expr in args.singleTest:
-                logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Searching Tests for Expr: ',expr))                
+                logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Searching Tests for Expr',expr))                
                 testsForExpr=[test for test in dTests if re.search(expr,test.name) != None]
-                for test in testsForExpr:          
-                    if re.search(expr,test.name) != None:                    
-                        logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Running Test: ',test.name)) 
+                for test in testsForExpr:                                           
+                        logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Running Test',test.name)) 
                         dtRunner.run(test)        
 
             # Clean-Up

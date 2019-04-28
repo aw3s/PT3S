@@ -137,55 +137,48 @@ if __name__ == "__main__":
             mxs={} 
             for testModel in testModels:
                 mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1')) 
-                mx=Mx.Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)                                
+                mx=Mx.Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True) # avoid doing anything than just plain Init                                         
                 mxs[testModel]=mx
 
             xms={}   
-            modelFiles={}
+            ms={}
             for testModel in testModels:
                 h5File=os.path.join(os.path.join('.',args.testDir),testModel+'.h5')
                 if os.path.exists(h5File):                        
                     os.remove(h5File)
                 xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')
-                modelFiles[testModel]=xmlFile
-                xm=Xm.Xm(xmlFile=xmlFile)
+                ms[testModel]=xmlFile
+                xm=Xm.Xm(xmlFile=xmlFile,NoH5Read=True) # avoid doing anything than just plain Init    
                 xms[testModel]=xm
 
             dtFinder=doctest.DocTestFinder(verbose=args.verbose)
-            dtRunner=doctest.DocTestRunner(verbose=args.verbose) 
+            
             dTests=dtFinder.find(Mx,globs={'testDir':args.testDir
-                                          ,'dotResolution':args.dotResolution
-                                           ,'mxs':mxs
-                                           ,'xms':xms}) 
-            dTests.extend(dtFinder.find(Xm,globs={'testDir':args.testDir
-                                         # ,'dotResolution':args.dotResolution
-                                           ,'mxs':mxs
+                                           ,'dotResolution':args.dotResolution
+                                           ,'mxs':mxs                                         
+                                         }
+                                 ) 
+            dTests.extend(dtFinder.find(Xm,globs={'testDir':args.testDir                                                                                    
                                            ,'xms':xms
-                                           ,'ms':modelFiles})) 
+                                           ,'ms':ms})) 
 
-            for test in dTests:
-                for expr in args.singleTest:
-                    if re.search(expr,test.name) != None:                    
-                        logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Running Test: ',test.name)) 
-                        dtRunner.run(test)
-                        break
+            dtRunner=doctest.DocTestRunner(verbose=args.verbose) 
+            for expr in args.singleTest:
+                logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Searching Tests for Expr',expr))                
+                testsForExpr=[test for test in dTests if re.search(expr,test.name) != None]
+                for test in testsForExpr:                                                  
+                        logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Running Test',test.name)) 
+                        dtRunner.run(test)                     
 
             for testModel in testModels:                                           
                 mx=mxs[testModel]
-
-                if os.path.exists(mx.h5File):                        
-                   os.remove(mx.h5File)
-                metadataFile=mx.h5File+'.metadata'
-                if os.path.exists(metadataFile):                        
-                   os.remove(metadataFile)
+                mx.delFiles()               
                 if os.path.exists(mx.mxsZipFile):                        
                    os.remove(mx.mxsZipFile)
                 mxsDumpFile=mx.mxsFile+'.dump'
                 if os.path.exists(mxsDumpFile):                        
                    os.remove(mxsDumpFile)
-                if os.path.exists(mx.h5FileVecs):                        
-                   os.remove(mx.h5FileVecs)
-        
+               
     except SystemExit:
         pass                                              
     except:
