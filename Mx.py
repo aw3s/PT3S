@@ -83,18 +83,12 @@ True
 >>> # ---
 >>> # Clean Up
 >>> # ---
->>> if os.path.exists(mx.h5File):                        
-...    os.remove(mx.h5File)
->>> metadataFile=mx.h5File+'.metadata'
->>> if os.path.exists(metadataFile):                        
-...    os.remove(metadataFile)
+>>> mx.delFiles()
 >>> if os.path.exists(mx.mxsZipFile):                        
 ...    os.remove(mx.mxsZipFile)
 >>> mxsDumpFile=mx.mxsFile+'.dump'
 >>> if os.path.exists(mxsDumpFile):                        
 ...    os.remove(mxsDumpFile)
->>> if os.path.exists(mx.h5FileVecs):                        
-...    os.remove(mx.h5FileVecs)
 >>> # ---
 >>> # 1st Read MXS
 >>> # ---
@@ -338,17 +332,12 @@ ATTRTYPE  DATALENGTH DATATYPE  DATATYPELENGTH  FLAGS OBJTYPE           OBJTYPE_P
 >>> # ---
 >>> # Clean Up OneLPipe
 >>> # ---
->>> if os.path.exists(mx.h5File):                        
-...     os.remove(mx.h5File)
->>> metadataFile=mx.h5File+'.metadata'
->>> if os.path.exists(metadataFile):                        
-...     os.remove(metadataFile)
+>>> mx.delFiles()
 >>> if os.path.exists(mx.mxsZipFile):                        
-...     os.remove(mx.mxsZipFile)
+...    os.remove(mx.mxsZipFile)
+>>> mxsDumpFile=mx.mxsFile+'.dump'
 >>> if os.path.exists(mxsDumpFile):                        
 ...    os.remove(mxsDumpFile)
->>> if os.path.exists(mx.h5FileVecs):                        
-...    os.remove(mx.h5FileVecs)
 >>> # ---
 >>> # LocalHeatingNetwork
 >>> # ---
@@ -357,14 +346,12 @@ ATTRTYPE  DATALENGTH DATATYPE  DATATYPELENGTH  FLAGS OBJTYPE           OBJTYPE_P
 >>> # ---
 >>> # Clean Up LocalHeatingNetwork
 >>> # ---
->>> if os.path.exists(mx.h5File):                        
-...    os.remove(mx.h5File)
->>> if os.path.exists(mx.mxsZipFile):                        
+>>> mx.delFiles()
+>>> if os.path.exists(mx.mxsZipFile):         
 ...    os.remove(mx.mxsZipFile)
->>> if os.path.exists(mxsDumpFile):                        
+>>> mxsDumpFile=mx.mxsFile+'.dump'
+>>> if os.path.exists(mxsDumpFile):           
 ...    os.remove(mxsDumpFile)
->>> if os.path.exists(mx.h5FileVecs):                        
-...    os.remove(mx.h5FileVecs)
 >>> mx.setResultsToMxsFile(maxRecords=1)
 1
 >>> print(mx._getDfAsOneString())
@@ -388,14 +375,12 @@ True
 >>> # ---
 >>> # Clean Up LocalHeatingNetwork
 >>> # ---
->>> if os.path.exists(mx.h5File):                        
-...    os.remove(mx.h5File)
->>> if os.path.exists(mx.mxsZipFile):                        
+>>> mx.delFiles()
+>>> if os.path.exists(mx.mxsZipFile):         
 ...    os.remove(mx.mxsZipFile)
->>> if os.path.exists(mxsDumpFile):                        
+>>> mxsDumpFile=mx.mxsFile+'.dump'
+>>> if os.path.exists(mxsDumpFile):           
 ...    os.remove(mxsDumpFile)
->>> if os.path.exists(mx.h5FileVecs):                        
-...    os.remove(mx.h5FileVecs)
 >>> # ---
 >>> # TinyWDN
 >>> # ---
@@ -429,8 +414,7 @@ ATTRTYPE  DATALENGTH DATATYPE  DATATYPELENGTH  FLAGS OBJTYPE           OBJTYPE_P
 >>> # ---
 >>> # Clean Up Tiny WDN
 >>> # ---
->>> if os.path.exists(mx.h5FileVecs):                        
-...    os.remove(mx.h5FileVecs)
+>>> mx.delFiles()
 >>> # ---
 >>> # GPipe
 >>> # ---
@@ -444,8 +428,7 @@ True
 >>> # ---
 >>> # Clean Up GPipe
 >>> # ---
->>> if os.path.exists(mx.h5FileVecs):                        
-...    os.remove(mx.h5FileVecs)
+>>> mx.delFiles()
 """
 
 import warnings # 3.6
@@ -539,22 +522,22 @@ class Mx():
                         * The base.Y.h5-File is read instead of the .MX1-File.                        
 
             True (use this for a fresh start):             
-                * An base.Y.h5-File is deleted if existing.  
-                * The .MX1-File is read. (base.Y.Mx1-File from 90-10 on)
-                * The base.Y.vec.h5-File is newly created in case of an .MXS-File read. (.Y.MXS-File read from 90-10 on)       
+                * An  base.Y.h5-File is deleted if existing.  
+                * The base.Y.Mx1-File is read. 
+                * The base.Y.vec.h5-File is newly created in case of an .MXS-File read.
 
         * NoMxsRead (bool):
             True:
-                * a .MXS-File is not read (.Y.MXS-File read from 90-10 on)
+                * a base.Y.MXS-File is not read 
                 * a base.Y.vec.h5-File is not touched
 
             False (default):
-                * If a .MXS-File (.Y.Mx1-File from 90-10 on)
+                * If a base.Y.MXS-File
                     * exists
-                    * and is newer (>=) than .MX1-File (.Y.Mx1-File from 90-10 on)
+                    * and is newer (>=) than base.Y.Mx1-File
                     * and base.Y.h5-File is not read:
 
-                        * The .MXS-File is read.  (.Y.MXS-File is read from 90-10 on)             
+                        * The base.Y.MXS-File is read.      
                         * NoH5Read=True will delete base.Y.vec.h5-File.
 
     Attributes:
@@ -562,16 +545,29 @@ class Mx():
             * h5Read: True, if read from H5
 
         * fileNames
-            * .mx1File: base.MX1-File (.Y.Mx1-File from 90-10 on) 
+            * .mx1File: base.Y.MX1-File 
 
             derived from mx1File
                 * .mx2File: base.MX2-File 
-                * .mxsFile: base.MXS-File (.Y.MXS-File from 90-10 on)
+                * .mxsFile: base.Y.MXS-File
                 * .mxsZipFile base.ZIP
-                * .h5File: base.Y.h5-File (.Y.MXS-File from 90-10 on)
-                * .h5FileVecs: base.y.vec.h5-File (.Y.MXS-File from 90-10 on)
-
+                *  constructed from MX during Init and Usage:
+                *  ------------------------------------------
+                * .h5File: base.Y.h5-File
+                * .h5FileVecs: base.Y.vec.h5-File: MXS-H5Dump written implicitely 
+                * .h5FileMx1FmtString: base.Y.h5-File.metadata written implicitely
+      
         * .mxRecordStructFmtString
+            * usage: struct.unpack(self.mxRecordStructFmtString,a_MXS_Record)  
+            * .h5FileMx1FmtString:
+                * it was not possible to store mxRecordStructFmtString in H5-Format as Metadata
+                * therefore mxRecordStructFmtString is stored in a file named .h5FileMx1FmtString
+                * in .h5File the Link to this file is stored as Metadata
+                * as pointed out with usage above mxRecordStructFmtString has nothing to do with writing to or reading from H5
+                * mxRecordStructFmtString is only about reading from (and writing to for test purposes) MXS
+                * the .mxRecordStructFmtString/.h5FileMx1FmtString stuff is only about performance:
+                * if after reading from H5 only a(nother) MXS shall be read again ...
+                * ... the stuff avoids the time-consuming reconstruction of mxRecordStructFmtString 
 
         * dataFrames
             * .mx1Df  
@@ -611,8 +607,9 @@ class Mx():
                                                      
             #Determine corresponding .h5 Filename(s)
             self.h5File=wD+os.path.sep+base+'.'+'h5'    # mx1Df, mx2Df, df (non Vectordata only)
-            self.h5FileVecs=wD+os.path.sep+base+dotResolution+'.'+'vec'+'.'+'h5' # (Vectordata)           
-            
+            self.h5FileVecs=wD+os.path.sep+base+dotResolution+'.'+'vec'+'.'+'h5' # (Vectordata)     
+            self.h5FileMx1FmtString=self.h5File+'.metadata'
+                        
             #Determine corresponding .MXS Filename
             self.mxsFile=wD+os.path.sep+base+dotResolution+'.'+'MXS'  
           
@@ -679,6 +676,32 @@ class Mx():
             else:                
                 self.FromH5(h5File=self.h5File)
                              
+        except MxError:
+            raise            
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)                       
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def delFiles(self): 
+        """Deletes Files constructed by MX during Init and Usage.
+        """
+        
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:           
+            if os.path.exists(self.h5File):                        
+               os.remove(self.h5File)    
+               logger.debug("{0:s} File {1:s} deleted.".format(logStr,self.h5File)) 
+            if os.path.exists(self.h5FileVecs):                        
+               os.remove(self.h5FileVecs)   
+               logger.debug("{0:s} File {1:s} deleted.".format(logStr,self.h5FileVecs)) 
+            if os.path.exists(self.h5FileMx1FmtString):                        
+               os.remove(self.h5FileMx1FmtString)    
+               logger.debug("{0:s} File {1:s} deleted.".format(logStr,self.h5FileMx1FmtString)) 
         except MxError:
             raise            
         except Exception as e:
@@ -1153,7 +1176,6 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
     def _readMxsFile(self,mxsFilePtr,mxsVecsH5StorePtr,firstTime=None,maxRecords=None):
-
         """
         Args:
             * mxsFilePtr: .MXS-File
@@ -1225,8 +1247,15 @@ class Mx():
                         try: 
                             record=mxsFilePtr.read(MxRecordLength)
                             recordData = struct.unpack(self.mxRecordStructFmtString,record)  
-                        except:
-                            logger.debug("{0:s}record=f.read(MxRecordLength) failed (EOF probably).".format(logStr))  
+                        except struct.error as e:                                      
+                            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                    
+                            logger.debug(logStrFinal) 
+                            logger.debug("{0:s}record=f.read(MxRecordLength) failed (struct.error). EOF assumed.".format(logStr))  
+                            raise EOFError
+                        except EOFError as e:
+                            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                    
+                            logger.debug(logStrFinal) 
+                            logger.debug("{0:s}record=f.read(MxRecordLength) failed (EOFError).".format(logStr))  
                             raise EOFError
                         else:
                             timeISO8601=None
@@ -1305,7 +1334,7 @@ class Mx():
                         # store vecs in H5
                         if mxsVecsH5StorePtr != None:                            
                             try:      
-                                 h5DumpLog="{:s} NO.".format('H5Dump:')
+                                 h5DumpLog="{:s} NO:".format('H5Dump:')
                                  h5Key=getMicrosecondsFromRefTime(refTime=firstTime,time=time)   
                                  
                                  if '/'+str(h5Key) not in keysAtStart:                                                                                                      
@@ -1324,9 +1353,9 @@ class Mx():
                                         timesWrittenToMxsVecs+=1
                                         h5DumpLog="{:s} Written DataFrame {:s} (Nr. {:d}) with h5Key=/{!s:>20s}".format('H5Dump:','dfVecs',timesWrittenToMxsVecs,h5Key) 
                                      else:
-                                        h5DumpLog="{:s} NO: key already written.".format('H5Dump:')
-                                 else:
-                                     h5DumpLog="{:s} NO: key in keysAtStart.".format('H5Dump:')
+                                        h5DumpLog="{:s} {:s}".format(h5DumpLog,'key already written.')
+                                 else:                                     
+                                     h5DumpLog="{:s} {:s}".format(h5DumpLog,'key in keysAtStart.')
                                                               
                             except Exception as e:
                                 logger.error("{0:s}store record as df in H5 failed at Time={1!s}. Error.".format(logStr,time_read_finally))
@@ -1458,7 +1487,7 @@ class Mx():
             if os.path.exists(self.h5FileVecs):      
 
                 if newMxsVecsFile:
-                    logger.debug("{:s}Delete H5VecDump because NewH5Vec ...".format(logStr,self.h5FileVecs)) 
+                    logger.debug("{:s}Delete {:s} because NewH5Vec ...".format(logStr,self.h5FileVecs)) 
                     os.remove(self.h5FileVecs)   
                 else:
                     if os.path.exists(mxsFile):                         
@@ -1469,7 +1498,7 @@ class Mx():
 
                     if mxsFileTime>mxsH5FileTime:
                         # die zu lesende Mxs ist neuer als der Dump: Dump loeschen              
-                        logger.debug("{:s}Delete H5VecDump because Mxs {:s} To Read is newer than H5VecDump {:s} ...".format(logStr,mxsFile,self.h5FileVecs))                             
+                        logger.debug("{:s}Delete H5Dump because Mxs {:s} To Read is newer than H5Dump {:s} ...".format(logStr,mxsFile,self.h5FileVecs))                             
                         os.remove(self.h5FileVecs)      
                         
         except MxError:
@@ -1589,8 +1618,8 @@ class Mx():
             raise MxError(logStrFinal)                                       
         finally:
             mxsVecH5Store.close()
-            return timesWrittenToMxsVecs
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                 
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))      
+            return timesWrittenToMxsVecs         
 
     def setResultsToMxsZipFile(self,mxsZipFile=None,add=False,NewH5Vec=False,maxRecords=None):
         """Sets (default) or adds mxsZipFile-Content to .df.
@@ -1720,9 +1749,9 @@ class Mx():
             raise MxError(logStrFinal)                                  
         finally:
             mxsVecH5Store.close()
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))      
             return timesWrittenToMxsVecsFromZip
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                 
-
+                       
     def ToH5(self,h5File=None):
         """Stores .mx1Df, .mx2Df, .df to h5File.
 
@@ -1768,7 +1797,7 @@ class Mx():
                     logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'mx1Df',h5Key))           
                     h5Store.put(h5Key,self.mx1Df)
 
-                    recordStructFmtStringFile=self.h5File+'.metadata'
+                    recordStructFmtStringFile=self.h5FileMx1FmtString #self.h5File+'.metadata'
                     recordStructFmtStringFileKey='recordStructFmtStringFileKey'
                     metadata=dict(recordStructFmtStringFileKey=recordStructFmtStringFile)
                     with open(recordStructFmtStringFile,'w') as f:
@@ -1917,14 +1946,7 @@ class Mx():
 
 
         >>> mx=mxs['LocalHeatingNetwork']
-        >>> import os.path
-        >>> if os.path.exists(mx.h5File):                        
-        ...     os.remove(mx.h5File)
-        >>> metadataFile=mx.h5File+'.metadata'
-        >>> if os.path.exists(metadataFile):                        
-        ...     os.remove(metadataFile)               
-        >>> if os.path.exists(mx.h5FileVecs):                        
-        ...     os.remove(mx.h5FileVecs)        
+        >>> mx.delFiles()
         >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading
         5
         >>> mxVecsFileDataLst=mx.getMxsVecsFileData()
@@ -2035,15 +2057,8 @@ class Mx():
         Raises:
             MxError
 
-        >>> mx=mxs['LocalHeatingNetwork']      
-        >>> import os.path
-        >>> if os.path.exists(mx.h5File):                        
-        ...     os.remove(mx.h5File)
-        >>> metadataFile=mx.h5File+'.metadata'
-        >>> if os.path.exists(metadataFile):                        
-        ...     os.remove(metadataFile)               
-        >>> if os.path.exists(mx.h5FileVecs):                        
-        ...     os.remove(mx.h5FileVecs)        
+        >>> mx=mxs['LocalHeatingNetwork']   
+        >>> mx.delFiles()       
         >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading
         5
         >>> timesReq=list(mx.df.index[:]) # all times       
@@ -2056,14 +2071,14 @@ class Mx():
         >>> arrays=[[mxVecsFileData.index[0]]*len(colsToBeUnpacked),colsToBeUnpacked]
         >>> tuples = list(zip(*arrays))
         >>> import pandas as pd
-        >>> mIndex = pd.MultiIndex.from_tuples(tuples, names=['Timestamp', 'Sir3sId'])        
+        >>> mIndex = pd.MultiIndex.from_tuples(tuples, names=['Timestamp', 'Sir3sID'])        
         >>> mIndex
         MultiIndex(levels=[[2004-09-22 08:30:00+00:00], ['KNOT~*~*~*~PH', 'ROHR~*~*~*~QMAV', 'ROHR~*~*~*~SVEC']],
                    labels=[[0, 0, 0], [2, 1, 0]],
-                   names=['Timestamp', 'Sir3sId'])
-        >>> colIdx=mIndex.get_level_values('Sir3sId')
+                   names=['Timestamp', 'Sir3sID'])
+        >>> colIdx=mIndex.get_level_values('Sir3sID')
         >>> colIdx
-        Index(['ROHR~*~*~*~SVEC', 'ROHR~*~*~*~QMAV', 'KNOT~*~*~*~PH'], dtype='object', name='Sir3sId')
+        Index(['ROHR~*~*~*~SVEC', 'ROHR~*~*~*~QMAV', 'KNOT~*~*~*~PH'], dtype='object', name='Sir3sID')
         >>> colIdx.values.tolist()      
         ['ROHR~*~*~*~SVEC', 'ROHR~*~*~*~QMAV', 'KNOT~*~*~*~PH']
         >>> # construct MultiIndex End ... ---
@@ -2103,7 +2118,7 @@ class Mx():
         31        76.400002              NaN            NaN
         >>> mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex)        
                                                          0          1          2           3          4          5          6          7          8          9         10          11         12         13        14          15        16         17        18         19        20          21       22          23   24          25   26          27   28          29   30         31
-        Timestamp                 Sir3sId                                                                                                                                                                                                                                                                                                                                                
+        Timestamp                 Sir3sID                                                                                                                                                                                                                                                                                                                                                
         2004-09-22 08:30:00+00:00 ROHR~*~*~*~SVEC  0.000000  88.019997   0.000000  405.959991   0.000000  83.550003   0.000000  88.019997   0.000000  73.419998  0.000000  195.529999   0.000000  68.599998  0.000000  109.769997  0.000000  76.400002  0.000000  83.550003  0.000000  164.910004  0.00000  195.529999  0.0  405.959991  0.0  164.910004  0.0  109.769997  0.0  76.400002
                                   ROHR~*~*~*~QMAV -8.509475  19.059780 -15.378901    8.509476 -22.987946  22.987946  22.987947  -3.928166  22.987947  15.378901  3.928167  -22.987946 -19.059778  -3.928166  3.928167  -22.987946       NaN        NaN       NaN        NaN       NaN         NaN      NaN         NaN  NaN         NaN  NaN         NaN  NaN         NaN  NaN        NaN
                                   KNOT~*~*~*~PH    2.302971   3.985846   4.083384    4.121495   2.043288   2.283565   2.004937   4.311307   4.126019   2.309655  4.291591    2.000133   2.141440   3.825970  2.000000    3.819467  2.314658   3.816599  2.312659   2.000000  3.845104    4.125885  3.81469         NaN  NaN         NaN  NaN         NaN  NaN         NaN  NaN        NaN
@@ -2111,14 +2126,14 @@ class Mx():
         >>> for idx,mxVecsFileData in enumerate(mxVecsFileDataLst):
         ...     arrays=[[mxVecsFileData.index[0]]*len(colsToBeUnpacked),colsToBeUnpacked]
         ...     tuples = list(zip(*arrays))        
-        ...     mIndex = pd.MultiIndex.from_tuples(tuples, names=['Timestamp', 'Sir3sId'])               
+        ...     mIndex = pd.MultiIndex.from_tuples(tuples, names=['Timestamp', 'Sir3sID'])               
         ...     dfs.append(mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex))        
         >>> df=pd.concat(dfs)        
         >>> idx=pd.IndexSlice
         >>> dfOneVecChannel=df.loc[(idx[:],'KNOT~*~*~*~PH'),idx[:]] # df.loc[(idx[:],idx[:]),idx[:]]: everything   
         >>> dfOneVecChannel
                                                        0         1         2         3         4         5         6         7         8         9         10        11        12        13   14        15        16        17        18   19        20        21        22  23  24  25  26  27  28  29  30  31
-        Timestamp                 Sir3sId                                                                                                                                                                                                                                                                      
+        Timestamp                 Sir3sID                                                                                                                                                                                                                                                                      
         2004-09-22 08:30:00+00:00 KNOT~*~*~*~PH  2.302971  3.985846  4.083384  4.121495  2.043288  2.283565  2.004937  4.311307  4.126019  2.309655  4.291591  2.000133  2.141440  3.825970  2.0  3.819467  2.314658  3.816599  2.312659  2.0  3.845104  4.125885  3.814690 NaN NaN NaN NaN NaN NaN NaN NaN NaN
         2004-09-22 08:30:15+00:00 KNOT~*~*~*~PH  2.272133  3.034820  3.123339  3.157926  2.039330  2.255054  2.004493  3.331398  3.162040  2.277968  3.311887  2.000120  2.128487  2.892818  2.0  2.887151  2.282320  2.884661  2.280581  2.0  2.909634  3.161918  2.883003 NaN NaN NaN NaN NaN NaN NaN NaN NaN
         2004-09-22 08:30:30+00:00 KNOT~*~*~*~PH  2.144123  2.528542  2.576208  2.594833  2.021343  2.135238  2.002467  2.694164  2.597075  2.147196  2.676144  2.000063  2.069655  2.455464  2.0  2.452505  2.149524  2.451183  2.148594  2.0  2.464144  2.597010  2.450303 NaN NaN NaN NaN NaN NaN NaN NaN NaN
@@ -2160,7 +2175,7 @@ class Mx():
         dtype: float64
         >>> df.min(level=1)
                                0          1          2           3          4          5         6          7         8          9         10          11         12         13       14          15        16         17        18         19        20          21        22          23   24          25   26          27   28          29   30         31
-        Sir3sId                                                                                                                                                                                                                                                                                                                                              
+        Sir3sID                                                                                                                                                                                                                                                                                                                                              
         ROHR~*~*~*~SVEC  0.000000  88.019997   0.000000  405.959991   0.000000  83.550003  0.000000  88.019997  0.000000  73.419998  0.000000  195.529999   0.000000  68.599998  0.00000  109.769997  0.000000  76.400002  0.000000  83.550003  0.000000  164.910004  0.000000  195.529999  0.0  405.959991  0.0  164.910004  0.0  109.769997  0.0  76.400002
         ROHR~*~*~*~QMAV -8.509475   7.394749 -15.378901    3.256006 -22.987946   9.266180  9.266181  -3.928166  9.266181   5.923044  1.496261  -22.987946 -19.059778  -3.928166  1.49626  -22.987946       NaN        NaN       NaN        NaN       NaN         NaN       NaN         NaN  NaN         NaN  NaN         NaN  NaN         NaN  NaN        NaN
         KNOT~*~*~*~PH    2.052100   2.183028   2.200011    2.206647   2.007717   2.048865  2.000910   2.248923  2.207463   2.053240  2.234365    2.000021   2.025138   2.156905  2.00000    2.155822  2.054124   2.155325  2.053771   2.000000  2.160025    2.207441  2.154995         NaN  NaN         NaN  NaN         NaN  NaN         NaN  NaN        NaN
@@ -2225,21 +2240,14 @@ class Mx():
         Returns:
             * dfs with MultiIndex: 
                 * Level 0: 'MIN', 'MAX', ...
-                * Lecel 1: col (Sir3sId)
+                * Lecel 1: col (Sir3sID)
                 cols: mx2Idx
 
         Raises:
             MxError
 
         >>> mx=mxs['LocalHeatingNetwork']   
-        >>> import os.path
-        >>> if os.path.exists(mx.h5File):                        
-        ...     os.remove(mx.h5File)
-        >>> metadataFile=mx.h5File+'.metadata'
-        >>> if os.path.exists(metadataFile):                        
-        ...     os.remove(metadataFile)               
-        >>> if os.path.exists(mx.h5FileVecs):                        
-        ...     os.remove(mx.h5FileVecs)        
+        >>> mx.delFiles()      
         >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading
         5
         >>> df=mx.getMxsVecsFileDataAgg()
@@ -2247,7 +2255,7 @@ class Mx():
         >>> idx=pd.IndexSlice
         >>> df.loc[(idx[:],'KNOT~*~*~*~PH'),idx[:]]
                                  0         1         2         3         4         5         6         7         8         9         10        11        12        13   14        15        16        17        18   19        20        21        22  23  24  25  26  27  28  29  30  31
-        Agg Sir3sId                                                                                                                                                                                                                                                                      
+        Agg Sir3sID                                                                                                                                                                                                                                                                      
         MIN KNOT~*~*~*~PH  2.052100  2.183028  2.200011  2.206647  2.007717  2.048865  2.000910  2.248923  2.207463  2.053240  2.234365  2.000021  2.025138  2.156905  2.0  2.155822  2.054124  2.155325  2.053771  2.0  2.160025  2.207441  2.154995 NaN NaN NaN NaN NaN NaN NaN NaN NaN
         MAX KNOT~*~*~*~PH  2.302971  3.985846  4.083384  4.121495  2.043288  2.283566  2.004937  4.311307  4.126019  2.309655  4.291591  2.000133  2.141440  3.825970  2.0  3.819467  2.314658  3.816599  2.312659  2.0  3.845104  4.125885  3.814690 NaN NaN NaN NaN NaN NaN NaN NaN NaN
         >>> dfT=df.loc[('MIN',idx[:]),idx[:]].transpose(copy=True)   
@@ -2335,7 +2343,7 @@ class Mx():
             for idx,mxVecsFileData in enumerate(mxVecsFileDataLst):
                 arrays=[[mxVecsFileData.index[0]]*len(colsToBeUnpacked),colsToBeUnpacked]
                 tuples = list(zip(*arrays))        
-                mIndex = pd.MultiIndex.from_tuples(tuples, names=['Timestamp', 'Sir3sId'])               
+                mIndex = pd.MultiIndex.from_tuples(tuples, names=['Timestamp', 'Sir3sID'])               
                 dfs.append(mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex))        
             df=pd.concat(dfs)      
             
@@ -2347,7 +2355,7 @@ class Mx():
             # construct mIndex for Agg
             arrays=[['MIN']*len(colsToBeUnpacked),colsToBeUnpacked]
             tuples = list(zip(*arrays))        
-            mIndex = pd.MultiIndex.from_tuples(tuples, names=['Agg', 'Sir3sId'])     
+            mIndex = pd.MultiIndex.from_tuples(tuples, names=['Agg', 'Sir3sID'])     
             dfAggs.append(pd.DataFrame(dfAgg.values,index=mIndex,columns=dfAgg.columns))
 
             # max        
@@ -2355,7 +2363,7 @@ class Mx():
             # construct mIndex for Agg
             arrays=[['MAX']*len(colsToBeUnpacked),colsToBeUnpacked]
             tuples = list(zip(*arrays))        
-            mIndex = pd.MultiIndex.from_tuples(tuples, names=['Agg', 'Sir3sId'])     
+            mIndex = pd.MultiIndex.from_tuples(tuples, names=['Agg', 'Sir3sID'])     
             dfAggs.append(pd.DataFrame(dfAgg.values,index=mIndex,columns=dfAgg.columns))
 
             df=pd.concat(dfAggs)    
@@ -2647,10 +2655,11 @@ if __name__ == "__main__":
             unittest.TextTestRunner().run(suite)
                    
         if len(args.singleTest)>0:
+            testModels=['OneLPipe','LocalHeatingNetwork','GPipes','GPipe'] # ['LocalHeatingNetwork'] 
             mxs={} 
-            for testModel in ['OneLPipe','LocalHeatingNetwork','GPipes','GPipe']:
+            for testModel in testModels:
                 mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1')) 
-                mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)                                
+                mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True) # avoid doing more than just Init                               
                 mxs[testModel]=mx
 
             dtFinder=doctest.DocTestFinder(verbose=args.verbose)
@@ -2658,28 +2667,24 @@ if __name__ == "__main__":
             dTests=dtFinder.find(Mx,globs={'testDir':args.testDir
                                           ,'dotResolution':args.dotResolution
                                            ,'mxs':mxs}) 
-            for test in dTests:
-                for expr in args.singleTest:
+            for expr in args.singleTest:
+                logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Searching Tests for Expr: ',expr))                
+                testsForExpr=[test for test in dTests if re.search(expr,test.name) != None]
+                for test in testsForExpr:          
                     if re.search(expr,test.name) != None:                    
                         logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Running Test: ',test.name)) 
-                        dtRunner.run(test)
-                        break
+                        dtRunner.run(test)        
 
-            for testModel in ['OneLPipe','LocalHeatingNetwork','GPipes','GPipe']:                                           
+            # Clean-Up
+            for testModel in testModels:                                           
                 mx=mxs[testModel]
-
-                if os.path.exists(mx.h5File):                        
-                   os.remove(mx.h5File)
-                metadataFile=mx.h5File+'.metadata'
-                if os.path.exists(metadataFile):                        
-                   os.remove(metadataFile)
+                mx.delFiles()               
                 if os.path.exists(mx.mxsZipFile):                        
                    os.remove(mx.mxsZipFile)
                 mxsDumpFile=mx.mxsFile+'.dump'
                 if os.path.exists(mxsDumpFile):                        
                    os.remove(mxsDumpFile)
-                if os.path.exists(mx.h5FileVecs):                        
-                   os.remove(mx.h5FileVecs)
+               
         
     except SystemExit:
         pass                                              

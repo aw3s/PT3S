@@ -119,8 +119,7 @@ False
 >>> # ---
 >>> # Clean Up
 >>> # ---
->>> if os.path.exists(xm.h5File):                        
-...    os.remove(xm.h5File)
+>>> xm.delFiles()
 >>> # ---
 >>> # LocalHeatingNetwork
 >>> # ---
@@ -602,12 +601,8 @@ True
 >>> # ---
 >>> # Clean Up LocalHeatingNetwork Xm and Mx
 >>> # ---
->>> if os.path.exists(xm.h5File):                        
-...    os.remove(xm.h5File)
->>> if os.path.exists(mx.h5FileVecs):                        
-...    os.remove(mx.h5FileVecs)
->>> if os.path.exists(mx.h5File):                        
-...    os.remove(mx.h5File)
+>>> xm.delFiles()
+>>> mx.delFiles()
 >>> # ---
 >>> # TinyWDN
 >>> # ---
@@ -697,8 +692,12 @@ class Xm():
         * states
             * h5Read: True, if read from H5
 
-        * xmlFile
-        * h5File: corresponding h5File(name) derived from xmlFile(name)
+        * fileNames
+            * xmlFile
+            *  constructed from MX during Init and Usage:
+            *  ------------------------------------------
+            * h5File: corresponding h5File(name) derived from xmlFile(name)
+
         * dataFrames
             * dict with pandas DataFrames
             * one pandas DataFrame per SIR 3S Objecttype (i.e. KNOT, ROHR, ...)
@@ -707,7 +706,8 @@ class Xm():
                 * i.e. vKNOT, vROHR, ...
                 * The Views are designed to deal with tedious groundwork.
                 * The Views are aggregated somewhat arbitrary.
-                * However: Usage of SIR 3S Modeldata is more convenient and efficient with appropriate Views.      
+                * However: Usage of SIR 3S Modeldata is more convenient and efficient with appropriate Views.     
+                
         * pXCorZero, pYCorZero
    
     Raises:
@@ -1048,6 +1048,26 @@ class Xm():
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
             raise XmError(logStrFinal)              
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+
+    def delFiles(self): 
+        """Deletes Files constructed by XM during Init and Usage.
+        """
+        
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:           
+            if os.path.exists(self.h5File):                        
+               os.remove(self.h5File)    
+               logger.debug("{0:s} File {1:s} deleted.".format(logStr,self.h5File))            
+        except XmError:
+            raise            
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)                       
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
 
@@ -6375,12 +6395,13 @@ if __name__ == "__main__":
             dTests=dtFinder.find(Xm,globs={'testDir':args.testDir                                       
                                            ,'xms':xms
                                            ,'ms':modelFiles}) 
-            for test in dTests:
-                for expr in args.singleTest:
+            for expr in args.singleTest:
+                logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Searching Tests for Expr: ',expr))                
+                testsForExpr=[test for test in dTests if re.search(expr,test.name) != None]
+                for test in testsForExpr:          
                     if re.search(expr,test.name) != None:                    
                         logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Running Test: ',test.name)) 
-                        dtRunner.run(test)
-                        break
+                        dtRunner.run(test)                        
 
     except SystemExit:
         pass                                              
