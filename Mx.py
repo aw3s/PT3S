@@ -2659,7 +2659,7 @@ if __name__ == "__main__":
             mxs={} 
             for testModel in testModels:
                 mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1')) 
-                mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True) # avoid doing more than just Init                               
+                mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True) # avoid doing anything than just plain Init                               
                 mxs[testModel]=mx
 
             dtFinder=doctest.DocTestFinder(verbose=args.verbose)

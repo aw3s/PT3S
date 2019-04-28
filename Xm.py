@@ -5423,7 +5423,125 @@ class Xm():
             Mx-Object if no Mx-Object was given; Nothing else
 
         Raises:
-            XmError          
+            XmError      
+            
+        >>> xm=xms['LocalHeatingNetwork']
+        >>> mx=xm.MxAdd()
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vKNOT',filterColList=['BESCHREIBUNG','IDREFERENZ','NAME','KNOT~*~*~*~PH']))
+                              BESCHREIBUNG IDREFERENZ         NAME  KNOT~*~*~*~PH
+        0                             None         -1       R-K004       2.302971
+        1                             None         -1       V-K002       3.985846
+        2                             None         -1       V-K001       4.083384
+        3                             None         -1       V-K000       4.121495
+        4                             None         -1       R-K001       2.043288
+        5                             None         -1       R-K003       2.283565
+        6                             None         -1       R-K000       2.004937
+        7                             None         -1       R-K005       2.309655
+        8                             None         -1          R-L       2.000133
+        9                             None         -1       R-K002       2.141440
+        10                            None         -1       V-K004       3.825970
+        11                            None         -1       V-K005       3.819467
+        12                            None         -1       R-K007       2.314658
+        13                            None         -1       V-K006       3.816599
+        14                            None         -1       R-K006       2.312659
+        15                            None         -1       V-K003       3.845104
+        16                            None         -1          V-L       4.125885
+        17                            None         -1       V-K007       3.814690
+        18                            None         -1           R2       4.311307
+        19                            None         -1          V-1       4.126019
+        20                            None         -1           R3       4.291591
+        21  Druckhaltung - 2 bar Ruhedruck         -1  PKON-Knoten       2.000000
+        22          Anbindung Druckhaltung         -1          R-1       2.000000
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vROHR',filterColList=['BESCHREIBUNG','IDREFERENZ','NAME_i','NAME_k','ROHR~*~*~*~QMAV']))
+           BESCHREIBUNG IDREFERENZ  NAME_i  NAME_k  ROHR~*~*~*~QMAV
+        0          None         -1  R-K004  R-K005        -8.509475
+        1          None         -1  V-K002  V-K003        19.059780
+        2          None         -1  R-K003  R-K004       -15.378901
+        3          None         -1  V-K004  V-K005         8.509476
+        4          None         -1  V-K001  V-K002        22.987946
+        5          None         -1  R-K006  R-K007        -3.928166
+        6          None         -1  V-K000  V-K001        22.987947
+        7          None         -1  V-K003  V-K004        15.378901
+        8          None         -1  V-K005  V-K006         3.928167
+        9          None         -1  R-K001  R-K002       -22.987946
+        10         None         -1  R-K002  R-K003       -19.059778
+        11         None         -1  R-K005  R-K006        -3.928166
+        12         None         -1  V-K006  V-K007         3.928167
+        13         None         -1  R-K000  R-K001       -22.987946
+        14         None         -1     R-L  R-K000       -22.987946
+        15         None         -1     V-L  V-K000        22.987947
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vFWVB'))
+          BESCHREIBUNG IDREFERENZ   W0  LFK  W0LFK  TVL0  TRS0  LFKT      W  W_min  W_max  INDTR  TRSK  VTYP  DPHAUS  IMBG  IRFV                   pk                   tk  NAME_i KVR_i TM_i   XKOR_i   YKOR_i ZKOR_i  pXCor_i  pYCor_i  NAME_k KVR_k TM_k   XKOR_k   YKOR_k ZKOR_k  pXCor_k  pYCor_k                                      CONT CONT_ID CONT_LFDNR                         WBLZ  mx2Idx  FWVB~*~*~*~W  FWVB~*~*~*~QM  FWVB~*~*~*~IAKTIV
+        0            1         -1  200  0.8  160.0    90    50  LFKT  160.0  160.0  160.0      1    55    14     0.7     0   0.0  4643800032883366034  4643800032883366034  V-K002     1   90  2541059  5706265     20    319.0     56.0  R-K002     2   60  2541059  5706265     20    319.0     56.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  [BLNZ1, BLNZ1u5, BLNZ1u5u7]       0         160.0       3.928166                0.0
+        1            3         -1  200  1.0  200.0    90    65  LFKT  200.0  200.0  200.0      1    65    14     0.7     0   0.0  4704603947372595298  4704603947372595298  V-K004     1   90  2541539  5706361     20    799.0    152.0  R-K004     2   60  2541539  5706361     20    799.0    152.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           []       1         200.0       6.869426                0.0
+        2            4         -1  200  0.8  160.0    90    60  LFKT  160.0  160.0  160.0      1    60    14     0.7     0   0.0  5121101823283893406  5121101823283893406  V-K005     1   90  2541627  5706363     20    887.0    154.0  R-K005     2   60  2541627  5706363     20    887.0    154.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  [BLNZ1u5, BLNZ1u5u7, BLNZ5]       2         160.0       4.581308                0.0
+        3            5         -1  200  0.8  160.0    90    55  LFKT  160.0  160.0  160.0      1    55    14     0.7     0   0.0  5400405917816384862  5400405917816384862  V-K007     1   90  2541899  5706325     20   1159.0    116.0  R-K007     2   60  2541899  5706325     20   1159.0    116.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                  [BLNZ1u5u7]       3         160.0       3.928166                0.0
+        4            2         -1  200  0.6  120.0    90    60  LFKT  120.0  120.0  120.0      1    62    14     0.7     0   0.0  5695730293103267172  5695730293103267172  V-K003     1   90  2541457  5706345     20    717.0    136.0  R-K003     2   60  2541457  5706345     20    717.0    136.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1                           []       4         120.0       3.680879                0.0
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',filterColList=['BESCHREIBUNG','IDREFERENZ','NAME_i','NAME_k','Q'])) 
+                                                      BESCHREIBUNG IDREFERENZ       NAME_i  NAME_k            Q
+        OBJTYPE OBJID                                                                                          
+        FWES    5638756766880678918  BHKW - Modul - 1000 kW therm.         -1           R3     V-1      22.9879
+        FWVB    4643800032883366034                              1         -1       V-K002  R-K002      3.92817
+                4704603947372595298                              3         -1       V-K004  R-K004      6.86943
+                5121101823283893406                              4         -1       V-K005  R-K005      4.58131
+                5400405917816384862                              5         -1       V-K007  R-K007      3.92817
+                5695730293103267172                              2         -1       V-K003  R-K003      3.68088
+        KLAP    4801110583764519435                           None         -1           R2      R3      22.9879
+        PGRP    4986517622672493603                   Pumpengruppe         -1          R-1      R3         None
+        PUMP    5481331875203087055                    Umwälzpumpe         -1          R-1      R2      22.9879
+        ROHR    4613782368750024999                           None         -1       R-K004  R-K005     -8.50947
+                4614949065966596185                           None         -1       V-K002  V-K003      19.0598
+                4637102239750163477                           None         -1       R-K003  R-K004     -15.3789
+                4713733238627697042                           None         -1       V-K004  V-K005      8.50948
+                4769996343148550485                           None         -1          R-L  R-K000     -22.9879
+                4789218195240364437                           None         -1       V-K001  V-K002      22.9879
+                4939422678063487923                           None         -1          V-L  V-K000      22.9879
+                4945727430885351042                           None         -1       R-K006  R-K007     -3.92817
+                4984202422877610920                           None         -1       V-K000  V-K001      22.9879
+                5037777106796980248                           None         -1       V-K003  V-K004      15.3789
+                5123819811204259837                           None         -1       V-K005  V-K006      3.92817
+                5266224553324203132                           None         -1       R-K001  R-K002     -22.9879
+                5379365049009065623                           None         -1       R-K002  R-K003     -19.0598
+                5611703699850694889                           None         -1       R-K005  R-K006     -3.92817
+                5620197984230756681                           None         -1       V-K006  V-K007      3.92817
+                5647213228462830353                           None         -1       R-K000  R-K001     -22.9879
+        VENT    4678923650983295610                           None         -1          V-1     V-L      22.9879
+                4897018421024717974                           None         -1          R-L     R-1      22.9879
+                5525310316015533093                           None         -1  PKON-Knoten     R-1  2.19997e-06
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults')) 
+                             pk  mx2Idx IptIdx  ROHR~*~*~*~SVEC  ROHR~*~*~*~PVEC  ROHR~*~*~*~RHOVEC  ROHR~*~*~*~TVEC  ROHR~*~*~*~MVEC  ROHR~*~*~*~ZVEC
+        0   4613782368750024999       0      S         0.000000         3.302971         983.700012             60.0        -2.363743             20.0
+        1   4613782368750024999       0      E        88.019997         3.309655         983.700012             60.0        -2.363743             20.0
+        2   4614949065966596185       1      S         0.000000         4.985845         965.700012             90.0         5.294384             20.0
+        3   4614949065966596185       1      E       405.959991         4.845104         965.700012             90.0         5.294384             20.0
+        4   4637102239750163477       2      S         0.000000         3.283566         983.700012             60.0        -4.271917             20.0
+        5   4637102239750163477       2      E        83.550003         3.302971         983.700012             60.0        -4.271917             20.0
+        6   4713733238627697042       3      S         0.000000         4.825970         965.700012             90.0         2.363743             20.0
+        7   4713733238627697042       3      E        88.019997         4.819468         965.700012             90.0         2.363743             20.0
+        8   4789218195240364437       5      S         0.000000         5.083383         965.700012             90.0         6.385540             20.0
+        9   4789218195240364437       5      E       195.529999         4.985845         965.700012             90.0         6.385540             20.0
+        10  4945727430885351042       7      S         0.000000         3.312659         983.700012             60.0        -1.091157             20.0
+        11  4945727430885351042       7      E       109.769997         3.314658         983.700012             60.0        -1.091157             20.0
+        12  4984202422877610920       8      S         0.000000         5.121495         965.700012             90.0         6.385540             20.0
+        13  4984202422877610920       8      E        76.400002         5.083383         965.700012             90.0         6.385540             20.0
+        14  5037777106796980248       9      S         0.000000         4.845104         965.700012             90.0         4.271917             20.0
+        15  5037777106796980248       9      E        83.550003         4.825970         965.700012             90.0         4.271917             20.0
+        16  5123819811204259837      10      S         0.000000         4.819468         965.700012             90.0         1.091157             20.0
+        17  5123819811204259837      10      E       164.910004         4.816599         965.700012             90.0         1.091157             20.0
+        18  5266224553324203132      11      S         0.000000         3.043288         983.700012             60.0        -6.385540             20.0
+        19  5266224553324203132      11      E       195.529999         3.141441         983.700012             60.0        -6.385540             20.0
+        20  5379365049009065623      12      S         0.000000         3.141441         983.700012             60.0        -5.294383             20.0
+        21  5379365049009065623      12      E       405.959991         3.283566         983.700012             60.0        -5.294383             20.0
+        22  5611703699850694889      13      S         0.000000         3.309655         983.700012             60.0        -1.091157             20.0
+        23  5611703699850694889      13      E       164.910004         3.312659         983.700012             60.0        -1.091157             20.0
+        24  5620197984230756681      14      S         0.000000         4.816599         965.700012             90.0         1.091157             20.0
+        25  5620197984230756681      14      E       109.769997         4.814690         965.700012             90.0         1.091157             20.0
+        26  5647213228462830353      15      S         0.000000         3.004937         983.700012             60.0        -6.385540             20.0
+        27  5647213228462830353      15      E        76.400002         3.043288         983.700012             60.0        -6.385540             20.0
+        28  4769996343148550485       4      S         0.000000         3.000133         983.700012             60.0        -6.385540             20.0
+        29  4769996343148550485       4      E        73.419998         3.004937         983.700012             60.0        -6.385540             20.0
+        30  4939422678063487923       6      S         0.000000         5.125884         965.700012             90.0         6.385541             20.0
+        31  4939422678063487923       6      E        68.599998         5.121495         965.700012             90.0         6.385541             20.0
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -5443,26 +5561,35 @@ class Xm():
             if timeReq==None:
                 timeReq=mx.df.index[0]
 
-            mxVecsFileData=mx.getMxsVecsFileData(timesReq=[timeReq])[0] # 1 Zeit, alle Spalten, in den Zellen stehen die Vektoren als Tuple 
+            mxVecsFileData=mx.getMxsVecsFileData(timesReq=[timeReq])[0] 
 
-            vKNOT=self.__MxAddForOneDf(dfTarget=self.dataFrames['vKNOT']
-                                      ,dfSource=mxVecsFileData.filter(regex='^KNOT'),testStr='KNOT')
+            # unPack requests a mIndex ...
+            colsToBeUnpacked=mxVecsFileData.columns.tolist() # all columns      
+            arrays=[[mxVecsFileData.index[0]]*len(colsToBeUnpacked),colsToBeUnpacked]
+            tuples = list(zip(*arrays))            
+            mIndex = pd.MultiIndex.from_tuples(tuples, names=['Timestamp', 'Sir3sID'])        
+            # unPack
+            dfUnpacked=mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex,returnMultiIndex=False)
+
+            vKNOT=self.dataFrames['vKNOT']
+            vKNOT=self.__MxAddForOneDf(dfTarget=vKNOT
+                                      ,dfSource=dfUnpacked.filter(regex='^KNOT'),testStr='KNOT')
+
             vROHR=self.dataFrames['vROHR']
             vROHR=self.__MxAddForOneDf(dfTarget=vROHR
-                                      ,dfSource=mxVecsFileData.filter(regex='^ROHR').filter(regex='^(?!.*VEC)'),testStr='ROHR')
+                                      ,dfSource=dfUnpacked.filter(regex='^ROHR').filter(regex='^(?!.*VEC)'),testStr='ROHR')
 
-            vFWVB=self.dataFrames['vFWVB']
-            #if 'mx2Idx' in vFWVB.columns.tolist(): # diente als Pruefung, ob vFWVB ueberhaupt befuellt ist; mx2Idx muss existieren wenn vFWVB befuellt ist
+            vFWVB=self.dataFrames['vFWVB']            
             if not vFWVB.empty:
                 vFWVB=self.__MxAddForOneDf(dfTarget=vFWVB 
-                                          ,dfSource=mxVecsFileData.filter(regex='^FWVB'),testStr='FWVB')
+                                          ,dfSource=dfUnpacked.filter(regex='^FWVB'),testStr='FWVB')
            
             self.dataFrames['vKNOT']=vKNOT
             self.dataFrames['vROHR']=vROHR
             self.dataFrames['vFWVB']=vFWVB
 
-            self._MxAddvVBEL(mxVecsFileData=mxVecsFileData)
-            self._MxAddvROHRVecResults(mxVecsFileData=mxVecsFileData)
+            self._MxAddvVBEL(dfSource=dfUnpacked)
+            self._MxAddvROHRVecResults(dfSource=dfUnpacked)
             self._MxAddvAGSN()
 
             if self.h5Read:
@@ -5477,11 +5604,11 @@ class Xm():
             if not returnNothing:
                 return mx
 
-    def _MxAddvVBEL(self,mxVecsFileData):
+    def _MxAddvVBEL(self,dfSource):
         """(Re-)constructing vVBEL with MX2-Results.
 
         Arguments:
-            mxVecsFileData
+            dfSource
 
         Result:
             View with MX2-Results added:            
@@ -5632,15 +5759,15 @@ class Xm():
     
                 #DataFrame: 1 Zeit, Spalte(n), in den Zelle stehen die Werte als Tuple 
                 if vbel != 'ROHR':
-                    dfQ=mxVecsFileData.filter(regex='~'+vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel)
+                    dfQ=dfSource.filter(regex='~'+vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel)
                 else:
-                    dfQ=mxVecsFileData.filter(regex='~'+vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel).filter(regex='^(?!.*VEC)')
+                    dfQ=dfSource.filter(regex='~'+vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel).filter(regex='^(?!.*VEC)')
                 shape=dfQ.shape
     
                 if shape[1]==0:
                     continue # Spalte nicht in MX2
                 if shape[1]>1:
-                    continue # mehr als matchende Spalte in MX2?!
+                    continue # mehr als 1 matchende Spalte in MX2?!
 
                 colName=dfQ.columns.tolist()[0]
                 vVBEL=self.__MxAddForOneDf(dfTarget=vVBEL,dfSource=dfQ.rename(columns={colName:'Q'}),multiIndexKey=vbel,testStr='vVBEL_'+vbel)
@@ -5656,11 +5783,11 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
-    def _MxAddvROHRVecResults(self,mxVecsFileData):
+    def _MxAddvROHRVecResults(self,dfSource):
         """(Re-)constructing vROHRVecResults.
 
         Arguments:
-            * mxVecsFileData
+            * dfSource
 
         Result:
             * vROHRVecResults: VEC-Channel-Results for Pipe-Interior-Pts (IPts):
@@ -5674,8 +5801,17 @@ class Xm():
 
         >>> xm=xms['GPipes']
         >>> mx=xm.MxSync()               
-        >>> mxVecsFileData=mx.getMxsVecsFileData()
-        >>> xm._MxAddvROHRVecResults(mxVecsFileData=mxVecsFileData[0])   
+        >>> mxVecsFileDataLst=mx.getMxsVecsFileData()
+        >>> mxVecsFileData=mxVecsFileDataLst[0]
+        >>> # construct MultiIndex Start ... ---
+        >>> colsToBeUnpacked=mxVecsFileData.columns.tolist() # all columns        
+        >>> arrays=[[mxVecsFileData.index[0]]*len(colsToBeUnpacked),colsToBeUnpacked]
+        >>> tuples = list(zip(*arrays))
+        >>> import pandas as pd
+        >>> mIndex = pd.MultiIndex.from_tuples(tuples, names=['Timestamp', 'Sir3sID'])                
+        >>> # construct MultiIndex End ... ---
+        >>> dfUnpacked=mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex,returnMultiIndex=False)
+        >>> xm._MxAddvROHRVecResults(dfSource=dfUnpacked)   
         >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults',sortList=['ROHR~*~*~*~PHVEC','ROHR~*~*~*~SVEC'],ascending=False))
                              pk  mx2Idx IptIdx  ROHR~*~*~*~SVEC  ROHR~*~*~*~TVEC  ROHR~*~*~*~ZVEC  ROHR~*~*~*~PVEC  ROHR~*~*~*~MVEC  ROHR~*~*~*~RHOVEC  ROHR~*~*~*~PHVEC  ROHR~*~*~*~QMVEC
         8   5244313507655010738       0      S         0.000000        39.985443            0.000        40.973988        27.264917          31.891241         39.973988       3077.763672
@@ -5719,7 +5855,6 @@ class Xm():
         2   4979507900871287244       2      S         0.000000        49.020142            0.000        11.106176       -27.264917           7.919193         10.106176     -12394.407227
         0   5694016449043789006       3      S         0.000000        10.000000            0.000        11.106160         0.000000           6.933107         10.106160          0.000000
         1   5694016449043789006       3      E       100.498688        10.000000            0.000         1.000000         0.000000           0.791800          0.000000          0.000000
-        >>> xm._MxAddvROHRVecResults(mxVecsFileData=mxVecsFileData[0])   
         >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults'))
                              pk  mx2Idx IptIdx  ROHR~*~*~*~SVEC  ROHR~*~*~*~TVEC  ROHR~*~*~*~ZVEC  ROHR~*~*~*~PVEC  ROHR~*~*~*~MVEC  ROHR~*~*~*~RHOVEC  ROHR~*~*~*~PHVEC  ROHR~*~*~*~QMVEC
         0   5694016449043789006       3      S         0.000000        10.000000            0.000        11.106160         0.000000           6.933107         10.106160          0.000000
@@ -5808,30 +5943,12 @@ class Xm():
         try:       
             #VEC
             reExpNegLookAhead='(?P<ObjType>\S+)~(?P<Name_i>\S*)~(?P<Name_k>\S*)~(?!\d+)(?P<ObjId>[\*\d]*)~(?P<ChannelType>\S+)'
-            dfSource=mxVecsFileData.filter(regex='(VEC$)').filter(regex='(^ROHR)').filter(regex=reExpNegLookAhead)
-            dct={}
-            for col in dfSource.columns.tolist():
-                            #eine Spalte eines Frames liefert eine Series ...
-                            #2004-09-22 08:30:00+00:00  (-8.509474754333496,...)
-                            #Name: ROHR~*~*~*~QMAV
-                            vecsFileDataOneCol=dfSource[col]
-                                
-                            #erster Wert (erste Zeile) der Series:
-                            #Tuple:
-                            #(-8.509474754333496,...)
-                            vecsFileDataOneColResult=vecsFileDataOneCol[0]
-    
-                            #Series aus Tuple
-                            vecsFileDataOneColResultSeries=pd.Series(vecsFileDataOneColResult)
-                                           
-                            #Series merken
-                            dct[col]=vecsFileDataOneColResultSeries
-               
-            #DataFrame aus Dct aus Series
-            vROHRVecResults=pd.DataFrame(dct)  
+            dfSource=dfSource.filter(regex='(VEC$)').filter(regex='(^ROHR)').filter(regex=reExpNegLookAhead)
+            
+            vROHRVecResults=dfSource
             
             colsToBeAdded=vROHRVecResults.columns.tolist()
-            colsMaybeAlreadyAdded=mxVecsFileData.filter(regex='(VEC$)').filter(regex='(^ROHR)').filter(regex=reExpNegLookAhead).columns.tolist()
+            colsMaybeAlreadyAdded=dfSource.filter(regex='(VEC$)').filter(regex='(^ROHR)').filter(regex=reExpNegLookAhead).columns.tolist()
             #.filter(regex='^ROHR').filter(regex='^(?!.*VEC)')
             #.columns.tolist()
             vROHR=self.dataFrames['vROHR']
@@ -5853,7 +5970,7 @@ class Xm():
                     oneLfdNrIdx.extend(np.arange(row.mx2NofPts-2,dtype=int))
                 oneLfdNrIdx.append('E')
                 IptIdx.extend(oneLfdNrIdx)
-
+            
             vROHRVecResults['mx2Idx']=rVecMx2Idx
             vROHRVecResults['IptIdx']=IptIdx  
             vROHRVecResults=vROHRVecResults[['mx2Idx']+['IptIdx']+colsToBeAdded]
@@ -6235,26 +6352,7 @@ class Xm():
                     logger.error(logStringFinal) 
                     raise XmError(logStringFinal)
 
-            dct={}          
-            for col in colsToBeAdded:
-                #eine Spalte eines Frames liefert eine Series ...
-                #2004-09-22 08:30:00+00:00  (-8.509474754333496,...)
-                #Name: ROHR~*~*~*~QMAV
-                vecsFileDataOneCol=dfSource[col]
-                
-                
-                #erster Wert der Series:
-                #Tuple:
-                #(-8.509474754333496,...)
-                vecsFileDataOneColResult=vecsFileDataOneCol[0]
-    
-                #Series aus Tuple
-                vecsFileDataOneColResultSeries=pd.Series(vecsFileDataOneColResult)
-                
-                #Series merken
-                dct[col]=vecsFileDataOneColResultSeries
-            #DataFrame aus Dct aus Series
-            dfMx2Idx=pd.DataFrame(dct)            
+            dfMx2Idx=dfSource          
                      
             if multiIndexKey != None:
                 ###dfMx2Idx.to_excel(testStr+'_dfMx2Idx'+'_multiIndexKey'+'.xlsx')
@@ -6387,7 +6485,7 @@ if __name__ == "__main__":
                     os.remove(h5File)
                 xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')
                 modelFiles[testModel]=xmlFile
-                xm=Xm(xmlFile=xmlFile,NoH5Read=True)
+                xm=Xm(xmlFile=xmlFile,NoH5Read=True) # avoid doing anything than just plain Init    
                 xms[testModel]=xm
 
             dtFinder=doctest.DocTestFinder(verbose=args.verbose)
