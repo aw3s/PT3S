@@ -470,6 +470,47 @@ import doctest
 # Sir3sID regExp Example
 reSir3sID='(?P<OBJTYPE>\S+)~(?P<NAME1>[\S ]*)~(?P<NAME2>\S*)~(?P<OBJTYPE_PK>\d+)~(?P<ATTRTYPE>\S+)'    
 reSir3sIDcompiled=re.compile(reSir3sID) 
+
+try:
+    from PT3S import Xm
+except ImportError:
+    logger.debug("{0:s}{1:s}".format('in MODULEFILE: ImportError: ','from PT3S import Xm - trying import Xm instead ... maybe pip install -e . is active ...')) 
+    import Xm
+
+# Q-Col Ends (Q-Cols: mx2Idx-referenced Channels for Flow) for Edges defined in Xm.vVBEL_edges:
+vVBEL_edgesQ=['QMAV','QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'']
+#vVBEL_edges=['ROHR','VENT','FWVB','FWES','PUMP','KLAP','REGV','PREG','MREG','DPRG','PGRP']
+
+def filterQColsForEdgesInDf(df):
+    """Filters all Q-Cols (Flow-Cols) for Edges in the df and returns the Q-Cols as List.
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:            
+            QCols=[]
+            for idx,vbel in enumerate(Xm.vVBEL_edges):              
+                if vbel != 'ROHR':
+                    dfTmp=df.filter(regex='~'+vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel)
+                else:
+                    dfTmp=df.filter(regex='~'+vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel).filter(regex='^(?!.*VEC)')
+                if dfTmp.empty:
+                    continue
+                shape=dfTmp.shape
+    
+                if shape[1]==0:
+                    continue # Spalte nicht vorhanden
+                if shape[1]>1:
+                    continue # mehr als 1 matchende Spalte?!
+                QCols.extend(dfTmp.columns.tolist())
+
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.debug(logStrFinal)           
+    finally:
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
+        return QCols   
   
 def getMicrosecondsFromRefTime(refTime,time):
     """Returns time in microseconds since refTime.
@@ -489,6 +530,49 @@ def getMicrosecondsFromRefTime(refTime,time):
         raise MxError(logStrFinal)              
     finally:
         return h5Key
+    
+def getMxsVecsFileDataAggsCalcAggs(df,mIndex):
+    """Returns dfAggs, a dataFrame with Level 1 Aggregates of MultiIndexed df.
+        
+    Args:
+        df: MultiIndexed dataFrame:
+            Level 0: TYPE: TIMESTAMPs or Aggregates (MIN, MAX, ...)
+            Level 1: Sir3sID: Sir3sIDs
+            col-Labels: mx2Ids; IptIds for Pipe-Vecs
+            col-Values: Vec-Values
+        mIndex: MultiIndex as described above
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:            
+        cols=mIndex.get_level_values('Sir3sID').values.tolist()         
+        # calc Aggs ---
+        dfAggLst=[]
+        # MIN
+        dfAgg=df.min(level=1)   
+        # construct mIndex for Agg
+        arrays=[['MIN']*len(cols),cols]
+        tuples = list(zip(*arrays))        
+        mIndex = pd.MultiIndex.from_tuples(tuples, names=['TYPE', 'Sir3sID'])     
+        dfAggLst.append(pd.DataFrame(dfAgg.values,index=mIndex,columns=dfAgg.columns))
+        # MAX
+        dfAgg=df.max(level=1)   
+        # construct mIndex for Agg
+        arrays=[['MAX']*len(cols),cols]
+        tuples = list(zip(*arrays))        
+        mIndex = pd.MultiIndex.from_tuples(tuples, names=['TYPE', 'Sir3sID'])     
+        dfAggLst.append(pd.DataFrame(dfAgg.values,index=mIndex,columns=dfAgg.columns))            
+        dfAggs=pd.concat(dfAggLst) # --- 
+            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.debug(logStrFinal)    
+        dfAggs=pd.DataFrame()
+    finally:
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
+        return dfAggs   
 
 class MxError(Exception):
     """MxError.
@@ -573,7 +657,7 @@ class Mx():
             * .mx1Df  
             * .mx2Df 
             * .df
-                * the .MXS-File(s) Content  (.Y.MXS-File from 90-10 on)
+                * the base.Y.MXS-File(s) Content 
                 * non Vectordata only
                 * index:   TIMESTAMP (scenario time)
                 * columns: Values  
@@ -581,6 +665,14 @@ class Mx():
                     * this Sir3sID consists of ~ separated .MX1-File terms:
                     * OBJTYPE~NAME1~NAME2~OBJTYPE_PK~ATTRTYPE  
                     * Sir3sID regExp Example: (?P<OBJTYPE>\S+)~(?P<NAME1>[\S ]*)~(?P<NAME1>\S*)~(?P<OBJTYPE_PK>\d+)~(?P<ATTRTYPE>\S+)'    
+            * .dfVecAggs
+                * some base.Y.vec.h5-File Aggregates as df
+                * MultiIndex:
+                    * TYPE: SNAPSHOTTYPEs: TIME,TMIN,TMAX (from _readMxsFile) or Aggregates: MIN,MAX,... (from getMxsVecsFileDataAggs)
+                    * Sir3sID
+                    * TIMESTAMPL
+                    * TIMESTAMPR (None if TYPE in SNAPSHOTTYPEs)
+                * Cols: mx2Idx
     Raises:
         MxError
     """
@@ -657,6 +749,8 @@ class Mx():
 
             self.df=None   
             self.mx1Df=None
+            self.mx2Df=None 
+            self.dfVecAggs=pd.DataFrame()
             # to handle 90-09 TIMESTAMP UTC offset:
             self.timeDeltaReadOffset=None
             self.timeDeltaWriteOffset=None
@@ -1096,6 +1190,15 @@ class Mx():
                 self.mx1Df['ATTRTYPE']=='TIMESTAMP'
                 ].iloc[0]    
             logger.debug("{:s}idxTIMESTAMP={:d} (idx in MX1) unpackIdxTIMESTAMP={:d} (idx in recordData).".format(logStr,self.idxTIMESTAMP,self.unpackIdxTIMESTAMP))                    
+
+            # SNAPSHOTTYPE
+            self.idxSNAPSHOTTYPE=self.mx1Df['Sir3sID'][
+                self.mx1Df['ATTRTYPE']=='SNAPSHOTTYPE'
+                ].index[0]           
+            self.unpackIdxSNAPSHOTTYPE=self.mx1Df['unpackIdx'][               
+                self.mx1Df['ATTRTYPE']=='SNAPSHOTTYPE'
+                ].iloc[0]    
+            logger.debug("{:s}idxSNAPSHOTTYPE={:d} (idx in MX1) unpackIdxSNAPSHOTTYPE={:d} (idx in recordData).".format(logStr,self.idxSNAPSHOTTYPE,self.unpackIdxSNAPSHOTTYPE))         
             
             # columnNames used in Pandas        
             self.mxColumnNames=[]  
@@ -1214,6 +1317,143 @@ class Mx():
 
         Raises:
             MxError
+
+        >>> mx=mxs['LocalHeatingNetwork']   
+        >>> mx.delFiles()       
+        >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading
+        5
+        >>> mx.dfVecAggs.loc[(['TIME','TMIN','TMAX'],'KNOT~*~*~*~PH',slice(None),slice(None)),0:22]  
+                                                                 0         1         2         3         4         5         6         7         8         9         10        11        12        13   14        15        16        17        18   19        20        21        22
+        TYPE Sir3sID       TIMESTAMPL          TIMESTAMPR                                                                                                                                                                                                                            
+        TIME KNOT~*~*~*~PH 2004-09-22 08:30:00 NaN         2.302971  3.985846  4.083384  4.121495  2.043288  2.283566  2.004937  4.311307  4.126019  2.309655  4.291591  2.000133  2.141440  3.825970  2.0  3.819467  2.314658  3.816599  2.312659  2.0  3.845104  4.125885  3.814690
+        TMIN KNOT~*~*~*~PH 2004-09-22 08:31:00 NaN         2.052100  2.183028  2.200011  2.206647  2.007717  2.048865  2.000910  2.248923  2.207463  2.053240  2.234365  2.000021  2.025138  2.156905  2.0  2.155822  2.054124  2.155325  2.053771  2.0  2.160025  2.207441  2.154995
+        TMAX KNOT~*~*~*~PH 2004-09-22 08:31:00 NaN         2.302971  4.085822  4.183360  4.221471  2.043288  2.283566  2.004937  4.411284  4.225996  2.309655  4.391567  2.000133  2.141440  3.925947  2.0  3.919444  2.314658  3.916576  2.312659  2.0  3.945080  4.225861  3.914667
+        >>> mx.dfVecAggs
+                                                                             0           1             2           3           4           5           6           7           8           9           10          11          12          13          14          15          16          17          18          19          20          21          22          23          24          25          26          27          28          29          30          31
+        TYPE Sir3sID                 TIMESTAMPL          TIMESTAMPR                                                                                                                                                                                                                                                                                                                                                                                                  
+        TIME ROHR~*~*~*~QMI          2004-09-22 08:30:00 NaN          -8.509475   19.059780 -1.537890e+01    8.509476  -22.987946   22.987946   22.987947   -3.928166   22.987947   15.378901    3.928167  -22.987946  -19.059778   -3.928166    3.928167  -22.987946         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~P            2004-09-22 08:30:00 NaN           3.302971    4.985846  5.083384e+00    5.121495    3.043288    3.283566    3.004937    5.311307    5.126019    3.309655    5.291591    3.000133    3.141440    4.825970    3.000000    4.819467    3.314658    4.816599    3.312659    3.000000    4.845104    5.125885    4.814690         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             FWES~*~*~*~QM           2004-09-22 08:30:00 NaN          22.987947         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~HMAX_INST    2004-09-22 08:30:00 NaN           2.302971    3.985846  4.083384e+00    4.121495    2.043288    2.283566    2.004937    4.311307    4.126019    2.309655    4.291591    2.000133    2.141440    3.825970    2.000000    3.819467    2.314658    3.816599    2.312659    2.000000    3.845104    4.125885    3.814690         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~PVECMIN_INST 2004-09-22 08:30:00 NaN           3.302971    3.309655  4.985845e+00    4.845103    3.283566    3.302971    4.825970    4.819467    3.000133    3.004937    5.083383    4.985845    5.125884    5.121495    3.312659    3.314658    5.121495    5.083383    4.845103    4.825970    4.819467    4.816599    3.043288    3.141441    3.141441    3.283566    3.309655    3.312659    4.816599    4.814690    3.004937    3.043288
+             VENT~*~*~*~QM           2004-09-22 08:30:00 NaN          22.987947   22.987946  2.199973e-06         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~H            2004-09-22 08:30:00 NaN           2.302971    3.985846  4.083384e+00    4.121495    2.043288    2.283566    2.004937    4.311307    4.126019    2.309655    4.291591    2.000133    2.141440    3.825970    2.000000    3.819467    2.314658    3.816599    2.312659    2.000000    3.845104    4.125885    3.814690         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~SVEC         2004-09-22 08:30:00 NaN           0.000000   88.019997  0.000000e+00  405.959991    0.000000   83.550003    0.000000   88.019997    0.000000   73.419998    0.000000  195.529999    0.000000   68.599998    0.000000  109.769997    0.000000   76.400002    0.000000   83.550003    0.000000  164.910004    0.000000  195.529999    0.000000  405.959991    0.000000  164.910004    0.000000  109.769997    0.000000   76.400002
+             ROHR~*~*~*~PVEC         2004-09-22 08:30:00 NaN           3.302971    3.309655  4.985845e+00    4.845103    3.283566    3.302971    4.825970    4.819467    3.000133    3.004937    5.083383    4.985845    5.125884    5.121495    3.312659    3.314659    5.121495    5.083383    4.845103    4.825970    4.819467    4.816599    3.043288    3.141441    3.141441    3.283566    3.309655    3.312659    4.816599    4.814690    3.004937    3.043288
+             ROHR~*~*~*~VI           2004-09-22 08:30:00 NaN          -0.266728    0.608561 -4.820491e-01    0.271700   -0.321646    0.733984    0.327641   -0.123128    0.733984    0.491034    0.125423   -0.720553   -0.597426   -0.123128    0.125423   -0.720553         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~T            2004-09-22 08:30:00 NaN          60.000000   90.000000  9.000000e+01   90.000000   60.000000   60.000000   60.000000   60.000000   90.000000   60.000000   60.000000   60.000000   60.000000   90.000000   60.000000   90.000000   60.000000   90.000000   60.000000   60.000000   90.000000   90.000000   90.000000         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KLAP~*~*~*~QM           2004-09-22 08:30:00 NaN          22.987947         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~RHOVEC       2004-09-22 08:30:00 NaN         983.700012  983.700012  9.657000e+02  965.700012  983.700012  983.700012  965.700012  965.700012  983.700012  983.700012  965.700012  965.700012  965.700012  965.700012  983.700012  983.700012  965.700012  965.700012  965.700012  965.700012  965.700012  965.700012  983.700012  983.700012  983.700012  983.700012  983.700012  983.700012  965.700012  965.700012  983.700012  983.700012
+             ROHR~*~*~*~TVEC         2004-09-22 08:30:00 NaN          60.000000   60.000000  9.000000e+01   90.000000   60.000000   60.000000   90.000000   90.000000   60.000000   60.000000   90.000000   90.000000   90.000000   90.000000   60.000000   60.000000   90.000000   90.000000   90.000000   90.000000   90.000000   90.000000   60.000000   60.000000   60.000000   60.000000   60.000000   60.000000   90.000000   90.000000   60.000000   60.000000
+             FWES~*~*~*~V            2004-09-22 08:30:00 NaN           1.291413         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~MVEC         2004-09-22 08:30:00 NaN          -2.363743   -2.363743  5.294384e+00    5.294384   -4.271917   -4.271917    2.363743    2.363743   -6.385540   -6.385540    6.385540    6.385540    6.385541    6.385541   -1.091157   -1.091157    6.385540    6.385540    4.271917    4.271917    1.091157    1.091157   -6.385540   -6.385540   -5.294383   -5.294383   -1.091157   -1.091157    1.091157    1.091157   -6.385540   -6.385540
+             ROHR~*~*~*~VK           2004-09-22 08:30:00 NaN          -0.266728    0.608561 -4.820491e-01    0.271700   -0.321646    0.733984    0.327641   -0.123128    0.733984    0.491034    0.125423   -0.720553   -0.597426   -0.123128    0.125423   -0.720553         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             PUMP~*~*~*~QM           2004-09-22 08:30:00 NaN          22.987947         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~PDAMPF       2004-09-22 08:30:00 NaN           0.199200    0.701100  7.011000e-01    0.701100    0.199200    0.199200    0.199200    0.199200    0.701100    0.199200    0.199200    0.199200    0.199200    0.701100    0.199200    0.701100    0.199200    0.701100    0.199200    0.199200    0.701100    0.701100    0.701100         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~PVECMAX_INST 2004-09-22 08:30:00 NaN           3.302971    3.309655  4.985845e+00    4.845104    3.283566    3.302971    4.825970    4.819468    3.000133    3.004937    5.083383    4.985845    5.125884    5.121495    3.312659    3.314659    5.121495    5.083383    4.845104    4.825970    4.819468    4.816599    3.043288    3.141441    3.141441    3.283566    3.309655    3.312659    4.816599    4.814690    3.004937    3.043288
+             VENT~*~*~*~V            2004-09-22 08:30:00 NaN           0.374182    0.367335  3.163897e-07         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~HMIN_INST    2004-09-22 08:30:00 NaN           2.302971    3.985846  4.083384e+00    4.121495    2.043288    2.283565    2.004937    4.311307    4.126019    2.309655    4.291591    2.000133    2.141440    3.825970    2.000000    3.819467    2.314658    3.816599    2.312659    2.000000    3.845104    4.125885    3.814690         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~QMK          2004-09-22 08:30:00 NaN          -8.509475   19.059780 -1.537890e+01    8.509476  -22.987946   22.987946   22.987947   -3.928166   22.987947   15.378901    3.928167  -22.987946  -19.059778   -3.928166    3.928167  -22.987946         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~PMIN_INST    2004-09-22 08:30:00 NaN           3.302971    4.985846  5.083384e+00    5.121495    3.043288    3.283565    3.004937    5.311307    5.126019    3.309655    5.291591    3.000133    3.141440    4.825970    3.000000    4.819467    3.314658    4.816599    3.312659    3.000000    4.845104    5.125885    4.814690         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~RHO          2004-09-22 08:30:00 NaN         983.700012  965.700012  9.657000e+02  965.700012  983.700012  983.700012  983.700012  983.700012  965.700012  983.700012  983.700012  983.700012  983.700012  965.700012  983.700012  965.700012  983.700012  965.700012  983.700012  983.700012  965.700012  965.700012  965.700012         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~ZVEC         2004-09-22 08:30:00 NaN          20.000000   20.000000  2.000000e+01   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000
+             KNOT~*~*~*~PMAX_INST    2004-09-22 08:30:00 NaN           3.302971    4.985846  5.083384e+00    5.121495    3.043288    3.283566    3.004937    5.311307    5.126019    3.309655    5.291591    3.000133    3.141440    4.825970    3.000000    4.819468    3.314658    4.816599    3.312659    3.000000    4.845104    5.125885    4.814691         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KLAP~*~*~*~V            2004-09-22 08:30:00 NaN           1.291413         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~WALTER       2004-09-22 08:30:00 NaN           0.209004    0.161072  8.707356e-02    0.058160    0.403910    0.207487    0.433363    0.496769    0.000000    0.286059    0.496769    0.496769    0.328532    0.393637    0.000000    0.483626    0.000000    0.848857    0.247643    0.496769    0.346373    0.000000    1.091969         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~PH           2004-09-22 08:30:00 NaN           2.302971    3.985846  4.083384e+00    4.121495    2.043288    2.283566    2.004937    4.311307    4.126019    2.309655    4.291591    2.000133    2.141440    3.825970    2.000000    3.819467    2.314658    3.816599    2.312659    2.000000    3.845104    4.125885    3.814690         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             FWVB~*~*~*~W            2004-09-22 08:30:00 NaN         160.000000  200.000000  1.600000e+02  160.000000  120.000000         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             FWVB~*~*~*~QM           2004-09-22 08:30:00 NaN           3.928166    6.869426  4.581308e+00    3.928166    3.680879         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~QMAV         2004-09-22 08:30:00 NaN          -8.509475   19.059780 -1.537890e+01    8.509476  -22.987946   22.987946   22.987947   -3.928166   22.987947   15.378901    3.928167  -22.987946  -19.059778   -3.928166    3.928167  -22.987946         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~VAV          2004-09-22 08:30:00 NaN          -0.266728    0.608561 -4.820491e-01    0.271700   -0.321646    0.733984    0.327641   -0.123128    0.733984    0.491034    0.125423   -0.720553   -0.597426   -0.123128    0.125423   -0.720553         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~IAKTIV       2004-09-22 08:30:00 NaN           0.000000    0.000000  0.000000e+00    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~IAKTIV       2004-09-22 08:30:00 NaN           0.000000    0.000000  0.000000e+00    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             VENT~*~*~*~IAKTIV       2004-09-22 08:30:00 NaN           0.000000    0.000000  0.000000e+00         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KLAP~*~*~*~IAKTIV       2004-09-22 08:30:00 NaN           0.000000         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             PUMP~*~*~*~IAKTIV       2004-09-22 08:30:00 NaN           0.000000         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             FWVB~*~*~*~IAKTIV       2004-09-22 08:30:00 NaN           0.000000    0.000000  0.000000e+00    0.000000    0.000000         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             FWES~*~*~*~IAKTIV       2004-09-22 08:30:00 NaN           0.000000         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+        TMIN ROHR~*~*~*~QMI          2004-09-22 08:31:00 NaN          -8.509475    7.394749 -1.537890e+01    3.256006  -22.987946    9.266180    9.266181   -3.928166    9.266181    5.923044    1.496261  -22.987946  -19.059778   -3.928166    1.496260  -22.987946         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~P            2004-09-22 08:31:00 NaN           3.052100    3.183028  3.200011e+00    3.206647    3.007717    3.048865    3.000910    3.248923    3.207463    3.053240    3.234365    3.000021    3.025138    3.156905    3.000000    3.155822    3.054124    3.155325    3.053771    3.000000    3.160025    3.207441    3.154995         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             FWES~*~*~*~QM           2004-09-22 08:31:00 NaN           9.266181         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~HMAX_INST    2004-09-22 08:31:00 NaN           2.302971    3.985846  4.083384e+00    4.121495    2.043288    2.283565    2.004937    4.311307    4.126019    2.309655    4.291591    2.000133    2.141440    3.825970    2.000000    3.819467    2.314658    3.816599    2.312659    2.000000    3.845104    4.125885    3.814690         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~PVECMIN_INST 2004-09-22 08:31:00 NaN           3.052100    3.053240  3.183028e+00    3.160025    3.048864    3.052100    3.156905    3.155822    3.000022    3.000910    3.200011    3.183028    3.207441    3.206647    3.053771    3.054124    3.206647    3.200011    3.160025    3.156905    3.155822    3.155326    3.007717    3.025139    3.025139    3.048864    3.053240    3.053771    3.155326    3.154995    3.000910    3.007717
+             VENT~*~*~*~QM           2004-09-22 08:31:00 NaN           9.266181    9.266179  2.199715e-06         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~H            2004-09-22 08:31:00 NaN           2.052100    2.183028  2.200011e+00    2.206647    2.007717    2.048865    2.000910    2.248923    2.207463    2.053240    2.234365    2.000021    2.025138    2.156905    2.000000    2.155822    2.054124    2.155325    2.053771    2.000000    2.160025    2.207441    2.154995         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~SVEC         2004-09-22 08:31:00 NaN           0.000000   88.019997  0.000000e+00  405.959991    0.000000   83.550003    0.000000   88.019997    0.000000   73.419998    0.000000  195.529999    0.000000   68.599998    0.000000  109.769997    0.000000   76.400002    0.000000   83.550003    0.000000  164.910004    0.000000  195.529999    0.000000  405.959991    0.000000  164.910004    0.000000  109.769997    0.000000   76.400002
+             ROHR~*~*~*~PVEC         2004-09-22 08:31:00 NaN           3.052100    3.053240  3.183028e+00    3.160025    3.048864    3.052100    3.156905    3.155822    3.000022    3.000910    3.200011    3.183028    3.207441    3.206647    3.053771    3.054124    3.206647    3.200011    3.160025    3.156905    3.155822    3.155326    3.007717    3.025139    3.025139    3.048864    3.053240    3.053771    3.155326    3.154995    3.000910    3.007717
+             ROHR~*~*~*~VI           2004-09-22 08:31:00 NaN          -0.266728    0.236108 -4.820491e-01    0.103961   -0.321646    0.295861    0.132068   -0.123128    0.295861    0.189117    0.047774   -0.720553   -0.597426   -0.123128    0.047774   -0.720553         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~T            2004-09-22 08:31:00 NaN          60.000000   90.000000  9.000000e+01   90.000000   60.000000   60.000000   60.000000   60.000000   90.000000   60.000000   60.000000   60.000000   60.000000   90.000000   60.000000   90.000000   60.000000   90.000000   60.000000   60.000000   90.000000   90.000000   90.000000         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KLAP~*~*~*~QM           2004-09-22 08:31:00 NaN           9.266181         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~RHOVEC       2004-09-22 08:31:00 NaN         983.700012  983.700012  9.657000e+02  965.700012  983.700012  983.700012  965.700012  965.700012  983.700012  983.700012  965.700012  965.700012  965.700012  965.700012  983.700012  983.700012  965.700012  965.700012  965.700012  965.700012  965.700012  965.700012  983.700012  983.700012  983.700012  983.700012  983.700012  983.700012  965.700012  965.700012  983.700012  983.700012
+             ROHR~*~*~*~TVEC         2004-09-22 08:31:00 NaN          60.000000   60.000000  9.000000e+01   90.000000   60.000000   60.000000   90.000000   90.000000   60.000000   60.000000   90.000000   90.000000   90.000000   90.000000   60.000000   60.000000   90.000000   90.000000   90.000000   90.000000   90.000000   90.000000   60.000000   60.000000   60.000000   60.000000   60.000000   60.000000   90.000000   90.000000   60.000000   60.000000
+             FWES~*~*~*~V            2004-09-22 08:31:00 NaN           0.520554         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~MVEC         2004-09-22 08:31:00 NaN          -2.363743   -2.363743  2.054097e+00    2.054097   -4.271917   -4.271917    0.904446    0.904446   -6.385540   -6.385540    2.573939    2.573939    2.573939    2.573939   -1.091157   -1.091157    2.573939    2.573939    1.645290    1.645290    0.415628    0.415628   -6.385540   -6.385540   -5.294383   -5.294383   -1.091157   -1.091157    0.415628    0.415628   -6.385540   -6.385540
+             ROHR~*~*~*~VK           2004-09-22 08:31:00 NaN          -0.266728    0.236108 -4.820491e-01    0.103961   -0.321646    0.295861    0.132068   -0.123128    0.295861    0.189117    0.047774   -0.720553   -0.597426   -0.123128    0.047774   -0.720553         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             PUMP~*~*~*~QM           2004-09-22 08:31:00 NaN           9.266181         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~PDAMPF       2004-09-22 08:31:00 NaN           0.199200    0.701100  7.011000e-01    0.701100    0.199200    0.199200    0.199200    0.199200    0.701100    0.199200    0.199200    0.199200    0.199200    0.701100    0.199200    0.701100    0.199200    0.701100    0.199200    0.199200    0.701100    0.701100    0.701100         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~PVECMAX_INST 2004-09-22 08:31:00 NaN           3.302971    3.309655  4.985845e+00    4.845104    3.283566    3.302971    4.825970    4.819468    3.000133    3.004937    5.083383    4.985845    5.125884    5.121495    3.312659    3.314658    5.121495    5.083383    4.845104    4.825970    4.819468    4.816599    3.043288    3.141441    3.141441    3.283566    3.309655    3.312659    4.816599    4.814690    3.004937    3.043288
+             VENT~*~*~*~V            2004-09-22 08:31:00 NaN           0.150829    0.148069  3.163526e-07         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~HMIN_INST    2004-09-22 08:31:00 NaN           2.052100    2.183028  2.200011e+00    2.206647    2.007717    2.048865    2.000910    2.248923    2.207463    2.053240    2.234365    2.000021    2.025138    2.156905    2.000000    2.155822    2.054124    2.155325    2.053771    2.000000    2.160025    2.207441    2.154995         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~QMK          2004-09-22 08:31:00 NaN          -8.509475    7.394749 -1.537890e+01    3.256006  -22.987946    9.266180    9.266181   -3.928166    9.266181    5.923044    1.496261  -22.987946  -19.059778   -3.928166    1.496260  -22.987946         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~PMIN_INST    2004-09-22 08:31:00 NaN           3.052100    3.183028  3.200011e+00    3.206647    3.007717    3.048865    3.000910    3.248923    3.207463    3.053240    3.234365    3.000021    3.025138    3.156905    3.000000    3.155822    3.054124    3.155325    3.053771    3.000000    3.160025    3.207441    3.154995         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~RHO          2004-09-22 08:31:00 NaN         983.700012  965.700012  9.657000e+02  965.700012  983.700012  983.700012  983.700012  983.700012  965.700012  983.700012  983.700012  983.700012  983.700012  965.700012  983.700012  965.700012  983.700012  965.700012  983.700012  983.700012  965.700012  965.700012  965.700012         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~ZVEC         2004-09-22 08:31:00 NaN          20.000000   20.000000  2.000000e+01   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000
+             KNOT~*~*~*~PMAX_INST    2004-09-22 08:31:00 NaN           3.302971    4.985846  5.083384e+00    5.121495    3.043288    3.283565    3.004937    5.311307    5.126019    3.309655    5.291591    3.000133    3.141440    4.825970    3.000000    4.819468    3.314658    4.816599    3.312659    3.000000    4.845104    5.125885    4.814691         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KLAP~*~*~*~V            2004-09-22 08:31:00 NaN           0.520554         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~WALTER       2004-09-22 08:31:00 NaN           0.209004    0.161072  8.707356e-02    0.058160    0.403910    0.207487    0.433363    0.496769    0.000000    0.286059    0.496769    0.496769    0.328532    0.393637    0.000000    0.483626    0.000000    0.848857    0.247643    0.496769    0.346373    0.000000    1.091969         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~PH           2004-09-22 08:31:00 NaN           2.052100    2.183028  2.200011e+00    2.206647    2.007717    2.048865    2.000910    2.248923    2.207463    2.053240    2.234365    2.000021    2.025138    2.156905    2.000000    2.155822    2.054124    2.155325    2.053771    2.000000    2.160025    2.207441    2.154995         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             FWVB~*~*~*~W            2004-09-22 08:31:00 NaN          76.226158   77.649529  6.145824e+01   60.944885   47.978928         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             FWVB~*~*~*~QM           2004-09-22 08:31:00 NaN           1.871431    2.667038  1.759745e+00    1.496260    1.471705         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~QMAV         2004-09-22 08:31:00 NaN          -8.509475    7.394749 -1.537890e+01    3.256006  -22.987946    9.266180    9.266181   -3.928166    9.266181    5.923044    1.496261  -22.987946  -19.059778   -3.928166    1.496260  -22.987946         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~VAV          2004-09-22 08:31:00 NaN          -0.266728    0.236108 -4.820491e-01    0.103961   -0.321646    0.295861    0.132068   -0.123128    0.295861    0.189117    0.047774   -0.720553   -0.597426   -0.123128    0.047774   -0.720553         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~IAKTIV       2004-09-22 08:31:00 NaN           0.000000    0.000000  0.000000e+00    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~IAKTIV       2004-09-22 08:31:00 NaN           0.000000    0.000000  0.000000e+00    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             VENT~*~*~*~IAKTIV       2004-09-22 08:31:00 NaN           0.000000    0.000000  0.000000e+00         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KLAP~*~*~*~IAKTIV       2004-09-22 08:31:00 NaN           0.000000         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             PUMP~*~*~*~IAKTIV       2004-09-22 08:31:00 NaN           0.000000         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             FWVB~*~*~*~IAKTIV       2004-09-22 08:31:00 NaN           0.000000    0.000000  0.000000e+00    0.000000    0.000000         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             FWES~*~*~*~IAKTIV       2004-09-22 08:31:00 NaN           0.000000         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+        TMAX ROHR~*~*~*~QMI          2004-09-22 08:31:00 NaN          -3.256005   19.059780 -5.923043e+00    8.509476   -9.266179   22.987946   22.987947   -1.496260   22.987947   15.378901    3.928167   -9.266179   -7.394748   -1.496260    3.928167   -9.266179         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~P            2004-09-22 08:31:00 NaN           3.302971    5.085822  5.183360e+00    5.221471    3.043288    3.283566    3.004937    5.411284    5.225996    3.309655    5.391567    3.000133    3.141440    4.925947    3.000000    4.919444    3.314658    4.916576    3.312659    3.000000    4.945080    5.225861    4.914667         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             FWES~*~*~*~QM           2004-09-22 08:31:00 NaN          22.987947         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~HMAX_INST    2004-09-22 08:31:00 NaN           2.302971    4.085822  4.183360e+00    4.221471    2.043288    2.283566    2.004937    4.411284    4.225996    2.309655    4.391567    2.000133    2.141440    3.925947    2.000000    3.919444    2.314658    3.916576    2.312659    2.000000    3.945080    4.225861    3.914667         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~PVECMIN_INST 2004-09-22 08:31:00 NaN           3.302971    3.309655  4.985845e+00    4.845104    3.283566    3.302971    4.825970    4.819468    3.000133    3.004937    5.083383    4.985845    5.125884    5.121495    3.312659    3.314658    5.121495    5.083383    4.845104    4.825970    4.819468    4.816599    3.043288    3.141441    3.141441    3.283566    3.309655    3.312659    4.816599    4.814690    3.004937    3.043288
+             VENT~*~*~*~QM           2004-09-22 08:31:00 NaN          22.987947   22.987946  2.199973e-06         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~H            2004-09-22 08:31:00 NaN           2.302971    4.085822  4.183360e+00    4.221471    2.043288    2.283566    2.004937    4.411284    4.225996    2.309655    4.391567    2.000133    2.141440    3.925947    2.000000    3.919444    2.314658    3.916576    2.312659    2.000000    3.945080    4.225861    3.914667         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~SVEC         2004-09-22 08:31:00 NaN           0.000000   88.019997  0.000000e+00  405.959991    0.000000   83.550003    0.000000   88.019997    0.000000   73.419998    0.000000  195.529999    0.000000   68.599998    0.000000  109.769997    0.000000   76.400002    0.000000   83.550003    0.000000  164.910004    0.000000  195.529999    0.000000  405.959991    0.000000  164.910004    0.000000  109.769997    0.000000   76.400002
+             ROHR~*~*~*~PVEC         2004-09-22 08:31:00 NaN           3.302971    3.309655  5.085822e+00    4.945080    3.283566    3.302971    4.925946    4.919444    3.000133    3.004937    5.183360    5.085822    5.225861    5.221471    3.312659    3.314659    5.221471    5.183360    4.945080    4.925946    4.919444    4.916576    3.043288    3.141441    3.141441    3.283566    3.309655    3.312659    4.916576    4.914667    3.004937    3.043288
+             ROHR~*~*~*~VI           2004-09-22 08:31:00 NaN          -0.102059    0.608561 -1.856568e-01    0.271700   -0.129652    0.733984    0.327641   -0.046900    0.733984    0.491034    0.125423   -0.290447   -0.231787   -0.046900    0.125423   -0.290447         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~T            2004-09-22 08:31:00 NaN          60.000000   90.000000  9.000000e+01   90.000000   60.000000   60.000000   60.000000   60.000000   90.000000   60.000000   60.000000   60.000000   60.000000   90.000000   60.000000   90.000000   60.000000   90.000000   60.000000   60.000000   90.000000   90.000000   90.000000         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KLAP~*~*~*~QM           2004-09-22 08:31:00 NaN          22.987947         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~RHOVEC       2004-09-22 08:31:00 NaN         983.700012  983.700012  9.657000e+02  965.700012  983.700012  983.700012  965.700012  965.700012  983.700012  983.700012  965.700012  965.700012  965.700012  965.700012  983.700012  983.700012  965.700012  965.700012  965.700012  965.700012  965.700012  965.700012  983.700012  983.700012  983.700012  983.700012  983.700012  983.700012  965.700012  965.700012  983.700012  983.700012
+             ROHR~*~*~*~TVEC         2004-09-22 08:31:00 NaN          60.000000   60.000000  9.000000e+01   90.000000   60.000000   60.000000   90.000000   90.000000   60.000000   60.000000   90.000000   90.000000   90.000000   90.000000   60.000000   60.000000   90.000000   90.000000   90.000000   90.000000   90.000000   90.000000   60.000000   60.000000   60.000000   60.000000   60.000000   60.000000   90.000000   90.000000   60.000000   60.000000
+             FWES~*~*~*~V            2004-09-22 08:31:00 NaN           1.291413         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~MVEC         2004-09-22 08:31:00 NaN          -0.904446   -0.904446  5.294384e+00    5.294384   -1.645290   -1.645290    2.363743    2.363743   -2.573939   -2.573939    6.385540    6.385540    6.385541    6.385541   -0.415628   -0.415628    6.385540    6.385540    4.271917    4.271917    1.091157    1.091157   -2.573939   -2.573939   -2.054097   -2.054097   -0.415628   -0.415628    1.091157    1.091157   -2.573939   -2.573939
+             ROHR~*~*~*~VK           2004-09-22 08:31:00 NaN          -0.102059    0.608561 -1.856568e-01    0.271700   -0.129652    0.733984    0.327641   -0.046900    0.733984    0.491034    0.125423   -0.290447   -0.231787   -0.046900    0.125423   -0.290447         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             PUMP~*~*~*~QM           2004-09-22 08:31:00 NaN          22.987947         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~PDAMPF       2004-09-22 08:31:00 NaN           0.199200    0.701100  7.011000e-01    0.701100    0.199200    0.199200    0.199200    0.199200    0.701100    0.199200    0.199200    0.199200    0.199200    0.701100    0.199200    0.701100    0.199200    0.701100    0.199200    0.199200    0.701100    0.701100    0.701100         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~PVECMAX_INST 2004-09-22 08:31:00 NaN           3.302971    3.309655  5.085822e+00    4.945080    3.283566    3.302971    4.925946    4.919444    3.000133    3.004937    5.183360    5.085822    5.225861    5.221471    3.312659    3.314659    5.221471    5.183360    4.945080    4.925946    4.919444    4.916576    3.043288    3.141441    3.141441    3.283566    3.309655    3.312659    4.916576    4.914667    3.004937    3.043288
+             VENT~*~*~*~V            2004-09-22 08:31:00 NaN           0.374182    0.367335  3.163897e-07         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~HMIN_INST    2004-09-22 08:31:00 NaN           2.302971    3.985846  4.083384e+00    4.121495    2.043288    2.283565    2.004937    4.311307    4.126019    2.309655    4.291591    2.000133    2.141440    3.825970    2.000000    3.819467    2.314658    3.816599    2.312659    2.000000    3.845104    4.125885    3.814690         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~QMK          2004-09-22 08:31:00 NaN          -3.256005   19.059780 -5.923043e+00    8.509476   -9.266179   22.987946   22.987947   -1.496260   22.987947   15.378901    3.928167   -9.266179   -7.394748   -1.496260    3.928167   -9.266179         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~PMIN_INST    2004-09-22 08:31:00 NaN           3.302971    4.985846  5.083384e+00    5.121495    3.043288    3.283565    3.004937    5.311307    5.126019    3.309655    5.291591    3.000133    3.141440    4.825970    3.000000    4.819468    3.314658    4.816599    3.312659    3.000000    4.845104    5.125885    4.814691         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~RHO          2004-09-22 08:31:00 NaN         983.700012  965.700012  9.657000e+02  965.700012  983.700012  983.700012  983.700012  983.700012  965.700012  983.700012  983.700012  983.700012  983.700012  965.700012  983.700012  965.700012  983.700012  965.700012  983.700012  983.700012  965.700012  965.700012  965.700012         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~ZVEC         2004-09-22 08:31:00 NaN          20.000000   20.000000  2.000000e+01   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000   20.000000
+             KNOT~*~*~*~PMAX_INST    2004-09-22 08:31:00 NaN           3.302971    5.085822  5.183360e+00    5.221471    3.043288    3.283566    3.004937    5.411284    5.225996    3.309655    5.391567    3.000133    3.141440    4.925947    3.000000    4.919444    3.314658    4.916576    3.312659    3.000000    4.945080    5.225861    4.914667         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KLAP~*~*~*~V            2004-09-22 08:31:00 NaN           1.291413         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~WALTER       2004-09-22 08:31:00 NaN           0.542668    0.399595  2.160159e-01    0.144285    1.002038    0.534794    1.075106    1.232407    0.000000    0.747607    1.232407    1.232407    0.815037    0.999922    0.000000    1.235105    0.000000    2.193956    0.650142    1.232407    0.877202    0.000000    2.832201         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~PH           2004-09-22 08:31:00 NaN           2.302971    4.085822  4.183360e+00    4.221471    2.043288    2.283566    2.004937    4.411284    4.225996    2.309655    4.391567    2.000133    2.141440    3.925947    2.000000    3.919444    2.314658    3.916576    2.312659    2.000000    3.945080    4.225861    3.914667         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             FWVB~*~*~*~W            2004-09-22 08:31:00 NaN         160.000000  200.000000  1.600000e+02  160.000000  120.000000         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             FWVB~*~*~*~QM           2004-09-22 08:31:00 NaN           3.928166    6.869426  4.581308e+00    3.928166    3.680879         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~QMAV         2004-09-22 08:31:00 NaN          -3.256005   19.059780 -5.923043e+00    8.509476   -9.266179   22.987946   22.987947   -1.496260   22.987947   15.378901    3.928167   -9.266179   -7.394748   -1.496260    3.928167   -9.266179         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~VAV          2004-09-22 08:31:00 NaN          -0.102059    0.608561 -1.856568e-01    0.271700   -0.129652    0.733984    0.327641   -0.046900    0.733984    0.491034    0.125423   -0.290447   -0.231787   -0.046900    0.125423   -0.290447         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KNOT~*~*~*~IAKTIV       2004-09-22 08:31:00 NaN           0.000000    0.000000  0.000000e+00    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             ROHR~*~*~*~IAKTIV       2004-09-22 08:31:00 NaN           0.000000    0.000000  0.000000e+00    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             VENT~*~*~*~IAKTIV       2004-09-22 08:31:00 NaN           0.000000    0.000000  0.000000e+00         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             KLAP~*~*~*~IAKTIV       2004-09-22 08:31:00 NaN           0.000000         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             PUMP~*~*~*~IAKTIV       2004-09-22 08:31:00 NaN           0.000000         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             FWVB~*~*~*~IAKTIV       2004-09-22 08:31:00 NaN           0.000000    0.000000  0.000000e+00    0.000000    0.000000         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
+             FWES~*~*~*~IAKTIV       2004-09-22 08:31:00 NaN           0.000000         NaN           NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1306,6 +1546,14 @@ class Mx():
                             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                    
                             logger.error(logStrFinal) 
                             raise MxError(logStrFinal)                
+
+                        # process SNAPSHOTTYPE
+                        try:
+                            cSNAPSHOTTYPE=recordData[self.unpackIdxSNAPSHOTTYPE].decode('utf-8')                                                                                                                                                                                                                                                                   
+                        except Exception as e:
+                            logStrFinal="{0:s}process SNAPSHOTTYPE failed. Error.".format(logStr)
+                            logger.error(logStrFinal)                            
+                            raise MxError(logStrFinal)  
                         
                         # process record
                         try:                                                                                                                 
@@ -1340,22 +1588,59 @@ class Mx():
                                  if '/'+str(h5Key) not in keysAtStart:                                                                                                      
                                      keys=mxsVecsH5StorePtr.keys()
                                  
-                                     if '/'+str(h5Key) not in keys:      
-                                        mxTimesVecs=[]            
-                                        mxValuesVecs=[]                                                            
-                                        mxTimesVecs.append(time)     
-                                        mxValuesVecs.append(valuesVecs)
-                                        dfVecs = pd.DataFrame.from_records(mxValuesVecs,index=mxTimesVecs,columns=self.mxColumnNamesVecs)                                                                                                      
+                                     if '/'+str(h5Key) not in keys:                                              
+                                        dfVecs = pd.DataFrame.from_records([valuesVecs],index=[time],columns=self.mxColumnNamesVecs)                                                                                              
                                         # write H5
                                         warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
                                         warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)                          
                                         mxsVecsH5StorePtr.put(str(h5Key),dfVecs)   
                                         timesWrittenToMxsVecs+=1
-                                        h5DumpLog="{:s} Written DataFrame {:s} (Nr. {:d}) with h5Key=/{!s:>20s}".format('H5Dump:','dfVecs',timesWrittenToMxsVecs,h5Key) 
+                                        h5DumpLog="{:s}     Written DataFrame {:s} (Nr. {:d}) with h5Key=/{!s:>20s}".format('H5Dump:','dfVecs',timesWrittenToMxsVecs,h5Key) 
                                      else:
-                                        h5DumpLog="{:s} {:s}".format(h5DumpLog,'key already written.')
+                                        h5DumpLog="{:s} {:s} {:s}".format(h5DumpLog,'key already written. Actual SNAPSHOTTYPE: ',cSNAPSHOTTYPE)
+                                        if cSNAPSHOTTYPE in ['TIME','TMIN','TMAX']:       
+                                            try:
+                                                h5DumpLogOld=h5DumpLog
+                                                h5DumpLog="{:s} trying to process to dfVecAggs with TIMESTAMPL: {!s:s}...".format(h5DumpLog,time_read_finally)                                                  
+                                                arrays=[[cSNAPSHOTTYPE]*len(self.mxColumnNamesVecs),self.mxColumnNamesVecs,[time.tz_localize(None)]*len(self.mxColumnNamesVecs),[None]*len(self.mxColumnNamesVecs)]
+                                                tuples=list(zip(*arrays))        
+                                                mIndex=pd.MultiIndex.from_tuples(tuples,names=['TYPE','Sir3sID','TIMESTAMPL','TIMESTAMPR'])
+                                            
+                                                arrays2=[[cSNAPSHOTTYPE]*len(self.mxColumnNamesVecs),self.mxColumnNamesVecs]
+                                                tuples2=list(zip(*arrays2))        
+                                                mIndex2=pd.MultiIndex.from_tuples(tuples2,names=['TYPE','Sir3sID'])          
+                                            
+                                                dfVecs = pd.DataFrame.from_records([valuesVecs],index=[time.tz_localize(None)],columns=self.mxColumnNamesVecs)  
+                                                df=self.unPackMxsVecsFileDataDf(dfVecs,mIndex2)
+                                                df=pd.DataFrame(df.values,index=mIndex,columns=df.columns)
+                                                if self.dfVecAggs.empty:                                                    
+                                                    self.dfVecAggs=df
+                                                    h5DumpLog="{:s} processed to (empty) dfVecAggs with TIMESTAMPL: {!s:s}".format(h5DumpLogOld,time_read_finally)  
+                                                else:  
+                                                    dfVecAggsAdd=True
+                                                    if self.dfVecAggs.index.isin([x[0] for x in df.index],level=0).any(): # cSNAPSHOTTYPE existiert schon
+                                                        if self.dfVecAggs.loc[(cSNAPSHOTTYPE,slice(None),slice(None),slice(None)),:].index.isin([x[2] for x in df.index],level=2).any(): # mit time                                                       
+                                                            h5DumpLog="{:s} ... failed because cSNAPSHOTTYPE existiert schon mit dieser Zeit".format(h5DumpLog)  
+                                                            dfVecAggsAdd=False
+                                                    if dfVecAggsAdd:     
+                                                        try:
+                                                            self.dfVecAggs=pd.concat([self.dfVecAggs,df])
+                                                            h5DumpLog="{:s} processed to         dfVecAggs with TIMESTAMPL: {!s:s}".format(h5DumpLogOld,time_read_finally)  
+                                                        except Exception as e:           
+                                                            h5DumpLog="{:s}... failed because concat failed?!".format(h5DumpLog)  
+                                                            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                                                            logger.error(logStrFinal)  
+                                                            for idx,index in enumerate(df.index):                                                                
+                                                                logger.debug("{:s}df-Index:        Nr.: {:5d} Wert: {!s:10s} {!s:30s} {!s:20s} {!s:20s} Index: {!s:s}".format(logStr,idx,str(index[0]),str(index[1]),str(index[2]),str(index[3]),index))
+                                                            for idx,index in enumerate(self.dfVecAggs.index):
+                                                                logger.debug("{:s}dfVecAggs-Index: Nr.: {:5d} Wert: {!s:10s} {!s:30s} {!s:20s} {!s:20s} Index: {!s:s}".format(logStr,idx,str(index[0]),str(index[1]),str(index[2]),str(index[3]),index))
+
+                                            except Exception as e:
+                                                logger.error("{0:s}dfVecAggs: Error?!".format(logStr))
+                                                logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                                                logger.error(logStrFinal)                                                                                                                                            
                                  else:                                     
-                                     h5DumpLog="{:s} {:s}".format(h5DumpLog,'key in keysAtStart.')
+                                     h5DumpLog="{:s} {:s}".format(h5DumpLog,'key in keysAtStart. Actual SNAPSHOTTYPE: ',cSNAPSHOTTYPE)
                                                               
                             except Exception as e:
                                 logger.error("{0:s}store record as df in H5 failed at Time={1!s}. Error.".format(logStr,time_read_finally))
@@ -1753,7 +2038,7 @@ class Mx():
             return timesWrittenToMxsVecsFromZip
                        
     def ToH5(self,h5File=None):
-        """Stores .mx1Df, .mx2Df, .df to h5File.
+        """Stores .mx1Df, .mx2Df, .df, .dfVecAggs to h5File.
 
         Args:
             h5File(str): default: None: self.h5File is used  
@@ -1823,6 +2108,11 @@ class Mx():
                     h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MXS'  
                     logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'df',h5Key))         
                     h5Store.put(h5Key,self.df)
+
+                if isinstance(self.dfVecAggs,pd.core.frame.DataFrame):    
+                    h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'VecAggs'  
+                    logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'df',h5Key))         
+                    h5Store.put(h5Key,self.dfVecAggs)
              
         except MxError:
             raise
@@ -1835,7 +2125,7 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                 
 
     def FromH5(self,h5File=None):
-        """Sets .mx1Df, .mx2Df, .df to h5File-Content.
+        """Sets .mx1Df, .mx2Df, .df, .dfVecAggs to h5File-Content.
 
         Args:
             * h5File(str)
@@ -1845,6 +2135,7 @@ class Mx():
             * /MX1
             * /MX2
             * /MXS
+            * /VecAggs
 
         Raises:
             MxError
@@ -1913,7 +2204,12 @@ class Mx():
                         tupleDf=(firstTime,lastTime,rows)
                         tupleVecH5=self._checkMxsVecsFile()
                         if tupleDf != tupleVecH5:                            
-                            logger.warning("{:s}{:s}: tupleDf {!s:s} != tupleVecH5 {!s:s}.".format(logStr,h5File,tupleDf,tupleVecH5))              
+                            logger.warning("{:s}{:s}: tupleDf {!s:s} != tupleVecH5 {!s:s}.".format(logStr,h5File,tupleDf,tupleVecH5))     
+                            
+                    if key == 'VecAggs':                           
+                        logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
+                        self.dfVecAggs=h5Store[h5Key]
+                        
         except MxError:
             raise
         except Exception as e:
@@ -1924,17 +2220,14 @@ class Mx():
             h5Store.close()            
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                
 
-    def getMxsVecsFileData(self,timesReq=None,mode=None):
+    def getMxsVecsFileData(self,timesReq=None,fastMode=False):
         """Returns List of dfs with mxsVecsFileData. One TIMESTAMP (index) per df.   
 
         Args:
             * timesReq: List of TIMESTAMPs
                 * if None: a List with a single time only, the 1st Time, is constructed as timesReq
-            * mode (default: None): 
-                * None: Time-Results are returned
-                * not None:                     
-                    * NOT IMPLEMENTED       
-                          
+            * fastMode (default: False): H5-Access with no Checks
+                               
         Returns:
             * List of dfs with mxsVecsFileData 
             * empty List if no TIMESTAMP could be found
@@ -1957,6 +2250,12 @@ class Mx():
         <class 'pandas.core.frame.DataFrame'>
         >>> mxVecsFileData.index[0]
         Timestamp('2004-09-22 08:30:00+0000', tz='UTC')
+        >>> vecsFileDataOneCol=mxVecsFileData['ROHR~*~*~*~SVEC']
+        >>> vecsFileDataOneColResult=vecsFileDataOneCol[0]
+        >>> vecsFileDataOneColResult[-1]
+        76.4000015258789
+        >>> mxVecsFileDataLst=mx.getMxsVecsFileData(fastMode=True)
+        >>> mxVecsFileData=mxVecsFileDataLst[0]
         >>> vecsFileDataOneCol=mxVecsFileData['ROHR~*~*~*~SVEC']
         >>> vecsFileDataOneColResult=vecsFileDataOneCol[0]
         >>> vecsFileDataOneColResult[-1]
@@ -1988,16 +2287,19 @@ class Mx():
                 timesReq=[]
                 timesReq.append(firstTime)
             else:
-                if mode != None:                    
-                    if len(timesReq)==1:
-                        timesReq.append(lastTime)
                 #h5Keys ermitteln
                 for timeReq in timesReq:
                     key=getMicrosecondsFromRefTime(refTime=firstTime,time=timeReq)
                     h5KeysRequested.append(key)
             # h5Keys finalisieren
-            h5KeysRequested=['/'+str(key) for key in h5KeysRequested]           
-                                             
+            h5KeysRequested=['/'+str(key) for key in h5KeysRequested]         
+            
+            if fastMode:
+                with pd.HDFStore(self.h5FileVecs) as h5Store:                                                    
+                    for h5KeyReq in h5KeysRequested:      
+                        df=h5Store[h5KeyReq]
+                        mxsVecsDfs.append(df)
+                                                                    
             with pd.HDFStore(self.h5FileVecs) as h5Store:                
                 # ueber alle verlangten keys
                 h5KeysAvailable=sorted(h5Store.keys())                      
@@ -2025,10 +2327,10 @@ class Mx():
                             logStrAdditional="{:s}{:s}: .Key {:s} (for Time requested {:s}) also as TIMESTAMP NOT available".format(logStr,self.h5FileVecs,h5KeyReq,str(timesReq[idx]))
 
                     if not df.empty:
-                        logger.debug("{:s}    Stored: Time requested: {:s} corresponding Key: {:20s} Time stored: {:s} logStrAdditional: {:s}.".format(logStr,str(timesReq[idx]),h5KeyReq,str(df.index[0]),logStrAdditional))
+                        logger.debug("{:s}    Ok: Time requested: {:s} corresponding Key: {:20s} Time stored: {:s} logStrAdditional: {:s}.".format(logStr,str(timesReq[idx]),h5KeyReq,str(df.index[0]),logStrAdditional))
                         mxsVecsDfs.append(df)  
                     else:
-                        logger.debug("{:s}NOT Stored: Time requested: {:s} corresponding Key: {:20s} logStrAdditional: {:s}.".format(logStr,str(timesReq[idx]),h5KeyReq,logStrAdditional))
+                        logger.debug("{:s}NOT Ok: Time requested: {:s} corresponding Key: {:20s} logStrAdditional: {:s}.".format(logStr,str(timesReq[idx]),h5KeyReq,logStrAdditional))
                                                 
         except MxError:
             raise
@@ -2130,15 +2432,15 @@ class Mx():
         ...     dfs.append(mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex))        
         >>> df=pd.concat(dfs)        
         >>> idx=pd.IndexSlice
-        >>> dfOneVecChannel=df.loc[(idx[:],'KNOT~*~*~*~PH'),idx[:]] # df.loc[(idx[:],idx[:]),idx[:]]: everything   
+        >>> dfOneVecChannel=df.loc[(idx[:],'KNOT~*~*~*~PH'),0:22] # df.loc[(idx[:],idx[:]),idx[:]]: everything   
         >>> dfOneVecChannel
-                                                       0         1         2         3         4         5         6         7         8         9         10        11        12        13   14        15        16        17        18   19        20        21        22  23  24  25  26  27  28  29  30  31
-        Timestamp                 Sir3sID                                                                                                                                                                                                                                                                      
-        2004-09-22 08:30:00+00:00 KNOT~*~*~*~PH  2.302971  3.985846  4.083384  4.121495  2.043288  2.283565  2.004937  4.311307  4.126019  2.309655  4.291591  2.000133  2.141440  3.825970  2.0  3.819467  2.314658  3.816599  2.312659  2.0  3.845104  4.125885  3.814690 NaN NaN NaN NaN NaN NaN NaN NaN NaN
-        2004-09-22 08:30:15+00:00 KNOT~*~*~*~PH  2.272133  3.034820  3.123339  3.157926  2.039330  2.255054  2.004493  3.331398  3.162040  2.277968  3.311887  2.000120  2.128487  2.892818  2.0  2.887151  2.282320  2.884661  2.280581  2.0  2.909634  3.161918  2.883003 NaN NaN NaN NaN NaN NaN NaN NaN NaN
-        2004-09-22 08:30:30+00:00 KNOT~*~*~*~PH  2.144123  2.528542  2.576208  2.594833  2.021343  2.135238  2.002467  2.694164  2.597075  2.147196  2.676144  2.000063  2.069655  2.455464  2.0  2.452505  2.149524  2.451183  2.148594  2.0  2.464144  2.597010  2.450303 NaN NaN NaN NaN NaN NaN NaN NaN NaN
-        2004-09-22 08:30:45+00:00 KNOT~*~*~*~PH  2.052100  2.183028  2.200011  2.206647  2.007717  2.048865  2.000910  2.248923  2.207463  2.053240  2.234365  2.000021  2.025138  2.156905  2.0  2.155822  2.054124  2.155325  2.053771  2.0  2.160025  2.207441  2.154995 NaN NaN NaN NaN NaN NaN NaN NaN NaN
-        2004-09-22 08:31:00+00:00 KNOT~*~*~*~PH  2.302971  3.985825  4.083363  4.121474  2.043288  2.283566  2.004937  4.311287  4.125999  2.309655  4.291570  2.000133  2.141440  3.825950  2.0  3.819447  2.314658  3.816579  2.312659  2.0  3.845083  4.125864  3.814670 NaN NaN NaN NaN NaN NaN NaN NaN NaN
+                                                       0         1         2         3         4         5         6         7         8         9         10        11        12        13   14        15        16        17        18   19        20        21        22
+        Timestamp                 Sir3sID                                                                                                                                                                                                                                  
+        2004-09-22 08:30:00+00:00 KNOT~*~*~*~PH  2.302971  3.985846  4.083384  4.121495  2.043288  2.283565  2.004937  4.311307  4.126019  2.309655  4.291591  2.000133  2.141440  3.825970  2.0  3.819467  2.314658  3.816599  2.312659  2.0  3.845104  4.125885  3.814690
+        2004-09-22 08:30:15+00:00 KNOT~*~*~*~PH  2.272133  3.034820  3.123339  3.157926  2.039330  2.255054  2.004493  3.331398  3.162040  2.277968  3.311887  2.000120  2.128487  2.892818  2.0  2.887151  2.282320  2.884661  2.280581  2.0  2.909634  3.161918  2.883003
+        2004-09-22 08:30:30+00:00 KNOT~*~*~*~PH  2.144123  2.528542  2.576208  2.594833  2.021343  2.135238  2.002467  2.694164  2.597075  2.147196  2.676144  2.000063  2.069655  2.455464  2.0  2.452505  2.149524  2.451183  2.148594  2.0  2.464144  2.597010  2.450303
+        2004-09-22 08:30:45+00:00 KNOT~*~*~*~PH  2.052100  2.183028  2.200011  2.206647  2.007717  2.048865  2.000910  2.248923  2.207463  2.053240  2.234365  2.000021  2.025138  2.156905  2.0  2.155822  2.054124  2.155325  2.053771  2.0  2.160025  2.207441  2.154995
+        2004-09-22 08:31:00+00:00 KNOT~*~*~*~PH  2.302971  4.085822  4.183360  4.221471  2.043288  2.283566  2.004937  4.411284  4.225996  2.309655  4.391567  2.000133  2.141440  3.925947  2.0  3.919444  2.314658  3.916576  2.312659  2.0  3.945080  4.225861  3.914667
         >>> dfOneVecChannel.min()
         0     2.052100
         1     2.183028
@@ -2163,15 +2465,6 @@ class Mx():
         20    2.160025
         21    2.207441
         22    2.154995
-        23         NaN
-        24         NaN
-        25         NaN
-        26         NaN
-        27         NaN
-        28         NaN
-        29         NaN
-        30         NaN
-        31         NaN
         dtype: float64
         >>> df.min(level=1)
                                0          1          2           3          4          5         6          7         8          9         10          11         12         13       14          15        16         17        18         19        20          21        22          23   24          25   26          27   28          29   30         31
@@ -2230,34 +2523,39 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             return df
 
-    def getMxsVecsFileDataAgg(self,time1st=None,time1stIncluded=True,time2nd=None,time2ndIncluded=True):
-        """Returns Aggregates (Min, Max, ...) of mxsVecsFileData between the 2 Times per df.   
+    def calcVecAggs(self,time1st=None,time1stIncluded=True,time2nd=None,time2ndIncluded=True,Sir3sIDs=None):
+        """Calcs Aggregates (Min, Max, ...) of mxsVecsFileData between the 2 Times.   
 
         Args:
             * time1st: TIMESTAMP (first if None)
             * time2nd: TIMESTAMP (last if None)
+            * Sir3sIDs (default: None): List of the Sir3sIDs
+            *   all if None 
+            *  'Q-Cols': all available mx2Idx-referenced Flow-Cols for Edges 
                            
         Returns:
             * dfs with MultiIndex: 
                 * Level 0: 'MIN', 'MAX', ...
-                * Lecel 1: col (Sir3sID)
+                * Level 1: col (Sir3sID)
                 cols: mx2Idx
+            * TIMESTAMPL: left  ScentTimeStamp included in calculating the Aggregate
+            * TIMESTAMPR: right ScentTimeStamp included in calculating the Aggregate
 
         Raises:
             MxError
-        
+                
         >>> mx=mxs['LocalHeatingNetwork']   
         >>> mx.delFiles()      
         >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading
         5
-        >>> df=mx.getMxsVecsFileDataAgg()
+        >>> df,tL,tR=mx.calcVecAggs()
         >>> import pandas as pd
         >>> #idx=pd.IndexSlice        
-        >>> df.loc[(['MIN','MAX'],'KNOT~*~*~*~PH'),:] ## df.loc[(slice(None),'KNOT~*~*~*~PH'),slice(None)] # df.loc[(idx[:],'KNOT~*~*~*~PH'),idx[:]]
-                                 0         1         2         3         4         5         6         7         8         9         10        11        12        13   14        15        16        17        18   19        20        21        22  23  24  25  26  27  28  29  30  31
-        Agg Sir3sID                                                                                                                                                                                                                                                                      
-        MIN KNOT~*~*~*~PH  2.052100  2.183028  2.200011  2.206647  2.007717  2.048865  2.000910  2.248923  2.207463  2.053240  2.234365  2.000021  2.025138  2.156905  2.0  2.155822  2.054124  2.155325  2.053771  2.0  2.160025  2.207441  2.154995 NaN NaN NaN NaN NaN NaN NaN NaN NaN
-        MAX KNOT~*~*~*~PH  2.302971  3.985846  4.083384  4.121495  2.043288  2.283566  2.004937  4.311307  4.126019  2.309655  4.291591  2.000133  2.141440  3.825970  2.0  3.819467  2.314658  3.816599  2.312659  2.0  3.845104  4.125885  3.814690 NaN NaN NaN NaN NaN NaN NaN NaN NaN
+        >>> df.loc[(['MIN','MAX'],'KNOT~*~*~*~PH'),0:22] ## df.loc[(slice(None),'KNOT~*~*~*~PH'),slice(None)] # df.loc[(idx[:],'KNOT~*~*~*~PH'),idx[:]]
+                                  0         1         2         3         4         5         6         7         8         9         10        11        12        13   14        15        16        17        18   19        20        21        22
+        TYPE Sir3sID                                                                                                                                                                                                                                  
+        MIN  KNOT~*~*~*~PH  2.052100  2.183028  2.200011  2.206647  2.007717  2.048865  2.000910  2.248923  2.207463  2.053240  2.234365  2.000021  2.025138  2.156905  2.0  2.155822  2.054124  2.155325  2.053771  2.0  2.160025  2.207441  2.154995
+        MAX  KNOT~*~*~*~PH  2.302971  4.085822  4.183360  4.221471  2.043288  2.283566  2.004937  4.411284  4.225996  2.309655  4.391567  2.000133  2.141440  3.925947  2.0  3.919444  2.314658  3.916576  2.312659  2.0  3.945080  4.225861  3.914667
         >>> dfT=df.loc[('MIN',df.index.get_level_values(1).tolist()),:].transpose(copy=True) ## dfT=df.loc[('MIN',slice(None)),:].transpose(copy=True)   # dfT=df.loc[('MIN',idx[:]),idx[:]].transpose(copy=True)   
         >>> colIndex=dfT.columns.droplevel(level=0)
         >>> colIndex.name=None
@@ -2295,6 +2593,26 @@ class Mx():
         29       109.769997              NaN            NaN
         30         0.000000              NaN            NaN
         31        76.400002              NaN            NaN
+        >>> df,tL,tR=mx.calcVecAggs(Sir3sIDs='Q-Cols')       
+        >>> df
+                                     0          1          2         3          4          5          6         7          8          9         10         11         12        13        14         15
+        TYPE Sir3sID                                                                                                                                                                                   
+        MIN  ROHR~*~*~*~QMAV  -8.509475   7.394749 -15.378901  3.256006 -22.987946   9.266180   9.266181 -3.928166   9.266181   5.923044  1.496261 -22.987946 -19.059778 -3.928166  1.496260 -22.987946
+             VENT~*~*~*~QM     9.266181   9.266179   0.000002       NaN        NaN        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
+             FWVB~*~*~*~QM     1.871431   2.667038   1.759745  1.496260   1.471705        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
+             FWES~*~*~*~QM     9.266181        NaN        NaN       NaN        NaN        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
+             PUMP~*~*~*~QM     9.266181        NaN        NaN       NaN        NaN        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
+             KLAP~*~*~*~QM     9.266181        NaN        NaN       NaN        NaN        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
+        MAX  ROHR~*~*~*~QMAV  -3.256005  19.059780  -5.923043  8.509476  -9.266179  22.987946  22.987947 -1.496260  22.987947  15.378901  3.928167  -9.266179  -7.394748 -1.496260  3.928167  -9.266179
+             VENT~*~*~*~QM    22.987947  22.987946   0.000002       NaN        NaN        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
+             FWVB~*~*~*~QM     3.928166   6.869426   4.581308  3.928166   3.680879        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
+             FWES~*~*~*~QM    22.987947        NaN        NaN       NaN        NaN        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
+             PUMP~*~*~*~QM    22.987947        NaN        NaN       NaN        NaN        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
+             KLAP~*~*~*~QM    22.987947        NaN        NaN       NaN        NaN        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
+        >>> df.index
+        MultiIndex(levels=[['MIN', 'MAX'], ['FWES~*~*~*~QM', 'FWVB~*~*~*~QM', 'KLAP~*~*~*~QM', 'PUMP~*~*~*~QM', 'ROHR~*~*~*~QMAV', 'VENT~*~*~*~QM']],
+                   labels=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], [4, 5, 1, 0, 3, 2, 4, 5, 1, 0, 3, 2]],
+                   names=['TYPE', 'Sir3sID'])
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -2333,40 +2651,75 @@ class Mx():
             else:
                 time1stIncludedOffset=1
             timesReq=list(self.df.index[time1stIdx+time1stIncludedOffset:time2ndIdx+time2ndIncludedOffset])  
-  
-            # read the Times
-            logger.debug("{:s}Times to read: {:s}".format(logStr,str(timesReq)))    
-            mxVecsFileDataLst=self.getMxsVecsFileData(timesReq=timesReq)   
-            
-            colsToBeUnpacked=mxVecsFileDataLst[0].columns.tolist()
-            dfs=[]
-            for idx,mxVecsFileData in enumerate(mxVecsFileDataLst):
-                arrays=[[mxVecsFileData.index[0]]*len(colsToBeUnpacked),colsToBeUnpacked]
+
+            #check if Aggregates were already calculated
+            inDfVecAggs=False
+            if self.dfVecAggs.index.isin(['MIN'],level=0).any(): # 'MIN' (exemplarisch) existiert schon
+                if self.dfVecAggs.loc[('MIN',slice(None),slice(None),slice(None)),:].index.isin([timesReq[0]],level=2).any(): # mit dieser ZeitL
+                    if self.dfVecAggs.loc[('MIN',slice(None),timesReq[0],slice(None)),:].index.isin([timesReq[-1]],level=3).any(): # mit dieser ZeitR
+                        inDfVecAggs=True
+
+            if not inDfVecAggs:                                           
+                # read the 1st Time
+                mxVecsFileDataLst=self.getMxsVecsFileData(timesReq=[timesReq[0]])
+                mxVecsFileData=mxVecsFileDataLst[0]
+                # unpack it
+                if Sir3sIDs == None:
+                    Sir3sIDs=mxVecsFileData.columns.tolist()
+                elif isinstance(Sir3sIDs,list):
+                    pass
+                if Sir3sIDs == 'Q-Cols':
+                    Sir3sIDs=filterQColsForEdgesInDf(mxVecsFileData)
+
+                arrays=[[mxVecsFileData.index[0]]*len(Sir3sIDs),Sir3sIDs]
                 tuples = list(zip(*arrays))        
-                mIndex = pd.MultiIndex.from_tuples(tuples, names=['Timestamp', 'Sir3sID'])               
-                dfs.append(self.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex))        
-            df=pd.concat(dfs)      
-            
-            # dfAggs
-            dfAggs=[]    
-            
-            # min        
-            dfAgg=df.min(level=1)                
-            # construct mIndex for Agg
-            arrays=[['MIN']*len(colsToBeUnpacked),colsToBeUnpacked]
-            tuples = list(zip(*arrays))        
-            mIndex = pd.MultiIndex.from_tuples(tuples, names=['Agg', 'Sir3sID'])     
-            dfAggs.append(pd.DataFrame(dfAgg.values,index=mIndex,columns=dfAgg.columns))
+                mIndex = pd.MultiIndex.from_tuples(tuples, names=['TYPE', 'Sir3sID'])               
+                # store it with Time (create the df)
+                df=self.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex)            
+                # calc Aggs
+                dfAggs=getMxsVecsFileDataAggsCalcAggs(df,mIndex)            
+                # store Aggs with Agg
+                df=pd.concat([df,dfAggs])
+                # 1 TIMETAMP 
+                # all Aggregates
 
-            # max        
-            dfAgg=df.max(level=1)                
-            # construct mIndex for Agg
-            arrays=[['MAX']*len(colsToBeUnpacked),colsToBeUnpacked]
-            tuples = list(zip(*arrays))        
-            mIndex = pd.MultiIndex.from_tuples(tuples, names=['Agg', 'Sir3sID'])     
-            dfAggs.append(pd.DataFrame(dfAgg.values,index=mIndex,columns=dfAgg.columns))
-
-            df=pd.concat(dfAggs)    
+                # over all Times            
+                oldTime=timesReq[0]
+                for time in timesReq[1:]:               
+                    # drop oldTime
+                    df.drop(oldTime,level=0,inplace=True)
+                    # add new Time
+                    # read it
+                    mxVecsFileDataLst=self.getMxsVecsFileData(timesReq=[time],fastMode=True) #6
+                    mxVecsFileData=mxVecsFileDataLst[0]
+                    # unpack ...             
+                    arrays=[[mxVecsFileData.index[0]]*len(Sir3sIDs),Sir3sIDs]
+                    tuples = list(zip(*arrays))        
+                    mIndex = pd.MultiIndex.from_tuples(tuples, names=['TYPE', 'Sir3sID'])               
+                    # ... and store it  
+                    df=pd.concat([df,self.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex)])
+                
+                    # df:
+                    # 1 (new) TIMETAMP 
+                    # all (old) Aggs
+                    dfAggs=getMxsVecsFileDataAggsCalcAggs(df,mIndex)
+                
+                    # drop old Aggs
+                    df.drop('MIN',level=0,inplace=True)
+                    df.drop('MAX',level=0,inplace=True)
+            
+                    # store new Aggs
+                    df=pd.concat([df,dfAggs])
+                    # 1 TIMETAMP 
+                    # all Aggregates                
+                               
+                    oldTime=time
+                
+                df.drop(oldTime,level=0,inplace=True)                       
+                #mIndex:
+                #MultiIndex(levels=[[2019-01-01 00:30:00, 'MAX', 'MIN'],...: droped oldTime otherwise still in levels ?!: 
+                mIndex=df.index.remove_unused_levels()
+                df=pd.DataFrame(df.values,index=mIndex,columns=df.columns)
                                           
         except MxError:
             raise
@@ -2376,7 +2729,7 @@ class Mx():
             raise MxError(logStrFinal)                           
         finally:                      
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
-            return df
+            return df,timesReq[0],timesReq[-1]
 
     def dumpInMxsFormat(self,mxsDumpFile=None):
         """Dumps in MXS-Format to mxsDumpFile (for testing purposes). 

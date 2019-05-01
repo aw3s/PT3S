@@ -643,6 +643,9 @@ import glob
 import networkx as nx
 import math
 
+vVBEL_edges =['ROHR','VENT','FWVB','FWES','PUMP','KLAP','REGV','PREG','MREG','DPRG','PGRP']
+vVBEL_edgesD=[''    ,'DN'  ,''    ,'DN'  ,''    ,'DN'  ,'DN'  ,'DN'  ,'DN'  ,'DN'  ,'']
+
 # ---
 # --- PT3S Imports
 # ---
@@ -664,10 +667,6 @@ except ImportError:
 import argparse
 import unittest
 import doctest
-
-vVBEL_edges =['ROHR','VENT','FWVB','FWES','PUMP','KLAP','REGV','PREG','MREG','DPRG','PGRP']
-vVBEL_edgesD=[''    ,'DN'  ,''    ,'DN'  ,''    ,'DN'  ,'DN'  ,'DN'  ,'DN'  ,'DN'  ,'']
-vVBEL_edgesQ=['QMAV','QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'']
    
 class XmError(Exception):
     def __init__(self, value):
@@ -5759,9 +5758,9 @@ class Xm():
     
                 #DataFrame: 1 Zeit, Spalte(n), in den Zelle stehen die Werte als Tuple 
                 if vbel != 'ROHR':
-                    dfQ=dfSource.filter(regex='~'+vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel)
+                    dfQ=dfSource.filter(regex='~'+Mx.vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel)
                 else:
-                    dfQ=dfSource.filter(regex='~'+vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel).filter(regex='^(?!.*VEC)')
+                    dfQ=dfSource.filter(regex='~'+Mx.vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel).filter(regex='^(?!.*VEC)')
                 shape=dfQ.shape
     
                 if shape[1]==0:
@@ -6304,7 +6303,7 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
     def __MxAddForOneDf(self,dfTarget=None,dfSource=None,multiIndexKey=None,testStr='testStr'):
-        """Add MX2-Resultdata from dfSource as cols to dfTarget.
+        """Add MX2-Resultdata from dfSource as cols to returned dfTarget.
 
         Args:
             dfTarget: df with col mx2Idx
