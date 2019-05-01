@@ -2523,15 +2523,14 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             return df
 
-    def calcVecAggs(self,time1st=None,time1stIncluded=True,time2nd=None,time2ndIncluded=True,Sir3sIDs=None):
-        """Calcs Aggregates (Min, Max, ...) of mxsVecsFileData between the 2 Times.   
+    def getVecAggs(self,time1st=None,time1stIncluded=True,time2nd=None,time2ndIncluded=True):
+        """Gets (or calcs) Aggregates (MIN, MAX, ...) of mxsVecsFileData between the 2 Times.   
+
+        * Newly calced Aggregates are stored in dfVecAggs.
 
         Args:
             * time1st: TIMESTAMP (first if None)
             * time2nd: TIMESTAMP (last if None)
-            * Sir3sIDs (default: None): List of the Sir3sIDs
-            *   all if None 
-            *  'Q-Cols': all available mx2Idx-referenced Flow-Cols for Edges 
                            
         Returns:
             * dfs with MultiIndex: 
@@ -2548,7 +2547,19 @@ class Mx():
         >>> mx.delFiles()      
         >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading
         5
-        >>> df,tL,tR=mx.calcVecAggs()
+        >>> # check dfVecAggs to demonstrate how getVecAggs stores to / reads from getVecAggs
+        >>> Sir3sIDs=mx.dfVecAggs.index.unique(level=1).values
+        >>> len(Sir3sIDs)
+        41
+        >>> mx.dfVecAggs.index.unique(level=0).values
+        array(['TIME', 'TMIN', 'TMAX'], dtype=object)
+        >>> len(mx.dfVecAggs.columns.tolist())
+        32
+        >>> mx.dfVecAggs.shape # (3*41,32)
+        (123, 32)
+        >>> df,tL,tR=mx.getVecAggs()
+        >>> mx.dfVecAggs.shape 
+        (205, 32)
         >>> import pandas as pd
         >>> #idx=pd.IndexSlice        
         >>> df.loc[(['MIN','MAX'],'KNOT~*~*~*~PH'),0:22] ## df.loc[(slice(None),'KNOT~*~*~*~PH'),slice(None)] # df.loc[(idx[:],'KNOT~*~*~*~PH'),idx[:]]
@@ -2593,26 +2604,9 @@ class Mx():
         29       109.769997              NaN            NaN
         30         0.000000              NaN            NaN
         31        76.400002              NaN            NaN
-        >>> df,tL,tR=mx.calcVecAggs(Sir3sIDs='Q-Cols')       
-        >>> df
-                                     0          1          2         3          4          5          6         7          8          9         10         11         12        13        14         15
-        TYPE Sir3sID                                                                                                                                                                                   
-        MIN  ROHR~*~*~*~QMAV  -8.509475   7.394749 -15.378901  3.256006 -22.987946   9.266180   9.266181 -3.928166   9.266181   5.923044  1.496261 -22.987946 -19.059778 -3.928166  1.496260 -22.987946
-             VENT~*~*~*~QM     9.266181   9.266179   0.000002       NaN        NaN        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
-             FWVB~*~*~*~QM     1.871431   2.667038   1.759745  1.496260   1.471705        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
-             FWES~*~*~*~QM     9.266181        NaN        NaN       NaN        NaN        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
-             PUMP~*~*~*~QM     9.266181        NaN        NaN       NaN        NaN        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
-             KLAP~*~*~*~QM     9.266181        NaN        NaN       NaN        NaN        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
-        MAX  ROHR~*~*~*~QMAV  -3.256005  19.059780  -5.923043  8.509476  -9.266179  22.987946  22.987947 -1.496260  22.987947  15.378901  3.928167  -9.266179  -7.394748 -1.496260  3.928167  -9.266179
-             VENT~*~*~*~QM    22.987947  22.987946   0.000002       NaN        NaN        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
-             FWVB~*~*~*~QM     3.928166   6.869426   4.581308  3.928166   3.680879        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
-             FWES~*~*~*~QM    22.987947        NaN        NaN       NaN        NaN        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
-             PUMP~*~*~*~QM    22.987947        NaN        NaN       NaN        NaN        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
-             KLAP~*~*~*~QM    22.987947        NaN        NaN       NaN        NaN        NaN        NaN       NaN        NaN        NaN       NaN        NaN        NaN       NaN       NaN        NaN
-        >>> df.index
-        MultiIndex(levels=[['MIN', 'MAX'], ['FWES~*~*~*~QM', 'FWVB~*~*~*~QM', 'KLAP~*~*~*~QM', 'PUMP~*~*~*~QM', 'ROHR~*~*~*~QMAV', 'VENT~*~*~*~QM']],
-                   labels=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1], [4, 5, 1, 0, 3, 2, 4, 5, 1, 0, 3, 2]],
-                   names=['TYPE', 'Sir3sID'])
+        >>> df,tL,tR=mx.getVecAggs()
+        >>> mx.dfVecAggs.shape 
+        (205, 32)
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -2659,18 +2653,20 @@ class Mx():
                     if self.dfVecAggs.loc[('MIN',slice(None),timesReq[0],slice(None)),:].index.isin([timesReq[-1]],level=3).any(): # mit dieser ZeitR
                         inDfVecAggs=True
 
+            if inDfVecAggs:                                 
+                df=self.dfVecAggs.loc[(['MIN','MAX'],slice(None),timesReq[0],timesReq[-1]),:]
+                mIndex=df.index.droplevel(level=3)
+                mIndex=mIndex.droplevel(level=2)
+                df=pd.DataFrame(df.values,index=mIndex,columns=df.columns)
+                logger.debug("{:s}Index: MIN etc. {!s:30s} {!s:30s} already in dfVecAggs.".format(logStr,timesReq[0],timesReq[-1]))   
+
             if not inDfVecAggs:                                           
                 # read the 1st Time
                 mxVecsFileDataLst=self.getMxsVecsFileData(timesReq=[timesReq[0]])
                 mxVecsFileData=mxVecsFileDataLst[0]
-                # unpack it
-                if Sir3sIDs == None:
-                    Sir3sIDs=mxVecsFileData.columns.tolist()
-                elif isinstance(Sir3sIDs,list):
-                    pass
-                if Sir3sIDs == 'Q-Cols':
-                    Sir3sIDs=filterQColsForEdgesInDf(mxVecsFileData)
-
+                # unpack it                
+                Sir3sIDs=mxVecsFileData.columns.tolist()
+             
                 arrays=[[mxVecsFileData.index[0]]*len(Sir3sIDs),Sir3sIDs]
                 tuples = list(zip(*arrays))        
                 mIndex = pd.MultiIndex.from_tuples(tuples, names=['TYPE', 'Sir3sID'])               
@@ -2719,12 +2715,28 @@ class Mx():
                 #mIndex:
                 #MultiIndex(levels=[[2019-01-01 00:30:00, 'MAX', 'MIN'],...: droped oldTime otherwise still in levels ?!: 
                 mIndex=df.index.remove_unused_levels()
+                
                 df=pd.DataFrame(df.values,index=mIndex,columns=df.columns)
+
+                # store in dfVecAggs
+                Sir3sIDs=df.index.unique(level=1).values
+                for aggType in df.index.unique(level=0).values:
+                    try:
+                        arrays=[[aggType]*len(Sir3sIDs),Sir3sIDs,[timesReq[0].tz_localize(None)]*len(Sir3sIDs),[timesReq[-1].tz_localize(None)]*len(Sir3sIDs)]
+                        tuples=list(zip(*arrays))        
+                        mIndex=pd.MultiIndex.from_tuples(tuples,names=['TYPE','Sir3sID','TIMESTAMPL','TIMESTAMPR'])
+                        self.dfVecAggs=pd.concat([self.dfVecAggs,pd.DataFrame(df.loc[(aggType,slice(None)),:].values,index=mIndex,columns=df.columns)])
+                        logger.debug("{:s}Index: MIN etc. {!s:30s} {!s:30s} stored in dfVecAggs.".format(logStr,timesReq[0],timesReq[-1]))     
+                    except Exception as e:
+                        logStrFinal="{:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                        logger.error(logStrFinal) 
+                        raise MxError(logStrFinal)       
+
                                           
         except MxError:
             raise
         except Exception as e:
-            logStrFinal="{:s}h5File: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,h5File,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logStrFinal="{:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,aggType(e),str(e))
             logger.error(logStrFinal) 
             raise MxError(logStrFinal)                           
         finally:                      
