@@ -693,8 +693,7 @@ class Xm():
 
         * fileNames
             * xmlFile
-            *  constructed from MX during Init and Usage:
-            *  ------------------------------------------
+            *  constructed from MX during Init and Usage:           
             * h5File: corresponding h5File(name) derived from xmlFile(name)
 
         * dataFrames
@@ -783,20 +782,21 @@ class Xm():
                                 * non Null Q-rows filtered here - then:
                                 * 'QAbs': constructed here
                                 * 'QAbsInv': constructed here
-                        def vAGSN_Add(self,nl=None,weight=None,Layer=0,AKTIV=None,NAME='NEU',mask=None,fmask=None):
        
                         * query: query to filter vVBEL (to filter Edges) before constructing the Graph 
                         * fmask: function to filter vVBEL (to filter Edges) before constructing the Graph 
                         * query and fmask are used both if not None
 
                 Returns:
-                    df: DataFrame with Edges (one per row) implementing the shortest Path over NodeList
-                    empty DataFrame is returned if an error occurs
-                    columns
+                    * df: DataFrame with Edges (one per row) implementing the shortest Path over NodeList
+                    * empty DataFrame is returned if an error occurs
+                    * columns
+
                         * OBJTYPE
                         * OBJID
                         * nextNODE
                         * compNr
+
                             * starts with 1
                             * the number of the connected component
                             * 1 for all edges if all nodes in NodeList are connected
@@ -2272,7 +2272,7 @@ class Xm():
         """Adds a new User-defined Cut to the Model-defined Cuts. 
 
         Arguments:
-            * nl: NodeList for the Cut
+             * nl: NodeList for the Cut
              * weight: columnName of the weight attribute 
              * Layer
              * AKTIV
@@ -5367,15 +5367,24 @@ class Xm():
               # same Args as MxSync:
               ,mx=None
               ,ForceNoH5ReadForMx=False
-              # Args special to MxAdd
-              ,timeReq=None):
+              # Args special to MxAdd              
+              ,timeReq=None
+              ,aggReq=None
+              ,timeReq2nd=None):
         """Add MX-Resultcolumns to some Xm-Views.  NEW 1st Call: vROHRVecResults, vAGSN.
 
         Args:               
-            mx, ForceNoH5ReadForMx: same Args as for MxSync; see description there
-            timeReq:
+            * mx, ForceNoH5ReadForMx: same Args as for MxSync; see description there
+            * timeReq:
                 * TIMESTAMP 
-                * if None 1st TIME in Mx is used
+                * if None 1st TIME in Mx is used               
+            * aggReq:
+                * 'TIME','TMIN','TMAX' (source: MXS) or 'MIN','MAX', ... (source: mx.getVecAggs())
+                * timeReq    is considered as TIMESTAMPL
+                * timeReq2nd is considered as TIMESTAMPR
+            * timeReq2nd:
+                * TIMESTAMP 
+                * if None last TIME in Mx is used    
 
         Views with MX2-Results added:            
             * in the Xm-Views below col mx2Idx must exist (i.e. MxSync mus have been called)
@@ -5541,6 +5550,20 @@ class Xm():
         29  4769996343148550485       4      E        73.419998         3.004937         983.700012             60.0        -6.385540             20.0
         30  4939422678063487923       6      S         0.000000         5.125884         965.700012             90.0         6.385541             20.0
         31  4939422678063487923       6      E        68.599998         5.121495         965.700012             90.0         6.385541             20.0
+        >>> xm.MxAdd(mx=mx,aggReq='TMAX')
+        >>> dfTMax=xm.dataFrames['vROHRVecResults'].copy()        
+        >>> xm.MxAdd(mx=mx,aggReq='TMIN')
+        >>> dfTMin=xm.dataFrames['vROHRVecResults'].copy() 
+        >>> xm.MxAdd(mx=mx,aggReq='MAX')
+        >>> dfMax=xm.dataFrames['vROHRVecResults'].copy()
+        >>> xm.MxAdd(mx=mx,aggReq='MIN')
+        >>> dfMin=xm.dataFrames['vROHRVecResults'].copy()
+        >>> import pandas as pd
+        >>> decimals=pd.Series([6],index=['ROHR~*~*~*~PVEC'])        
+        >>> dfTMax.round(decimals=decimals).equals(dfMax.round(decimals=decimals))
+        True
+        >>> dfTMin.round(decimals=decimals).equals(dfMin.round(decimals=decimals))
+        True
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -5560,16 +5583,46 @@ class Xm():
             if timeReq==None:
                 timeReq=mx.df.index[0]
 
-            mxVecsFileData=mx.getMxsVecsFileData(timesReq=[timeReq])[0] 
+            if aggReq==None:
 
-            # unPack requests a mIndex ...
-            colsToBeUnpacked=mxVecsFileData.columns.tolist() # all columns      
-            arrays=[[mxVecsFileData.index[0]]*len(colsToBeUnpacked),colsToBeUnpacked]
-            tuples = list(zip(*arrays))            
-            mIndex = pd.MultiIndex.from_tuples(tuples, names=['Timestamp', 'Sir3sID'])        
-            # unPack
-            dfUnpacked=mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex,returnMultiIndex=False)
+                mxVecsFileData=mx.getMxsVecsFileData(timesReq=[timeReq])[0] 
 
+                # unPack requests a mIndex ...
+                colsToBeUnpacked=mxVecsFileData.columns.tolist() # all columns      
+                arrays=[[mxVecsFileData.index[0]]*len(colsToBeUnpacked),colsToBeUnpacked]
+                tuples = list(zip(*arrays))            
+                mIndex = pd.MultiIndex.from_tuples(tuples, names=['Timestamp', 'Sir3sID'])        
+                # unPack
+                dfUnpacked=mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex,returnMultiIndex=False)
+
+            else:      
+                if timeReq2nd==None:
+                    timeReq2nd=mx.df.index[-1]                
+                reqAggFound=False
+                if mx.dfVecAggs.index.isin([aggReq],level=0).any(): # aggReq existiert 
+                    if mx.dfVecAggs.loc[(aggReq,slice(None),slice(None),slice(None)),:].index.isin([timeReq],level=2).any(): # mit dieser ZeitL
+                        if mx.dfVecAggs.loc[(aggReq,slice(None),timeReq,slice(None)),:].index.isin([timeReq2nd],level=3).any(): # mit dieser ZeitR
+                            logger.debug("{:s}aggReq {:s} with TimeL {!s:30s} and TimeR {!s:30s} in mx.dfVecAggs.".format(logStr,aggReq,timeReq,timeReq2nd))   
+                            reqAggFound=True
+
+                if not reqAggFound:                                                                      
+                    df,tL,tR=mx.getVecAggs(time1st=timeReq,time2nd=timeReq2nd)
+                    logger.debug("{:s}aggReq {:s} with TimeL {!s:30s} and TimeR {!s:30s} not in mx.dfVecAggs. mx.getVecAggs() called.".format(logStr,aggReq,timeReq,timeReq2nd))    
+
+                try:
+                    df=mx.dfVecAggs.loc[(aggReq,slice(None),timeReq,timeReq2nd),:]
+                    dfT=df.transpose(copy=True)
+                    colIndex=dfT.columns.droplevel(level=0)
+                    colIndex=colIndex.droplevel(level=1)
+                    colIndex=colIndex.droplevel(level=1)
+                    colIndex.name=None
+                    dfUnpacked=pd.DataFrame(dfT.values,columns=colIndex)
+                except Exception as e:
+                    logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
+                    logger.error(logStrFinal) 
+                    logger.debug("{:s}aggReq {:s} with TimeL {!s:30s} and TimeR {!s:30s} not in mx.dfVecAggs.".format(logStr,aggReq,timeReq,timeReq2nd)) 
+                    raise XmError(logStrFinal)    
+             
             vKNOT=self.dataFrames['vKNOT']
             vKNOT=self.__MxAddForOneDf(dfTarget=vKNOT
                                       ,dfSource=dfUnpacked.filter(regex='^KNOT'),testStr='KNOT')
@@ -5597,6 +5650,7 @@ class Xm():
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
             logger.error(logStrFinal) 
+            raise XmError(logStrFinal)      
                      
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
@@ -5999,18 +6053,21 @@ class Xm():
                 * from vROHRVecResults: vecResults
                 * Topology:
                     * nextNODE                   
-                    * IptIdx                    
+                    * IptIdx      
+                    
                 * Geometry:
                     * dx                       
                     * x                        
                     * xVbel      
                     * Z (the corresponding Z_i, Z_k and ZVEC are droped)
+
                 * Results:
                     * Q: from Q before and QMVEC for PIPEs; in Schnittrichtung; QMVEC is droped
                     * for available KNOT...#_i, KNOT...#_k and ...#VEC:
                         * i.e. KNOT~*~*~*~P_i KNOT~*~*~*~P_k  ROHR~*~*~*~PVEC
                         * P is new column
                         * the correspondig 3 source-columns are droped
+
         Raises:
             XmError
 
