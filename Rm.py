@@ -156,7 +156,7 @@ import logging
 # ---
 logger = logging.getLogger('PT3S.Rm')  
 if __name__ == "__main__":
-    logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context: ',' .')) 
+    logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context','.')) 
 else:
     logger.debug("{0:s}{1:s}{2:s}{3:s}".format('in MODULEFILE: Not __main__ Context: ','__name__: ',__name__," .")) 
 
@@ -179,6 +179,12 @@ import argparse
 import unittest
 import doctest
 
+# DIN A6 105 x 148 mm	4,13 x 5,83 in
+# DIN A5 148 x 210 mm	5,83 x 8,27 in
+# DIN A4 210 x 297 mm	8,27 x 11,69 in
+# DIN A3 297 x 420 mm	11,69 x 16,54 in
+# DIN A0 841 x 1189 mm	33,11 x 46,81 in
+
 DINA4_x=8.2677165354
 DINA4_y=11.6929133858
 
@@ -190,6 +196,42 @@ class RmError(Exception):
 
 from matplotlib import markers
 from matplotlib.path import Path
+
+import numpy as np
+
+"""
+The following would be a function categorical_cmap, 
+which takes as input the number of categories (nc) and the number of subcategories (nsc) 
+and returns a colormap with nc*nsc different colors, where for each category there are nsc colors of same hue.
+
+In der Regel möchte man in ZK für z.B. Station A immer die Farbe blau verwenden.
+Die Anzahl der Stationen ist dann die Anzahl der Kategorien.
+Innerhalb derselben Station möchte man für Daten der Station (berechnete Werte, Messwerte, etc.) verschiedene Töne derselben Farbe verwenden.
+Diese Töne kann man als Subkategorie auffassen.
+"""
+def pltMakeCategoricalCmap(nc, nsc, cmap="tab10", continuous=False):
+    if nc > plt.get_cmap(cmap).N:
+        raise ValueError("Too many categories for colormap.")
+    if continuous:
+        ccolors = plt.get_cmap(cmap)(np.linspace(0,1,nc))
+    else:
+        ccolors = plt.get_cmap(cmap)(np.arange(nc, dtype=int))
+    cols = np.zeros((nc*nsc, 3))
+    for i, c in enumerate(ccolors):
+        chsv = matplotlib.colors.rgb_to_hsv(c[:3])
+        arhsv = np.tile(chsv,nsc).reshape(nsc,3)
+        arhsv[:,1] = np.linspace(chsv[1],0.25,nsc)
+        arhsv[:,2] = np.linspace(chsv[2],1,nsc)
+        rgb = matplotlib.colors.hsv_to_rgb(arhsv)
+        cols[i*nsc:(i+1)*nsc,:] = rgb       
+    cmap = matplotlib.colors.ListedColormap(cols)
+    return cmap
+
+def pltMakePatchSpinesInvisible(ax):
+    ax.set_frame_on(True)
+    ax.patch.set_visible(False)
+    for sp in ax.spines.values():
+        sp.set_visible(False)
 
 def pltHlpAlignMarker(marker,halign='center',valign='middle'):
     """

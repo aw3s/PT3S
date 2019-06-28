@@ -651,7 +651,7 @@ vVBEL_edgesD=[''    ,'DN'  ,''    ,'DN'  ,''    ,'DN'  ,'DN'  ,'DN'  ,'DN'  ,'DN
 # ---
 logger = logging.getLogger('PT3S.Xm')  
 if __name__ == "__main__":
-    logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context: ',' .')) 
+    logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context:','.')) 
 else:
     logger.debug("{0:s}{1:s}{2:s}{3:s}".format('in MODULEFILE: Not __main__ Context: ','__name__: ',__name__," .")) 
 
@@ -2272,14 +2272,16 @@ class Xm():
         """Adds a new User-defined Cut to the Model-defined Cuts. 
 
         Arguments:
-             * nl: NodeList for the Cut
-             * weight: columnName of the weight attribute 
-             * Layer
-             * AKTIV
-             * NAME
-             * query: mask to filter vVBEL (to filter Edges) before constructing the Graph 
-             * fmask: function to filter vVBEL (to filter Edges) before constructing the Graph 
-             * query and fmask are used both if not None
+             see constructShortestPathFromNodeList:
+                 * nl: NodeList for the Cut
+                 * weight: columnName of the weight attribute
+                 * query: mask to filter vVBEL (to filter Edges) before constructing the Graph 
+                 * fmask: function to filter vVBEL (to filter Edges) before constructing the Graph 
+                 * query and fmask are used both if not None                 
+           
+             * Layer (to use in constructed cut)
+             * AKTIV (to use in constructed cut)
+             * NAME (to use in constructed cut): the cut will NOT be constructed if such a NAME already exists
 
         Raises:
             XmError             
@@ -2331,56 +2333,67 @@ class Xm():
         33    21          NEU  None    ROHR  5114681686941855110                 PT3S                 PT3S              4                  1      0       G3      1
         34    21          NEU  None    ROHR  4979507900871287244                 PT3S                 PT3S              5                  1      0       G4      1
         35    21          NEU  None    VENT  5745097345184516675                 PT3S                 PT3S              6                  1      0       GR      1
+        >>> # Test if the same NAME is _not constructed twice ...
+        >>> xm.vAGSN_Add(nl=['GL','GR'])      
+        >>> xm.dataFrames['vAGSN_raw'].shape 
+        (36, 12)
+        >>> # test if re-use works without erors ...
         >>> mx=xm.MxSync()
         >>> xm.MxAdd(mx=mx)    
-        >>> xm.vAGSN_Add(nl=['GL','GR'],weight='QAbsInv')  # durchflussstaerksten Weg erzwingen  
+        >>> # Test weight-Option ...
+        >>> xm.vAGSN_Add(nl=['GL','GR'],weight='QAbsInv',NAME='GL-GR w')  # durchflussstaerksten Weg erzwingen  
         >>> df=xm.dataFrames['vAGSN_raw']
         >>> df.query("LFDNR in [21,22] and nextNODE=='GKD'")
-           LFDNR NAME AKTIV OBJTYPE                OBJID    pk    tk  nrObjIdInAgsn  nrObjIdTypeInAgsn  Layer nextNODE compNr
-        32    21  NEU  None    VENT  5116489323526156845  PT3S  PT3S              3                  1      0      GKD      1
-        38    22  NEU  None    VENT  5508684139418025293  PT3S  PT3S              3                  1      0      GKD      1
+           LFDNR     NAME AKTIV OBJTYPE                OBJID    pk    tk  nrObjIdInAgsn  nrObjIdTypeInAgsn  Layer nextNODE compNr
+        32    21      NEU  None    VENT  5116489323526156845  PT3S  PT3S              3                  1      0      GKD      1
+        38    22  GL-GR w  None    VENT  5508684139418025293  PT3S  PT3S              3                  1      0      GKD      1
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try: 
-            
-            df=self.getvVBELwithNodeAttributeAdded()
-            df=Xm.constructShortestPathFromNodeList(df=df,nl=nl,weight=weight,query=query,fmask=fmask)  
 
-            if not df.empty:
+           vAGSN_raw=self.dataFrames['vAGSN_raw']   
 
-                vAGSN_raw=self.dataFrames['vAGSN_raw']
+           if NAME in vAGSN_raw['NAME'].unique():
+                logger.debug("{0:s}Fehler: Schnitt {1:s} konnte nicht erzeugt werden da es bereits mind. 1 Schnitt dieses Namens im Modell gibt!".format(logStr,NAME))   
+                
+           else:                                
+                df=self.getvVBELwithNodeAttributeAdded()
+                df=Xm.constructShortestPathFromNodeList(df=df,nl=nl,weight=weight,query=query,fmask=fmask)  
 
-                df['Layer']=0
-                df['AKTIV']=None
-                df['NAME']=NAME
-                if not vAGSN_raw.empty:
-                    nr=vAGSN_raw['LFDNR'].astype('int')
-                    df['LFDNR']=nr.max()+1 
+                if not df.empty:                                
+                        df['Layer']=0
+                        df['AKTIV']=None
+               
+                        df['NAME']=NAME
+
+                        if not vAGSN_raw.empty:
+                            nr=vAGSN_raw['LFDNR'].astype('int')
+                            df['LFDNR']=nr.max()+1 
+                        else:
+                            df['LFDNR']=1
+
+                        df=df.assign(nrObjIdInAgsn=df.groupby(['LFDNR']).cumcount()+1) # dieses VBEL-Obj. ist im Schnitt Nr. x
+                        df=df.assign(nrObjIdTypeInAgsn=df.groupby(['LFDNR','OBJTYPE','OBJID']).cumcount()+1) # dieses VBEL-Obj kommt im Schnitt zum x. Mal vor
+
+                        df['pk']='PT3S'
+                        df['tk']='PT3S'
+
+                        cols=vAGSN_raw.columns.tolist() # ['LFDNR','NAME','AKTIV','OBJTYPE','OBJID','pk','tk','nrObjIdInAgsn','nrObjIdTypeInAgsn','Layer','nextNODE','compNr']  
+                        df = df[cols] 
+
+                        vAGSN_rawNew=pd.concat([vAGSN_raw,df])
+
+                        self.dataFrames['vAGSN_raw']=vAGSN_rawNew.reset_index(drop=True)
                 else:
-                    df['LFDNR']=1
-
-                df=df.assign(nrObjIdInAgsn=df.groupby(['LFDNR']).cumcount()+1) # dieses VBEL-Obj. ist im Schnitt Nr. x
-                df=df.assign(nrObjIdTypeInAgsn=df.groupby(['LFDNR','OBJTYPE','OBJID']).cumcount()+1) # dieses VBEL-Obj kommt im Schnitt zum x. Mal vor
-
-                df['pk']='PT3S'
-                df['tk']='PT3S'
-
-                cols=vAGSN_raw.columns.tolist() # ['LFDNR','NAME','AKTIV','OBJTYPE','OBJID','pk','tk','nrObjIdInAgsn','nrObjIdTypeInAgsn','Layer','nextNODE','compNr']  
-                df = df[cols] 
-
-                vAGSN_rawNew=pd.concat([vAGSN_raw,df])
-
-                self.dataFrames['vAGSN_raw']=vAGSN_rawNew.reset_index(drop=True)
-            else:
-                logger.debug("{0:s}Fehler: Schnitt {1:s} konnte nicht erzeugt werden!".format(logStr,NAME))    
+                        logger.debug("{0:s}Fehler: Schnitt {1:s} konnte nicht erzeugt werden da die Pfadermittlung kein Ergebnis ergeben hat!".format(logStr,NAME))    
                 
             
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-            logger.debug(logStrFinal)                 
+            logger.error(logStrFinal)                 
                                                                               
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
@@ -4924,14 +4937,15 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))             
             return mx
 
-    def __Mx1_Sir3sIDUpd(self,mx):
+    def __Mx1_Sir3sIDUpd(self,mx,checkAllChannels=True):
         """Update NAME1,2 and Sir3sID in mx.mx1Df and mx.df.
 
         Args:
             mx: Mx-Object
+            checkAllChannels: if False only Channels with empty NAME1 are updated; default: True: all Channels are checked and updated if necessary
 
         Notes:
-            The following Channels are updated:
+            The following OBJTYPEs are covered:
                 * KNOT
                 * WBLZ
                 * RXXXX
@@ -4950,32 +4964,43 @@ class Xm():
             # Sir3sID split
             df=mx.mx1Df['Sir3sID'].str.extract(Mx.reSir3sIDcompiled)               
             # Sir3sID reconstruction
-            df=df.assign(Sir3sID=lambda df: df.OBJTYPE+'~'+df.NAME1+'~'+df.NAME2+'~'+df.OBJTYPE_PK+'~'+df.ATTRTYPE)
+            sep=Mx.reSir3sIDSep
+            df=df.assign(Sir3sID=lambda df: df.OBJTYPE+sep+df.NAME1+sep+df.NAME2+sep+df.OBJTYPE_PK+sep+df.ATTRTYPE)
 
             nOfSir3sIDsUpdated=0
             
             # KNOT
+            dfUpd=df[(df['OBJTYPE'].isin(['KNOT']))]
+            if not checkAllChannels:
+                dfUpd=dfUpd[(dfUpd['NAME1'].str.len()==0)]
             nOfSir3sIDsUpdated=nOfSir3sIDsUpdated+self.__Mx1_Sir3sIDUpd_ObjTypeNode(mx=mx
-                                                                 ,dfUpd=df[ (df['NAME1'].str.len()==0) & (df['OBJTYPE'].isin(['KNOT'])) ]
+                                                                 ,dfUpd=dfUpd                                                                                                                                 
                                                                  ,dfNAME1=self.dataFrames['KNOT']
                                                                  ,NAME1Col='NAME')
             # WBLZ
+            dfUpd=df[(df['OBJTYPE'].isin(['WBLZ']))]
+            if not checkAllChannels:
+                dfUpd=dfUpd[(dfUpd['NAME1'].str.len()==0)]
             if 'WBLZ' in self.dataFrames.keys():
                 nOfSir3sIDsUpdated=nOfSir3sIDsUpdated+self.__Mx1_Sir3sIDUpd_ObjTypeNode(mx=mx
-                                                                     ,dfUpd=df[ (df['NAME1'].str.len()==0) & (df['OBJTYPE'].isin(['WBLZ'])) ]
+                                                                     ,dfUpd=dfUpd                                                                   
                                                                      ,dfNAME1=self.dataFrames['WBLZ']
                                                                      ,NAME1Col='NAME')
             # RXXXX
             for ObjType in ['RSLW','RMES','RFKT','RTOT','RVGL','RHYS','RINT','RPT1','RADD','RMUL','RDIV','RMIN','RPID','RVGL']:       
                 if ObjType in self.dataFrames:
+                    dfUpd=df[(df['OBJTYPE'].isin([ObjType]))]
+                    if not checkAllChannels:
+                        dfUpd=dfUpd[(dfUpd['NAME1'].str.len()==0)]
                     nOfSir3sIDsUpdated=nOfSir3sIDsUpdated+self.__Mx1_Sir3sIDUpd_ObjTypeNode(mx=mx
-                                                                     ,dfUpd=df[ (df['NAME1'].str.len()==0) & (df['OBJTYPE'].isin([ObjType])) ]
+                                                                     ,dfUpd=dfUpd                                                                                                                                       
                                                                      ,dfNAME1=self.dataFrames[ObjType]
                                                                      ,NAME1Col='KA')
             
             # VBEL (NAME1,2 und Sir3sID)
-            dfUpd=df[ (df['NAME1'].str.len()==0) & (df['OBJTYPE'].isin(vVBEL_edges)) ]
-            #logger.debug("{0:s}dfUpd vor Merge: {1:s}.".format(logStr,str(dfUpd)))
+            dfUpd=df[(df['OBJTYPE'].isin(vVBEL_edges))]
+            if not checkAllChannels:
+                dfUpd=dfUpd[(dfUpd['NAME1'].str.len()==0)]
 
             # fuer Col-Auswahl nach Merge
             dfUpdCols=dfUpd.columns.tolist()
@@ -5000,23 +5025,24 @@ class Xm():
             #logger.debug("{0:s}dfUpd nach Merge: {1:s}.".format(logStr,str(dfUpd)))
 
             # calculate Sir3sID Update 
-            dfUpd=dfUpd.assign(Sir3sIDUpd=lambda df: df.OBJTYPE+'~'+df.NAME_i+'~'+df.NAME_k+'~'+df.OBJTYPE_PK+'~'+df.ATTRTYPE)
+            dfUpd=dfUpd.assign(Sir3sIDUpd=lambda df: df.OBJTYPE+sep+df.NAME_i+sep+df.NAME_k+sep+df.OBJTYPE_PK+sep+df.ATTRTYPE)
             # iterate over all Sir3sIDs to be updated
             for index, row in dfUpd.iterrows():
-                nOfSir3sIDsUpdated=nOfSir3sIDsUpdated+1
-                # set Sir3sID to Sir3sIDUpd in mx.mx1Df
-                mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sID'],'Sir3sID']=row['Sir3sIDUpd']
-                logger.debug("{0:s}Changing Sir3sID {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))    
-                # set NAME1 to NAME_i in mx.mx1Df
-                mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sIDUpd'],'NAME1']=row['NAME_i']
-                logger.debug("{0:s}Changing NAME1 (now:{1:s}) to {2:s}.".format(logStr,row['NAME1'],row['NAME_i']))    
-                # set NAME2 to NAME_k in mx.mx1Df
-                mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sIDUpd'],'NAME2']=row['NAME_k']
-                logger.debug("{0:s}Changing NAME2 (now:{1:s}) to {2:s}.".format(logStr,row['NAME2'],row['NAME_k']))    
-                if isinstance(mx.df,pd.core.frame.DataFrame):  
-                    # rename the corresponding col in mx.df
-                    mx.df.rename(columns={row['Sir3sID']:row['Sir3sIDUpd']},inplace=True)  
-                    logger.debug("{0:s}Changing Col {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))
+                if row['Sir3sID'] != row['Sir3sIDUpd']: 
+                    nOfSir3sIDsUpdated=nOfSir3sIDsUpdated+1
+                    # set Sir3sID to Sir3sIDUpd in mx.mx1Df
+                    mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sID'],'Sir3sID']=row['Sir3sIDUpd']
+                    logger.debug("{0:s}Changing Sir3sID {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))    
+                    # set NAME1 to NAME_i in mx.mx1Df
+                    mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sIDUpd'],'NAME1']=row['NAME_i']
+                    logger.debug("{0:s}Changing NAME1 (now:{1:s}) to {2:s}.".format(logStr,row['NAME1'],row['NAME_i']))    
+                    # set NAME2 to NAME_k in mx.mx1Df
+                    mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sIDUpd'],'NAME2']=row['NAME_k']
+                    logger.debug("{0:s}Changing NAME2 (now:{1:s}) to {2:s}.".format(logStr,row['NAME2'],row['NAME_k']))    
+                    if isinstance(mx.df,pd.core.frame.DataFrame):  
+                        # rename the corresponding col in mx.df
+                        mx.df.rename(columns={row['Sir3sID']:row['Sir3sIDUpd']},inplace=True)  
+                        logger.debug("{0:s}Changing Col {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))
 
             if nOfSir3sIDsUpdated>0 and mx.h5Read:
                 mx.ToH5()
@@ -5040,6 +5066,9 @@ class Xm():
         Returns:
             nOfSir3sIDsUpdated
 
+        Note:
+            only wrong Channels are updated
+
         Raises:
             XmError
         """
@@ -5061,21 +5090,23 @@ class Xm():
                ,suffixes=('', '_y'))[dfUpdCols]
             dfUpd.rename(columns={NAME1Col:'NAME1Col'},inplace=True)
             # calculate Sir3sID Update 
-            dfUpd=dfUpd.assign(Sir3sIDUpd=lambda df: df.OBJTYPE+'~'+df.NAME1Col+'~'+df.NAME2+'~'+df.OBJTYPE_PK+'~'+df.ATTRTYPE)
+            sep=Mx.reSir3sIDSep
+            dfUpd=dfUpd.assign(Sir3sIDUpd=lambda df: df.OBJTYPE+sep+df.NAME1Col+sep+df.NAME2+sep+df.OBJTYPE_PK+sep+df.ATTRTYPE)
 
             # iterate over all Sir3sIDs to be updated
             for index, row in dfUpd.iterrows():
-                nOfSir3sIDsUpdated=nOfSir3sIDsUpdated+1
-                # set Sir3sID to Sir3sIDUpd in mx.mx1Df
-                mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sID'],'Sir3sID']=row['Sir3sIDUpd']
-                logger.debug("{0:s}Changing Sir3sID {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))    
-                # set NAME1 to NAME1Col in mx.mx1Df
-                mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sIDUpd'],'NAME1']=row['NAME1Col']
-                logger.debug("{0:s}Changing NAME1 (now:{1:s}) to {2:s}.".format(logStr,row['NAME1'],row['NAME1Col']))    
-                if isinstance(mx.df,pd.core.frame.DataFrame):  
-                    # rename the corresponding col in mx.df
-                    mx.df.rename(columns={row['Sir3sID']:row['Sir3sIDUpd']},inplace=True)  
-                    logger.debug("{0:s}Changing Col {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))
+                if row['Sir3sID'] != row['Sir3sIDUpd']: 
+                    nOfSir3sIDsUpdated=nOfSir3sIDsUpdated+1
+                    # set Sir3sID to Sir3sIDUpd in mx.mx1Df
+                    mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sID'],'Sir3sID']=row['Sir3sIDUpd']
+                    logger.debug("{0:s}Changing Sir3sID {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))    
+                    # set NAME1 to NAME1Col in mx.mx1Df
+                    mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sIDUpd'],'NAME1']=row['NAME1Col']
+                    logger.debug("{0:s}Changing NAME1 (now:{1:s}) to {2:s}.".format(logStr,row['NAME1'],row['NAME1Col']))    
+                    if isinstance(mx.df,pd.core.frame.DataFrame):  
+                        # rename the corresponding col in mx.df
+                        mx.df.rename(columns={row['Sir3sID']:row['Sir3sIDUpd']},inplace=True)  
+                        logger.debug("{0:s}Changing Col {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))
                            
         except Exception as e:            
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e)) 

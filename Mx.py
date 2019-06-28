@@ -456,7 +456,7 @@ import logging
 # ---
 logger = logging.getLogger('PT3S.Mx')  
 if __name__ == "__main__":
-    logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context: ',' .')) 
+    logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context','.')) 
 else:
     logger.debug("{0:s}{1:s}{2:s}{3:s}".format('in MODULEFILE: Not __main__ Context: ','__name__: ',__name__," .")) 
 
@@ -468,7 +468,8 @@ import unittest
 import doctest
 
 # Sir3sID regExp Example
-reSir3sID='(?P<OBJTYPE>\S+)~(?P<NAME1>[\S ]*)~(?P<NAME2>\S*)~(?P<OBJTYPE_PK>\d+)~(?P<ATTRTYPE>\S+)'    
+reSir3sIDSep='~'
+reSir3sID='(?P<OBJTYPE>\S+)'+reSir3sIDSep+'(?P<NAME1>[\S ]*)'+reSir3sIDSep+'(?P<NAME2>\S*)'+reSir3sIDSep+'(?P<OBJTYPE_PK>\d+)'+reSir3sIDSep+'(?P<ATTRTYPE>\S+)'    
 reSir3sIDcompiled=re.compile(reSir3sID) 
 
 try:
@@ -492,9 +493,9 @@ def filterQColsForEdgesInDf(df):
             QCols=[]
             for idx,vbel in enumerate(Xm.vVBEL_edges):              
                 if vbel != 'ROHR':
-                    dfTmp=df.filter(regex='~'+vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel)
+                    dfTmp=df.filter(regex=reSir3sIDSep+vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel)
                 else:
-                    dfTmp=df.filter(regex='~'+vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel).filter(regex='^(?!.*VEC)')
+                    dfTmp=df.filter(regex=reSir3sIDSep+vVBEL_edgesQ[idx]+'$').filter(regex='^'+vbel).filter(regex='^(?!.*VEC)')
                 if dfTmp.empty:
                     continue
                 shape=dfTmp.shape
@@ -521,10 +522,23 @@ def getMicrosecondsFromRefTime(refTime,time):
 
     Raises:
         MxError
+
+   >>> import pandas as pd
+   >>> timeReadFromMx=b'2019-01-01 00:00:12.500000      '
+   >>> timeRefMx=b'2019-01-01 00:00:00.000000      '
+   >>> timeStampTimeReadFromMx=pd.to_datetime(timeReadFromMx.decode(),utc=True)
+   >>> timeStampTimeRefFromMx=pd.to_datetime(timeRefMx.decode(),utc=True)
+   >>> timeDelta=timeStampTimeReadFromMx-timeStampTimeRefFromMx 
+   >>> timeDelta.total_seconds()
+   12.5
+   >>> import Mx
+   >>> Mx.getMicrosecondsFromRefTime(timeStampTimeRefFromMx,timeStampTimeReadFromMx)
+   12500
     """
     try:
         timeH5=time-refTime
-        h5Key=int(math.floor(timeH5.total_seconds())*1000+timeH5.microseconds)
+        #h5Key=int(math.floor(timeH5.total_seconds())*1000+timeH5.microseconds)
+        h5Key=int(timeH5.total_seconds()*1000)
     except Exception as e:
         logStrFinal="{:s}: Exception: Line: {:d}: {!s:s}: {:s}".format('getMicrosecondsFromRefTime',sys.exc_info()[-1].tb_lineno,type(e),str(e)) 
         raise MxError(logStrFinal)              
@@ -662,9 +676,9 @@ class Mx():
                 * index:   TIMESTAMP (scenario time)
                 * columns: Values  
                     * The following (String-)ID - called Sir3sID - is used as Columnlabel:                    
-                    * this Sir3sID consists of ~ separated .MX1-File terms:
+                    * this Sir3sID consists of ~ (Mx.reSir3sIDSep) separated .MX1-File terms:
                     * OBJTYPE~NAME1~NAME2~OBJTYPE_PK~ATTRTYPE  
-                    * Sir3sID regExp Example: (?P<OBJTYPE>\S+)~(?P<NAME1>[\S ]*)~(?P<NAME1>\S*)~(?P<OBJTYPE_PK>\d+)~(?P<ATTRTYPE>\S+)'    
+                    * Sir3sID regExp Example: Mx.reSir3sID: (?P<OBJTYPE>\S+)~(?P<NAME1>[\S ]*)~(?P<NAME1>\S*)~(?P<OBJTYPE_PK>\d+)~(?P<ATTRTYPE>\S+)'    
             * .dfVecAggs
                 * some base.Y.vec.h5-File Aggregates as df
                 * MultiIndex:
@@ -879,7 +893,7 @@ class Mx():
             #logger.debug("{0:s}mx1File: {1:s}: channelNumber of the TimeStamp: {2:d}.".format(logStr,self.mx1File,self.channelTsIdx))    
             
             #Sir3sID
-            sep='~'
+            sep=reSir3sIDSep
             self.mx1Df['Sir3sID']=self.mx1Df['OBJTYPE']+sep+self.mx1Df['NAME1']+sep+self.mx1Df['NAME2']+sep+self.mx1Df['OBJTYPE_PK']+sep+self.mx1Df['ATTRTYPE']
             self.mx1Df['Sir3sID']=self.mx1Df['Sir3sID'].astype(str)
 
@@ -1477,7 +1491,7 @@ class Mx():
             timesWrittenToMxsVecs=0
             
             if mxsVecsH5StorePtr != None:
-                keysAtStart=mxsVecsH5StorePtr.keys()
+                keysInH5Store=mxsVecsH5StorePtr.keys()
                                                                      
             with mxsFilePtr: 
                 try:                    
@@ -1581,23 +1595,37 @@ class Mx():
                         
                         # store vecs in H5
                         if mxsVecsH5StorePtr != None:                            
-                            try:      
+                            #try:      
                                  h5DumpLog="{:s} NO:".format('H5Dump:')
                                  h5Key=getMicrosecondsFromRefTime(refTime=firstTime,time=time)   
-                                 
-                                 if '/'+str(h5Key) not in keysAtStart:                                                                                                      
-                                     keys=mxsVecsH5StorePtr.keys()
-                                 
-                                     if '/'+str(h5Key) not in keys:                                              
-                                        dfVecs = pd.DataFrame.from_records([valuesVecs],index=[time],columns=self.mxColumnNamesVecs)                                                                                              
-                                        # write H5
-                                        warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
-                                        warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)                          
-                                        mxsVecsH5StorePtr.put(str(h5Key),dfVecs)   
+                                
+                                 h5Dump=True
+                                 if '/'+str(h5Key) in keysInH5Store:    
+                                     h5DumpLog="{:s} key=/{!s:>20s} in keys. Actual SNAPSHOTTYPE: {:s}".format(h5DumpLog,h5Key,cSNAPSHOTTYPE)  
+                                     h5Dump=False
+                                 #keys=mxsVecsH5StorePtr.keys()
+                                 #if '/'+str(h5Key) in keys:  
+                                 #    h5DumpLog="{:s} key=/{!s:>20s} already written. Actual SNAPSHOTTYPE: {:s}".format(h5DumpLog,h5Key,cSNAPSHOTTYPE)
+                                 #    h5Dump=False
+
+                                 if h5Dump:                                  
+                                        try:                                            
+                                            dfVecs = pd.DataFrame.from_records([valuesVecs],index=[time],columns=self.mxColumnNamesVecs)                                                                                              
+                                            # write H5
+                                            warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
+                                            warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)                          
+                                            mxsVecsH5StorePtr.put(str(h5Key),dfVecs)   
+                                            
+                                        except Exception as e:
+                                            logger.error("{0:s}store record as df in H5 failed at Time={1!s}. Error.".format(logStr,time_read_finally))
+                                            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                                            logger.error(logStrFinal) 
+                                            raise MxError(logStrFinal)  
+
                                         timesWrittenToMxsVecs+=1
-                                        h5DumpLog="{:s}     Written DataFrame {:s} (Nr. {:d}) with h5Key=/{!s:>20s}".format('H5Dump:','dfVecs',timesWrittenToMxsVecs,h5Key) 
-                                     else:
-                                        h5DumpLog="{:s} {:s} {:s}".format(h5DumpLog,'key already written. Actual SNAPSHOTTYPE: ',cSNAPSHOTTYPE)
+                                        h5DumpLog="{:s}     Written DataFrame {:s} (Nr. {:6d}) with h5Key=/{!s:>20s}".format('H5Dump:','dfVecs',timesWrittenToMxsVecs,h5Key) 
+                                        keysInH5Store.append('/'+str(h5Key))
+                                 else:
                                         if cSNAPSHOTTYPE in ['TIME','TMIN','TMAX']:       
                                             try:
                                                 h5DumpLogOld=h5DumpLog
@@ -1623,7 +1651,7 @@ class Mx():
                                                     dfVecAggsAdd=True
                                                     if self.dfVecAggs.index.isin([x[0] for x in df.index],level=0).any(): # cSNAPSHOTTYPE existiert schon
                                                         if self.dfVecAggs.loc[(cSNAPSHOTTYPE,slice(None),slice(None),slice(None)),:].index.isin([x[2] for x in df.index],level=2).any(): # mit time                                                       
-                                                            h5DumpLog="{:s} ... failed because cSNAPSHOTTYPE existiert schon mit dieser Zeit".format(h5DumpLog)  
+                                                            h5DumpLog="{:s} ... failed because cSNAPSHOTTYPE {:s} existiert schon mit Zeit {!s:s} ".format(h5DumpLog,cSNAPSHOTTYPE,time_read_finally)  
                                                             dfVecAggsAdd=False
                                                     if dfVecAggsAdd:     
                                                         try:
@@ -1642,14 +1670,6 @@ class Mx():
                                                 logger.error("{0:s}dfVecAggs: Error?!".format(logStr))
                                                 logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
                                                 logger.error(logStrFinal)                                                                                                                                            
-                                 else:                                     
-                                     h5DumpLog="{:s} {:s}".format(h5DumpLog,'key in keysAtStart. Actual SNAPSHOTTYPE: ',cSNAPSHOTTYPE)
-                                                              
-                            except Exception as e:
-                                logger.error("{0:s}store record as df in H5 failed at Time={1!s}. Error.".format(logStr,time_read_finally))
-                                logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-                                logger.error(logStrFinal) 
-                                raise MxError(logStrFinal)   
                                                      
                         logger.debug("{:s}TimeNr. {:>6d} read and processed finally={!s:s} Time read after to_datetime: {!s:s} timeISO8601 read: {!s:s} Values (without TIMESTAMP): {:d} - {:s}.".format(logStr
                                         ,recsReadFromFile+1
@@ -3089,7 +3109,10 @@ if __name__ == "__main__":
 
             dtFinder=doctest.DocTestFinder(verbose=args.verbose)
             dtRunner=doctest.DocTestRunner(verbose=args.verbose) 
-            dTests=dtFinder.find(Mx,globs={'testDir':args.testDir
+            dTests=dtFinder.find(getMicrosecondsFromRefTime,globs={'testDir':args.testDir
+                                          ,'dotResolution':args.dotResolution
+                                           ,'mxs':mxs}) 
+            dTests=dTests+dtFinder.find(Mx,globs={'testDir':args.testDir
                                           ,'dotResolution':args.dotResolution
                                            ,'mxs':mxs}) 
             for expr in args.singleTest:
