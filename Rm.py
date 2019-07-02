@@ -179,6 +179,8 @@ import argparse
 import unittest
 import doctest
 
+import math
+
 # DIN A6 105 x 148 mm	4,13 x 5,83 in
 # DIN A5 148 x 210 mm	5,83 x 8,27 in
 # DIN A4 210 x 297 mm	8,27 x 11,69 in
@@ -187,6 +189,9 @@ import doctest
 
 DINA4_x=8.2677165354
 DINA4_y=11.6929133858
+
+DINA3_x=DINA4_x*math.sqrt(2)
+DINA3_y=DINA4_y*math.sqrt(2)
 
 class RmError(Exception):
     def __init__(self, value):
