@@ -150,6 +150,20 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 from matplotlib.colorbar import make_axes
 
+
+import matplotlib as mpl
+import matplotlib.gridspec as gridspec
+import matplotlib.dates as mdates
+
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import numpy as np
+import scipy
+import networkx as nx
+from itertools import chain
+import math
+import sys
+
+
 import logging
 # ---
 # --- PT3S Imports
@@ -203,6 +217,7 @@ from matplotlib import markers
 from matplotlib.path import Path
 
 import numpy as np
+
 
 """
 The following would be a function categorical_cmap, 
@@ -1264,6 +1279,396 @@ def pltNetTextblock(text='',**kwds):
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
 class Rm():
+
+
+    @classmethod
+    def pltNetPipes(cls,pDf,**kwds):
+        """
+        Plots Lines with Marker on gca().
+        f
+        Args:
+                DATA:
+                    pDf: dataFrame
+                        * query: query to filter pDf; default: None; Exp.: ="CONT_ID == '1001'"
+                        * fmask: function to filter pDf; default: None; Exp.: =lambda row: True if row.KVR_i=='2' and row.KVR_k=='2' else False   
+                        * query and fmask are used both (query 1st) if not None
+                        * sort_values_by: list of colNames defining the plot order; default: None
+                        * sort_values_ascending; default: False
+
+                AXES:
+                    pAx: Axes to be plotted on; if not specified: gca() is used
+                    Colorlegend:
+                        * CBFraction in % (default: 5)
+                        * CBHpad (default: 0.05)
+                        * CBLabel (default: pAttribute/pAttributeFunc)  
+
+                PIPE-Attribute:
+                    * pAttribute: column in pDf (default: 'Attribute')     
+                    * pAttributeFunc: 
+                        * function to be used to construct a new col to be plotted
+                        * if pAttributeFunc is not None pAttribute is not used: pAttribute is set to 'pAttributeFunc'
+                        * the new constructed col is named 'pAttributeFunc'; this name can be used in sort_values_by        
+                        
+                PIPE-Color:
+                    * pAttributeColorMap (default: plt.cm.cool)   
+                    * Farbskalamapping:
+                    * pAttributeColorMapMin (default: pAttribute.min())    
+                    * pAttributeColorMapMax (default: pAttribute.max())    
+                    * pAttributeColorMapUsageStart (default: 0.; Wertebereich: [0,1[)   
+                        * Standard: Farbskala wird mit vorstehend parametrierten Min/Max voll ausgenutzt
+                        * hier: die Farbskala wird unten nur ab UsageStart genutzt ...
+                        * ... d.h. Werte die eine "kleinere" Farbe hätten, bekommen die Farbe von UsageStart
+                                     
+                PIPE-Color 2nd:
+                    * um "unwichtige" Bereiche zu "dimmen":
+                    * Beispiele:
+                    * räumlich: nicht-Schnitt Bereiche; Bestand (2nd) vs. Ausbau; Zonen unwichtig (2nd) vs. Zonen wichtig
+                    * "Ampel": "uninteressante" Wertebereiche
+
+                    * es wird dieselbe Spalte pAttribute/pAttributeFunc für die 2. Farbskala verwendet
+                    * es wird derselbe Linienstil (pAttributeLs) für die 2. Farbskala verwendet
+                    * es wird dieselbe Dicke pAttrLineSize (pAttribute/pAttributeFunc) für die 2. Farbskala verwendet
+
+                    * nur die Farbskala ist anders sowie ggf. das Farbskalamapping
+
+                    * pAttributeColorMapFmask: function to filter pDf to decide to plot with colorMap; default: =lambda row: True       
+                    * pAttributeColorMap2ndFmask: function to filter pDf to decide to plot with colorMap2nd; default: =lambda row: False        
+                    * mit den beiden Funktionsmasken kann eine Filterung zusätzlich zu query und fmask realisiert werden
+                    * die Funktionsmasken sollten schnittmengenfrei sein - wenn nicht: 2nd überschreibt 
+
+                    * pAttributeColorMap2nd (default: plt.cm.binary)    
+                    * Farbskalamapping:
+                    * pAttributeColorMap2ndMin (default: pAttribute.min())    
+                    * pAttributeColorMap2ndMax (default: pAttribute.max())    
+                    * pAttributeColorMap2ndUsageStart (default: 1./3.; Wertebereich: [0,1[)   
+                        * Standard: Farbskala wird mit vorstehend parametrierten Min/Max voll ausgenutzt
+                        * hier: die Farbskala wird unten nur ab UsageStart genutzt ...
+                        * ... d.h. Werte die eine "kleinere" Farbe hätten, bekommen die Farbe von UsageStart
+                
+                PIPE-Linestyle:
+                    * pAttributeLs (default: '-')
+                    * same for all colors if mutliple colors are specified
+
+                PIPE-Linesize:
+                    * pAttrLineSize: column in pDf; if not specified: pAttribute/pAttributeFunc                
+                    * pAttrLineSizeFactor (>0): plot linewidth in pts = pAttrLineSizeFactor (default: ...) * fabs(pAttrLineSize) 
+                    * ...: 1./(pDf[pAttrLineSize].std()*2.)      
+                    * same for all colors if mutliple colors are specified
+
+                PIPE-Geometry:
+                    * pWAYPXCors: column in pDf (default: 'pWAYPXCors')     
+                    * pWAYPYCors: column in pDf (default: 'pWAYPYCors')     
+                    * pClip (default: True)
+
+                >>> import pandas as pd     
+                >>> import matplotlib.pyplot as plt
+                >>> import matplotlib.gridspec as gridspec
+                >>> import math
+                >>> # ---
+                >>> xm=xms['DHNetwork']
+                >>> mx=mxs['DHNetwork']  
+                >>> # ---
+                >>> plt.close()
+                >>> size_DINA3quer=(16.5, 11.7) 
+                >>> plt.rc('figure',figsize=size_DINA3quer) 
+                >>> plt.rc('figure',dpi=72)
+                >>> plt.rc('savefig',dpi=72*2)
+                >>> fig=plt.figure()         
+                >>> gs = gridspec.GridSpec(4, 2)
+                >>> # ---
+                >>> vROHR=xm.dataFrames['vROHR']                 
+                >>> # ---
+                >>> import Rm
+                >>> # ---
+                >>> # Attribute with neg. Values
+                >>> # --------------------------
+                >>> axNfd = fig.add_subplot(gs[0])              
+                >>> Rm.Rm.pltNetPipes(vROHR
+                ...     ,query="CONT_ID == '1001'"
+                ...     ,fmask=lambda row: True if row.KVR_i=='2' and row.KVR_k=='2' else False 
+                ...     ,pAx=axNfd
+                ...     ,pAttribute='ROHR~*~*~*~QMAV')     
+                >>> # ---
+                >>> # Function as Attribute
+                >>> # --------------------------
+                >>> axNfd = fig.add_subplot(gs[1])              
+                >>> Rm.Rm.pltNetPipes(vROHR
+                ...     ,query="CONT_ID == '1001'"
+                ...     ,fmask=lambda row: True if row.KVR_i=='2' and row.KVR_k=='2' else False 
+                ...     ,pAx=axNfd
+                ...     ,pAttributeFunc=lambda row: math.fabs(row['ROHR~*~*~*~QMAV']))
+                >>> # --------------------------
+                >>> gs.tight_layout(fig)
+                >>> plt.savefig('pltNetPipes.pdf',format='pdf')
+        """
+        logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try:
+                keys = sorted(kwds.keys())
+
+                # AXES
+                if 'pAx' not in keys:
+                    kwds['pAx']=plt.gca()
+                
+                if 'CBFraction' not in keys:
+                    kwds['CBFraction']=5 # in %
+                if 'CBHpad' not in keys:
+                    kwds['CBHpad']=0.05         
+                if 'CBLabel' not in keys:
+                    kwds['CBLabel']=None                           
+            
+                # DATA
+                if 'query' not in keys:
+                    kwds['query']=None # Exp.: = "KVR_i=='2' & KVR_k=='2'"
+                if 'fmask' not in keys:
+                    kwds['fmask']=None # Exp.: =lambda row: True if row.KVR_i=='2' and row.KVR_k=='2' else False                    
+                if 'sort_values_by' not in keys:
+                    kwds['sort_values_by']=None  
+                if 'sort_values_ascending' not in keys:
+                    kwds['sort_values_ascending']=False                   
+
+                # PIPE-Attribute
+                if 'pAttribute' not in keys:                   
+                    kwds['pAttribute']='Attribute'
+                    if 'pAttributeFunc' not in keys:            
+                        logger.debug("{:s}pAttribute: not specified?! 'Attribute' will be used. pAttributeFunc is also not specified?!".format(logStr))                  
+                if 'pAttributeFunc' not in keys:                    
+                    kwds['pAttributeFunc']=None     
+                    
+                # PIPE-Color
+                if 'pAttributeColorMap' not in keys:
+                    kwds['pAttributeColorMap']=plt.cm.cool                        
+                if 'pAttributeColorMapMin' not in keys:           
+                    kwds['pAttributeColorMapMin']=None
+                if 'pAttributeColorMapMax' not in keys:
+                    kwds['pAttributeColorMapMax']=None
+                if 'pAttributeColorMapUsageStart' not in keys:
+                    kwds['pAttributeColorMapUsageStart']=0.     
+
+                # PIPE-Color 1st/2nd - FMasks
+                if 'pAttributeColorMapFMask' not in keys:
+                    kwds['pAttributeColorMapFmask']=lambda row: True                      
+                if 'pAttributeColorMap2ndFMask' not in keys:
+                    kwds['pAttributeColorMap2ndFmask']=lambda row: False    
+                    
+                # PIPE-Color 2nd
+                if 'pAttributeColorMap2nd' not in keys:
+                    kwds['pAttributeColorMap2nd']=plt.cm.binary                        
+                if 'pAttributeColorMap2ndMin' not in keys:
+                    kwds['pAttributeColorMap2ndMin']=None
+                if 'pAttributeColorMap2ndMax' not in keys:
+                    kwds['pAttributeColorMap2ndMax']=None
+                if 'pAttributeColorMap2ndUsageStart' not in keys:
+                    kwds['pAttributeColorMap2ndUsageStart']=1./3.    
+
+                # PIPE-Linestyle
+                if 'pAttributeLs' not in keys:
+                    kwds['pAttributeLs']='-'           
+
+                # PIPE-Linesize
+                if 'pAttrLineSize' not in keys:                    
+                    kwds['pAttrLineSize']=None       
+                if 'pAttrLineSizeFactor' not in keys:
+                    kwds['pAttrLineSizeFactor']=None  
+
+                # PIPE-Geometry
+                if 'pWAYPXCors' not in keys:
+                    kwds['pWAYPXCors']='pWAYPXCors'
+                if 'pWAYPYCors' not in keys:
+                    kwds['pWAYPYCors']='pWAYPYCors'
+                if 'pClip' not in keys:
+                    kwds['pClip']=True
+
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise RmError(logStrFinal)                     
+        
+        try: 
+                               
+            # ggf. filtern
+            if kwds['query'] != None:                    
+                logger.debug("{:s}pDf is filtered with query: {:s} ...".format(logStr,str(kwds['query'])))   
+                pDf=pd.DataFrame(pDf.query(kwds['query']).values,columns=pDf.columns)
+            if kwds['fmask'] != None:
+                logger.debug("{:s}pDf is filtered with fmask: {:s} ...".format(logStr,str(kwds['fmask'])))   
+                pDf=pd.DataFrame(pDf[pDf.apply(kwds['fmask'],axis=1)].values,columns=pDf.columns)         
+                              
+            # ggf. zu plottende Spalte(n) neu ausrechnen bzw. Plotreihenfolge ändern: Kopie erstellen
+            if kwds['pAttributeFunc'] != None or kwds['sort_values_by'] != None:
+                # Kopie
+                logger.debug("{:s}pDf is copied ...".format(logStr))   
+                pDf=pDf.copy(deep=True)              
+        
+            # ggf. zu plottende Spalte(n) neu ausrechnen
+            if kwds['pAttributeFunc'] != None:                 
+                logger.debug("{:s}pAttribute: col '{:s}' is not used: ...".format(logStr,kwds['pAttribute']))  
+                logger.debug("{:s}... pAttributeFunc {:s} is used to calculate a new col named 'pAttributeFunc'".format(logStr,str(kwds['pAttributeFunc'])))               
+                pDf['pAttributeFunc']=pDf.apply(kwds['pAttributeFunc'],axis=1)
+                kwds['pAttribute']='pAttributeFunc'
+            logger.debug("{:s}col '{:s}' is used as Attribute.".format(logStr,kwds['pAttribute']))  
+            
+            # Label für CB
+            if kwds['CBLabel'] == None:
+                kwds['CBLabel']=kwds['pAttribute']
+
+            # Spalte für Liniendicke ermitteln
+            if kwds['pAttrLineSize'] == None:
+                kwds['pAttrLineSize']=kwds['pAttribute']
+            logger.debug("{:s}col '{:s}' is used as  LineSize.".format(logStr,kwds['pAttrLineSize']))  
+            # Liniendicke skalieren  
+            if kwds['pAttrLineSizeFactor']==None:
+                kwds['pAttrLineSizeFactor']=1./(pDf[kwds['pAttrLineSize']].std()*2.)    
+            logger.debug("{:s}Faktor Liniendicke: {:12.6f} - eine Linie mit Attributwert {:6.2f} wird in {:6.2f} Pts Dicke geplottet.".format(logStr
+                                                                                                                                       ,kwds['pAttrLineSizeFactor']
+                                                                                                                                       ,pDf[kwds['pAttrLineSize']].std()*2.
+                                                                                                                                       ,kwds['pAttrLineSizeFactor']*pDf[kwds['pAttrLineSize']].std()*2.
+                                                                                                                                       ))  
+            logger.debug("{:s}min. Liniendicke: Attributwert {:9.2f} Pts: {:6.2f}.".format(logStr
+                                                                                   ,math.fabs(pDf[kwds['pAttrLineSize']].min())
+                                                                                   ,kwds['pAttrLineSizeFactor']*math.fabs(pDf[kwds['pAttrLineSize']].min()))
+                                                                                   )
+            logger.debug("{:s}max. Liniendicke: Attributwert {:9.2f} Pts: {:6.2f}.".format(logStr
+                                                                                   ,math.fabs(pDf[kwds['pAttrLineSize']].max())
+                                                                                   ,kwds['pAttrLineSizeFactor']*math.fabs(pDf[kwds['pAttrLineSize']].max()))
+                                                                                   )
+                                                                               
+            # ggf. Plotreihenfolge ändern
+            if kwds['sort_values_by'] != None:            
+                logger.debug("{:s}pDf is sorted by {:s} ascending={:s}.".format(logStr,str(kwds['sort_values_by']),str(kwds['sort_values_ascending'])))  
+                pDf.sort_values(by=kwds['sort_values_by'],ascending=kwds['sort_values_ascending'],inplace=True)
+                
+            # x,y-Achsen: Lims ermitteln und setzen                                          
+            xMin=0          
+            yMin=0
+            xMax=0          
+            yMax=0
+            for xs,ys in zip(pDf[kwds['pWAYPXCors']],pDf[kwds['pWAYPYCors']]):
+                xMin=min(xMin,min(xs))
+                yMin=min(yMin,min(ys))
+                xMax=max(xMax,max(xs))
+                yMax=max(yMax,max(ys))                                                 
+            logger.debug("{:s}pWAYPXCors: {:s} Min: {:6.2f} Max: {:6.2f}".format(logStr,kwds['pWAYPXCors'],xMin,xMax))   
+            logger.debug("{:s}pWAYPYCors: {:s} Min: {:6.2f} Max: {:6.2f}".format(logStr,kwds['pWAYPYCors'],yMin,yMax))  
+            dx=xMax-xMin
+            dy=yMax-yMin
+            dxdy=dx/dy
+            dydx=1./dxdy
+        
+            kwds['pAx'].set_xlim(left=xMin)
+            kwds['pAx'].set_ylim(bottom=yMin)
+            kwds['pAx'].set_xlim(right=xMax)
+            kwds['pAx'].set_ylim(top=yMax)    
+        
+            # x,y-Seitenverhältnisse ermitteln  (derzeit nur zu DEBUG-/INFO-Zwecken)           
+            # total figure size
+            figW, figH = kwds['pAx'].get_figure().get_size_inches()
+            # Axis size on figure
+            x0, y0, w, h = kwds['pAx'].get_position().bounds
+            # Ratio of display units
+            disp_ratio = (figH * h) / (figW * w)
+            # Ratio of data units
+            data_ratio=kwds['pAx'].get_data_ratio()
+            logger.debug("{:s}figH: {:6.2f} figW: {:6.2f}".format(logStr,figW,figH))  
+            logger.debug("{:s}x0: {:6.2f} y0: {:6.2f} w: {:6.2f} h: {:6.2f}".format(logStr,x0,y0,w,h))  
+            logger.debug("{:s}pWAYPCors: Y/X: {:6.2f}".format(logStr,dydx))  
+            logger.debug("{:s}disp_ratio: {:6.2f} data_ratio: {:6.2f}".format(logStr,disp_ratio,data_ratio))  
+      
+            # x,y-Achsen: Ticks ermitteln und setzen         
+            xTicks=kwds['pAx'].get_xticks()
+            dxTick = xTicks[1]-xTicks[0]
+            yTicks=kwds['pAx'].set_yticks([idx*dxTick for idx in range(math.floor(dy/dxTick)+1)])   
+            kwds['pAx'].grid()
+                                     
+            # PIPE-Color: Farbskalamapping:                
+            if kwds['pAttributeColorMapMin'] != None:
+                minLine=kwds['pAttributeColorMapMin']
+            else:
+                minLine=pDf[kwds['pAttribute']].min()
+            if kwds['pAttributeColorMapMax'] != None:
+                maxLine=kwds['pAttributeColorMapMax']
+            else:
+                maxLine=pDf[kwds['pAttribute']].max()                     
+            logger.debug("{:s}Attribute: minLine (used for CM-Scaling): {:8.2f} min (Data): {:8.2f}".format(logStr,minLine,pDf[kwds['pAttribute']].min()))
+            logger.debug("{:s}Attribute: maxLine (used for CM-Scaling): {:8.2f} max (Data): {:8.2f}".format(logStr,maxLine,pDf[kwds['pAttribute']].max()))
+            normLine=colors.Normalize(minLine,maxLine)
+            usageLineValue=minLine+kwds['pAttributeColorMapUsageStart']*(maxLine-minLine)
+            logger.debug("{:s}pAttributeColorMapUsageStart: {:6.2f} ==> usageLineValue: {:6.2f} (minLine: {:6.2f})".format(logStr,kwds['pAttributeColorMapUsageStart'],usageLineValue,minLine))
+            usageLineColor=kwds['pAttributeColorMap'](normLine(usageLineValue)) 
+        
+            # PIPE-Color: PLOT
+            pMeasure=kwds['pAttribute'] # Relikt aus Rohrendenpunktplot mit anderem Attribut und eigener Farbskala und eigenem Farbskalamapping             
+            pDfColorMap=pDf[pDf.apply(kwds['pAttributeColorMapFmask'],axis=1)]
+            for xs,ys,vLine,vMarker in zip(pDfColorMap[kwds['pWAYPXCors']],pDfColorMap[kwds['pWAYPYCors']],pDfColorMap[kwds['pAttribute']],pDfColorMap[pMeasure]):        
+
+                if vLine >= usageLineValue:
+                    colorLine=kwds['pAttributeColorMap'](normLine(vLine)) 
+                else:
+                    colorLine=usageLineColor
+                colorMarker=colorLine # Relikt aus ... 
+
+                pcLines=kwds['pAx'].plot(xs,ys
+                                ,color=colorLine
+                                ,linewidth=kwds['pAttrLineSizeFactor']*math.fabs(vLine) 
+                                ,ls=kwds['pAttributeLs']
+                                ,solid_capstyle='round'
+                                # Relikt aus ... 
+                                #      ,marker=kwds['pMeasureMarker']
+                                #      ,mfc=colorMarker 
+                                #      ,mec=colorMarker  
+                                #      ,mfcalt=colorMarker  
+                                #      ,mew=0
+                                #      ,ms=kwds['pMeasureSizeFactor']*vMarker                                                    
+                                #      ,markevery=[0,len(xs)-1]
+                                #------
+                                ,aa=True
+                                ,clip_on=kwds['pClip']
+                               )   
+            
+
+            # PIPE-Color: PLOT der PIPE-Anfänge für Farbskala      
+            s=kwds['pAttrLineSizeFactor']*pDf[kwds['pAttrLineSize']].apply(lambda x: math.fabs(x))     
+            s=s.apply(lambda x: math.pow(x,2))     
+            pcN=kwds['pAx'].scatter(pDf['pXCor_i'],pDf['pYCor_i']       
+                   # ,s=math.sqrt(kwds['pAttrLineSizeFactor'])*pDf[kwds['pAttrLineSize']].apply(lambda x: math.sqrt(math.fabs(x)))     
+                   # ,s=kwds['pAttrLineSizeFactor']*pDf[kwds['pAttrLineSize']].apply(lambda x: math.fabs(x),2)    
+                    ,s=s
+                    # Farbskala
+                    ,cmap=kwds['pAttributeColorMap']
+                    # Normierung Farbe
+                    ,vmin=minLine
+                    ,vmax=maxLine
+                    # Farbwert
+                    ,c=pDf[kwds['pAttribute']]
+                    #,alpha=kwds['pMCatMidAlpha']
+                    ,edgecolors='none'
+                    ,clip_on=kwds['pClip']
+                    )        
+        
+            # CB: Axes         
+            divider = make_axes_locatable(kwds['pAx'])
+            cax = divider.append_axes('right',size="{:f}%".format(kwds['CBFraction']),pad=kwds['CBHpad'])
+            x0, y0, w, h = kwds['pAx'].get_position().bounds
+            logger.debug("{:s}ohne Änderung?!: x0: {:6.2f} y0: {:6.2f} w: {:6.2f} h: {:6.2f}".format(logStr,x0,y0,w,h))  
+            kwds['pAx'].set_aspect(1.) #!
+            x0, y0, w, h = kwds['pAx'].get_position().bounds
+            logger.debug("{:s}ohne Änderung?!: x0: {:6.2f} y0: {:6.2f} w: {:6.2f} h: {:6.2f}".format(logStr,x0,y0,w,h))  
+                      
+            # CB
+            cB=plt.gcf().colorbar(pcN, cax=cax, orientation='vertical') 
+            cB.set_label(kwds['CBLabel'])
+                                                                    
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise RmError(logStrFinal)                       
+        finally:       
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                   
+
+
+
+
     """
     Args:
         xm: Xm.Xm Object
@@ -2370,21 +2775,57 @@ if __name__ == "__main__":
         )
 
         group = parser.add_mutually_exclusive_group()                                
-        group.add_argument("-v","--verbose", help="Debug Messages On", action="store_true",default=True)      
-        group.add_argument("-q","--quiet", help="Debug Messages Off", action="store_true")    
-        parser.add_argument('--testDir',type=str,default='testdata',help="value for global 'testDir' i.e. testdata")
-        parser.add_argument('--dotResolution',type=str,default='',help="value for global 'dotResolution' i.e. .1")           
+        group.add_argument("-v","--verbose", help="Debug Messages On: -v (default): logging.DEBUG", action="store_true",default=True)      
+        group.add_argument("-q","--quiet", help="Debug Messages Off: -q: logging.ERROR", action="store_true",default=False)        
+                                 
+        parser.add_argument("-m","--moduleTest", help="execute the Module's Doctest On/Off: -m 1 (default)", action="store",default='1')      
+        parser.add_argument("-s","--singleTest", help="execute single Doctest: -s Rm: Doctest names matching Rm are executed", action="append",default=[])        
+
+        parser.add_argument('--testDir',type=str,default='testdata',help="value for global 'testDir' i.e. testdata")     
+        parser.add_argument('--dotResolution',type=str,default='.1',help="value for global 'dotResolution' i.e. .1")       
+
+
         args = parser.parse_args()
 
-        if args.verbose:           
-            logger.setLevel(logging.DEBUG)     
-        else:            
+        if args.verbose:  # default         
+            logger.setLevel(logging.DEBUG)  
+        if args.quiet:    # Debug Messages are turned Off
             logger.setLevel(logging.ERROR)  
+            args.verbose=False
                       
         logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start. Argumente:',str(sys.argv))) 
 
-        suite=doctest.DocTestSuite(globs={'testDir':args.testDir,'dotResolution':args.dotResolution})   
-        unittest.TextTestRunner().run(suite)         
+        if args.moduleTest == '1':
+            dtFinder=doctest.DocTestFinder(recurse=False,verbose=args.verbose) # recurse = False findet nur den Modultest
+            suite=doctest.DocTestSuite(test_finder=dtFinder #,setUp=setUpFct
+                                   ,globs={'testDir':args.testDir,'dotResolution':args.dotResolution                                          
+                                           })   
+            unittest.TextTestRunner().run(suite)
+        
+        xms={}   
+        mxs={} 
+        modelFiles={}
+        if len(args.singleTest)>0:
+            for testModel in ['DHNetwork']:                
+                xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')                
+                xm=Xm.Xm(xmlFile=xmlFile) 
+                xms[testModel]=xm
+                mx=xm.MxAdd()
+                mxs[testModel]=mx
+                
+            dtFinder=doctest.DocTestFinder(verbose=args.verbose)
+            dtRunner=doctest.DocTestRunner(verbose=args.verbose) 
+            dTests=dtFinder.find(Rm,globs={'testDir':args.testDir                                       
+                                           ,'xms':xms
+                                           ,'mxs':mxs}) 
+            for expr in args.singleTest:
+                logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Searching Tests for Expr: ',expr))                
+                testsForExpr=[test for test in dTests if re.search(expr,test.name) != None]
+                for test in testsForExpr:          
+                    if re.search(expr,test.name) != None:                    
+                        logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Running Test: ',test.name)) 
+                        dtRunner.run(test)                        
+
 
     except SystemExit:
         pass                                              
