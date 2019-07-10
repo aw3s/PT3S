@@ -1343,12 +1343,11 @@ class Rm():
 
                     * pAttributeColorMap2nd (default: plt.cm.binary)    
                     * Farbskalamapping:
+                    * ------------------
                     * pAttributeColorMap2ndMin (default: pAttributeColorMapMin)    
                     * pAttributeColorMap2ndMax (default: pAttributeColorMapMax)    
-                    * pAttributeColorMap2ndUsageStart (default: 1./3.; Wertebereich: [0,1[)   
-                        * Standard: Farbskala wird mit vorstehend parametrierten Min/Max voll ausgenutzt
-                        * hier: die Farbskala wird unten nur ab UsageStart genutzt ...
-                        * ... d.h. Werte die eine "kleinere" Farbe hätten, bekommen die Farbe von UsageStart
+                    * pAttributeColorMap2ndUsageStart (default: 0.; Wertebereich: [0,1[)                                                
+                    * pAttributeColorMap2ndUsageEnd (default: 1.; Wertebereich: ]0,1])                                              
                 
                 PIPE-Linestyle:
                     * pAttributeLs (default: '-')
@@ -1460,12 +1459,11 @@ class Rm():
                 ...     ,sort_values_by=['pAttributeFunc'] 
                 ...     ,sort_values_ascending=True       
                 ...     ,pAttributeColorMapFmask=lambda row: True if not pd.isnull(row.OBJID) else False 
-                ...     ,pAttributeColorMap2ndFmask=lambda row: True if pd.isnull(row.OBJID) else False 
-                ...     ,pAttributeColorMap2ndUsageStart=1/5.
+                ...     ,pAttributeColorMap2ndFmask=lambda row: True if pd.isnull(row.OBJID) else False                 
                 ...     )
                 >>> # --------------------------
                 >>> # ---
-                >>> # Farbskalamapping u. -eigenschaften u. Plotorder  groß auf klein / 2nd Color mit UsageEnd
+                >>> # Farbskalamapping u. -eigenschaften u. Plotorder  groß auf klein / 2nd Color / UsageLimits
                 >>> # --------------------------              
                 >>> axNfd = fig.add_subplot(gs[5])              
                 >>> Rm.Rm.pltNetPipes(pDf
@@ -1481,6 +1479,7 @@ class Rm():
                 ...     ,pAttributeColorMapFmask=lambda row: True if not pd.isnull(row.OBJID) else False 
                 ...     ,pAttributeColorMap2ndFmask=lambda row: True if pd.isnull(row.OBJID) else False 
                 ...     ,pAttributeColorMap2ndUsageStart=1/5.
+                ...     ,pAttributeColorMap2ndUsageEnd=4/5.
                 ...     ,pAttributeColorMapUsageStart=5/16.
                 ...     ,pAttributeColorMapUsageEnd=11/16.
                 ...     )
@@ -1553,7 +1552,9 @@ class Rm():
                 if 'pAttributeColorMap2ndMax' not in keys:
                     kwds['pAttributeColorMap2ndMax']=kwds['pAttributeColorMapMax']
                 if 'pAttributeColorMap2ndUsageStart' not in keys:
-                    kwds['pAttributeColorMap2ndUsageStart']=1./3.    
+                    kwds['pAttributeColorMap2ndUsageStart']=0.  
+                if 'pAttributeColorMap2ndUsageEnd' not in keys:
+                    kwds['pAttributeColorMap2ndUsageEnd']=1.  
 
                 # PIPE-Linestyle
                 if 'pAttributeLs' not in keys:
@@ -1590,7 +1591,7 @@ class Rm():
                               
             # ggf. zu plottende Spalte(n) neu ausrechnen bzw. Plotreihenfolge ändern: Kopie erstellen
             if kwds['pAttributeFunc'] != None or kwds['sort_values_by'] != None:
-                # Kopie
+                # Kopie!
                 logger.debug("{:s}pDf is copied ...".format(logStr))   
                 pDf=pDf.copy(deep=True)              
         
@@ -1629,7 +1630,7 @@ class Rm():
                                                                                
             # ggf. Plotreihenfolge ändern
             if kwds['sort_values_by'] != None:            
-                logger.debug("{:s}pDf is sorted by {:s} ascending={:s}.".format(logStr,str(kwds['sort_values_by']),str(kwds['sort_values_ascending'])))  
+                logger.debug("{:s}pDf is sorted (=Plotreihenfolge) by {:s} ascending={:s}.".format(logStr,str(kwds['sort_values_by']),str(kwds['sort_values_ascending'])))  
                 pDf.sort_values(by=kwds['sort_values_by'],ascending=kwds['sort_values_ascending'],inplace=True)
                 
             # x,y-Achsen: Lims ermitteln und setzen                                          
@@ -1700,10 +1701,7 @@ class Rm():
             logger.debug("{:s}pAttributeColorMapUsageEnd:   {:6.2f} ==> usageEndLineValue:   {:8.2f} (maxLine: {:8.2f}) color: {:s}".format(logStr
                                                                                                                                 ,kwds['pAttributeColorMapUsageEnd']
                                                                                                                                 ,usageEndLineValue,maxLine,str(usageEndLineColor)))
-            
-          
-            
-
+                                 
             # PIPE-Color 2nd: Farbskalamapping:        
             if kwds['pAttributeColorMap2ndMin'] != None:
                 minLine2nd=kwds['pAttributeColorMap2ndMin']
@@ -1716,9 +1714,14 @@ class Rm():
             logger.debug("{:s}Attribute: minLine2nd (used for CM-Scaling): {:8.2f} min (Data): {:8.2f}".format(logStr,minLine2nd,minAttr))
             logger.debug("{:s}Attribute: maxLine2nd (used for CM-Scaling): {:8.2f} max (Data): {:8.2f}".format(logStr,maxLine2nd,maxAttr))
             normLine2nd=colors.Normalize(minLine2nd,maxLine2nd)
+            #
             usageStartLineValue2nd=minLine2nd+kwds['pAttributeColorMap2ndUsageStart']*(maxLine2nd-minLine2nd)
-            logger.debug("{:s}pAttributeColorMap2ndUsageStart: {:6.2f} ==> usageStartLineValue2nd: {:6.2f} (minLine2nd: {:6.2f})".format(logStr,kwds['pAttributeColorMap2ndUsageStart'],usageStartLineValue2nd,minLine2nd))
-            usageStartLineColor2nd=kwds['pAttributeColorMap2nd'](normLine(usageStartLineValue2nd))                      
+            logger.debug("{:s}pAttributeColorMap2ndUsageStart: {:8.2f} ==> usageStartLineValue2nd: {:8.2f} (minLine2nd: {:8.2f})".format(logStr,kwds['pAttributeColorMap2ndUsageStart'],usageStartLineValue2nd,minLine2nd))
+            usageStartLineColor2nd=kwds['pAttributeColorMap2nd'](normLine2nd(usageStartLineValue2nd))      
+            #
+            usageEndLineValue2nd=maxLine2nd-(1.-kwds['pAttributeColorMap2ndUsageEnd'])*(maxLine2nd-minLine2nd)
+            logger.debug("{:s}pAttributeColorMap2ndUsageEnd:   {:8.2f} ==> usageEndLineValue2nd:   {:8.2f} (maxLine2nd: {:8.2f})".format(logStr,kwds['pAttributeColorMap2ndUsageEnd'],usageEndLineValue2nd,maxLine2nd))
+            usageEndLineColor2nd=kwds['pAttributeColorMap2nd'](normLine2nd(usageEndLineValue2nd))      
                   
             # PIPE-Color: PLOT
             pMeasure=kwds['pAttribute'] # Relikt aus Rohrendenpunktplot mit anderem Attribut und eigener Farbskala und eigenem Farbskalamapping             
@@ -1726,21 +1729,19 @@ class Rm():
 
             (rows   ,cols)=pDf.shape
             (rows1st,cols)=pDfColorMap.shape
-            logger.debug("{:s}Color 1st-PIPEs: {:d} von {:d}".format(logStr,rows1st,rows))   
-            colorsCB=[]
             colorsCBValues=[]
-            for idx,(xs,ys,vLine,vMarker) in enumerate(zip(pDfColorMap[kwds['pWAYPXCors']],pDfColorMap[kwds['pWAYPYCors']],pDfColorMap[kwds['pAttribute']],pDfColorMap[pMeasure])):        
+            logger.debug("{:s}Color 1st-PIPEs: {:d} von {:d}".format(logStr,rows1st,rows))               
+            for xs,ys,vLine,vMarker in zip(pDfColorMap[kwds['pWAYPXCors']],pDfColorMap[kwds['pWAYPYCors']],pDfColorMap[kwds['pAttribute']],pDfColorMap[pMeasure]):        
 
                 if vLine >= usageStartLineValue and vLine <= usageEndLineValue:
-                    colorLine=kwds['pAttributeColorMap'](normLine(vLine)) 
+                    colorLine=kwds['pAttributeColorMap'](normLine(vLine))      
                     value=vLine
                 elif vLine > usageEndLineValue:
-                    colorLine=usageEndLineColor
+                    colorLine=usageEndLineColor   
                     value=usageEndLineValue
                 else:
-                    colorLine=usageStartLineColor
+                    colorLine=usageStartLineColor   
                     value=usageStartLineValue
-                colorsCB.append(colorLine)
                 colorsCBValues.append(value)
                 colorMarker=colorLine # Relikt aus ... 
 
@@ -1768,10 +1769,13 @@ class Rm():
             logger.debug("{:s}Color 2nd-PIPEs: {:d} von {:d}".format(logStr,rows2nd,rows))   
             for xs,ys,vLine,vMarker in zip(pDfColorMap2nd[kwds['pWAYPXCors']],pDfColorMap2nd[kwds['pWAYPYCors']],pDfColorMap2nd[kwds['pAttribute']],pDfColorMap2nd[pMeasure]):        
 
-                if vLine >= usageStartLineValue2nd:
-                    colorLine=kwds['pAttributeColorMap2nd'](normLine2nd(vLine)) 
+
+                if vLine >= usageStartLineValue2nd and vLine <= usageEndLineValue2nd:
+                    colorLine=kwds['pAttributeColorMap2nd'](normLine2nd(vLine))                     
+                elif vLine > usageEndLineValue2nd:
+                    colorLine=usageEndLineColor2nd                   
                 else:
-                    colorLine=usageStartLineColor2nd
+                    colorLine=usageStartLineColor2nd                                          
                 colorMarker=colorLine # Relikt aus ... 
 
                 pcLines=kwds['pAx'].plot(xs,ys
@@ -1826,17 +1830,27 @@ class Rm():
             cB=plt.gcf().colorbar(pcN, cax=cax, orientation='vertical') 
             cB.set_label(kwds['CBLabel'])
 
-            ticks=cB.get_ticks()
-            #ticks.extend(kwds['pAttributeColorMapUsageStart'])
-            #ticks.extend(kwds['pAttributeColorMapUsageEnd'])
+            # CB Ticks
+            ticks=cB.get_ticks()           
+            ticksWithUsageTicks=np.unique(np.append(ticks,[usageStartLineValue,usageEndLineValue]))
+            cB.set_ticks(ticksWithUsageTicks)  
 
+            # CB Ticklabels
+            labels=cB.ax.get_yticklabels()
 
-            #cB.set_ticks(tikcs)  
+            if kwds['pAttributeColorMapUsageStart'] > 0:
+                idx=np.where(ticksWithUsageTicks == usageStartLineValue)
+                labels[idx[0][0]].set_text(labels[idx[0][0]].get_text()+" v=")
+            if kwds['pAttributeColorMapUsageEnd'] < 1:
+                idx=np.where(ticksWithUsageTicks == usageEndLineValue)
+                labels[idx[0][0]].set_text(labels[idx[0][0]].get_text()+" ^=")
 
-            #ticks=cB.get_ticks()
-
-            ticksNew=np.unique(np.append(ticks,[usageStartLineValue,usageEndLineValue]))
-            cB.set_ticks(ticksNew)  
+           
+            if kwds['pAttributeColorMapMax'] != None and maxLine<maxAttr:
+                labels[-1].set_text(labels[-1].get_text()+" >=")
+            if kwds['pAttributeColorMapMin'] != None and minLine>minAttr:
+                labels[0].set_text(labels[0].get_text()+" <=")
+            cB.ax.set_yticklabels(labels)  
                                                                     
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
