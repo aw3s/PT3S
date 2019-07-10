@@ -24,7 +24,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='90.11.01.12.dev1',
+    version='90.11.01.13.dev1',
 
     description='Python Tools 3S',
     long_description=long_description,
@@ -110,7 +110,7 @@ setup(
            ,'testdata\DHNetwork.mdb'
            ,'testdata\WDDHNetwork\B1\V0\BZ1\M-1-0-1.1.MX1'
            ,'testdata\WDDHNetwork\B1\V0\BZ1\M-1-0-1.MX2'
-           ,'testdata\WDDHNetwork\B1\V0\BZ1\M-1-0-1.1.MXS'
+           #,'testdata\WDDHNetwork\B1\V0\BZ1\M-1-0-1.1.MXS'
            ,'testdata10\OneLPipe.XML'
            ,'testdata10\OneLPipe.mdb'
            ,'testdata10\WDOneLPipe\B1\V0\BZ1\M-1-0-1.1.MX1'

@@ -1284,8 +1284,8 @@ class Rm():
     @classmethod
     def pltNetPipes(cls,pDf,**kwds):
         """
-        Plots Lines with Marker on gca().
-        f
+        Plots colored PIPES.
+        
         Args:
                 DATA:
                     pDf: dataFrame
@@ -1297,7 +1297,8 @@ class Rm():
 
                 AXES:
                     pAx: Axes to be plotted on; if not specified: gca() is used
-                    Colorlegend:
+
+                Colorlegend:
                         * CBFraction in % (default: 5)
                         * CBHpad (default: 0.05)
                         * CBLabel (default: pAttribute/pAttributeFunc)  
@@ -1439,12 +1440,11 @@ class Rm():
                 >>> # Farbskalamapping u. -eigenschaften u. Plotorder  groß auf klein / 2nd Color
                 >>> # --------------------------
                 >>> vAGSN=xm.dataFrames['vAGSN']    
-                >>> hpRL=vAGSN[(vAGSN['LFDNR']=='1') & (vAGSN['Layer']==2)]
-                >>> #vROHR['pkInt64'] = vROHR['pk'].astype('int64')
+                >>> hpRL=vAGSN[(vAGSN['LFDNR']=='1') & (vAGSN['Layer']==2)]               
                 >>> pDf=pd.merge(vROHR
                 ...     ,hpRL[hpRL.IptIdx=='S']
                 ...     ,how='left'
-                ...     ,left_on='pk'# 'pkInt64'
+                ...     ,left_on='pk'
                 ...     ,right_on='OBJID'
                 ...     ,suffixes=('','_AGSN')).filter(items=vROHR.columns.tolist()+['OBJID'])
                 >>> axNfd = fig.add_subplot(gs[4])              
@@ -1478,8 +1478,8 @@ class Rm():
                 ...     ,sort_values_ascending=True       
                 ...     ,pAttributeColorMapFmask=lambda row: True if not pd.isnull(row.OBJID) else False 
                 ...     ,pAttributeColorMap2ndFmask=lambda row: True if pd.isnull(row.OBJID) else False 
-                ...     ,pAttributeColorMap2ndUsageStart=1/5.
-                ...     ,pAttributeColorMap2ndUsageEnd=4/5.
+                ...     ,pAttributeColorMap2ndUsageStart=.5/5. # nicht zu weiß 
+                ...     ,pAttributeColorMap2ndUsageEnd=2.5/5. # nicht zu schwarz
                 ...     ,pAttributeColorMapUsageStart=5/16.
                 ...     ,pAttributeColorMapUsageEnd=11/16.
                 ...     )
@@ -1664,10 +1664,10 @@ class Rm():
             disp_ratio = (figH * h) / (figW * w)
             # Ratio of data units
             data_ratio=kwds['pAx'].get_data_ratio()
-            logger.debug("{:s}figH: {:6.2f} figW: {:6.2f}".format(logStr,figW,figH))  
-            logger.debug("{:s}x0: {:6.2f} y0: {:6.2f} w: {:6.2f} h: {:6.2f}".format(logStr,x0,y0,w,h))  
-            logger.debug("{:s}pWAYPCors: Y/X: {:6.2f}".format(logStr,dydx))  
-            logger.debug("{:s}disp_ratio: {:6.2f} data_ratio: {:6.2f}".format(logStr,disp_ratio,data_ratio))  
+            #logger.debug("{:s}figH: {:6.2f} figW: {:6.2f}".format(logStr,figW,figH))  
+            #logger.debug("{:s}x0: {:6.2f} y0: {:6.2f} w: {:6.2f} h: {:6.2f}".format(logStr,x0,y0,w,h))  
+            #logger.debug("{:s}pWAYPCors: Y/X: {:6.2f}".format(logStr,dydx))  
+            #logger.debug("{:s}disp_ratio: {:6.2f} data_ratio: {:6.2f}".format(logStr,disp_ratio,data_ratio))  
       
             # x,y-Achsen: Ticks ermitteln und setzen         
             xTicks=kwds['pAx'].get_xticks()
@@ -1723,15 +1723,13 @@ class Rm():
             logger.debug("{:s}pAttributeColorMap2ndUsageEnd:   {:8.2f} ==> usageEndLineValue2nd:   {:8.2f} (maxLine2nd: {:8.2f})".format(logStr,kwds['pAttributeColorMap2ndUsageEnd'],usageEndLineValue2nd,maxLine2nd))
             usageEndLineColor2nd=kwds['pAttributeColorMap2nd'](normLine2nd(usageEndLineValue2nd))      
                   
-            # PIPE-Color: PLOT
-            pMeasure=kwds['pAttribute'] # Relikt aus Rohrendenpunktplot mit anderem Attribut und eigener Farbskala und eigenem Farbskalamapping             
+            # PIPE-Color: PLOT            
             pDfColorMap=pDf[pDf.apply(kwds['pAttributeColorMapFmask'],axis=1)]  
-
             (rows   ,cols)=pDf.shape
             (rows1st,cols)=pDfColorMap.shape
             colorsCBValues=[]
             logger.debug("{:s}Color 1st-PIPEs: {:d} von {:d}".format(logStr,rows1st,rows))               
-            for xs,ys,vLine,vMarker in zip(pDfColorMap[kwds['pWAYPXCors']],pDfColorMap[kwds['pWAYPYCors']],pDfColorMap[kwds['pAttribute']],pDfColorMap[pMeasure]):        
+            for xs,ys,vLine in zip(pDfColorMap[kwds['pWAYPXCors']],pDfColorMap[kwds['pWAYPYCors']],pDfColorMap[kwds['pAttribute']]):        
 
                 if vLine >= usageStartLineValue and vLine <= usageEndLineValue:
                     colorLine=kwds['pAttributeColorMap'](normLine(vLine))      
@@ -1742,23 +1740,13 @@ class Rm():
                 else:
                     colorLine=usageStartLineColor   
                     value=usageStartLineValue
-                colorsCBValues.append(value)
-                colorMarker=colorLine # Relikt aus ... 
+                colorsCBValues.append(value)                
 
                 pcLines=kwds['pAx'].plot(xs,ys
                                 ,color=colorLine
                                 ,linewidth=kwds['pAttrLineSizeFactor']*math.fabs(vLine) 
                                 ,ls=kwds['pAttributeLs']
-                                ,solid_capstyle='round'
-                                # Relikt aus ... 
-                                #      ,marker=kwds['pMeasureMarker']
-                                #      ,mfc=colorMarker 
-                                #      ,mec=colorMarker  
-                                #      ,mfcalt=colorMarker  
-                                #      ,mew=0
-                                #      ,ms=kwds['pMeasureSizeFactor']*vMarker                                                    
-                                #      ,markevery=[0,len(xs)-1]
-                                #------
+                                ,solid_capstyle='round'                             
                                 ,aa=True
                                 ,clip_on=kwds['pClip']
                                )   
@@ -1767,7 +1755,7 @@ class Rm():
             pDfColorMap2nd=pDf[pDf.apply(kwds['pAttributeColorMap2ndFmask'],axis=1)]
             (rows2nd,cols)=pDfColorMap2nd.shape
             logger.debug("{:s}Color 2nd-PIPEs: {:d} von {:d}".format(logStr,rows2nd,rows))   
-            for xs,ys,vLine,vMarker in zip(pDfColorMap2nd[kwds['pWAYPXCors']],pDfColorMap2nd[kwds['pWAYPYCors']],pDfColorMap2nd[kwds['pAttribute']],pDfColorMap2nd[pMeasure]):        
+            for xs,ys,vLine in zip(pDfColorMap2nd[kwds['pWAYPXCors']],pDfColorMap2nd[kwds['pWAYPYCors']],pDfColorMap2nd[kwds['pAttribute']]):        
 
 
                 if vLine >= usageStartLineValue2nd and vLine <= usageEndLineValue2nd:
@@ -1775,23 +1763,13 @@ class Rm():
                 elif vLine > usageEndLineValue2nd:
                     colorLine=usageEndLineColor2nd                   
                 else:
-                    colorLine=usageStartLineColor2nd                                          
-                colorMarker=colorLine # Relikt aus ... 
+                    colorLine=usageStartLineColor2nd                                                          
 
                 pcLines=kwds['pAx'].plot(xs,ys
                                 ,color=colorLine
                                 ,linewidth=kwds['pAttrLineSizeFactor']*math.fabs(vLine) 
                                 ,ls=kwds['pAttributeLs']
-                                ,solid_capstyle='round'
-                                # Relikt aus ... 
-                                #      ,marker=kwds['pMeasureMarker']
-                                #      ,mfc=colorMarker 
-                                #      ,mec=colorMarker  
-                                #      ,mfcalt=colorMarker  
-                                #      ,mew=0
-                                #      ,ms=kwds['pMeasureSizeFactor']*vMarker                                                    
-                                #      ,markevery=[0,len(xs)-1]
-                                #------
+                                ,solid_capstyle='round'                             
                                 ,aa=True
                                 ,clip_on=kwds['pClip']
                                )   
@@ -1805,14 +1783,10 @@ class Rm():
                     ,linewidth=0
                     # Farbskala
                    ,cmap=kwds['pAttributeColorMap']
-                    # Normierung Farbe
-                #  ,vmin=min(colorsCBValues)
-                 # ,vmax=max(colorsCBValues)
+                    # Normierung Farbe                
                     ,norm=normLine
-                    # Farbwert
-                    ,c=colorsCBValues #colorsCB ### pDfColorMap[kwds['pAttribute']]
-                   
-                    #,alpha=kwds['pMCatMidAlpha']
+                    # Werte
+                    ,c=colorsCBValues                                       
                     ,edgecolors='none'
                     ,clip_on=kwds['pClip']
                     )        
@@ -1821,10 +1795,10 @@ class Rm():
             divider = make_axes_locatable(kwds['pAx'])
             cax = divider.append_axes('right',size="{:f}%".format(kwds['CBFraction']),pad=kwds['CBHpad'])
             x0, y0, w, h = kwds['pAx'].get_position().bounds
-            logger.debug("{:s}ohne Änderung?!: x0: {:6.2f} y0: {:6.2f} w: {:6.2f} h: {:6.2f}".format(logStr,x0,y0,w,h))  
+            #logger.debug("{:s}ohne Änderung?!: x0: {:6.2f} y0: {:6.2f} w: {:6.2f} h: {:6.2f}".format(logStr,x0,y0,w,h))  
             kwds['pAx'].set_aspect(1.) #!
             x0, y0, w, h = kwds['pAx'].get_position().bounds
-            logger.debug("{:s}ohne Änderung?!: x0: {:6.2f} y0: {:6.2f} w: {:6.2f} h: {:6.2f}".format(logStr,x0,y0,w,h))  
+            #logger.debug("{:s}ohne Änderung?!: x0: {:6.2f} y0: {:6.2f} w: {:6.2f} h: {:6.2f}".format(logStr,x0,y0,w,h))  
                       
             # CB
             cB=plt.gcf().colorbar(pcN, cax=cax, orientation='vertical') 
