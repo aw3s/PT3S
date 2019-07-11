@@ -133,46 +133,80 @@ if __name__ == "__main__":
             dtRunner.run(dTests[0])
 
         if len(args.singleTest)>0:
-            testModels=['OneLPipe','LocalHeatingNetwork','GPipes']
-            mxs={} 
-            for testModel in testModels:
-                mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1')) 
-                mx=Mx.Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True) # avoid doing anything than just plain Init                                         
-                mxs[testModel]=mx
-
+            logger.debug("{:s}singleTests Vorbereitung Start ...".format(logStr)) 
             xms={}   
+            mxs={} 
             ms={}
-            for testModel in testModels:
-                h5File=os.path.join(os.path.join('.',args.testDir),testModel+'.h5')
-                if os.path.exists(h5File):                        
-                    os.remove(h5File)
-                xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')
+            testModels=['OneLPipe','LocalHeatingNetwork','GPipes','DHNetwork']
+            for testModel in testModels:   
+                logger.debug("{:s}singleTests Vorbereitung {:s} Start ...".format(logStr,testModel)) 
+                xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')  
                 ms[testModel]=xmlFile
-                xm=Xm.Xm(xmlFile=xmlFile,NoH5Read=True) # avoid doing anything than just plain Init    
+                xm=Xm.Xm(xmlFile=xmlFile)      
+                logger.debug("{:s}singleTests Vorbereitung {:s} xm instanziert; mx ...".format(logStr,testModel)) 
+                mx=xm.MxAdd()
+                logger.debug("{:s}singleTests Vorbereitung {:s} mx instanziert; ToH5 ...".format(logStr,testModel)) 
+                mx.ToH5()
+                xm.ToH5()
                 xms[testModel]=xm
+                mxs[testModel]=mx
+                logger.debug("{:s}singleTests Vorbereitung {:s} fertig.".format(logStr,testModel)) 
+            
+            
+            
+            #mxs={} 
+            #for testModel in testModels:
+            #    mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1')) 
+            #    mx=Mx.Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True) # avoid doing anything than just plain Init                                         
+            #    mxs[testModel]=mx
+
+            #xms={}   
+            #ms={}
+            #for testModel in testModels:
+            #    h5File=os.path.join(os.path.join('.',args.testDir),testModel+'.h5')
+            #    if os.path.exists(h5File):                        
+            #        os.remove(h5File)
+            #    xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')
+            #    ms[testModel]=xmlFile
+            #    xm=Xm.Xm(xmlFile=xmlFile,NoH5Read=True) # avoid doing anything than just plain Init    
+            #    xms[testModel]=xm
+
+
+
+            
 
             dtFinder=doctest.DocTestFinder(verbose=args.verbose)
             
+            logger.debug("{:s}singleTests suchen in Mx ...".format(logStr)) 
             dTests=dtFinder.find(Mx,globs={'testDir':args.testDir
                                            ,'dotResolution':args.dotResolution
-                                           ,'mxs':mxs                                         
-                                         }
-                                 ) 
+                                           ,'mxs':mxs}) 
+
+            logger.debug("{:s}singleTests suchen in Xm ...".format(logStr)) 
             dTests.extend(dtFinder.find(Xm,globs={'testDir':args.testDir                                                                                    
                                            ,'xms':xms
                                            ,'ms':ms})) 
 
+            logger.debug("{:s}singleTests suchen in Rm ...".format(logStr)) 
+            dTests.extend(dtFinder.find(Rm,globs={'testDir':args.testDir     
+                                           ,'dotResolution':args.dotResolution
+                                           ,'xms':xms
+                                           ,'mxs':mxs})) 
+
+            for test in dTests:
+                logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Test found',test.name)) 
+
             dtRunner=doctest.DocTestRunner(verbose=args.verbose) 
             for expr in args.singleTest:
-                logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Searching Tests for Expr',expr))                
+                logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Searching in Tests found for Expr',expr))                
                 testsForExpr=[test for test in dTests if re.search(expr,test.name) != None]
                 for test in testsForExpr:                                                  
-                        logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Running Test',test.name)) 
+                        logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Running Test',test.name)) 
                         dtRunner.run(test)                     
 
             for testModel in testModels:                                           
                 mx=mxs[testModel]
-                mx.delFiles()               
+                #mx.delFiles()               
                 if os.path.exists(mx.mxsZipFile):                        
                    os.remove(mx.mxsZipFile)
                 mxsDumpFile=mx.mxsFile+'.dump'

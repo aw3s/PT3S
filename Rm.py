@@ -2970,14 +2970,15 @@ if __name__ == "__main__":
             unittest.TextTestRunner().run(suite)
         
         xms={}   
-        mxs={} 
-        modelFiles={}
+        mxs={}         
         if len(args.singleTest)>0:
             for testModel in ['DHNetwork']:                
                 xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')                
                 xm=Xm.Xm(xmlFile=xmlFile) 
+                xm.ToH5()
                 xms[testModel]=xm
                 mx=xm.MxAdd()
+                mx.ToH5()
                 mxs[testModel]=mx
                 
             dtFinder=doctest.DocTestFinder(verbose=args.verbose)
@@ -2985,12 +2986,14 @@ if __name__ == "__main__":
             dTests=dtFinder.find(Rm,globs={'testDir':args.testDir                                       
                                            ,'xms':xms
                                            ,'mxs':mxs}) 
+            for test in dTests:
+                logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Test found',test.name)) 
+
             for expr in args.singleTest:
-                logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Searching Tests for Expr: ',expr))                
+                logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Searching in Tests found for Expr',expr))                
                 testsForExpr=[test for test in dTests if re.search(expr,test.name) != None]
-                for test in testsForExpr:          
-                    if re.search(expr,test.name) != None:                    
-                        logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Running Test: ',test.name)) 
+                for test in testsForExpr:                                              
+                        logger.debug("{0:s}{1:s}: {2:s} ...".format(logStr,'Running Test',test.name)) 
                         dtRunner.run(test)                        
 
 

@@ -2782,8 +2782,7 @@ class Xm():
             vNRCV=pd.DataFrame(vNRCV.values,columns=vNRCV.columns)
                                                         
         except Exception as e:
-            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))            
             if isinstance(vNRCV,pd.core.frame.DataFrame):
                 logger.error(logStrFinal) 
             else:
@@ -5117,7 +5116,7 @@ class Xm():
             return nOfSir3sIDsUpdated
 
     def __Mx1_vNRCV(self,mx):
-        """vNRCV_Mx1 (vNRCV with Mx1-Information).
+        """vNRCV_Mx1 (vNRCV with Mx1-Information) is added to dataFrames.
 
         Args:
             mx: Mx-Object
@@ -5141,12 +5140,9 @@ class Xm():
         
         try:             
 
-            vNRCV_Mx1=None
-
-            #if 'vNRCV' in self.dataFrames.keys():
-
             vNRCV=self.dataFrames['vNRCV']
-            
+            vNRCV_Mx1=pd.DataFrame()   
+
             if 'fkOBJTYPE' in vNRCV.columns.tolist():
 
                 vNRCV_Mx1=vNRCV.merge(mx.mx1Df,left_on='fkOBJTYPE',right_on='OBJTYPE_PK',suffixes=['_NR','_MX1'])
@@ -5190,11 +5186,10 @@ class Xm():
                                             
         except Exception as e:            
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-            if isinstance(vNRCV,pd.core.frame.DataFrame):
+            if not vNRCV.empty and not vNRCV_Mx1.empty:
                 logger.error(logStrFinal) 
             else:
-                logger.debug(logStrFinal) 
-                vNRCV_Mx1=pd.DataFrame()                 
+                logger.debug(logStrFinal)                            
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             self.dataFrames['vNRCV_Mx1']=vNRCV_Mx1
@@ -6162,12 +6157,15 @@ class Xm():
         
         try: 
            
-            vAGSN=self.dataFrames['vAGSN_raw']
+            vAGSN=self.dataFrames['vAGSN_raw']           
             vAGSN_rawCols=vAGSN.columns.tolist()
             
+            rows,cols=vAGSN.shape                        
+            if rows==0:                
+                raise XmError("{:s}vAGSN_raw @Start: rows: {:d}".format(logStr,rows))
+
             ###
             heavyLog=False
-
             if heavyLog: ###
                 logString="{0:s}vAGSN_raw: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vAGSN_raw'))
                 logger.debug(logString)
@@ -6382,7 +6380,11 @@ class Xm():
                     logger.debug(logString)
 
                 self.dataFrames['vAGSN']=df
-                                                  
+
+        except XmError as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
+            logger.debug(logStrFinal) 
+                                                           
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
             logger.error(logStrFinal) 
