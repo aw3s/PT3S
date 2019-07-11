@@ -1,5 +1,5 @@
 """
-XXX
+Testtreiber.
 
 """
 
@@ -31,7 +31,7 @@ import re
 
 if __name__ == "__main__":
     """
-    XXX
+    Run Tests.
     """
 
     try:      
@@ -58,9 +58,12 @@ if __name__ == "__main__":
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
                                       
         # Arguments      
-        parser = argparse.ArgumentParser(description='Run the Stuff or/and perform Unittests.'
+        parser = argparse.ArgumentParser(description='Run Tests.'
         ,epilog='''
-        UsageExample: -v       
+        UsageExamples: 
+        -q -m 1  -s "^Xm."  -s "^Mx."  -s "^Rm." -t both -u yes -w OneLPipe -w LocalHeatingNetwork -w GPipe -w GPipes -w TinyWDN -w DHNetwork
+        -q -m 0  -s "Rm.Rm.pltNetPipes" -z no -w DHNetwork   
+        d.h. -z no, wenn Sync/Add und ToH5 schon erfolgt sind und die Zeit dafür gespart werden kann wenn dieselbe Funktion wieder und wieder getestet wird und der Test Sync/Add und ToH5 voraussetzt
         '''                                 
         )
 
@@ -70,8 +73,27 @@ if __name__ == "__main__":
         parser.add_argument('--testDir',type=str,default='testdata',help="value for global 'testDir' i.e. testdata")
         parser.add_argument('--dotResolution',type=str,default='.1',help="value for global 'dotResolution' i.e. .1 (default); use NONE for no dotResolution")      
                                  
-        parser.add_argument("-m","--moduleTest", help="execute the Module's Doctest On/Off: -m 1 (default)", action="store",default='1')      
-        parser.add_argument("-s","--singleTest", help="execute single Doctest: -s Xm: Doctest names matching Xm are executed", action="append",default=[])        
+        parser.add_argument("-m","--moduleTest", help="execute the Module Doctest On/Off: -m 1 (default)", action="store",default='1')      
+        parser.add_argument("-s","--singleTest", help='execute single Doctest: Exp.1: -s  "^Rm.": all Doctests in Module Rm are executed - but not the Module Doctest (which is named Rm) Exp.2:  -s "^Xm."  -s "^Mx."  -s "^Rm.": all Doctests in the 3 Modules are executed - but not the Module Doctests'
+                            ,action="append"
+                            ,default=[])           
+        parser.add_argument("-t","--delGenFiles", help="Tests: decide if generated Files - i.e. .h5-Files - shall be deleted: Exp.: -t both: generated Files are deleted before and after the Tests"
+                            ,choices=['before', 'after', 'both','nothing'],default='nothing')
+
+        parser.add_argument("-y","--mockUpDetail1", help="MockUp Detail1: decide if NoH5 shall be used during MockUps: Exp.: -y yes"
+                            ,choices=['no','yes'],default='no')
+
+        parser.add_argument("-z","--mockUpDetail2", help="MockUp Detail2: decide if Sync/Add and ToH5 shall be done during MockUps: Exp.: -z no"
+                            ,choices=['no','yes'],default='yes')
+
+        parser.add_argument("-u","--mockUpAtTheEnd", help="Tests: decide if after all Tests and after delGenFiles some mockUp shall be done: Exp.: -u yes"
+                            ,choices=['no','yes'],default='no')
+
+        parser.add_argument("-w","--testModel", help='specify a testModel: Exp.: -w DHNetwork'
+                            ,action="append"
+                            ,default=[])           
+
+
 
         args = parser.parse_args()
 
@@ -92,6 +114,29 @@ if __name__ == "__main__":
         except ImportError:
             logger.debug("{0:s}{1:s}".format("test: from PT3S import Mx, Xm, Rm: ImportError: ","trying import Mx, Xm, Rm ..."))  
             import Mx, Xm, Rm
+
+        testModels=args.testModel 
+
+        # die Modultests gehen i.d.R. vom Ausgangszustand aus; Relikte aus alten Tests müssen daher i.d.R. gelöscht werden ...
+        if args.delGenFiles in ['before','both']:
+                for testModel in testModels:   
+                    #Xm                    
+                    xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')                      
+                    h5FileXm=os.path.join(os.path.join('.',args.testDir),testModel+'.h5')
+                    #Mx
+                    mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1'))                     
+                    (wD,fileName)=os.path.split(mx1File)
+                    (base,ext)=os.path.splitext(fileName)
+                    (base,dotResolution)=os.path.splitext(base)                                                                             
+                    h5File=wD+os.path.sep+base+'.'+'h5'    
+                    h5FileVecs=wD+os.path.sep+base+dotResolution+'.'+'vec'+'.'+'h5' 
+                    h5FileMx1FmtString=h5File+'.metadata'
+                    #loeschen
+                    for file in [h5FileXm,h5File,h5FileVecs,h5FileMx1FmtString]:                    
+                        if os.path.exists(file):      
+                            logger.debug("{:s}Tests Vorbereitung {:s} Delete {:s} ...".format(logStr,testModel,file)) 
+                            os.remove(file)
+
 
         if args.moduleTest == '1':
             # as unittests
@@ -133,48 +178,62 @@ if __name__ == "__main__":
             dtRunner.run(dTests[0])
 
         if len(args.singleTest)>0:
+
+            #Relikte, die die Modultests oder andere Tests produziert haben ggf. loeschen
+            if args.delGenFiles in ['before','both']:
+                for testModel in testModels:   
+                    #Xm                    
+                    xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')                      
+                    h5FileXm=os.path.join(os.path.join('.',args.testDir),testModel+'.h5')
+                    #Mx
+                    mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1'))                     
+                    (wD,fileName)=os.path.split(mx1File)
+                    (base,ext)=os.path.splitext(fileName)
+                    (base,dotResolution)=os.path.splitext(base)                                                                             
+                    h5File=wD+os.path.sep+base+'.'+'h5'    
+                    h5FileVecs=wD+os.path.sep+base+dotResolution+'.'+'vec'+'.'+'h5' 
+                    h5FileMx1FmtString=h5File+'.metadata'
+                    #loeschen
+                    for file in [h5FileXm,h5File,h5FileVecs,h5FileMx1FmtString]:                    
+                        if os.path.exists(file):      
+                            logger.debug("{:s}singleTests Vorbereitung {:s} Delete {:s} ...".format(logStr,testModel,file)) 
+                            os.remove(file)
+
+            #MockUp
             logger.debug("{:s}singleTests Vorbereitung Start ...".format(logStr)) 
             xms={}   
             mxs={} 
             ms={}
-            testModels=['OneLPipe','LocalHeatingNetwork','GPipes','DHNetwork']
+                               
             for testModel in testModels:   
                 logger.debug("{:s}singleTests Vorbereitung {:s} Start ...".format(logStr,testModel)) 
+
+                #Xm
                 xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')  
                 ms[testModel]=xmlFile
                 xm=Xm.Xm(xmlFile=xmlFile)      
-                logger.debug("{:s}singleTests Vorbereitung {:s} xm instanziert; mx ...".format(logStr,testModel)) 
-                mx=xm.MxAdd()
-                logger.debug("{:s}singleTests Vorbereitung {:s} mx instanziert; ToH5 ...".format(logStr,testModel)) 
-                mx.ToH5()
-                xm.ToH5()
+                logger.debug("{:s}singleTests Vorbereitung {:s} xm instanziert.".format(logStr,testModel)) 
+
+                #Mx
+                mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1'))                
+                mx=Mx.Mx(mx1File=mx1File) 
+                logger.debug("{:s}singleTests Vorbereitung {:s} mx instanziert.".format(logStr,testModel)) 
+
+                if args.mockUpDetail2 in ['yes']:                    
+                    #Sync                
+                    xm.MxSync(mx=mx)
+                    xm.MxAdd(mx=mx)
+                    logger.debug("{:s}singleTests Vorbereitung {:s} Sync/Add erfolgt.".format(logStr,testModel)) 
+
+                    #H5
+                    xm.ToH5()
+                    mx.ToH5()
+                    logger.debug("{:s}singleTests Vorbereitung {:s} ToH5 erfolgt.".format(logStr,testModel)) 
+                
                 xms[testModel]=xm
                 mxs[testModel]=mx
                 logger.debug("{:s}singleTests Vorbereitung {:s} fertig.".format(logStr,testModel)) 
-            
-            
-            
-            #mxs={} 
-            #for testModel in testModels:
-            #    mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1')) 
-            #    mx=Mx.Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True) # avoid doing anything than just plain Init                                         
-            #    mxs[testModel]=mx
-
-            #xms={}   
-            #ms={}
-            #for testModel in testModels:
-            #    h5File=os.path.join(os.path.join('.',args.testDir),testModel+'.h5')
-            #    if os.path.exists(h5File):                        
-            #        os.remove(h5File)
-            #    xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')
-            #    ms[testModel]=xmlFile
-            #    xm=Xm.Xm(xmlFile=xmlFile,NoH5Read=True) # avoid doing anything than just plain Init    
-            #    xms[testModel]=xm
-
-
-
-            
-
+ 
             dtFinder=doctest.DocTestFinder(verbose=args.verbose)
             
             logger.debug("{:s}singleTests suchen in Mx ...".format(logStr)) 
@@ -204,15 +263,48 @@ if __name__ == "__main__":
                         logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Running Test',test.name)) 
                         dtRunner.run(test)                     
 
-            for testModel in testModels:                                           
+        if args.delGenFiles in ['after','both']:              
+            for testModel in testModels:   
+                logger.debug("{:s}Tests Nachbereitung {:s} Delete files ...".format(logStr,testModel)) 
                 mx=mxs[testModel]
-                #mx.delFiles()               
+                mx.delFiles()        
+                xm=xms[testModel]
+                xm.delFiles()   
                 if os.path.exists(mx.mxsZipFile):                        
-                   os.remove(mx.mxsZipFile)
+                    os.remove(mx.mxsZipFile)
                 mxsDumpFile=mx.mxsFile+'.dump'
                 if os.path.exists(mxsDumpFile):                        
-                   os.remove(mxsDumpFile)
-               
+                    os.remove(mxsDumpFile)
+
+        if args.mockUpAtTheEnd in ['yes']:                
+            for testModel in testModels:
+                logger.debug("{:s}Tests Nachbereitung {:s} mockUpAtTheEnd ...".format(logStr,testModel)) 
+
+                #Mx
+                mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1')) 
+                if args.mockUpDetail1 in ['yes']:                 
+                    mx=Mx.Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True) # avoid doing anything than just plain Init      
+                    mx.setResultsToMxsFile()
+                else:
+                    mx=Mx.Mx(mx1File=mx1File) 
+                #Xm                     
+                xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')
+                if args.mockUpDetail1 in ['yes']:    
+                    xm=Xm.Xm(xmlFile=xmlFile,NoH5Read=True) # avoid doing anything than just plain Init                                           
+                else:
+                    xm=Xm.Xm(xmlFile=xmlFile) 
+                   
+                if args.mockUpDetail2 in ['yes']:                    
+                    #Sync                
+                    xm.MxSync(mx=mx)
+                    xm.MxAdd(mx=mx)
+                    logger.debug("{:s}Tests Nachbereitung {:s} Sync/Add erfolgt.".format(logStr,testModel)) 
+
+                    #H5
+                    xm.ToH5()
+                    mx.ToH5()
+                    logger.debug("{:s}Tests Nachbereitung {:s} ToH5 erfolgt.".format(logStr,testModel)) 
+                                
     except SystemExit:
         pass                                              
     except:

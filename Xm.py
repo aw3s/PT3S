@@ -1900,7 +1900,7 @@ class Xm():
             
         >>> xmlFile=ms['GPipes']   
         >>> from Xm import Xm
-        >>> xm=Xm(xmlFile=xmlFile)
+        >>> xm=Xm(xmlFile=xmlFile,NoH5Read=True)
         >>> vAGSN=xm.dataFrames['vAGSN']
         >>> schnitt=vAGSN[vAGSN['NAME']=='LR']
         >>> xm.dataFrames['schnitt']=schnitt.reset_index()
