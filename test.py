@@ -36,40 +36,35 @@ if __name__ == "__main__":
 
     try:      
         
-        # Logfile
-        logFileName = 'PT3S.log' 
-        
-        loglevel = logging.INFO
-        logging.basicConfig(filename=logFileName
-                            ,filemode='w'
-                            ,level=loglevel
-                            ,format="%(asctime)s ; %(name)-60s ; %(levelname)-7s ; %(message)s")    
 
-        fileHandler = logging.FileHandler(logFileName)        
-        logger.addHandler(fileHandler)
-
-        consoleHandler = logging.StreamHandler()
-        consoleHandler.setFormatter(logging.Formatter("%(levelname)-7s ; %(message)s"))
-        consoleHandler.setLevel(logging.INFO)
-        logger.addHandler(consoleHandler)
-
-        
-        logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
                                       
         # Arguments      
         parser = argparse.ArgumentParser(description='Run Tests.'
         ,epilog='''
         UsageExamples: 
-        -q -m 1  -s "^Xm."  -s "^Mx."  -s "^Rm." -t both -u yes -w OneLPipe -w LocalHeatingNetwork -w GPipe -w GPipes -w TinyWDN -w DHNetwork
-        -q -m 0  -s "Rm.Rm.pltNetPipes" -z no -w DHNetwork   
-        d.h. -z no, wenn Sync/Add und ToH5 schon erfolgt sind und die Zeit dafür gespart werden kann wenn dieselbe Funktion wieder und wieder getestet wird und der Test Sync/Add und ToH5 voraussetzt
+
+        Modultest:
+
+        -q -m 1 -t both -w OneLPipe -w LocalHeatingNetwork -w GPipe -w GPipes -w TinyWDN 
+
+        Singletests:
+        
+        -q -m 0 -s "^Mx\."  -s "^Xm\." -t both -y yes -z no -w OneLPipe -w LocalHeatingNetwork -w GPipe -w GPipes -w TinyWDN 
+
+        Singletests: separater MockUp-Lauf:
+
+        -q -m 0 -t before -u yes -w DHNetwork
+        
+        Singletests (die auf dem vorstehenden MockUp-Lauf basieren):
+        -q -m 0 -s "^Rm\." -z no -w DHNetwork
+
         '''                                 
         )
 
         group = parser.add_mutually_exclusive_group()                                
         group.add_argument("-v","--verbose", help="Debug Messages On", action="store_true",default=True)      
         group.add_argument("-q","--quiet", help="Debug Messages Off", action="store_true")           
+
         parser.add_argument('--testDir',type=str,default='testdata',help="value for global 'testDir' i.e. testdata")
         parser.add_argument('--dotResolution',type=str,default='.1',help="value for global 'dotResolution' i.e. .1 (default); use NONE for no dotResolution")      
                                  
@@ -93,17 +88,49 @@ if __name__ == "__main__":
                             ,action="append"
                             ,default=[])           
 
+        parser.add_argument("-l","--logExternDefined", help="Logging (File etc.) ist extern defined", action="store_true",default=False)      
 
 
         args = parser.parse_args()
 
-        if args.verbose:  # default         
-            logger.setLevel(logging.DEBUG)  
-        if args.quiet:    # Debug Messages are turned Off
-            logger.setLevel(logging.ERROR)  
-            args.verbose=False
+
+        class LogStart(Exception):
+            pass
+
+        try:
+            logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+            if args.logExternDefined:  
+                logger = logging.getLogger('PT3S')  
+                logStr=logStr+" (Logging extern defined) "
+            else:                
+                logFileName = 'PT3S.log' 
+        
+                loglevel = logging.INFO
+                logging.basicConfig(filename=logFileName
+                                    ,filemode='w'
+                                    ,level=loglevel
+                                    ,format="%(asctime)s ; %(name)-60s ; %(levelname)-7s ; %(message)s")    
+
+                fileHandler = logging.FileHandler(logFileName)        
+                logger.addHandler(fileHandler)
+
+                consoleHandler = logging.StreamHandler()
+                consoleHandler.setFormatter(logging.Formatter("%(levelname)-7s ; %(message)s"))
+                consoleHandler.setLevel(logging.INFO)
+                logger.addHandler(consoleHandler)
+                          
+            raise LogStart
+        except LogStart:   
+            if args.verbose:  # default         
+                logger.setLevel(logging.DEBUG)  
+            if args.quiet:    # Debug Messages are turned Off
+                logger.setLevel(logging.ERROR)  
+                args.verbose=False            
+            logger.debug("{0:s}{1:s}".format(logStr,'Start.'))             
+        else:
+            pass
                                             
-        logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start. Argumente:',str(sys.argv))) 
+        logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Argumente:',str(sys.argv))) 
         logger.debug("{0:s}{1:s}{2:s}".format(logStr,'testDir: ',args.testDir)) 
 
         if args.dotResolution == 'NONE':
@@ -116,8 +143,11 @@ if __name__ == "__main__":
             import Mx, Xm, Rm
 
         testModels=args.testModel 
+        if len(testModels)==0:
+            testModels=['OneLPipe','LocalHeatingNetwork','GPipe','GPipes','TinyWDN','DHNetwork']
 
         # die Modultests gehen i.d.R. vom Ausgangszustand aus; Relikte aus alten Tests müssen daher i.d.R. gelöscht werden ...
+        # die Modultests erfahren kein MockUp
         if args.delGenFiles in ['before','both']:
                 for testModel in testModels:   
                     #Xm                    
@@ -180,6 +210,7 @@ if __name__ == "__main__":
         if len(args.singleTest)>0:
 
             #Relikte, die die Modultests oder andere Tests produziert haben ggf. loeschen
+            #diese Relikte können z.B. aus den Modultests stammen wenn diese vorher durchgeführt wurden und diese "nicht aufräumen"
             if args.delGenFiles in ['before','both']:
                 for testModel in testModels:   
                     #Xm                    
@@ -200,6 +231,7 @@ if __name__ == "__main__":
                             os.remove(file)
 
             #MockUp
+          
             logger.debug("{:s}singleTests Vorbereitung Start ...".format(logStr)) 
             xms={}   
             mxs={} 
@@ -211,12 +243,18 @@ if __name__ == "__main__":
                 #Xm
                 xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')  
                 ms[testModel]=xmlFile
-                xm=Xm.Xm(xmlFile=xmlFile)      
+                if args.mockUpDetail1 in ['yes']:   
+                    xm=Xm.Xm(xmlFile=xmlFile,NoH5Read=True) 
+                else:
+                    xm=Xm.Xm(xmlFile=xmlFile)      
                 logger.debug("{:s}singleTests Vorbereitung {:s} xm instanziert.".format(logStr,testModel)) 
 
                 #Mx
-                mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1'))                
-                mx=Mx.Mx(mx1File=mx1File) 
+                mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1'))    
+                if args.mockUpDetail1 in ['yes']:   
+                     mx=Mx.Mx(mx1File=mx1File,NoH5Read=True) 
+                else:
+                    mx=Mx.Mx(mx1File=mx1File) 
                 logger.debug("{:s}singleTests Vorbereitung {:s} mx instanziert.".format(logStr,testModel)) 
 
                 if args.mockUpDetail2 in ['yes']:                    
@@ -257,24 +295,30 @@ if __name__ == "__main__":
 
             dtRunner=doctest.DocTestRunner(verbose=args.verbose) 
             for expr in args.singleTest:
-                logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Searching in Tests found for Expr',expr))                
-                testsForExpr=[test for test in dTests if re.search(expr,test.name) != None]
+                logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Searching in Tests found for Expr',expr.strip("'")))                
+                testsForExpr=[test for test in dTests if re.search(expr.strip("'"),test.name) != None]
                 for test in testsForExpr:                                                  
                         logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Running Test',test.name)) 
                         dtRunner.run(test)                     
 
-        if args.delGenFiles in ['after','both']:              
-            for testModel in testModels:   
-                logger.debug("{:s}Tests Nachbereitung {:s} Delete files ...".format(logStr,testModel)) 
-                mx=mxs[testModel]
-                mx.delFiles()        
-                xm=xms[testModel]
-                xm.delFiles()   
-                if os.path.exists(mx.mxsZipFile):                        
-                    os.remove(mx.mxsZipFile)
-                mxsDumpFile=mx.mxsFile+'.dump'
-                if os.path.exists(mxsDumpFile):                        
-                    os.remove(mxsDumpFile)
+        if args.delGenFiles in ['after','both']:          
+            for testModel in testModels:              
+                    #Xm                    
+                    xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')                      
+                    h5FileXm=os.path.join(os.path.join('.',args.testDir),testModel+'.h5')
+                    #Mx
+                    mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1'))                     
+                    (wD,fileName)=os.path.split(mx1File)
+                    (base,ext)=os.path.splitext(fileName)
+                    (base,dotResolution)=os.path.splitext(base)                                                                             
+                    h5File=wD+os.path.sep+base+'.'+'h5'    
+                    h5FileVecs=wD+os.path.sep+base+dotResolution+'.'+'vec'+'.'+'h5' 
+                    h5FileMx1FmtString=h5File+'.metadata'
+                    #loeschen
+                    for file in [h5FileXm,h5File,h5FileVecs,h5FileMx1FmtString]:                    
+                        if os.path.exists(file):      
+                            logger.debug("{:s}Tests Vorbereitung {:s} Delete {:s} ...".format(logStr,testModel,file)) 
+                            os.remove(file)
 
         if args.mockUpAtTheEnd in ['yes']:                
             for testModel in testModels:
@@ -283,8 +327,7 @@ if __name__ == "__main__":
                 #Mx
                 mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1')) 
                 if args.mockUpDetail1 in ['yes']:                 
-                    mx=Mx.Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True) # avoid doing anything than just plain Init      
-                    mx.setResultsToMxsFile()
+                    mx=Mx.Mx(mx1File=mx1File,NoH5Read=True) # avoid doing anything than just plain Init                          
                 else:
                     mx=Mx.Mx(mx1File=mx1File) 
                 #Xm                     
