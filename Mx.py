@@ -544,6 +544,33 @@ def getMicrosecondsFromRefTime(refTime,time):
         raise MxError(logStrFinal)              
     finally:
         return h5Key
+
+
+def getTimeFromMicroseconds(refTime,microseconds):
+    """Returns time = refTime + microseconds.
+
+    Args:
+        * refTime (Timestamp)
+        * microseconds (int)
+
+    Raises:
+        MxError
+
+   >>> import pandas as pd
+   >>> refTime=pd.Timestamp('2019-08-14 00:00:00+00:00')
+   >>> microseconds=666  
+   >>> import Mx
+   >>> Mx.getTimeFromMicroseconds(refTime,microseconds)
+   Timestamp('2019-08-14 00:00:00.666000+0000', tz='UTC')
+    """
+    try:    
+        timeDelta=pd.Timedelta("{:d} milliseconds".format(microseconds))
+        timeFromMicroseconds=refTime+timeDelta
+    except Exception as e:        
+        logStrFinal="{:s}: Exception: Line: {:d}: {!s:s}: {:s}".format('getMicrosecondsFromRefTime',sys.exc_info()[-1].tb_lineno,type(e),str(e)) 
+        raise MxError(logStrFinal)              
+    finally:
+        return timeFromMicroseconds
     
 def getMxsVecsFileDataAggsCalcAggs(df,mIndex):
     """Returns dfAggs, a dataFrame with Level 1 Aggregates of MultiIndexed df.
@@ -680,13 +707,14 @@ class Mx():
                     * OBJTYPE~NAME1~NAME2~OBJTYPE_PK~ATTRTYPE  
                     * Sir3sID regExp Example: Mx.reSir3sID: (?P<OBJTYPE>\S+)~(?P<NAME1>[\S ]*)~(?P<NAME1>\S*)~(?P<OBJTYPE_PK>\d+)~(?P<ATTRTYPE>\S+)'    
             * .dfVecAggs
-                * some base.Y.vec.h5-File Aggregates as df
+                * some base.Y.vec.h5-File (Vectordata only) Aggregates as df
                 * MultiIndex:
                     * TYPE: SNAPSHOTTYPEs: TIME,TMIN,TMAX (from _readMxsFile) or Aggregates from 2 Times: MIN,MAX,... (from getVecAggs)
                     * Sir3sID
                     * TIMESTAMPL
                     * TIMESTAMPR
                 * Cols: mx2Idx
+                * Value: Aggregate (i.e. TMIN) for mx2Idx-Col
     Raises:
         MxError
     """
@@ -1296,13 +1324,13 @@ class Mx():
         """
         Args:
             * mxsFilePtr: .MXS-File
-            * mxsVecsH5StorePtr: .vec.h5-File
+            * mxsVecsH5StorePtr: .vec.h5-File (Vectordata only)
             * firstTime: used to calculate h5Key for mxsVecsH5Store
                 * None (default): firstTime is set to 1st TIMESTAMP in .MXS-File 
                 * else:
-                    * caller sets firstTime - in general the youngest TIMESTAMP in the df to be extended                   
+                    * caller sets firstTime - in general the youngest TIMESTAMP in the df               
 
-            * maxRecords
+            * maxRecords: Anzahl der max. zu lesenden Records
 
         Returns:
             df: the mxsFile (non Vectordata only) as DataFrame
@@ -1314,20 +1342,30 @@ class Mx():
                     * because of SIR 3S'
                     * 1st Time twice (SNAPSHOTTYPE: STAT+TIME) and Last Time triple (SNAPSHOTTYPE: TIME+TMIN/TMAX)  
 
-            timesWrittenToMxsVecs: the times written to the mxsVecsH5Store
+            timesWrittenToMxsVecs: the times written to the mxsVecsH5Store (Vectordata only)
         
-        mxsVecsH5StorePtr
+        implicit Return: about mxsVecsH5StorePtr (Vectordata only):
 
-            * is used to update the mxsVecsH5Store with mxsFile-Content
+            * is used to update the mxsVecsH5Store-File with mxsFile-Content (Vectordata only):
 
                 * Key: microseconds from firstTime 
-                    * can be all negative if firstTime (in general the youngest TIMESTAMP in the df to be extended) is older than the oldest TIMESTAMP in the .MXS-File
+                    * can be negative if firstTime (in general the youngest TIMESTAMP in the df) is older than the oldest TIMESTAMP in the .MXS-File
 
-                * dfVecs
+                * dfVecs: a df containing the Vectordata
                     * index: TIMESTAMP 
                     * values: Vectordata for the TIMESTAMP
             
             * the Vectordata for a TIMESTAMP is only written when the Key does _not already exist 
+
+        implicit Return: about .dfVecAggs:
+                * some base.Y.vec.h5-File (Vectordata only) Aggregates as df
+                * MultiIndex:
+                    * TYPE: SNAPSHOTTYPEs: TIME,TMIN,TMAX (from _readMxsFile) 
+                    * Sir3sID
+                    * TIMESTAMPL
+                    * TIMESTAMPR
+                * Cols: mx2Idx
+                * Value: Aggregate (i.e. TMIN) for mx2Idx-Col
 
         Raises:
             MxError
@@ -1594,8 +1632,7 @@ class Mx():
                             raise MxError(logStrFinal)   
                         
                         # store vecs in H5
-                        if mxsVecsH5StorePtr != None:                            
-                            #try:      
+                        if mxsVecsH5StorePtr != None:                                                        
                                  h5DumpLog="{:s} NO:".format('H5Dump:')
                                  h5Key=getMicrosecondsFromRefTime(refTime=firstTime,time=time)   
                                 
@@ -1603,10 +1640,6 @@ class Mx():
                                  if '/'+str(h5Key) in keysInH5Store:    
                                      h5DumpLog="{:s} key=/{!s:>20s} in keys. Actual SNAPSHOTTYPE: {:s}".format(h5DumpLog,h5Key,cSNAPSHOTTYPE)  
                                      h5Dump=False
-                                 #keys=mxsVecsH5StorePtr.keys()
-                                 #if '/'+str(h5Key) in keys:  
-                                 #    h5DumpLog="{:s} key=/{!s:>20s} already written. Actual SNAPSHOTTYPE: {:s}".format(h5DumpLog,h5Key,cSNAPSHOTTYPE)
-                                 #    h5Dump=False
 
                                  if h5Dump:                                  
                                         try:                                            
@@ -1826,7 +1859,7 @@ class Mx():
                 * None (default): .mxsFile is used  
             * add (bool): default: False: sets df to mxsFile-Content 
             * NewH5Vec: False (default); if True, an existing mxsVecsFile will be deleted even if it is newer than mxsFile
-            * maxRecords
+            * maxRecords: Anzahl der max. zu lesenden Records
 
         Returns:
             * timesWrittenToMxsVecs
@@ -1942,7 +1975,7 @@ class Mx():
                 * None (default): .mxsFile is used  
             * add (bool): default: False: sets df to mxsZipFile-Content 
             * NewH5Vec
-            * maxRecords
+            * maxRecords: Anzahl der max. zu lesenden Records
 
         Returns:
             * timesWrittenToMxsVecsFromZip
@@ -2095,6 +2128,9 @@ class Mx():
                 os.remove(h5File)
 
             relPath2Mx1FromCurDir=os.path.normpath(os.path.relpath(os.path.normpath(self.mx1File),start=os.path.normpath(os.path.curdir)))
+
+            # MxError: "Mx.ToH5: h5File: C:\\3S\\Modelle\\WD19.273 - BAYERNOIL RELtg. BTN\\B1\\V0\\BZ1\\M-1-0-1.h5: Exception: Line: 2097: <class 'ValueError'>: path is on mount 'C:', start on mount 'M:'"
+
             h5KeySep='/'
             h5KeyCharForDot='_'
             h5KeyCharForMinus='_'
@@ -2268,7 +2304,7 @@ class Mx():
 
         >>> mx=mxs['LocalHeatingNetwork']
         >>> mx.delFiles()
-        >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading
+        >>> mx.setResultsToMxsFile() # reads TIMESTAMPS and constructs .vec.h5 while reading; returns TIMESTAMPs read
         5
         >>> mxVecsFileDataLst=mx.getMxsVecsFileData()
         >>> len(mxVecsFileDataLst)
@@ -2288,6 +2324,13 @@ class Mx():
         >>> vecsFileDataOneColResult=vecsFileDataOneCol[0]
         >>> vecsFileDataOneColResult[-1]
         76.4000015258789
+        >>> import pandas as pd
+        >>> timeNotAva=mx.df.index[-1]+pd.Timedelta('666 milliseconds')
+        >>> timeNotAva
+        Timestamp('2004-09-22 08:31:00.666000+0000', tz='UTC')
+        >>> mxVecsFileDataLst=mx.getMxsVecsFileData(timesReq=[timeNotAva])
+        >>> len(mxVecsFileDataLst)
+        0
         """
 
         logStr = "{0:s}.{1:s}: {2:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name,self.mx1File)
@@ -2324,41 +2367,61 @@ class Mx():
             
             if fastMode:
                 with pd.HDFStore(self.h5FileVecs) as h5Store:                                                    
-                    for h5KeyReq in h5KeysRequested:      
-                        df=h5Store[h5KeyReq]
-                        mxsVecsDfs.append(df)
-                                                                    
-            with pd.HDFStore(self.h5FileVecs) as h5Store:                
-                # ueber alle verlangten keys
-                h5KeysAvailable=sorted(h5Store.keys())                      
-                for idx,h5KeyReq in enumerate(h5KeysRequested):                       
-                    df=pd.DataFrame()
-                    logStrAdditional=''
-                    if h5KeyReq in h5KeysAvailable:                                                
-                        df=h5Store[h5KeyReq]                                            
-                        if df.index[0]!=timesReq[idx]:                           
-                            logStrAdditional="{:s}{:s}: Key {:s} available - BUT TimeReq {:s} matched not H5-Time for this Key which is: {:s})!".format(logStr
-                                                                                                                                                        ,self.h5FileVecs
-                                                                                                                                                        ,h5KeyReq
-                                                                                                                                                        ,str(timesReq[idx])
-                                                                                                                                                        ,str(df.index[0]))                                           
-                    else:                        
-                        # ueber alle vorhandenen Keys
-                        for h5KeyAva in h5KeysAvailable:                            
-                            dfTmp=h5Store[h5KeyAva]                            
-                            timeStamp=dfTmp.index[0]                                             
-                            if timeStamp==timesReq[idx]:                                                    
-                                df=dfTmp
-                                logStrAdditional="{:s}{:s}: Key {:s} NOT available - BUT this Key {:s} matched Time requested {:s} first".format(logStr,self.h5FileVecs,h5KeyReq,h5KeyAva,str(timesReq[idx]))                                                        
-                                break  
-                        else:                            
-                            logStrAdditional="{:s}{:s}: .Key {:s} (for Time requested {:s}) also as TIMESTAMP NOT available".format(logStr,self.h5FileVecs,h5KeyReq,str(timesReq[idx]))
+                    for idx,h5KeyReq in enumerate(h5KeysRequested):          
+                        try:
+                            df=h5Store[h5KeyReq]
+                            if not df.empty:
+                                mxsVecsDfs.append(df)              
+                                logger.debug("{:s}    Ok: Time requested: {:32s} corresponding Key: {:20s} Time stored: {:32s} - fastMode.".format(logStr,str(timesReq[idx]),h5KeyReq,str(df.index[0])))
+                            else:
+                                logger.debug("{:s}NOT Ok: Time requested: {:32s} corresponding Key: {:20s} Time store:  {:32s} - BUT df is empty! - fastMode.".format(logStr,str(timesReq[idx]),h5KeyReq,str(df.index[0])))
+                        except:
+                            logger.debug("{:s}NOT Ok: Time requested: {:32s} corresponding Key: {:20s} - fastMode.".format(logStr,str(timesReq[idx]),h5KeyReq))                            
+            else:
+                with pd.HDFStore(self.h5FileVecs) as h5Store:      
+                    logger.debug("{:s}{:s}:".format(logStr,self.h5FileVecs))    
+                    # vorhandene Keys sortiert nach Zeit
+                    h5KeysAvailable=sorted(h5Store.keys(),key=lambda x: getTimeFromMicroseconds(self.df.index[0],int(x.replace('/',''))))       
+                    logger.debug("{:s} {:12d} Keys available. first: {:20s} {:32s} last: {:20s} {:32s}.".format(logStr,len(h5KeysAvailable)
+                                                                                   ,h5KeysAvailable[0],str(getTimeFromMicroseconds(self.df.index[0],int(h5KeysAvailable[0].replace('/',''))))
+                                                                                   ,h5KeysAvailable[-1],str(getTimeFromMicroseconds(self.df.index[0],int(h5KeysAvailable[-1].replace('/',''))))
+                                                                                   ))                                           
+                    # ueber alle verlangten Keys
+                    for idx,h5KeyReq in enumerate(h5KeysRequested):                       
+                        df=pd.DataFrame()
+                        logStrAdditional=''
 
-                    if not df.empty:
-                        logger.debug("{:s}    Ok: Time requested: {:s} corresponding Key: {:20s} Time stored: {:s} logStrAdditional: {:s}.".format(logStr,str(timesReq[idx]),h5KeyReq,str(df.index[0]),logStrAdditional))
-                        mxsVecsDfs.append(df)  
-                    else:
-                        logger.debug("{:s}NOT Ok: Time requested: {:s} corresponding Key: {:20s} logStrAdditional: {:s}.".format(logStr,str(timesReq[idx]),h5KeyReq,logStrAdditional))
+                        if h5KeyReq in h5KeysAvailable:    
+                            #--
+                            logStrAdditional="Key {:s}     available".format(h5KeyReq)       
+                            df=h5Store[h5KeyReq]                                            
+                            if df.index[0]!=timesReq[idx]:                           
+                                logStrAdditional="{:s} - BUT TimeReq {:32s} matched not H5-Time for this Key which is: {:32s}!".format(logStrAdditional,str(timesReq[idx]),str(df.index[0]))                                           
+                            else:
+                                logStrAdditional="{:s} - AND TimeReq {:32s} matched     H5-Time for this Key which is: {:32s} ".format(logStrAdditional,str(timesReq[idx]),str(df.index[0]))                
+                        else:  
+                            #--
+                            logStrAdditional="Key {:s} NOT available".format(h5KeyReq)            
+                            # ueber alle vorhandenen Keys
+                            for h5KeyAva in h5KeysAvailable:                            
+                                dfTmp=h5Store[h5KeyAva]                            
+                                timeStamp=dfTmp.index[0]                                             
+                                if timeStamp==timesReq[idx]:                                                    
+                                    df=dfTmp
+                                    if not df.empty:
+                                        logStrAdditional="{:s} - BUT this Key {:s} matched TimeReq {:32s} first".format(logStrAdditional,h5KeyAva,str(timesReq[idx]))                                                        
+                                    else:
+                                        logStrAdditional="{:s} - BUT this Key {:s} matched TimeReq {:32s} first - BUT df is empty!".format(logStrAdditional,h5KeyAva,str(timesReq[idx]))      
+                                    break  
+                            else:                            
+                                logStrAdditional="{:s} - AND TimeReq {:32s} also as TIMESTAMP NOT available".format(logStrAdditional,str(timesReq[idx]))
+
+                        logStrAdditional=" {:s} df.shape: {:s}".format(logStrAdditional,str(df.shape))      
+                        if not df.empty:
+                            logger.debug("{:s}    Ok: Time requested: {:32s} corresponding Key: {:20s} Time stored: {:32s} logStrAdditional: {:s}.".format(logStr,str(timesReq[idx]),h5KeyReq,str(df.index[0]),logStrAdditional))
+                            mxsVecsDfs.append(df)  
+                        else:
+                            logger.debug("{:s}NOT Ok: Time requested: {:32s} corresponding Key: {:20s} logStrAdditional: {:s}.".format(logStr,str(timesReq[idx]),h5KeyReq,logStrAdditional))
                                                 
         except MxError:
             raise
@@ -3242,6 +3305,7 @@ if __name__ == "__main__":
                                            ,'dotResolution':args.dotResolution
                                            ,'mxs':mxs}) 
             dTests.extend(dtFinder.find(getMicrosecondsFromRefTime))
+            dTests.extend(dtFinder.find(getTimeFromMicroseconds))
 
             for test in dTests:
                 logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Test found',test.name)) 
