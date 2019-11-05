@@ -1646,6 +1646,11 @@ class Mx():
                                             dfVecs = pd.DataFrame.from_records([valuesVecs],index=[time],columns=self.mxColumnNamesVecs)                                                                                              
                                             # write H5
                                             warnings.filterwarnings('ignore',category=pd.io.pytables.PerformanceWarning) #your performance may suffer as PyTables will pickle object types that it cannot map directly to c-types 
+
+                                            warnings.filterwarnings('ignore',category=tables.PerformanceWarning) #tables\group.py:503: PerformanceWarning: group ``/`` is exceeding the recommended maximum number of children (16384); be ready to see PyTables asking for *lots* of memory and possibly slow I/O.
+
+
+
                                             warnings.filterwarnings('ignore',category=tables.exceptions.NaturalNameWarning) #\lib\site-packages\tables\path.py:100: NaturalNameWarning: object name is not a valid Python identifier: '3S'; it does not match the pattern ``^[a-zA-Z_][a-zA-Z0-9_]*$``; you will not be able to use natural naming to access this object; using ``getattr()`` will still work, though)                          
                                             mxsVecsH5StorePtr.put(str(h5Key),dfVecs)   
                                             
