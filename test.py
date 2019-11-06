@@ -81,7 +81,7 @@ if __name__ == "__main__":
         parser.add_argument("-z","--mockUpDetail2", help="MockUp Detail2: decide if Sync/Add and ToH5 shall be done during MockUps: Exp.: -z no"
                             ,choices=['no','yes'],default='yes')
 
-        parser.add_argument("-u","--mockUpAtTheEnd", help="Tests: decide if after all Tests and after delGenFiles some mockUp shall be done: Exp.: -u yes"
+        parser.add_argument("-u","--mockUpAtTheEnd", help="Tests: decide if (after all Tests and after delGenFiles) some mockUp shall be done: Exp.: -u yes"
                             ,choices=['no','yes'],default='no')
 
         parser.add_argument("-w","--testModel", help='specify a testModel: Exp.: -w DHNetwork'

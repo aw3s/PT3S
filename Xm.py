@@ -646,6 +646,25 @@ import math
 vVBEL_edges =['ROHR','VENT','FWVB','FWES','PUMP','KLAP','REGV','PREG','MREG','DPRG','PGRP']
 vVBEL_edgesD=[''    ,'DN'  ,''    ,'DN'  ,''    ,'DN'  ,'DN'  ,'DN'  ,'DN'  ,'DN'  ,'']
 
+# list of all RXXX-Nodes but RUES-Nodes
+vRXXX_nodes =['RSLW','RMES','RHYS','RLVG','RLSR','RMMA','RADD','RMUL','RDIV','RTOT','RPT1','RINT','RPID','RFKT','RSTN']
+vRXXX_nodesT=['S'   ,'S'   ,''    ,''    ,''    ,''    ,''    ,''    ,''    ,''    ,''    ,''    ,''    ,''    ,'E']
+# generell:
+# RXXX but RUES vereinigt mit RUES ist die Menge der Knoten des Knoten-Kanten-Signalmodells
+# ID eines RXXX-Knotens: sein Signalname KA
+# ID eines RUES-Knotens: 
+#   seine ID (bei Eingängen) 
+#   bzw. bei Ausgängen die ID der Referenz
+#   Ausgänge definieren keine neuen Knoten sondern referenzieren ihren Eingang
+#   effektiv stellen nur die RUES-Eingänge Knoten dar; die RUES-Ausgänge sind effektiv keine Knoten des Knoten-Kanten-Signalmodells
+# Kanten:
+#   die Kanten verknüpfen Knoten
+#   alle konstruierten Verbindungen des Signalmodells sind Kanten
+
+# Knotentypen:
+# S: Start: kein Eingang per Signalmodell verknüpfbar; Eingang ist Prozessmodell (RMES) oder Sollwerttabelle (RSLW) [ggf. extern bestückt]
+# E: Ende:  kein Ausgang per Signalmodell verknüpfbar; Ausgang ist Prozessmodell (RSTN)
+
 # ---
 # --- PT3S Imports
 # ---
@@ -1271,6 +1290,9 @@ class Xm():
             * Models with no STOFs ...
             * empty WBLZ OBJS-BLOBs
             * empty LAYR OBJS-BLOBs
+
+            * BESCHREIBUNG nicht in RLVG?...
+            * BESCHREIBUNG nicht in RADD?...
         Raises:
             XmError                                       
         """
@@ -1382,6 +1404,20 @@ class Xm():
             if 'LAYR' in self.dataFrames.keys():
                 if 'OBJS' in self.dataFrames['LAYR'].columns:
                     self.dataFrames['LAYR']=self.dataFrames['LAYR'][pd.notnull(self.dataFrames['LAYR']['OBJS'])]     
+
+            # BESCHREIBUNG nicht in RLVG?...
+            try:
+                isinstance(self.dataFrames['RLVG']['BESCHREIBUNG'],pd.core.series.Series)
+            except:
+                logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RLVG']['BESCHREIBUNG']",'BESCHREIBUNG nicht in RLVG?...')) 
+                self.dataFrames['RLVG']['BESCHREIBUNG']=pd.Series()     
+
+            # BESCHREIBUNG nicht in RADD?...
+            try:
+                isinstance(self.dataFrames['RADD']['BESCHREIBUNG'],pd.core.series.Series)
+            except:
+                logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RADD']['BESCHREIBUNG']",'BESCHREIBUNG nicht in RADD?...')) 
+                self.dataFrames['RADD']['BESCHREIBUNG']=pd.Series()     
                  
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -1625,7 +1661,14 @@ class Xm():
                 * vQVAR
                 * vPVAR
                 * vSWVT
-            * Signalmodel
+            * Signalmodel               
+                * vRUES: RUES-Nodes of R
+                * vRXXX: Nodes of R but RUES-Nodes            
+                
+                * vRNodes: all constructed Nodes in R (vRUES + vRXXX)
+                * vRNodesEff: all effectively constructed Nodes in R (die RUES-Ausgänge sind keine Knoten des Knoten-Kanten-Signalmodells)
+                * vREdges: die Kanten des Knoten-Kanten-Signalmodells: all constructed Connections in R 
+
                 * vRSLW           
             * Miscellanea
                 * vRART
@@ -1654,9 +1697,7 @@ class Xm():
 
             #BLOB-Data
             self.dataFrames['vLAYR']=self._vLAYR()
-            self.dataFrames['vWBLZ']=self._vWBLZ()
-            #self.dataFrames['vAGSN']=self._vAGSN()
-            #self.dataFrames['vAGSN_raw']=self.dataFrames['vAGSN']
+            self.dataFrames['vWBLZ']=self._vWBLZ()            
 
             #timeseries
             self.dataFrames['vLFKT']=self._vLFKT()   
@@ -1664,8 +1705,14 @@ class Xm():
             self.dataFrames['vPVAR']=self._vPVAR()           
             self.dataFrames['vSWVT']=self._vSWVT()
 
-            #signalmodel
-            self.dataFrames['vRSLW']=self._vRSLW(vSWVT=self.dataFrames['vSWVT']) 
+            #signalmodel            
+            self.dataFrames['vRUES']=self._vRUES() # RUES-Nodes
+            self.dataFrames['vRXXX']=self._vRXXX() # all RXXX-Nodes but RUES-Nodes
+
+            self.dataFrames['vREdges']=self._vREdges()            
+            # * vREdges: die Kanten des Signalmodells
+            
+            self.dataFrames['vRSLW']=self._vRSLW(vSWVT=self.dataFrames['vSWVT']) # RSLW
             
             #nodes    
             self.dataFrames['vVKNO']=self._vVKNO()
@@ -2935,6 +2982,345 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
             return vSWVT   
 
+
+    def _vRUES(self):
+        """One row per RUES (per Übergangssymbol).
+
+        1 Zeile für jede Definition(jeden Eingang).
+        1 Zeile für jede Referenz einer Definition (jeden Ausgang).
+        Der Eingang muss nicht mit einem Signal versorgt  sein.
+        Der Ausgang muss nicht per       Signal verwendet sein.
+
+        Returns:
+            columns
+                RUES
+                    * IDUE: Name (eindeutige ID) der Übergangsstelle; bei IOTYP=3: IDUE kann offenbar undefiniert sein oder einen anderen nicht nachvollziehbaren Wert tragen; eingebbar in der GUI ist IDUE nur bei IOTYP=1 
+                    * IOTYP:  0=undefiniert|1=Eingang|3=Ausgang
+                    * rkRUES: bei IOTYP=3: Verweis auf referenzierte Übergangsstelle; -1 sonst
+
+                    * IDUE_rkRUES: bei IOTYP=3: Name (eindeutige ID) der referenzierten Übergangsstelle
+                    * IOTYP_rkRUES: bei IOTYP=3: Typ der referenzierten Übergangsstelle
+
+                    * Kn: Knotenname der RUES im Sinne eines Knoten-Kanten-Modells; IDUE bei IOTYP=1 und IDUE_rkRUES bei IOTYP=3
+
+                CONT
+                    * CONT
+                    * ID
+
+                    * CONT_rkRUES: CONT der  referenzierten Übergangsstelle
+                    * ID_rkRUES: CONT ID der referenzierten Übergangsstelle
+
+                RUES IDs
+                    * pk
+                    * tk
+
+        Raises:
+            XmError
+
+        >>> import pandas as pd             
+        >>> # ---
+        >>> xm=xms['DHNetwork']
+        >>> # ---             
+        >>> vRUES=xm.dataFrames['vRUES']    
+        >>> vRUES.sort_values(by=['Kn','IOTYP'])[[ # pro Kn oten steht zuerst die Definition, dann die Referenz(en)
+        ...      'Kn'
+        ...     ,'IOTYP'       
+        ...     ,'IDUE' # zur Kontrolle       
+        ...     ,'CONT'       
+        ...     ]]
+                       Kn IOTYP          IDUE                 CONT
+        28              0     1             0  Diverse Steuerungen
+        47              0     3     NTRx1xEin  Diverse Steuerungen
+        48              0     3     NTRx1xEin  Diverse Steuerungen
+        50              0     3     NTRx1xAus  Diverse Steuerungen
+        52              0     3     NTRx1xAus  Diverse Steuerungen
+        54              0     3     NTRx3xAus  Diverse Steuerungen
+        56              0     3     NTRx3xAus  Diverse Steuerungen
+        58              0     3     NTRx3xEin  Diverse Steuerungen
+        60              0     3     NTRx3xEin  Diverse Steuerungen
+        62              0     3     NTRx2xAus  Diverse Steuerungen
+        64              0     3     NTRx2xAus  Diverse Steuerungen
+        66              0     3     NTRx2xEin  Diverse Steuerungen
+        68              0     3     NTRx2xEin  Diverse Steuerungen
+        29              1     1             1  Diverse Steuerungen
+        40              1     3           NaN  Diverse Steuerungen
+        41              1     3           NaN  Diverse Steuerungen
+        42              1     3           NaN  Diverse Steuerungen
+        43              1     3           NaN  Diverse Steuerungen
+        44              1     3           NaN  Diverse Steuerungen
+        45              1     3           NaN  Diverse Steuerungen
+        80              1     3           NaN  Diverse Steuerungen
+        82              1     3           NaN  Diverse Steuerungen
+        83            100     1           100  Diverse Steuerungen
+        146           100     3           NaN        Sekundärwerte
+        149           100     3           NaN        Sekundärwerte
+        152           100     3           NaN        Sekundärwerte
+        30           ADum     1          ADum  Diverse Steuerungen
+        31           ADum     3           NaN  Diverse Steuerungen
+        32           ADum     3           NaN  Diverse Steuerungen
+        33           ADum     3           NaN  Diverse Steuerungen
+        46           ADum     3          ADum  Diverse Steuerungen
+        49           ADum     3          ADum  Diverse Steuerungen
+        51           ADum     3          ADum  Diverse Steuerungen
+        53           ADum     3          ADum  Diverse Steuerungen
+        55           ADum     3          ADum  Diverse Steuerungen
+        57           ADum     3          ADum  Diverse Steuerungen
+        59           ADum     3          ADum  Diverse Steuerungen
+        61           ADum     3          ADum  Diverse Steuerungen
+        63           ADum     3          ADum  Diverse Steuerungen
+        65           ADum     3          ADum  Diverse Steuerungen
+        67           ADum     3          ADum  Diverse Steuerungen
+        69           ADum     3          ADum  Diverse Steuerungen
+        86           ADum     3           NaN  Diverse Steuerungen
+        87           ADum     3           NaN  Diverse Steuerungen
+        90           ADum     3           NaN  Diverse Steuerungen
+        91           ADum     3           NaN  Diverse Steuerungen
+        96           ADum     3           NaN  Diverse Steuerungen
+        97           ADum     3           NaN  Diverse Steuerungen
+        98           ADum     3           NaN  Diverse Steuerungen
+        99           ADum     3           NaN  Diverse Steuerungen
+        104          ADum     3           NaN  Diverse Steuerungen
+        108          ADum     3           NaN                    A
+        110          ADum     3           NaN                    A
+        116          ADum     3           NaN                    B
+        118          ADum     3           NaN                    B
+        124          ADum     3           NaN                    C
+        125          ADum     3           NaN                    C
+        0      Leck_1_Ein     1    Leck_1_Ein    AGFW Symposium DH
+        84     Leck_1_Ein     3           NaN  Diverse Steuerungen
+        88     Leck_1_Ein     3           NaN  Diverse Steuerungen
+        1      Leck_2_Ein     1    Leck_2_Ein    AGFW Symposium DH
+        93     Leck_2_Ein     3           NaN  Diverse Steuerungen
+        94     Leck_2_Ein     3           NaN  Diverse Steuerungen
+        2      Leck_3_Ein     1    Leck_3_Ein    AGFW Symposium DH
+        101    Leck_3_Ein     3           NaN  Diverse Steuerungen
+        102    Leck_3_Ein     3           NaN  Diverse Steuerungen
+        25     Leck_Menge     1    Leck_Menge    AGFW Symposium DH
+        34     Leck_Menge     3           NaN  Diverse Steuerungen
+        35     Leck_Menge     3           NaN  Diverse Steuerungen
+        36     Leck_Menge     3           NaN  Diverse Steuerungen
+        37     Leck_Menge     3           NaN  Diverse Steuerungen
+        38     Leck_Menge     3           NaN  Diverse Steuerungen
+        39     Leck_Menge     3           NaN  Diverse Steuerungen
+        27        Leck_RL     1       Leck_RL    AGFW Symposium DH
+        89        Leck_RL     3           NaN  Diverse Steuerungen
+        92        Leck_RL     3           NaN  Diverse Steuerungen
+        100       Leck_RL     3           NaN  Diverse Steuerungen
+        26        Leck_VL     1       Leck_VL    AGFW Symposium DH
+        85        Leck_VL     3           NaN  Diverse Steuerungen
+        95        Leck_VL     3           NaN  Diverse Steuerungen
+        103       Leck_VL     3           NaN  Diverse Steuerungen
+        129        QDHGes     1        QDHGes        Sekundärwerte
+        140       dLastMW     1       dLastMW        Sekundärwerte
+        154       dUWMMax     1       dUWMMax        Sekundärwerte
+        153       dUWMMin     1       dUWMMin        Sekundärwerte
+        12            dpA     1           dpA    AGFW Symposium DH
+        111           dpA     3           NaN                    A
+        13             qB     1            qB    AGFW Symposium DH
+        119            qB     3           NaN                    B
+        14             qC     1            qC    AGFW Symposium DH
+        127            qC     3           NaN                    C
+        6        vorOrtNA     1      vorOrtNA    AGFW Symposium DH
+        15       vorOrtNA     3           NaN    AGFW Symposium DH
+        17       vorOrtNB     1      vorOrtNB    AGFW Symposium DH
+        18       vorOrtNB     3           NaN    AGFW Symposium DH
+        117      vorOrtNB     3           NaN                    B
+        120      vorOrtNB     3           NaN                    B
+        20       vorOrtNC     1      vorOrtNC    AGFW Symposium DH
+        21       vorOrtNC     3           NaN    AGFW Symposium DH
+        109      vorOrtNC     3           NaN                    A
+        112      vorOrtNC     3           NaN                    A
+        126      vorOrtNC     3           NaN                    C
+        128      vorOrtNC     3           NaN                    C
+        11    wDH_BA_A_MD     1   wDH_BA_A_MD    AGFW Symposium DH
+        78    wDH_BA_A_MD     3           NaN  Diverse Steuerungen
+        9     wDH_BA_A_RD     1   wDH_BA_A_RD    AGFW Symposium DH
+        10    wDH_BA_A_RD     3           NaN    AGFW Symposium DH
+        76    wDH_BA_A_RD     3           NaN  Diverse Steuerungen
+        8        wDH_MD_A     1      wDH_MD_A    AGFW Symposium DH
+        71       wDH_MD_A     3           NaN  Diverse Steuerungen
+        72   wDH_MD_A_ERO     1  wDH_MD_A_ERO  Diverse Steuerungen
+        77   wDH_MD_A_ERO     3           NaN  Diverse Steuerungen
+        7        wDH_RD_A     1      wDH_RD_A    AGFW Symposium DH
+        73       wDH_RD_A     3           NaN  Diverse Steuerungen
+        74   wDH_RD_A_ERO     1  wDH_RD_A_ERO  Diverse Steuerungen
+        75   wDH_RD_A_ERO     3           NaN  Diverse Steuerungen
+        23          wLast     1         wLast    AGFW Symposium DH
+        79          wLast     3           NaN  Diverse Steuerungen
+        136       wLastMW     1       wLastMW        Sekundärwerte
+        139       wLastMW     3           NaN        Sekundärwerte
+        3             wNA     1           wNA    AGFW Symposium DH
+        106           wNA     3           NaN                    A
+        16         wNAEin     1        wNAEin    AGFW Symposium DH
+        105        wNAEin     3           NaN                    A
+        4             wNB     1           wNB    AGFW Symposium DH
+        114           wNB     3           NaN                    B
+        19         wNBEin     1        wNBEin    AGFW Symposium DH
+        107        wNBEin     3           NaN                    A
+        113        wNBEin     3           NaN                    B
+        115        wNBEin     3           NaN                    B
+        5             wNC     1           wNC    AGFW Symposium DH
+        122           wNC     3           NaN                    C
+        22         wNCEin     1        wNCEin    AGFW Symposium DH
+        121        wNCEin     3           NaN                    C
+        123        wNCEin     3           NaN                    C
+        24          wTRST     1         wTRST    AGFW Symposium DH
+        81          wTRST     3           NaN  Diverse Steuerungen
+        141          yAMW     1          yAMW        Sekundärwerte
+        145          yAMW     3           NaN        Sekundärwerte
+        142          yBMW     1          yBMW        Sekundärwerte
+        148          yBMW     3           NaN        Sekundärwerte
+        143          yCMW     1          yCMW        Sekundärwerte
+        151          yCMW     3           NaN        Sekundärwerte
+        130     yDH_dp2_A     1     yDH_dp2_A        Sekundärwerte
+        70      yDH_dp2_A     3           NaN  Diverse Steuerungen
+        131     yDH_dp2_A     3           NaN        Sekundärwerte
+        132     yDH_pMD_A     1     yDH_pMD_A        Sekundärwerte
+        133     yDH_pRL_A     1     yDH_pRL_A        Sekundärwerte
+        134     yDH_pRL_A     3           NaN        Sekundärwerte
+        137       yLastMW     1       yLastMW        Sekundärwerte
+        138       yLastMW     3           NaN        Sekundärwerte
+        144       yLastMW     3           NaN        Sekundärwerte
+        147       yLastMW     3           NaN        Sekundärwerte
+        150       yLastMW     3           NaN        Sekundärwerte
+        135          yUWM     1          yUWM        Sekundärwerte
+        156          yUWM     3           NaN        Sekundärwerte
+        155      yUWMLast     1      yUWMLast        Sekundärwerte
+        >>> # ---
+        >>> vRUESDefs=vRUES.loc[vRUES['IOTYP']=='1']
+        >>> # für Defs die Originaldefinition finden ...
+        >>> vRUESDefsCrgl=pd.merge(vRUESDefs,xm.dataFrames['CRGL'],left_on='pk',right_on='fkKk',suffixes=('','_CRGL'),how='left') # für alle sollte eine Referenz gefunden werden ...
+        >>> vRUESDefsCrgl.sort_values(by=['Kn'])[[
+        ...      'Kn'       
+        ...     ,'CONT'       
+        ...     ,'fkKi'       
+        ...     ]]
+                      Kn                 CONT                 fkKi
+        24             0  Diverse Steuerungen  5486870913514090048
+        25             1  Diverse Steuerungen  5377084992102722959
+        29           100  Diverse Steuerungen  5055797784689898209
+        26          ADum  Diverse Steuerungen  5408457159782566744
+        0     Leck_1_Ein    AGFW Symposium DH  5706111677806224290
+        1     Leck_2_Ein    AGFW Symposium DH  4704869532416514405
+        2     Leck_3_Ein    AGFW Symposium DH  4808434710442736644
+        21    Leck_Menge    AGFW Symposium DH  5390061625789905096
+        23       Leck_RL    AGFW Symposium DH  5644481773793849108
+        22       Leck_VL    AGFW Symposium DH  4880440884169110259
+        30        QDHGes        Sekundärwerte  5345716897595312355
+        37       dLastMW        Sekundärwerte  4611793887272861500
+        42       dUWMMax        Sekundärwerte  4672771372882677276
+        41       dUWMMin        Sekundärwerte  5463544828758888616
+        11           dpA    AGFW Symposium DH  4849866990207957614
+        12            qB    AGFW Symposium DH  4771725364091629759
+        13            qC    AGFW Symposium DH  4978409087288292434
+        6       vorOrtNA    AGFW Symposium DH  5194343043762135519
+        15      vorOrtNB    AGFW Symposium DH  4705080808435797677
+        17      vorOrtNC    AGFW Symposium DH  5620348872583735825
+        10   wDH_BA_A_MD    AGFW Symposium DH  4873987359791313088
+        9    wDH_BA_A_RD    AGFW Symposium DH  5322890886142492590
+        8       wDH_MD_A    AGFW Symposium DH  5093705160009582980
+        27  wDH_MD_A_ERO  Diverse Steuerungen  5729434727271745948
+        7       wDH_RD_A    AGFW Symposium DH  4622192786925004485
+        28  wDH_RD_A_ERO  Diverse Steuerungen  4980847179402621205
+        19         wLast    AGFW Symposium DH  5741660563170722352
+        35       wLastMW        Sekundärwerte  4833634373103605497
+        3            wNA    AGFW Symposium DH  4991855568438544033
+        14        wNAEin    AGFW Symposium DH  4742316320267545359
+        4            wNB    AGFW Symposium DH  4658075570394029953
+        16        wNBEin    AGFW Symposium DH  5013654033692161674
+        5            wNC    AGFW Symposium DH  5240575308071562858
+        18        wNCEin    AGFW Symposium DH  5670691593026035398
+        20         wTRST    AGFW Symposium DH  5547011912763631199
+        38          yAMW        Sekundärwerte  4726758453134789052
+        39          yBMW        Sekundärwerte  5528896084200811302
+        40          yCMW        Sekundärwerte  5274276049082272588
+        31     yDH_dp2_A        Sekundärwerte  5512879293670562022
+        32     yDH_pMD_A        Sekundärwerte  5255402486218254174
+        33     yDH_pRL_A        Sekundärwerte  4639451967914783278
+        36       yLastMW        Sekundärwerte  4817923247686815456
+        34          yUWM        Sekundärwerte  5008805081156446169
+        43      yUWMLast        Sekundärwerte  5574611204646558662
+        >>> vRUESDefsCrglRuesDef=pd.merge(vRUESDefsCrgl,vRUES,left_on='fkKi',right_on='pk',suffixes=('','_vRUES'),how='inner') # für die RUES-definierten RUES sollte eine Referenz gefunden werden ...
+        >>> vRUESDefsCrglRuesDef.sort_values(by=['Kn'])[[
+        ...      'Kn'       
+        ...     ,'CONT'       
+        ...     ,'fkKi'       
+        ...     ,'Kn_vRUES'
+        ...     ]]
+                     Kn                 CONT                 fkKi  Kn_vRUES
+        0  wDH_RD_A_ERO  Diverse Steuerungen  4980847179402621205  wDH_RD_A
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:      
+            vRUES=None                  
+                         
+            vRUES=pd.merge(self.dataFrames['RUES'],self.dataFrames['RUES_BZ'],left_on='pk',right_on='fk',suffixes=('','_BZ'))
+            vRUES=pd.merge(vRUES,self.dataFrames['CONT'],left_on='fkCONT',right_on='pk',suffixes=('','_CONT'))
+
+            colsEff=vRUES.columns.tolist()
+            colsEff.remove('GEOM')
+            colsEff.remove('FONT')
+            colsEff.remove('GRAF_CONT')
+
+            vRUES=vRUES.filter(items=colsEff,axis=1)
+
+            vRUES.rename(columns=
+            {'NAME': 'CONT',}
+            ,inplace=True)
+
+            vRUES=vRUES[[
+             
+             'IDUE'            
+            ,'IOTYP'
+            ,'rkRUES'
+
+            ,'CONT'
+            ,'ID'
+
+            ,'pk'
+            ,'rk'
+            ]]
+
+            # zu jeder Referenz (ein potentieller Ausgang - Ki eines potentiellen Signals) die Definition suchen (Kk eines Signals)
+            vRUES=pd.merge(vRUES,vRUES,how='left',left_on='rkRUES',right_on='pk',suffixes=('','_rkRUES'))
+
+            vRUES=vRUES[[
+             
+             'IDUE'
+            ,'IOTYP'
+            ,'rkRUES'
+
+            ,'IDUE_rkRUES'            
+            ,'IOTYP_rkRUES'
+
+            ,'CONT'
+            ,'ID'
+
+            ,'CONT_rkRUES'
+            ,'ID_rkRUES'
+
+            ,'pk'
+            ,'rk'
+            ]]
+           
+            vRUES['Kn']  = vRUES.apply(lambda row: row.IDUE if row.IOTYP=='1' else row.IDUE_rkRUES, axis=1)
+
+
+            
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            if isinstance(vRUES,pd.core.frame.DataFrame):
+                logger.error(logStrFinal) 
+            else:
+                logger.debug(logStrFinal) 
+                vRUES=pd.DataFrame()              
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            return vRUES
+
     def _vRSLW(self,vSWVT=None):
         """One row per RSLW.
 
@@ -2946,10 +3332,14 @@ class Xm():
                 RSLW
                     * KA
                     * BESCHREIBUNG
-                    * INDWBG, INDWNO
+                    * INDWBG
+                    * WMIN
+                    * WMAX
+                    * INDWNO
 
                 RSLW BZ
-                    * INDSLW, SLWKON
+                    * INDSLW
+                    * SLWKON
 
                 CONT
                     * CONT
@@ -2957,6 +3347,7 @@ class Xm():
 
                 SWVT
                     * SWVT
+                    * SWVT_Count (Anzahl der RSLW-Referenzierungen der SWVT; 0, wenn keine SWVT angegeben; INDSLW wird bei der Ermittlung nicht ausgewertet)
                     * BESCHREIBUNG_SWVT
                     * INTPOL
                     * ZEITOPTION
@@ -2972,6 +3363,45 @@ class Xm():
 
         Raises:
             XmError
+
+        >>> import pandas as pd             
+        >>> # ---
+        >>> xm=xms['DHNetwork']
+        >>> # ---             
+        >>> vRSLW=xm.dataFrames['vRSLW']
+        >>> vRSLW[[
+        ...  'KA'
+        ... ,'BESCHREIBUNG'
+        ... ,'INDSLW'
+        ... ,'CONT'
+        ... ,'SWVT'
+        ... ]].sort_values(by=['KA'])
+                     KA          BESCHREIBUNG INDSLW                 CONT        SWVT
+        20            0                  None      0  Diverse Steuerungen         NaN
+        21            1                  None      0  Diverse Steuerungen         NaN
+        23          100                  None      0  Diverse Steuerungen         NaN
+        22         ADum          Analog Dummy      0  Diverse Steuerungen         NaN
+        0    Leck_1_Ein            Leck_1_Ein      1    AGFW Symposium DH      zLeck1
+        1    Leck_2_Ein            Leck_2_Ein      1    AGFW Symposium DH      zLeck2
+        2    Leck_3_Ein            Leck_3_Ein      1    AGFW Symposium DH      zLeck3
+        11   Leck_Menge            Leck_Menge      1    AGFW Symposium DH  zLeckMenge
+        13      Leck_RL               Leck_RL      1    AGFW Symposium DH    zLeck_RL
+        12      Leck_VL               Leck_VL      1    AGFW Symposium DH    zLeck_VL
+        24           cp                   NaN      0        Sekundärwerte         NaN
+        17          dpA                   dpA      1    AGFW Symposium DH         dpA
+        18           qB                    qB      1    AGFW Symposium DH          qB
+        19           qC                    qC      1    AGFW Symposium DH          qC
+        6      vorOrtNA              vorOrtNA      1    AGFW Symposium DH    vorOrtNA
+        7      vorOrtNB              vorOrtNB      1    AGFW Symposium DH    vorOrtNB
+        8      vorOrtNC              vorOrtNC      1    AGFW Symposium DH    vorOrtNC
+        16  wDH_BA_A_RD  wDH_BA_A; 1=RD; 0=MD      1    AGFW Symposium DH    wDH_BA_A
+        15     wDH_MD_A              wDH_MD_A      1    AGFW Symposium DH    wDH_MD_A
+        14     wDH_RD_A              wDH_RD_A      1    AGFW Symposium DH    wDH_RD_A
+        9         wLast                 wLast      1    AGFW Symposium DH       wLast
+        3           wNA                   wNA      1    AGFW Symposium DH         wNA
+        4           wNB                   wNB      1    AGFW Symposium DH         wNB
+        5           wNC                   wNC      1    AGFW Symposium DH         wNC
+        10        wTRST                 wTRST      1    AGFW Symposium DH       wTRSP
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -2987,7 +3417,9 @@ class Xm():
             # RSLW
             'KA'
             ,'BESCHREIBUNG'
-            ,'INDWBG','INDWNO'
+            ,'INDWBG'
+            ,'WMIN','WMAX'
+            ,'INDWNO'
             # RSLW BZ
             ,'INDSLW','SLWKON','fkSWVT' 
             # CONT
@@ -3002,7 +3434,9 @@ class Xm():
             # RSLW
             'KA'
             ,'BESCHREIBUNG_x'
-            ,'INDWBG','INDWNO'
+            ,'INDWBG'
+            ,'WMIN','WMAX'
+            ,'INDWNO'
             # RSLW BZ
             ,'INDSLW','SLWKON'
             # CONT
@@ -3026,13 +3460,38 @@ class Xm():
             # RSLW
             'KA'
             ,'BESCHREIBUNG'
-            ,'INDWBG','INDWNO'
+            ,'INDWBG'
+            ,'WMIN','WMAX'
+            ,'INDWNO'
             # RSLW BZ
             ,'INDSLW','SLWKON'
             # CONT
             ,'CONT','ID'          
             # vSWVT
             ,'SWVT', 'BESCHREIBUNG_SWVT', 'W', 'W_min', 'W_max', 'INTPOL','ZEITOPTION'
+            # RSLW IDs   
+            ,'pk','tk'
+                 ]]          
+
+            # Anzahl der RSLW-Referenzierungen einer SWVT an jedem RSLW merken
+            go=vRSLW.groupby(['SWVT']).count()            
+            vRSLW=pd.merge(vRSLW,go.reset_index()[['SWVT','pk']].rename(columns={'pk':'SWVT_Count'}),how='left')
+            fillValues={'SWVT_Count':0}
+            vRSLW=vRSLW.fillna(value=fillValues)
+            vRSLW=vRSLW.astype({'SWVT_Count': 'int32'},errors='ignore')
+            vRSLW=vRSLW[[
+            # RSLW
+            'KA'
+            ,'BESCHREIBUNG'
+            ,'INDWBG'
+            ,'WMIN','WMAX'
+            ,'INDWNO'
+            # RSLW BZ
+            ,'INDSLW','SLWKON'
+            # CONT
+            ,'CONT','ID'          
+            # vSWVT
+            ,'SWVT','SWVT_Count','BESCHREIBUNG_SWVT', 'W', 'W_min', 'W_max', 'INTPOL','ZEITOPTION'
             # RSLW IDs   
             ,'pk','tk'
                  ]]          
@@ -4838,6 +5297,126 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
             return vXXXX     
 
+    def _vRXXX(self,nodes=vRXXX_nodes,nodesT=vRXXX_nodesT):
+        """One row per R-Node.
+
+        Args:
+            * nodes: List of all R-Node Elements but RUES
+            * nodesT: not used
+
+        Returns:
+            R-Node df
+            returned R-Node df is None if an exception occurs 
+
+            rows:
+                * sequence nodes: nodes
+                * sequence within nodes: Xml
+
+            columns:                
+                * see _vRXXX_XXXX
+
+        >>> import pandas as pd             
+        >>> # ---
+        >>> xm=xms['DHNetwork']
+        >>> # ---         
+        >>> vRUES=xm.dataFrames['vRUES']
+        >>> vRUES.sort_values(by=['Kn','IOTYP'])[[ # pro Kn oten steht zuerst die Definition, dann die Referenz(en)
+        ...      'Kn'
+        ...     ,'IOTYP'       
+        ...     ,'IDUE' # zur Kontrolle       
+        ...     ,'CONT'       
+        ...     ]]
+        >>> vRXXX=xm.dataFrames['vRXXX']                                   
+        >>> vRXXX
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:    
+            # construct 
+            vRXXX=None
+            vRXXX_UnionList=[]
+
+            for NODE in nodes:
+                if NODE in self.dataFrames:
+                    vRXXX=self._vRXXX_XXXX(OBJTYPE=NODE)
+                    if vRXXX is None:
+                        pass
+                    else:
+                        vRXXX_UnionList.append(vRXXX)
+            vRXXX=pd.concat(vRXXX_UnionList)
+          
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.debug(logStrFinal)    
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
+            return vRXXX
+        
+    def _vRXXX_XXXX(self,OBJTYPE=None):
+        """One row per R-Node of Type OBJTYPE.
+
+        Args:
+            OBJTYPE: str: i.e. RHYS
+
+        Returns:
+            R-Node df
+            None is returned if an exception occurs
+
+            columns:
+                * OBJTYPE: str: i.e. RADD
+                
+                * BESCHREIBUNG
+                * KA
+
+                * CONT   
+
+                * pk      
+                * tk                                           
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:        
+                        
+            vRXXX=None
+
+            vRXXX=self.dataFrames[OBJTYPE]            
+
+            vRXXX=pd.merge(vRXXX,self.dataFrames['CONT'],left_on='fkCONT',right_on='pk',suffixes=('','_CONT'))
+            
+            vRXXX=vRXXX[[
+                'BESCHREIBUNG'
+               ,'KA'
+               ,'pk'      
+               ,'tk'
+               ,'NAME'
+            ]]
+
+            vRXXX.rename(columns={"NAME": "CONT"},inplace=True)
+
+            vRXXX['OBJTYPE']=OBJTYPE
+
+            vRXXX=vRXXX[[
+                'OBJTYPE'
+               ,'BESCHREIBUNG'
+               ,'KA'
+               ,'CONT'
+               ,'pk'      
+               ,'tk'               
+            ]]
+
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.debug(logStrFinal) 
+            vRXXX=None
+         
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
+            return vRXXX     
+
     def MxSync(self,mx=None,ForceNoH5ReadForMx=False):
         """Xm: NEW 1st Call: vNRCV_Mx1: vNRCV with MX1-Information. Some Xm-Views with MX2-Information (mx2Idx).Mx: Sir3sID Update in Mx-Object. 
 
@@ -4897,6 +5476,272 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             if not returnNothing:
                 return mx
+
+    def _vREdges(self):
+        """Returns vREdges.
+
+        >>> import pandas as pd             
+        >>> # ---
+        >>> xm=xms['DHNetwork']
+        >>> # ---                    
+        >>> vREdges=xm.dataFrames['vREdges']
+        >>> vREdges[[
+        ...  'CONT'
+        ... ,'OBJTYPE_Ki'
+        ... ,'OBJTYPE_Kk'        
+        ... ,'Kn_Ki'
+        ... ,'Kn_Kk'
+        ... ,'KnExt_Ki'
+        ... ,'KnExt_Kk'
+        ... ]].sort_values(by=['KnExt_Ki','KnExt_Kk','CONT'])
+                            CONT OBJTYPE_Ki OBJTYPE_Kk         Kn_Ki         Kn_Kk           KnExt_Ki           KnExt_Kk
+        3    Diverse Steuerungen       RSLW       RUES             0             0             0_RSLW             0_RUES
+        105  Diverse Steuerungen       RUES       RSTN             0       KA-0032             0_RUES       KA-0032_RSTN
+        106  Diverse Steuerungen       RUES       RSTN             0       KA-0033             0_RUES       KA-0033_RSTN
+        108  Diverse Steuerungen       RUES       RSTN             0       KA-0034             0_RUES       KA-0034_RSTN
+        110  Diverse Steuerungen       RUES       RSTN             0       KA-0035             0_RUES       KA-0035_RSTN
+        112  Diverse Steuerungen       RUES       RSTN             0       KA-0036             0_RUES       KA-0036_RSTN
+        114  Diverse Steuerungen       RUES       RSTN             0       KA-0037             0_RUES       KA-0037_RSTN
+        116  Diverse Steuerungen       RUES       RSTN             0       KA-0038             0_RUES       KA-0038_RSTN
+        118  Diverse Steuerungen       RUES       RSTN             0       KA-0039             0_RUES       KA-0039_RSTN
+        120  Diverse Steuerungen       RUES       RSTN             0       KA-0040             0_RUES       KA-0040_RSTN
+        122  Diverse Steuerungen       RUES       RSTN             0       KA-0041             0_RUES       KA-0041_RSTN
+        124  Diverse Steuerungen       RUES       RSTN             0       KA-0042             0_RUES       KA-0042_RSTN
+        126  Diverse Steuerungen       RUES       RSTN             0       KA-0043             0_RUES       KA-0043_RSTN
+        41   Diverse Steuerungen       RSLW       RUES           100           100           100_RSLW           100_RUES
+        4    Diverse Steuerungen       RSLW       RUES             1             1             1_RSLW             1_RUES
+        26   Diverse Steuerungen       RUES       RSTN             1       KA-0004             1_RUES       KA-0004_RSTN
+        28   Diverse Steuerungen       RUES       RSTN             1       KA-0005             1_RUES       KA-0005_RSTN
+        93   Diverse Steuerungen       RUES       RSTN             1       KA-0025             1_RUES       KA-0025_RSTN
+        95   Diverse Steuerungen       RUES       RSTN             1       KA-0027             1_RUES       KA-0027_RSTN
+        97   Diverse Steuerungen       RUES       RSTN             1       KA-0028             1_RUES       KA-0028_RSTN
+        99   Diverse Steuerungen       RUES       RSTN             1       KA-0029             1_RUES       KA-0029_RSTN
+        101  Diverse Steuerungen       RUES       RSTN             1       KA-0030             1_RUES       KA-0030_RSTN
+        103  Diverse Steuerungen       RUES       RSTN             1       KA-0031             1_RUES       KA-0031_RSTN
+        5    Diverse Steuerungen       RSLW       RUES          ADum          ADum          ADum_RSLW          ADum_RUES
+        60   Diverse Steuerungen       RUES       RSTN          ADum       KA-0003          ADum_RUES       KA-0003_RSTN
+        53   Diverse Steuerungen       RUES       RSTN          ADum       KA-0006          ADum_RUES       KA-0006_RSTN
+        62   Diverse Steuerungen       RUES       RSTN          ADum       KA-0007          ADum_RUES       KA-0007_RSTN
+        55   Diverse Steuerungen       RUES       RSTN          ADum       KA-0008          ADum_RUES       KA-0008_RSTN
+        69   Diverse Steuerungen       RUES       RSTN          ADum       KA-0013          ADum_RUES       KA-0013_RSTN
+        74   Diverse Steuerungen       RUES       RSTN          ADum       KA-0014          ADum_RUES       KA-0014_RSTN
+        71   Diverse Steuerungen       RUES       RSTN          ADum       KA-0015          ADum_RUES       KA-0015_RSTN
+        76   Diverse Steuerungen       RUES       RSTN          ADum       KA-0016          ADum_RUES       KA-0016_RSTN
+        83   Diverse Steuerungen       RUES       RSTN          ADum       KA-0021          ADum_RUES       KA-0021_RSTN
+        88   Diverse Steuerungen       RUES       RSTN          ADum       KA-0022          ADum_RUES       KA-0022_RSTN
+        85   Diverse Steuerungen       RUES       RSTN          ADum       KA-0023          ADum_RUES       KA-0023_RSTN
+        90   Diverse Steuerungen       RUES       RSTN          ADum       KA-0024          ADum_RUES       KA-0024_RSTN
+        104  Diverse Steuerungen       RUES       RSTN          ADum       KA-0032          ADum_RUES       KA-0032_RSTN
+        107  Diverse Steuerungen       RUES       RSTN          ADum       KA-0033          ADum_RUES       KA-0033_RSTN
+        109  Diverse Steuerungen       RUES       RSTN          ADum       KA-0034          ADum_RUES       KA-0034_RSTN
+        111  Diverse Steuerungen       RUES       RSTN          ADum       KA-0035          ADum_RUES       KA-0035_RSTN
+        113  Diverse Steuerungen       RUES       RSTN          ADum       KA-0036          ADum_RUES       KA-0036_RSTN
+        115  Diverse Steuerungen       RUES       RSTN          ADum       KA-0037          ADum_RUES       KA-0037_RSTN
+        117  Diverse Steuerungen       RUES       RSTN          ADum       KA-0038          ADum_RUES       KA-0038_RSTN
+        119  Diverse Steuerungen       RUES       RSTN          ADum       KA-0039          ADum_RUES       KA-0039_RSTN
+        121  Diverse Steuerungen       RUES       RSTN          ADum       KA-0040          ADum_RUES       KA-0040_RSTN
+        123  Diverse Steuerungen       RUES       RSTN          ADum       KA-0041          ADum_RUES       KA-0041_RSTN
+        125  Diverse Steuerungen       RUES       RSTN          ADum       KA-0042          ADum_RUES       KA-0042_RSTN
+        127  Diverse Steuerungen       RUES       RSTN          ADum       KA-0043          ADum_RUES       KA-0043_RSTN
+        163                    A       RUES       RSTN          ADum       KA-0044          ADum_RUES       KA-0044_RSTN
+        165                    A       RUES       RSTN          ADum       KA-0045          ADum_RUES       KA-0045_RSTN
+        151                    B       RUES       RSTN          ADum       KA-0053          ADum_RUES       KA-0053_RSTN
+        153                    B       RUES       RSTN          ADum       KA-0057          ADum_RUES       KA-0057_RSTN
+        157                    C       RUES       RSTN          ADum       KA-0059          ADum_RUES       KA-0059_RSTN
+        158                    C       RUES       RSTN          ADum       KA-0060          ADum_RUES       KA-0060_RSTN
+        61   Diverse Steuerungen       RLVG       RLVG       KA-0001       KA-0002       KA-0001_RLVG       KA-0002_RLVG
+        59   Diverse Steuerungen       RLVG       RSTN       KA-0001       KA-0003       KA-0001_RLVG       KA-0003_RSTN
+        63   Diverse Steuerungen       RLVG       RSTN       KA-0002       KA-0007       KA-0002_RLVG       KA-0007_RSTN
+        70   Diverse Steuerungen       RLVG       RLVG       KA-0009       KA-0010       KA-0009_RLVG       KA-0010_RLVG
+        68   Diverse Steuerungen       RLVG       RSTN       KA-0009       KA-0013       KA-0009_RLVG       KA-0013_RSTN
+        72   Diverse Steuerungen       RLVG       RSTN       KA-0010       KA-0015       KA-0010_RLVG       KA-0015_RSTN
+        75   Diverse Steuerungen       RLVG       RLVG       KA-0011       KA-0012       KA-0011_RLVG       KA-0012_RLVG
+        73   Diverse Steuerungen       RLVG       RSTN       KA-0011       KA-0014       KA-0011_RLVG       KA-0014_RSTN
+        77   Diverse Steuerungen       RLVG       RSTN       KA-0012       KA-0016       KA-0012_RLVG       KA-0016_RSTN
+        84   Diverse Steuerungen       RLVG       RLVG       KA-0017       KA-0018       KA-0017_RLVG       KA-0018_RLVG
+        82   Diverse Steuerungen       RLVG       RSTN       KA-0017       KA-0021       KA-0017_RLVG       KA-0021_RSTN
+        86   Diverse Steuerungen       RLVG       RSTN       KA-0018       KA-0023       KA-0018_RLVG       KA-0023_RSTN
+        89   Diverse Steuerungen       RLVG       RLVG       KA-0019       KA-0020       KA-0019_RLVG       KA-0020_RLVG
+        87   Diverse Steuerungen       RLVG       RSTN       KA-0019       KA-0022       KA-0019_RLVG       KA-0022_RSTN
+        91   Diverse Steuerungen       RLVG       RSTN       KA-0020       KA-0024       KA-0020_RLVG       KA-0024_RSTN
+        45         Sekundärwerte       RMES       RADD       KA-0026      yUWMLast       KA-0026_RMES      yUWMLast_RADD
+        0      AGFW Symposium DH       RSLW       RUES    Leck_1_Ein    Leck_1_Ein    Leck_1_Ein_RSLW    Leck_1_Ein_RUES
+        57   Diverse Steuerungen       RUES       RLVG    Leck_1_Ein       KA-0001    Leck_1_Ein_RUES       KA-0001_RLVG
+        50   Diverse Steuerungen       RUES       RLVG    Leck_1_Ein     Leck_1_VL    Leck_1_Ein_RUES     Leck_1_VL_RLVG
+        52   Diverse Steuerungen       RLVG       RSTN     Leck_1_VL       KA-0006     Leck_1_VL_RLVG       KA-0006_RSTN
+        54   Diverse Steuerungen       RLVG       RLVG     Leck_1_VL    nLeck_1_VL     Leck_1_VL_RLVG    nLeck_1_VL_RLVG
+        1      AGFW Symposium DH       RSLW       RUES    Leck_2_Ein    Leck_2_Ein    Leck_2_Ein_RSLW    Leck_2_Ein_RUES
+        66   Diverse Steuerungen       RUES       RLVG    Leck_2_Ein       KA-0009    Leck_2_Ein_RUES       KA-0009_RLVG
+        65   Diverse Steuerungen       RUES       RLVG    Leck_2_Ein       KA-0011    Leck_2_Ein_RUES       KA-0011_RLVG
+        2      AGFW Symposium DH       RSLW       RUES    Leck_3_Ein    Leck_3_Ein    Leck_3_Ein_RSLW    Leck_3_Ein_RUES
+        80   Diverse Steuerungen       RUES       RLVG    Leck_3_Ein       KA-0017    Leck_3_Ein_RUES       KA-0017_RLVG
+        79   Diverse Steuerungen       RUES       RLVG    Leck_3_Ein       KA-0019    Leck_3_Ein_RUES       KA-0019_RLVG
+        47     AGFW Symposium DH       RSLW       RUES    Leck_Menge    Leck_Menge    Leck_Menge_RSLW    Leck_Menge_RUES
+        92   Diverse Steuerungen       RUES       RSTN    Leck_Menge       KA-0025    Leck_Menge_RUES       KA-0025_RSTN
+        94   Diverse Steuerungen       RUES       RSTN    Leck_Menge       KA-0027    Leck_Menge_RUES       KA-0027_RSTN
+        96   Diverse Steuerungen       RUES       RSTN    Leck_Menge       KA-0028    Leck_Menge_RUES       KA-0028_RSTN
+        98   Diverse Steuerungen       RUES       RSTN    Leck_Menge       KA-0029    Leck_Menge_RUES       KA-0029_RSTN
+        100  Diverse Steuerungen       RUES       RSTN    Leck_Menge       KA-0030    Leck_Menge_RUES       KA-0030_RSTN
+        102  Diverse Steuerungen       RUES       RSTN    Leck_Menge       KA-0031    Leck_Menge_RUES       KA-0031_RSTN
+        49     AGFW Symposium DH       RSLW       RUES       Leck_RL       Leck_RL       Leck_RL_RSLW       Leck_RL_RUES
+        58   Diverse Steuerungen       RUES       RLVG       Leck_RL       KA-0001       Leck_RL_RUES       KA-0001_RLVG
+        64   Diverse Steuerungen       RUES       RLVG       Leck_RL       KA-0011       Leck_RL_RUES       KA-0011_RLVG
+        78   Diverse Steuerungen       RUES       RLVG       Leck_RL       KA-0019       Leck_RL_RUES       KA-0019_RLVG
+        48     AGFW Symposium DH       RSLW       RUES       Leck_VL       Leck_VL       Leck_VL_RSLW       Leck_VL_RUES
+        67   Diverse Steuerungen       RUES       RLVG       Leck_VL       KA-0009       Leck_VL_RUES       KA-0009_RLVG
+        81   Diverse Steuerungen       RUES       RLVG       Leck_VL       KA-0017       Leck_VL_RUES       KA-0017_RLVG
+        51   Diverse Steuerungen       RUES       RLVG       Leck_VL     Leck_1_VL       Leck_VL_RUES     Leck_1_VL_RLVG
+        128        Sekundärwerte       RMES       RUES        QDHGes        QDHGes        QDHGes_RMES        QDHGes_RUES
+        30         Sekundärwerte       RMES       RADD          TRSP            dT          TRSP_RMES            dT_RADD
+        31         Sekundärwerte       RMES       RADD           TVL            dT           TVL_RMES            dT_RADD
+        37         Sekundärwerte       RADD       RUES       dLastMW       dLastMW       dLastMW_RADD       dLastMW_RUES
+        43         Sekundärwerte       RMES       RUES       dUWMMax       dUWMMax       dUWMMax_RMES       dUWMMax_RUES
+        42         Sekundärwerte       RMES       RUES       dUWMMin       dUWMMin       dUWMMin_RMES       dUWMMin_RUES
+        147    AGFW Symposium DH       RSLW       RUES           dpA           dpA           dpA_RSLW           dpA_RUES
+        166                    A       RUES       RSTN           dpA       KA-0046           dpA_RUES       KA-0046_RSTN
+        56   Diverse Steuerungen       RLVG       RSTN    nLeck_1_VL       KA-0008    nLeck_1_VL_RLVG       KA-0008_RSTN
+        148    AGFW Symposium DH       RSLW       RUES            qB            qB            qB_RSLW            qB_RUES
+        154                    B       RUES       RSTN            qB       KA-0058            qB_RUES       KA-0058_RSTN
+        149    AGFW Symposium DH       RSLW       RUES            qC            qC            qC_RSLW            qC_RUES
+        160                    C       RUES       RSTN            qC       KA-0061            qC_RUES       KA-0061_RSTN
+        15     AGFW Symposium DH       RSLW       RUES      vorOrtNA      vorOrtNA      vorOrtNA_RSLW      vorOrtNA_RUES
+        16     AGFW Symposium DH       RUES       RLVG      vorOrtNA     wNAEin_vO      vorOrtNA_RUES     wNAEin_vO_RLVG
+        18     AGFW Symposium DH       RSLW       RUES      vorOrtNB      vorOrtNB      vorOrtNB_RSLW      vorOrtNB_RUES
+        152                    B       RUES       RSTN      vorOrtNB       KA-0057      vorOrtNB_RUES       KA-0057_RSTN
+        155                    B       RUES       RSTN      vorOrtNB       KA-0058      vorOrtNB_RUES       KA-0058_RSTN
+        19     AGFW Symposium DH       RUES       RLVG      vorOrtNB     wNBEin_vO      vorOrtNB_RUES     wNBEin_vO_RLVG
+        21     AGFW Symposium DH       RSLW       RUES      vorOrtNC      vorOrtNC      vorOrtNC_RSLW      vorOrtNC_RUES
+        164                    A       RUES       RSTN      vorOrtNC       KA-0045      vorOrtNC_RUES       KA-0045_RSTN
+        167                    A       RUES       RSTN      vorOrtNC       KA-0046      vorOrtNC_RUES       KA-0046_RSTN
+        159                    C       RUES       RSTN      vorOrtNC       KA-0060      vorOrtNC_RUES       KA-0060_RSTN
+        161                    C       RUES       RSTN      vorOrtNC       KA-0061      vorOrtNC_RUES       KA-0061_RSTN
+        22     AGFW Symposium DH       RUES       RLVG      vorOrtNC     wNCEin_vO      vorOrtNC_RUES     wNCEin_vO_RLVG
+        138    AGFW Symposium DH       RLVG       RUES   wDH_BA_A_MD   wDH_BA_A_MD   wDH_BA_A_MD_RLVG   wDH_BA_A_MD_RUES
+        146  Diverse Steuerungen       RUES       RSTN   wDH_BA_A_MD       KA-0055   wDH_BA_A_MD_RUES       KA-0055_RSTN
+        136    AGFW Symposium DH       RSLW       RUES   wDH_BA_A_RD   wDH_BA_A_RD   wDH_BA_A_RD_RSLW   wDH_BA_A_RD_RUES
+        144  Diverse Steuerungen       RUES       RSTN   wDH_BA_A_RD       KA-0054   wDH_BA_A_RD_RUES       KA-0054_RSTN
+        137    AGFW Symposium DH       RUES       RLVG   wDH_BA_A_RD   wDH_BA_A_MD   wDH_BA_A_RD_RUES   wDH_BA_A_MD_RLVG
+        141  Diverse Steuerungen       RADD       RUES  wDH_MD_A_ERO  wDH_MD_A_ERO  wDH_MD_A_ERO_RADD  wDH_MD_A_ERO_RUES
+        145  Diverse Steuerungen       RUES       RSTN  wDH_MD_A_ERO       KA-0055  wDH_MD_A_ERO_RUES       KA-0055_RSTN
+        135    AGFW Symposium DH       RSLW       RUES      wDH_MD_A      wDH_MD_A      wDH_MD_A_RSLW      wDH_MD_A_RUES
+        140  Diverse Steuerungen       RUES       RADD      wDH_MD_A  wDH_MD_A_ERO      wDH_MD_A_RUES  wDH_MD_A_ERO_RADD
+        143  Diverse Steuerungen       RUES       RSTN  wDH_RD_A_ERO       KA-0054  wDH_RD_A_ERO_RUES       KA-0054_RSTN
+        134    AGFW Symposium DH       RSLW       RUES      wDH_RD_A      wDH_RD_A      wDH_RD_A_RSLW      wDH_RD_A_RUES
+        142  Diverse Steuerungen       RUES       RUES      wDH_RD_A  wDH_RD_A_ERO      wDH_RD_A_RUES  wDH_RD_A_ERO_RUES
+        33         Sekundärwerte       RMES       RUES       wLastMW       wLastMW       wLastMW_RMES       wLastMW_RUES
+        36         Sekundärwerte       RUES       RADD       wLastMW       dLastMW       wLastMW_RUES       dLastMW_RADD
+        24     AGFW Symposium DH       RSLW       RUES         wLast         wLast         wLast_RSLW         wLast_RUES
+        25   Diverse Steuerungen       RUES       RSTN         wLast       KA-0004         wLast_RUES       KA-0004_RSTN
+        6                      A       RUES       RSTN        wNAEin      wNA_RSTN        wNAEin_RUES      wNA_RSTN_RSTN
+        17     AGFW Symposium DH       RLVG       RUES     wNAEin_vO        wNAEin     wNAEin_vO_RLVG        wNAEin_RUES
+        8      AGFW Symposium DH       RSLW       RUES           wNA           wNA           wNA_RSLW           wNA_RUES
+        7                      A       RUES       RSTN           wNA      wNA_RSTN           wNA_RUES      wNA_RSTN_RSTN
+        162                    A       RUES       RSTN        wNBEin       KA-0044        wNBEin_RUES       KA-0044_RSTN
+        150                    B       RUES       RSTN        wNBEin       KA-0053        wNBEin_RUES       KA-0053_RSTN
+        10                     B       RUES       RSTN        wNBEin      wNB_RSTN        wNBEin_RUES      wNB_RSTN_RSTN
+        20     AGFW Symposium DH       RLVG       RUES     wNBEin_vO        wNBEin     wNBEin_vO_RLVG        wNBEin_RUES
+        9      AGFW Symposium DH       RSLW       RUES           wNB           wNB           wNB_RSLW           wNB_RUES
+        11                     B       RUES       RSTN           wNB      wNB_RSTN           wNB_RUES      wNB_RSTN_RSTN
+        156                    C       RUES       RSTN        wNCEin       KA-0059        wNCEin_RUES       KA-0059_RSTN
+        13                     C       RUES       RSTN        wNCEin      wNC_RSTN        wNCEin_RUES      wNC_RSTN_RSTN
+        23     AGFW Symposium DH       RLVG       RUES     wNCEin_vO        wNCEin     wNCEin_vO_RLVG        wNCEin_RUES
+        12     AGFW Symposium DH       RSLW       RUES           wNC           wNC           wNC_RSLW           wNC_RUES
+        14                     C       RUES       RSTN           wNC      wNC_RSTN           wNC_RUES      wNC_RSTN_RSTN
+        29     AGFW Symposium DH       RSLW       RUES         wTRST         wTRST         wTRST_RSLW         wTRST_RUES
+        27   Diverse Steuerungen       RUES       RSTN         wTRST       KA-0005         wTRST_RUES       KA-0005_RSTN
+        38         Sekundärwerte       RMES       RUES          yAMW          yAMW          yAMW_RMES          yAMW_RUES
+        39         Sekundärwerte       RMES       RUES          yBMW          yBMW          yBMW_RMES          yBMW_RUES
+        40         Sekundärwerte       RMES       RUES          yCMW          yCMW          yCMW_RMES          yCMW_RUES
+        129        Sekundärwerte       RMES       RUES     yDH_dp2_A     yDH_dp2_A     yDH_dp2_A_RMES     yDH_dp2_A_RUES
+        139  Diverse Steuerungen       RUES       RADD     yDH_dp2_A  wDH_MD_A_ERO     yDH_dp2_A_RUES  wDH_MD_A_ERO_RADD
+        130        Sekundärwerte       RUES       RADD     yDH_dp2_A     yDH_pMD_A     yDH_dp2_A_RUES     yDH_pMD_A_RADD
+        132        Sekundärwerte       RADD       RUES     yDH_pMD_A     yDH_pMD_A     yDH_pMD_A_RADD     yDH_pMD_A_RUES
+        133        Sekundärwerte       RMES       RUES     yDH_pRL_A     yDH_pRL_A     yDH_pRL_A_RMES     yDH_pRL_A_RUES
+        131        Sekundärwerte       RUES       RADD     yDH_pRL_A     yDH_pMD_A     yDH_pRL_A_RUES     yDH_pMD_A_RADD
+        34         Sekundärwerte       RMES       RUES       yLastMW       yLastMW       yLastMW_RMES       yLastMW_RUES
+        35         Sekundärwerte       RUES       RADD       yLastMW       dLastMW       yLastMW_RUES       dLastMW_RADD
+        46         Sekundärwerte       RADD       RUES      yUWMLast      yUWMLast      yUWMLast_RADD      yUWMLast_RUES
+        32         Sekundärwerte       RMES       RUES          yUWM          yUWM          yUWM_RMES          yUWM_RUES
+        44         Sekundärwerte       RUES       RADD          yUWM      yUWMLast          yUWM_RUES      yUWMLast_RADD
+        >>> import networkx as nx
+        >>> G=nx.from_pandas_edgelist(vREdges, source='KnExt_Ki', target='KnExt_Kk', edge_attr=True,create_using=nx.DiGraph())
+        >>> list(G.selfloop_edges())
+        []
+        >>> pathNodes=nx.shortest_path(G,'Leck_1_Ein_RSLW','KA-0008_RSTN')
+        >>> pathNodes
+        ['Leck_1_Ein_RSLW', 'Leck_1_Ein_RUES', 'Leck_1_VL_RLVG', 'nLeck_1_VL_RLVG', 'KA-0008_RSTN']
+        >>> sink_nodes = [node for node, outdegree in G.out_degree(G.nodes()) if outdegree == 0]        
+        >>> source_nodes = [node for node, indegree in G.in_degree(G.nodes()) if indegree == 0]        
+        >>> import re
+        >>> for source, sink in [(source, sink) for sink in sink_nodes for source in source_nodes]: # ueber alle Quellen pro Senke ...
+        ...     if re.search('_RSTN$',sink) != None:
+        ...         for path in nx.all_simple_paths(G, source=source, target=sink):
+        ...             if sink=='KA-0008_RSTN':
+        ...                 path  
+        ['Leck_1_Ein_RSLW', 'Leck_1_Ein_RUES', 'Leck_1_VL_RLVG', 'nLeck_1_VL_RLVG', 'KA-0008_RSTN']
+        ['ADum_RSLW', 'ADum_RUES', 'KA-0008_RSTN']
+        ['Leck_VL_RSLW', 'Leck_VL_RUES', 'Leck_1_VL_RLVG', 'nLeck_1_VL_RLVG', 'KA-0008_RSTN']
+        >>> #---
+        >>> # dasselbe mit Knotennamen ohne Postfix ...
+        >>> G=nx.from_pandas_edgelist(vREdges, source='Kn_Ki', target='Kn_Kk', edge_attr=True,create_using=nx.DiGraph())
+        >>> # alle RUES Eingänge deren ID mit der des aufnehmenden Signals identisch ist führen dann zu Schleifen ...
+        >>> # ... die entfernt werden muessen wenn Quellen am Indegree erkannt werden sollen ...
+        >>> G.remove_edges_from(list(G.selfloop_edges()))
+        >>> pathNodes=nx.shortest_path(G,'Leck_1_Ein','KA-0008')
+        >>> pathNodes # (auf die Pfadknotensequenz haben Schleifen keinen Einfluss, das Ergebnis waere mit den Schleifen dasselbe ...)
+        ['Leck_1_Ein', 'Leck_1_VL', 'nLeck_1_VL', 'KA-0008']
+        >>> sink_nodes = [node for node, outdegree in G.out_degree(G.nodes()) if outdegree == 0]        
+        >>> source_nodes = [node for node, indegree in G.in_degree(G.nodes()) if indegree == 0]           
+        >>> for source, sink in [(source, sink) for sink in sink_nodes for source in source_nodes]: # ueber alle Quellen pro Senke ...      
+        ...         for path in nx.all_simple_paths(G, source=source, target=sink):
+        ...             if sink=='KA-0008':
+        ...                 path    
+        ['Leck_1_Ein', 'Leck_1_VL', 'nLeck_1_VL', 'KA-0008']
+        ['ADum', 'KA-0008']
+        ['Leck_VL', 'Leck_1_VL', 'nLeck_1_VL', 'KA-0008']
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:    
+
+            vREdges=None
+
+            vRUES=self.dataFrames['vRUES'] # IDUE IOTYP               rkRUES   IDUE_rkRUES IOTYP_rkRUES                 CONT    ID          CONT_rkRUES ID_rkRUES                   pk                   rk            Kn
+            vRXXX=self.dataFrames['vRXXX'] # OBJTYPE          BESCHREIBUNG            KA                 CONT                   pk                   tk
+                        
+            # vRNodes
+            # Aenderungen fuer Union
+            vRUES['OBJTYPE']='RUES'
+            vRUES['BESCHREIBUNG']=None
+            vRXXX=vRXXX.rename(columns={'KA':'Kn'})
+                                                         
+            vRNodes=None
+
+            vRNodes_UnionList=[]
+            vRNodes_UnionList.append(vRXXX[['OBJTYPE','BESCHREIBUNG','Kn','CONT','pk']])
+            vRNodes_UnionList.append(vRUES[['OBJTYPE','BESCHREIBUNG','Kn','CONT','pk']])
+            vRNodes=pd.concat(vRNodes_UnionList)
+           
+            # vREdges
+            howMode='inner'
+            CRGL=self.dataFrames['CRGL']
+            vREdges=pd.merge(CRGL,vRNodes,left_on='fkKi',right_on='pk',suffixes=('','_Ki'),how=howMode)
+            vREdges=vREdges[['fkKk','OBJTYPE','BESCHREIBUNG','Kn','CONT','pk']]
+            vREdges['KnExt']=vREdges['Kn']+'_'+vREdges['OBJTYPE'] 
+            vREdges=vREdges.rename(columns={'OBJTYPE':'OBJTYPE_Ki','BESCHREIBUNG':'BESCHREIBUNG_Ki','Kn':'Kn_Ki','pk':'pk_Ki','KnExt':'KnExt_Ki'})
+            vREdges=pd.merge(vREdges,vRNodes,left_on='fkKk',right_on='pk',suffixes=('','_Kk'),how=howMode)
+            vREdges['KnExt']=vREdges['Kn']+'_'+vREdges['OBJTYPE'] 
+            vREdges=vREdges.rename(columns={'OBJTYPE':'OBJTYPE_Kk','BESCHREIBUNG':'BESCHREIBUNG_Kk','Kn':'Kn_Kk','pk':'pk_Kk','KnExt':'KnExt_Kk'})
+            vREdges=vREdges[['OBJTYPE_Ki','BESCHREIBUNG_Ki','Kn_Ki','pk_Ki','OBJTYPE_Kk','BESCHREIBUNG_Kk','Kn_Kk','pk_Kk','CONT','KnExt_Ki','KnExt_Kk']]           
+                     
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.debug(logStrFinal)    
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
+            return vREdges
 
     def _MxSyncAddMx(self,ForceNoH5ReadForMx=False):
         """Mx-Object corresponding to the Xm-Object is constructed and returned. 
