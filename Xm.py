@@ -3547,19 +3547,17 @@ class Xm():
         ...  'CONT'
         ... ,'CONT_PARENT'
         ... ,'KA'
-        ... ,'BESCHREIBUNG'    
-        ... ,'ITYP'
-        ... ,'ITYP_TXT' #
-        ... ,'TYP'      #
+        ... ,'BESCHREIBUNG'            
         ... ,'ITYP_OBJTYPE'
-        ... ,'ITYP_OBJATTR'       
+        ... ,'ITYP_OBJATTR'    
+        ... ,'ik_Chk'
         ... ,'NAME_i'
         ... ,'NAME_k'     
-        ... ,'CONT_i'           
+        ... ,'CONT_i'  
+        ... ,'TABL_Chk'
+        ... #,'TYP' 
         ... ,'TABL'
-        ... ]].sort_values(by=['KA'])
-        >>> #vRSTN
-        >>> #vRSTN.loc[vRSTN['ITYP_OBJTYPE'].isin(['RART']),:]
+        ... ]].sort_values(by=['ITYP_OBJTYPE','ITYP_OBJATTR','CONT','KA'])
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -3569,7 +3567,7 @@ class Xm():
             vRSTN=None                  
 
             # BZ                         
-            vRSTN=pd.merge(self.dataFrames['RSTN'],self.dataFrames['RSTN_BZ'],left_on='pk',right_on='fk')
+            vRSTN=pd.merge(self.dataFrames['RSTN'],self.dataFrames['RSTN_BZ'],left_on='pk',right_on='fk',suffixes=('','_BZ'))
             colList=vRSTN.columns.tolist()
 
             # CONT
@@ -3588,59 +3586,92 @@ class Xm():
             sItypDct=dict(zip([int(pair[0]) for pair in [item.split(sep='=') for item in items]]
                 ,[pair[1].strip()  for pair in [item.split(sep='=') for item in items]]
                      ))
-            #logger.debug("{0:s}{1:s}".format(logStr,str(sItypDct))) 
+            logger.debug("{0:s}{1:s}".format(logStr,str(sItypDct))) 
 
             vRSTN['ITYP_TXT']=vRSTN.apply(lambda row: sItypDct[int(row.ITYP)] if int(row.ITYP) in sItypDct  else -1  , axis=1)
             vRSTN['ITYP_OBJTYPE']=vRSTN.apply(lambda row: row.TYP if str(row.ITYP_TXT).split(sep='_')[0] == 'TABL'  else str(row.ITYP_TXT).split(sep='_')[0]  , axis=1)
             vRSTN['ITYP_OBJATTR']=vRSTN.apply(lambda row: str(row.ITYP_TXT).split(sep='_')[1] , axis=1)
+            
+            logger.debug("{0:s}{1:s}".format(logStr,str(vRSTN.columns.tolist()))) 
+            #2019-11-07 16:26:11,128 ; PT3S.Xm                                                      ; DEBUG   ; Xm._vRSTN: ['BESCHREIBUNG', 'DELETED', 'DSDT', 'INDYNO', 'ITYP', 'KA', 'SELECT1', 'TYP', 'YMax', 'YMin', 'YS1', 'YS2', 'fkCONT', 'fkDE', 'fkDPRG', 'fkFWES', 'fkGVWK', 'fkKNOT', 'fkKOMP', 'fkMREG', 'fkOBEH', 'fkPGRP', 'fkPREG', 'fkPUMP', 'fkPUMPPG', 'fkRART', 'fkRARTPG', 'fkRCPL', 'fkRCPL_ROWT', 'fkREGV', 'fkROHR', 'fkVENT', 'pk', 'rk', 'tk', 'GRAF', 'fk', 'fkDE_BZ', 'fkLFKT', 'fkPHI1', 'fkPUMD', 'fkPVAR', 'fkQVAR', 'fkSWVT', 'fkTEVT', 'fkWEVT', 'pk_BZ', 'CONT', 'ID', 'rkPARENT', 'CONT_PARENT', 'ITYP_TXT', 'ITYP_OBJTYPE', 'ITYP_OBJATTR']
 
-            # VBEL          
+
+            vRSTN = vRSTN[[
+                             'CONT'
+                            ,'CONT_PARENT'
+                            ,'KA'
+                            ,'BESCHREIBUNG'    
+                            #,'ITYP'     
+                            #,'ITYP_TXT' 
+                            ,'TYP'      
+                            ,'ITYP_OBJTYPE'
+                            ,'ITYP_OBJATTR'     
+                            
+                            , 'fkDPRG'
+                            , 'fkFWES'
+                            , 'fkGVWK'
+                            , 'fkKNOT'
+                            , 'fkKOMP'
+                            , 'fkMREG'
+                            , 'fkOBEH'
+                            , 'fkPGRP'
+                            , 'fkPREG'
+                            , 'fkPUMP'
+                            , 'fkPUMPPG'
+                            , 'fkRART'
+                            , 'fkRARTPG'
+                            , 'fkRCPL'
+                            , 'fkRCPL_ROWT'
+                            , 'fkREGV'
+                            , 'fkROHR'
+                            , 'fkVENT'
+                            , 'pk'                                     
+                            , 'fkLFKT', 'fkPHI1', 'fkPUMD', 'fkPVAR', 'fkQVAR', 'fkSWVT', 'fkTEVT', 'fkWEVT'                                       
+                        ]]
+
+            # VBEL ---          
             lookUpVbel=self.dataFrames['vVBEL'][['NAME_i','NAME_k','CONT_i']]
             lookUpCols=lookUpVbel.columns.tolist()
 
             lookUpKeys=['fkROHR', 'fkPGRP', 'fkPUMP', 'fkVENT' , 'fkFWES']  
             lookUpPosts=['_'+lookUpKey.lstrip('fk') for lookUpKey in lookUpKeys]
             lookUpObjtypes=[lookUpPost.lstrip('_') for lookUpPost in lookUpPosts]
-                                    
-            for lookUpKey,lookUpPost in zip(lookUpKeys,lookUpPosts):
-                vRSTN=pd.merge(vRSTN,lookUpVbel,left_on=lookUpKey,right_on='OBJID',suffixes=('',lookUpPost),how='left')
-                #vRSTN.loc[vRSTN['ITYP_OBJTYPE'].isin(lookUpObjtypes),:]=pd.merge(vRSTN.loc[vRSTN['ITYP_OBJTYPE'].isin(lookUpObjtypes),:],lookUpVbel,left_on=lookUpKey,right_on='OBJID',suffixes=('',lookUpPost),how='left').values
+
+
+            vRSTN['ik_Chk']=vRSTN[lookUpKeys][vRSTN[lookUpKeys].astype('int64')>0].count(axis=1)                                    
+            for lookUpKey,lookUpPost,lookUpObjtype in zip(lookUpKeys,lookUpPosts,lookUpObjtypes):                
+                vRSTN=pd.merge(vRSTN,lookUpVbel,left_on=[lookUpKey,'ITYP_OBJTYPE'],right_on=['OBJID','OBJTYPE'],suffixes=('',lookUpPost),how='left')  # nur 1 Treffer moeglich ...
+                # ... allerdings pro fkXXXX wenn mehrere voneinander verschiedene fkXXXX im RSTN belegt sind; ik_Chk ist dann >1 
                      
             for lookUpCol in lookUpCols:                
                 lookUpColsGen=[lookUpCol+lookUpPost for lookUpKey,lookUpPost in zip(lookUpKeys[1:],lookUpPosts[1:])]
-                vRSTN[lookUpCol] = vRSTN[[lookUpCol]+lookUpColsGen].bfill(axis=1).iloc[:, 0].fillna('unknown')
+                vRSTN[lookUpCol] = vRSTN[[lookUpCol]+lookUpColsGen].bfill(axis=1).iloc[:, 0] # zugewiesen wird die erste Nicht-Nul Spalte 
                 vRSTN=vRSTN.drop(lookUpColsGen, axis=1)
                                
-                # belegte Spalte auf unDef zurücksetzen, wenn OBJTYPE nicht passt                
-                vRSTN.loc[~vRSTN['ITYP_OBJTYPE'].isin(lookUpObjtypes) &  vRSTN[lookUpCol].str.contains('^unknown') ,lookUpCol]=None
-                vRSTN.loc[~vRSTN['ITYP_OBJTYPE'].isin(lookUpObjtypes) &  ~vRSTN[lookUpCol].isnull() ,lookUpCol]='-' # Referenz vorhanden und gültig - aber irrelevant       
+                # belegte Spalte auf unDef zurücksetzen, wenn OBJTYPE nicht passt                               
+                vRSTN.loc[~vRSTN['ITYP_OBJTYPE'].isin(lookUpObjtypes) &  ~vRSTN[lookUpCol].isnull() ,lookUpCol]=None # Referenz vorhanden und gültig - aber irrelevant       
                 
-
-            # TABL
+            # TABL ---
             lookUpTables=['LFKT','TEVT']
             lookUpPosts=['_'+lookUpTable for lookUpTable in lookUpTables]
             lookUpTableKeys=['fk'+lookUpTable for lookUpTable in lookUpTables]
             lookUpColsGen=['NAME']+['NAME'+lookUpPost for lookUpTable,lookUpPost in zip(lookUpTables[1:],lookUpPosts[1:])]
 
+            vRSTN['TABL_Chk']=vRSTN[lookUpTableKeys][vRSTN[lookUpTableKeys].astype('int64')>0].count(axis=1)   
             for lookUpTable,lookUpTableKey,lookUpPost,lookUpColGen in zip(lookUpTables,lookUpTableKeys,lookUpPosts,lookUpColsGen):
-                 df=self.dataFrames[lookUpTable][['pk','NAME']]
-                 
+                 df=self.dataFrames[lookUpTable][['pk','NAME']]                 
                  vRSTN=pd.merge(vRSTN,df,left_on=lookUpTableKey,right_on='pk',suffixes=('',lookUpPost),how='left')
 
-                 # belegte Spalte auf unDef zurücksetzen, wenn OBJTYPE nicht passt                
-              
+                 # belegte Spalte auf unDef zurücksetzen, wenn OBJTYPE nicht passt                              
                  vRSTN.loc[~vRSTN['ITYP_OBJTYPE'].isin([lookUpTable]) &  ~vRSTN[lookUpColGen].isnull() ,lookUpColGen]=None # Referenz vorhanden und gültig - aber irrelevant       
 
             
             # neue Spalte TABL bestücken     
-            vRSTN['TABL'] = vRSTN[lookUpColsGen].bfill(axis=1).iloc[:, 0]#.fillna(None)
+            vRSTN['TABL'] = vRSTN[lookUpColsGen].bfill(axis=1).iloc[:, 0] # zugewiesen wird die erste Nicht-Nul Spalte 
 
             # dann generierte Spalten loeschen
             vRSTN=vRSTN.drop(lookUpColsGen, axis=1)
 
-
-
-            
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             if isinstance(vRSTN,pd.core.frame.DataFrame):
