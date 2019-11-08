@@ -1245,7 +1245,8 @@ class Xm():
         """Performs fixes and basic conversions inplace the dataFrames read from self.xmlFile.
 
         * Fixes and conversions here are integrity-oriented.
-        * Usage-oriented conversions (i.e. pd.to_numeric and base64.b64decode) are done in the ._vXXXX-methods.
+        * Usage-oriented conversions (i.e. pd.to_numeric and base64.b64decode) - if any - are done in the ._vXXXX-methods.
+        * Vorgehen in den Sichten: Anwendungs-orientierte Konvertierung von pandas Object in ein spezifisches Format nur wenn sinnvoll bzw. erforderlich
 
         Conversions: 
             * , > . (converted in: SWVT_ROWT, LFKT_ROWT, QVAR_ROWT, PVAR_ROWT)
@@ -1266,6 +1267,9 @@ class Xm():
                         * REHABILITATION
                         * REPARATUR
                         * WSTEIG, WTIEFE
+                    * RSLW
+                        * WMIN
+                        * WMAX
 
                 * not all Objecttypes are written?!
                     * CONT    
@@ -1402,6 +1406,18 @@ class Xm():
             except:
                 logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RADD']['BESCHREIBUNG']",'BESCHREIBUNG nicht in RADD?...')) 
                 self.dataFrames['RADD']['BESCHREIBUNG']=pd.Series()     
+
+            # RSLW: WMIN/WMAX nicht immer vorhanden? ...
+            try:
+                isinstance(self.dataFrames['RSLW']['WMIN'],pd.core.series.Series)
+            except:
+                logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RSLW']['WMIN']",'WMIN nicht vorhanden?!')) 
+                self.dataFrames['RSLW']['WMIN']=pd.Series()               
+            try:
+                isinstance(self.dataFrames['RSLW']['WMAX'],pd.core.series.Series)
+            except:
+                logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RSLW']['WMAX']",'WMAX nicht vorhanden?!')) 
+                self.dataFrames['RSLW']['WMAX']=pd.Series()   
                  
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -3518,22 +3534,7 @@ class Xm():
         """One row per RSTN.
 
         Returns:
-            columns
-                RSTN
-                    * KA
-                    * BESCHREIBUNG
-
-                RSTN BZ
-                    * ...                   
-
-                CONT
-                    * CONT
-                    * ID
-                    * CONT_PARENT     
-
-                RSLW IDs
-                    * pk
-                    * tk
+            columns: see code
 
         Raises:
             XmError
@@ -3541,8 +3542,8 @@ class Xm():
         >>> import pandas as pd             
         >>> # ---
         >>> xm=xms['DHNetwork']
-        >>> # ---             
-        >>> vRSTN=xm.dataFrames['vRSTN']
+        >>> # ---
+        >>> vRSTN=xm.dataFrames['vRSTN']        
         >>> vRSTN[[
         ...  'CONT'
         ... ,'CONT_PARENT'
@@ -3550,14 +3551,64 @@ class Xm():
         ... ,'BESCHREIBUNG'            
         ... ,'ITYP_OBJTYPE'
         ... ,'ITYP_OBJATTR'    
+        ... ,'Chk'
         ... ,'ik_Chk'
+        ... ,'OBJTYPE'
         ... ,'NAME_i'
         ... ,'NAME_k'     
         ... ,'CONT_i'  
-        ... ,'TABL_Chk'
-        ... #,'TYP' 
+        ... ,'TABL_Chk'      
         ... ,'TABL'
+        ... ,'KNOT'
+        ... ,'RART'
         ... ]].sort_values(by=['ITYP_OBJTYPE','ITYP_OBJATTR','CONT','KA'])
+                           CONT        CONT_PARENT        KA  BESCHREIBUNG ITYP_OBJTYPE ITYP_OBJATTR  Chk  ik_Chk OBJTYPE  NAME_i    NAME_k             CONT_i  TABL_Chk  TABL       KNOT     RART
+        44  Diverse Steuerungen  AGFW Symposium DH   KA-0054           NaN         KNOT        PSOLL    1     NaN     NaN     NaN       NaN                NaN       NaN   NaN  A_DH_pDef      NaN
+        45  Diverse Steuerungen  AGFW Symposium DH   KA-0055           NaN         KNOT        PSOLL    1     NaN     NaN     NaN       NaN                NaN       NaN   NaN  A_DH_pDef      NaN
+        12  Diverse Steuerungen  AGFW Symposium DH   KA-0004           NaN         LFKT         SOLL    1     NaN     NaN     NaN       NaN                NaN       1.0  LFKT        NaN      NaN
+        2                     A  AGFW Symposium DH   KA-0045           NaN         PGRP        AKTIV    1     1.0    PGRP  R-A-SS  R-A-DS-2                  A       NaN   NaN        NaN      NaN
+        6                     B  AGFW Symposium DH   KA-0057           NaN         PGRP        AKTIV    1     1.0    PGRP  R-B-SS  R-B-DS-2                  B       NaN   NaN        NaN      NaN
+        10                    C  AGFW Symposium DH   KA-0060           NaN         PGRP        AKTIV    1     1.0    PGRP  R-C-SS  R-C-DS-2                  C       NaN   NaN        NaN      NaN
+        1                     A  AGFW Symposium DH   KA-0044           NaN         PGRP        DEAKT    1     1.0    PGRP  R-A-SS  R-A-DS-2                  A       NaN   NaN        NaN      NaN
+        5                     B  AGFW Symposium DH   KA-0053           NaN         PGRP        DEAKT    1     1.0    PGRP  R-B-SS  R-B-DS-2                  B       NaN   NaN        NaN      NaN
+        9                     C  AGFW Symposium DH   KA-0059           NaN         PGRP        DEAKT    1     1.0    PGRP  R-C-SS  R-C-DS-2                  C       NaN   NaN        NaN      NaN
+        0                     A  AGFW Symposium DH  wNA_RSTN           NaN         PUMP            N    1     1.0    PUMP  R-A-SS    R-A-DS                  A       NaN   NaN        NaN      NaN
+        4                     B  AGFW Symposium DH  wNB_RSTN           NaN         PUMP            N    1     1.0    PUMP  R-B-SS    R-B-DS                  B       NaN   NaN        NaN      NaN
+        8                     C  AGFW Symposium DH  wNC_RSTN           NaN         PUMP            N    1     1.0    PUMP  R-C-SS    R-C-DS                  C       NaN   NaN        NaN      NaN
+        3                     A  AGFW Symposium DH   KA-0046           NaN         RART         SOLL    1     NaN     NaN     NaN       NaN                NaN       NaN   NaN        NaN   A_dpdS
+        7                     B  AGFW Symposium DH   KA-0058           NaN         RART         SOLL    1     NaN     NaN     NaN       NaN                NaN       NaN   NaN        NaN  B_Menge
+        11                    C  AGFW Symposium DH   KA-0061           NaN         RART         SOLL    1     NaN     NaN     NaN       NaN                NaN       NaN   NaN        NaN  C_Menge
+        34  Diverse Steuerungen  AGFW Symposium DH   KA-0034  NTR_1_VL_Ein         ROHR          AUF    1     1.0    ROHR  V-1905    V-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        35  Diverse Steuerungen  AGFW Symposium DH   KA-0035  NTR_1_RL_Ein         ROHR          AUF    1     1.0    ROHR  R-1905    R-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        36  Diverse Steuerungen  AGFW Symposium DH   KA-0036  NTR_3_Aus_VL         ROHR          AUF    1     1.0    ROHR  V-3008    V-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        37  Diverse Steuerungen  AGFW Symposium DH   KA-0037  NTR_3_Aus_RL         ROHR          AUF    1     1.0    ROHR  R-3008    R-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        40  Diverse Steuerungen  AGFW Symposium DH   KA-0040  NTR_2_Aus_VL         ROHR          AUF    1     1.0    ROHR  V-1110    V-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        41  Diverse Steuerungen  AGFW Symposium DH   KA-0041  NTR_2_Aus_RL         ROHR          AUF    1     1.0    ROHR  R-1110    R-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        17  Diverse Steuerungen  AGFW Symposium DH   KA-0007           NaN         ROHR      LECKAUS    1     1.0    ROHR  R-1905    R-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        15  Diverse Steuerungen  AGFW Symposium DH   KA-0008           NaN         ROHR      LECKAUS    1     1.0    ROHR  V-1905    V-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        20  Diverse Steuerungen  AGFW Symposium DH   KA-0015           NaN         ROHR      LECKAUS    1     1.0    ROHR  V-1110    V-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        21  Diverse Steuerungen  AGFW Symposium DH   KA-0016           NaN         ROHR      LECKAUS    1     1.0    ROHR  R-1110    R-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        24  Diverse Steuerungen  AGFW Symposium DH   KA-0023           NaN         ROHR      LECKAUS    1     1.0    ROHR  V-3008    V-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        25  Diverse Steuerungen  AGFW Symposium DH   KA-0024           NaN         ROHR      LECKAUS    1     1.0    ROHR  R-3008    R-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        16  Diverse Steuerungen  AGFW Symposium DH   KA-0003           NaN         ROHR      LECKEIN    1     1.0    ROHR  R-1905    R-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        14  Diverse Steuerungen  AGFW Symposium DH   KA-0006           NaN         ROHR      LECKEIN    1     1.0    ROHR  V-1905    V-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        18  Diverse Steuerungen  AGFW Symposium DH   KA-0013           NaN         ROHR      LECKEIN    1     1.0    ROHR  V-1110    V-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        19  Diverse Steuerungen  AGFW Symposium DH   KA-0014           NaN         ROHR      LECKEIN    1     1.0    ROHR  R-1110    R-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        22  Diverse Steuerungen  AGFW Symposium DH   KA-0021           NaN         ROHR      LECKEIN    1     1.0    ROHR  V-3008    V-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        23  Diverse Steuerungen  AGFW Symposium DH   KA-0022           NaN         ROHR      LECKEIN    1     1.0    ROHR  R-3008    R-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        26  Diverse Steuerungen  AGFW Symposium DH   KA-0025           NaN         ROHR    LECKMENGE    1     1.0    ROHR  V-1905    V-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        27  Diverse Steuerungen  AGFW Symposium DH   KA-0027           NaN         ROHR    LECKMENGE    1     1.0    ROHR  R-1905    R-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        28  Diverse Steuerungen  AGFW Symposium DH   KA-0028           NaN         ROHR    LECKMENGE    1     1.0    ROHR  V-1110    V-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        29  Diverse Steuerungen  AGFW Symposium DH   KA-0029           NaN         ROHR    LECKMENGE    1     1.0    ROHR  R-1110    R-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        30  Diverse Steuerungen  AGFW Symposium DH   KA-0030           NaN         ROHR    LECKMENGE    1     1.0    ROHR  V-3008    V-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        31  Diverse Steuerungen  AGFW Symposium DH   KA-0031           NaN         ROHR    LECKMENGE    1     1.0    ROHR  R-3008    R-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        32  Diverse Steuerungen  AGFW Symposium DH   KA-0032  NTR_1_RL_Ein         ROHR           ZU    1     1.0    ROHR  R-1905    R-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        33  Diverse Steuerungen  AGFW Symposium DH   KA-0033  NTR_1_VL_Ein         ROHR           ZU    1     1.0    ROHR  V-1905    V-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        38  Diverse Steuerungen  AGFW Symposium DH   KA-0038  NTR_3_Ein_VL         ROHR           ZU    1     1.0    ROHR  V-3008    V-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        39  Diverse Steuerungen  AGFW Symposium DH   KA-0039  NTR_3_Ein_RL         ROHR           ZU    1     1.0    ROHR  R-3008    R-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        42  Diverse Steuerungen  AGFW Symposium DH   KA-0042  NTR_2_Ein_VL         ROHR           ZU    1     1.0    ROHR  V-1110    V-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        43  Diverse Steuerungen  AGFW Symposium DH   KA-0043  NTR_2_Ein_RL         ROHR           ZU    1     1.0    ROHR  R-1110    R-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
+        13  Diverse Steuerungen  AGFW Symposium DH   KA-0005           NaN         TEVT         SOLL    1     NaN     NaN     NaN       NaN                NaN       2.0  TRST        NaN      NaN
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -3592,9 +3643,7 @@ class Xm():
             vRSTN['ITYP_OBJTYPE']=vRSTN.apply(lambda row: row.TYP if str(row.ITYP_TXT).split(sep='_')[0] == 'TABL'  else str(row.ITYP_TXT).split(sep='_')[0]  , axis=1)
             vRSTN['ITYP_OBJATTR']=vRSTN.apply(lambda row: str(row.ITYP_TXT).split(sep='_')[1] , axis=1)
             
-            logger.debug("{0:s}{1:s}".format(logStr,str(vRSTN.columns.tolist()))) 
-            #2019-11-07 16:26:11,128 ; PT3S.Xm                                                      ; DEBUG   ; Xm._vRSTN: ['BESCHREIBUNG', 'DELETED', 'DSDT', 'INDYNO', 'ITYP', 'KA', 'SELECT1', 'TYP', 'YMax', 'YMin', 'YS1', 'YS2', 'fkCONT', 'fkDE', 'fkDPRG', 'fkFWES', 'fkGVWK', 'fkKNOT', 'fkKOMP', 'fkMREG', 'fkOBEH', 'fkPGRP', 'fkPREG', 'fkPUMP', 'fkPUMPPG', 'fkRART', 'fkRARTPG', 'fkRCPL', 'fkRCPL_ROWT', 'fkREGV', 'fkROHR', 'fkVENT', 'pk', 'rk', 'tk', 'GRAF', 'fk', 'fkDE_BZ', 'fkLFKT', 'fkPHI1', 'fkPUMD', 'fkPVAR', 'fkQVAR', 'fkSWVT', 'fkTEVT', 'fkWEVT', 'pk_BZ', 'CONT', 'ID', 'rkPARENT', 'CONT_PARENT', 'ITYP_TXT', 'ITYP_OBJTYPE', 'ITYP_OBJATTR']
-
+            #logger.debug("{0:s}{1:s}".format(logStr,str(vRSTN.columns.tolist()))) 
 
             vRSTN = vRSTN[[
                              'CONT'
@@ -3632,38 +3681,56 @@ class Xm():
             # VBEL ---          
             lookUpVbel=self.dataFrames['vVBEL'][['NAME_i','NAME_k','CONT_i']]
             lookUpCols=lookUpVbel.columns.tolist()
+            lookUpVbel.reset_index(inplace=True)
 
-            lookUpKeys=['fkROHR', 'fkPGRP', 'fkPUMP', 'fkVENT' , 'fkFWES']  
+            lookUpKeys=['fkROHR', 'fkPGRP', 'fkPUMP', 'fkVENT' , 'fkFWES', 'fkREGV']  
             lookUpPosts=['_'+lookUpKey.lstrip('fk') for lookUpKey in lookUpKeys]
             lookUpObjtypes=[lookUpPost.lstrip('_') for lookUpPost in lookUpPosts]
 
-
-            vRSTN['ik_Chk']=vRSTN[lookUpKeys][vRSTN[lookUpKeys].astype('int64')>0].count(axis=1)                                    
-            for lookUpKey,lookUpPost,lookUpObjtype in zip(lookUpKeys,lookUpPosts,lookUpObjtypes):                
-                vRSTN=pd.merge(vRSTN,lookUpVbel,left_on=[lookUpKey,'ITYP_OBJTYPE'],right_on=['OBJID','OBJTYPE'],suffixes=('',lookUpPost),how='left')  # nur 1 Treffer moeglich ...
-                # ... allerdings pro fkXXXX wenn mehrere voneinander verschiedene fkXXXX im RSTN belegt sind; ik_Chk ist dann >1 
-                     
+            # pruefen, ob mehrere VBEL-Referenzschluessel hinterlegt sind
+            vRSTN['ik_Chk']=vRSTN[lookUpKeys][vRSTN[lookUpKeys].astype('int64')>0].count(axis=1)             
+            # Information auf unDef zurücksetzen, wenn es sich gar nicht um ein VBEL-Stellobjekt handelt                          
+            vRSTN.loc[~(vRSTN['ITYP_OBJTYPE'].isin(lookUpObjtypes)) & ~(vRSTN['ik_Chk'].isnull()),'ik_Chk']=None 
+                      
+            for lookUpKey,lookUpPost,lookUpObjtype in zip(lookUpKeys,lookUpPosts,lookUpObjtypes):      
+                # es kommen pro VBEL neue Spalten hinzu ...
+                vRSTN=pd.merge(vRSTN,lookUpVbel,left_on=[lookUpKey,'ITYP_OBJTYPE'],right_on=['OBJID','OBJTYPE'],suffixes=('',lookUpPost),how='left')  # nur 1 Treffer (1 Zeile) moeglich ...
+                # ... allerdings pro fkXXXX, wenn mehrere voneinander verschiedene fkXXXX im RSTN belegt sind (ik_Chk ist dann >1) 
+                # 1 RSTN erzeugt dann mehrere Zeilen: das ist falsch und wird weiter unten korrigiert ... (siehe Filtern ...)
+              
+            # die erzeugten Spalten auf eine ziehen und dann loeschen ...                     
             for lookUpCol in lookUpCols:                
-                lookUpColsGen=[lookUpCol+lookUpPost for lookUpKey,lookUpPost in zip(lookUpKeys[1:],lookUpPosts[1:])]
-                vRSTN[lookUpCol] = vRSTN[[lookUpCol]+lookUpColsGen].bfill(axis=1).iloc[:, 0] # zugewiesen wird die erste Nicht-Nul Spalte 
+                lookUpColsGen=[lookUpCol+lookUpPost for lookUpKey,lookUpPost in zip(lookUpKeys[1:],lookUpPosts[1:])]               
+                vRSTN[lookUpCol] = vRSTN[[lookUpCol]+lookUpColsGen].bfill(axis=1).iloc[:, 0] # zugewiesen wird die (erste) Nicht-Nul Spalte 
                 vRSTN=vRSTN.drop(lookUpColsGen, axis=1)
                                
-                # belegte Spalte auf unDef zurücksetzen, wenn OBJTYPE nicht passt                               
-                vRSTN.loc[~vRSTN['ITYP_OBJTYPE'].isin(lookUpObjtypes) &  ~vRSTN[lookUpCol].isnull() ,lookUpCol]=None # Referenz vorhanden und gültig - aber irrelevant       
+                # belegte Spalte auf unDef zurücksetzen, wenn es sich gar nicht um ein VBEL-Stellobjekt handelt                               
+                vRSTN.loc[~(vRSTN['ITYP_OBJTYPE'].isin(lookUpObjtypes)) &  ~(vRSTN[lookUpCol].isnull()),lookUpCol]=None # Referenz vorhanden und gültig - aber irrelevant     
                 
+            
+            # OBJTYPE in Ergebnis
+            lookUpColsGen=['OBJTYPE'+lookUpPost for lookUpPost in lookUpPosts[1:]]               
+            vRSTN['OBJTYPE'] = vRSTN[['OBJTYPE']+lookUpColsGen].bfill(axis=1).iloc[:, 0] # zugewiesen wird die (erste) Nicht-Nul Spalte 
+            vRSTN=vRSTN.drop(lookUpColsGen, axis=1)
+            # Filtern ...
+            vRSTN=vRSTN.loc[~(vRSTN['ITYP_OBJTYPE'].isin(lookUpObjtypes)) | ( (vRSTN['ITYP_OBJTYPE'].isin(lookUpObjtypes)) & (vRSTN['ITYP_OBJTYPE']==vRSTN['OBJTYPE'])) ,:]
+          
             # TABL ---
-            lookUpTables=['LFKT','TEVT']
+            lookUpTables=['LFKT','PHI1','PUMD','PVAR','QVAR','SWVT','TEVT','WEVT']  #['LFKT','TEVT']   
             lookUpPosts=['_'+lookUpTable for lookUpTable in lookUpTables]
             lookUpTableKeys=['fk'+lookUpTable for lookUpTable in lookUpTables]
             lookUpColsGen=['NAME']+['NAME'+lookUpPost for lookUpTable,lookUpPost in zip(lookUpTables[1:],lookUpPosts[1:])]
 
+            # pruefen, ob mehrere TABL-Schluessel hinterlegt sind
             vRSTN['TABL_Chk']=vRSTN[lookUpTableKeys][vRSTN[lookUpTableKeys].astype('int64')>0].count(axis=1)   
+            # Information auf unDef zurücksetzen, wenn OBJTYPE nicht passt                              
+            vRSTN.loc[~(vRSTN['ITYP_OBJTYPE'].isin(lookUpTables)) & ~(vRSTN['TABL_Chk'].isnull()),'TABL_Chk']=None 
             for lookUpTable,lookUpTableKey,lookUpPost,lookUpColGen in zip(lookUpTables,lookUpTableKeys,lookUpPosts,lookUpColsGen):
                  df=self.dataFrames[lookUpTable][['pk','NAME']]                 
                  vRSTN=pd.merge(vRSTN,df,left_on=lookUpTableKey,right_on='pk',suffixes=('',lookUpPost),how='left')
 
                  # belegte Spalte auf unDef zurücksetzen, wenn OBJTYPE nicht passt                              
-                 vRSTN.loc[~vRSTN['ITYP_OBJTYPE'].isin([lookUpTable]) &  ~vRSTN[lookUpColGen].isnull() ,lookUpColGen]=None # Referenz vorhanden und gültig - aber irrelevant       
+                 vRSTN.loc[~(vRSTN['ITYP_OBJTYPE'].isin([lookUpTable])) &  ~(vRSTN[lookUpColGen].isnull()),lookUpColGen]=None # Referenz vorhanden und gültig - aber irrelevant       
 
             
             # neue Spalte TABL bestücken     
@@ -3672,6 +3739,89 @@ class Xm():
             # dann generierte Spalten loeschen
             vRSTN=vRSTN.drop(lookUpColsGen, axis=1)
 
+            # KNOT ---
+            vRSTN=pd.merge(vRSTN,self.dataFrames['vKNOT'][['pk','NAME']],left_on='fkKNOT',right_on='pk',suffixes=('','_Kn'),how='left')  # nur 1 Treffer moeglich ...
+            vRSTN.rename(columns={'NAME':'KNOT'},inplace=True)
+            # belegte Spalte auf unDef zurücksetzen, wenn OBJTYPE nicht passt                              
+            vRSTN.loc[~(vRSTN['ITYP_OBJTYPE'].isin(['KNOT'])) & ~(vRSTN['KNOT'].isnull()),'KNOT']=None 
+
+            # RART ---
+            vRSTN=pd.merge(vRSTN,self.dataFrames['vRART'][['pk','NAME']],left_on='fkRART',right_on='pk',suffixes=('','_Ra'),how='left')  # nur 1 Treffer moeglich ...
+            vRSTN.rename(columns={'NAME':'RART'},inplace=True)
+            # belegte Spalte auf unDef zurücksetzen, wenn OBJTYPE nicht passt                              
+            vRSTN.loc[~(vRSTN['ITYP_OBJTYPE'].isin(['RART'])) & ~(vRSTN['RART'].isnull()),'RART']=None 
+
+            # pruefen, ob für jeden RSTN genau 1 Stellobjekt ermittelt wurde
+            # Ergebnisse
+            cols=[      
+             'CONT_i'   # stellvertretend für die Ergebnisspalten von VBEL Stellobjekten       
+            ,'TABL'
+            ,'KNOT'
+            ,'RART'
+            ]
+            vRSTN['Chk']=vRSTN[cols].count(axis=1)   
+            # 0:  kein Stellobjekt
+            # 1:  Ok: genau 1 Stellobjekt
+            # >1: Ergebnisspalten dieses Views sind nicht konsistent befüllt
+
+            #logger.debug("{0:s}{1:s}".format(logStr,str(vRSTN.columns.tolist()))) 
+
+            vRSTN = vRSTN[[
+
+                    'CONT'
+                   ,'CONT_PARENT'
+                   ,'KA'
+                   ,'BESCHREIBUNG'
+                   
+                   ,'pk'
+
+                   ,'TYP'
+                   ,'ITYP_OBJTYPE'
+                   ,'ITYP_OBJATTR'
+
+                   ,'fkROHR', 'fkPGRP', 'fkPUMP', 'fkVENT' , 'fkFWES' # covered
+                   ,'fkDPRG', 'fkGVWK', 'fkKOMP', 'fkMREG', 'fkOBEH', 'fkPREG', 'fkPUMPPG', 'fkRARTPG', 'fkRCPL', 'fkRCPL_ROWT', 'fkREGV' # uncovered
+                                                                                                                 
+                   ,'fkLFKT', 'fkPHI1', 'fkPUMD', 'fkPVAR', 'fkQVAR', 'fkSWVT', 'fkTEVT', 'fkWEVT' # all covered
+
+                   # Results:
+                   
+                   , 'Chk'
+
+                        # 0:  kein Stellobjekt
+                        # 1:  Ok: genau 1 Stellobjekt
+                        # >1: Ergebnisspalten dieses Views sind nicht konsistent befüllt
+
+                   , 'ik_Chk' 
+                                # None, wenn RSTN-Stellobjekt keines der behandelten VBELs
+                                # sonst Anzahl der hinterlegten behandelten VBEL-Referenzen
+                                # davon ist nur 1 stellend aktiv
+                                # dieses sollte mit den nachfolgenden Spalten korrekt angezeigt sein
+                   
+                   , 'OBJTYPE'
+                   , 'NAME_i'
+                   , 'NAME_k'
+                   , 'CONT_i'                   
+                   
+                   #, 'OBJTYPE_PGRP', 'OBJID_PGRP', 'OBJTYPE_PUMP', 'OBJID_PUMP', 'OBJTYPE_VENT', 'OBJID_VENT', 'OBJTYPE_FWES', 'OBJID_FWES'
+                   
+                   ,'TABL_Chk'    
+                             # None, wenn RSTN-Stellobjekt keines der behandelten TABLs
+                             # sonst Anzahl der hinterlegten behandelten TABL-Referenzen
+                             # davon ist nur 1 stellend aktiv
+                             # diese sollte in der nachfolgenden Spalte korrekt angezeigt sein
+
+                   #, 'pk_LFKT', 'pk_PHI1', 'pk_PUMD', 'pk_PVAR', 'pk_QVAR', 'pk_SWVT', 'pk_TEVT', 'pk_WEVT'                   
+                   ,'TABL'
+
+                   #, 'pk_Kn
+                   , 'KNOT'
+                   
+                   #, 'pk_Ra'
+                   , 'RART'
+                   
+                   ]]
+         
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             if isinstance(vRSTN,pd.core.frame.DataFrame):
