@@ -3542,8 +3542,9 @@ class Xm():
         >>> import pandas as pd             
         >>> # ---
         >>> xm=xms['DHNetwork']
-        >>> # ---
+        >>> # ---              
         >>> vRSTN=xm.dataFrames['vRSTN']        
+        >>> vRSTN['RART_TYP']=vRSTN['RART_TYP'].str[:10]+'...' # zu lange Ausgabezeile vermeiden
         >>> vRSTN[[
         ...  'CONT'
         ... ,'CONT_PARENT'
@@ -3561,54 +3562,64 @@ class Xm():
         ... ,'TABL'
         ... ,'KNOT'
         ... ,'RART'
+        ... ,'RART_TYP'
+        ... ,'RARTPG'
+        ... ,'RCPL' 
+        ... ,'RCPL_KNOT1'
+        ... ,'RCPL_KNOT2'
+        ... ,'NAME_i_PUMP'
+        ... ,'NAME_k_PUMP'       
         ... ]].sort_values(by=['ITYP_OBJTYPE','ITYP_OBJATTR','CONT','KA'])
-                           CONT        CONT_PARENT        KA  BESCHREIBUNG ITYP_OBJTYPE ITYP_OBJATTR  Chk  ik_Chk OBJTYPE  NAME_i    NAME_k             CONT_i  TABL_Chk  TABL       KNOT     RART
-        44  Diverse Steuerungen  AGFW Symposium DH   KA-0054           NaN         KNOT        PSOLL    1     NaN     NaN     NaN       NaN                NaN       NaN   NaN  A_DH_pDef      NaN
-        45  Diverse Steuerungen  AGFW Symposium DH   KA-0055           NaN         KNOT        PSOLL    1     NaN     NaN     NaN       NaN                NaN       NaN   NaN  A_DH_pDef      NaN
-        12  Diverse Steuerungen  AGFW Symposium DH   KA-0004           NaN         LFKT         SOLL    1     NaN     NaN     NaN       NaN                NaN       1.0  LFKT        NaN      NaN
-        2                     A  AGFW Symposium DH   KA-0045           NaN         PGRP        AKTIV    1     1.0    PGRP  R-A-SS  R-A-DS-2                  A       NaN   NaN        NaN      NaN
-        6                     B  AGFW Symposium DH   KA-0057           NaN         PGRP        AKTIV    1     1.0    PGRP  R-B-SS  R-B-DS-2                  B       NaN   NaN        NaN      NaN
-        10                    C  AGFW Symposium DH   KA-0060           NaN         PGRP        AKTIV    1     1.0    PGRP  R-C-SS  R-C-DS-2                  C       NaN   NaN        NaN      NaN
-        1                     A  AGFW Symposium DH   KA-0044           NaN         PGRP        DEAKT    1     1.0    PGRP  R-A-SS  R-A-DS-2                  A       NaN   NaN        NaN      NaN
-        5                     B  AGFW Symposium DH   KA-0053           NaN         PGRP        DEAKT    1     1.0    PGRP  R-B-SS  R-B-DS-2                  B       NaN   NaN        NaN      NaN
-        9                     C  AGFW Symposium DH   KA-0059           NaN         PGRP        DEAKT    1     1.0    PGRP  R-C-SS  R-C-DS-2                  C       NaN   NaN        NaN      NaN
-        0                     A  AGFW Symposium DH  wNA_RSTN           NaN         PUMP            N    1     1.0    PUMP  R-A-SS    R-A-DS                  A       NaN   NaN        NaN      NaN
-        4                     B  AGFW Symposium DH  wNB_RSTN           NaN         PUMP            N    1     1.0    PUMP  R-B-SS    R-B-DS                  B       NaN   NaN        NaN      NaN
-        8                     C  AGFW Symposium DH  wNC_RSTN           NaN         PUMP            N    1     1.0    PUMP  R-C-SS    R-C-DS                  C       NaN   NaN        NaN      NaN
-        3                     A  AGFW Symposium DH   KA-0046           NaN         RART         SOLL    1     NaN     NaN     NaN       NaN                NaN       NaN   NaN        NaN   A_dpdS
-        7                     B  AGFW Symposium DH   KA-0058           NaN         RART         SOLL    1     NaN     NaN     NaN       NaN                NaN       NaN   NaN        NaN  B_Menge
-        11                    C  AGFW Symposium DH   KA-0061           NaN         RART         SOLL    1     NaN     NaN     NaN       NaN                NaN       NaN   NaN        NaN  C_Menge
-        34  Diverse Steuerungen  AGFW Symposium DH   KA-0034  NTR_1_VL_Ein         ROHR          AUF    1     1.0    ROHR  V-1905    V-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        35  Diverse Steuerungen  AGFW Symposium DH   KA-0035  NTR_1_RL_Ein         ROHR          AUF    1     1.0    ROHR  R-1905    R-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        36  Diverse Steuerungen  AGFW Symposium DH   KA-0036  NTR_3_Aus_VL         ROHR          AUF    1     1.0    ROHR  V-3008    V-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        37  Diverse Steuerungen  AGFW Symposium DH   KA-0037  NTR_3_Aus_RL         ROHR          AUF    1     1.0    ROHR  R-3008    R-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        40  Diverse Steuerungen  AGFW Symposium DH   KA-0040  NTR_2_Aus_VL         ROHR          AUF    1     1.0    ROHR  V-1110    V-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        41  Diverse Steuerungen  AGFW Symposium DH   KA-0041  NTR_2_Aus_RL         ROHR          AUF    1     1.0    ROHR  R-1110    R-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        17  Diverse Steuerungen  AGFW Symposium DH   KA-0007           NaN         ROHR      LECKAUS    1     1.0    ROHR  R-1905    R-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        15  Diverse Steuerungen  AGFW Symposium DH   KA-0008           NaN         ROHR      LECKAUS    1     1.0    ROHR  V-1905    V-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        20  Diverse Steuerungen  AGFW Symposium DH   KA-0015           NaN         ROHR      LECKAUS    1     1.0    ROHR  V-1110    V-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        21  Diverse Steuerungen  AGFW Symposium DH   KA-0016           NaN         ROHR      LECKAUS    1     1.0    ROHR  R-1110    R-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        24  Diverse Steuerungen  AGFW Symposium DH   KA-0023           NaN         ROHR      LECKAUS    1     1.0    ROHR  V-3008    V-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        25  Diverse Steuerungen  AGFW Symposium DH   KA-0024           NaN         ROHR      LECKAUS    1     1.0    ROHR  R-3008    R-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        16  Diverse Steuerungen  AGFW Symposium DH   KA-0003           NaN         ROHR      LECKEIN    1     1.0    ROHR  R-1905    R-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        14  Diverse Steuerungen  AGFW Symposium DH   KA-0006           NaN         ROHR      LECKEIN    1     1.0    ROHR  V-1905    V-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        18  Diverse Steuerungen  AGFW Symposium DH   KA-0013           NaN         ROHR      LECKEIN    1     1.0    ROHR  V-1110    V-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        19  Diverse Steuerungen  AGFW Symposium DH   KA-0014           NaN         ROHR      LECKEIN    1     1.0    ROHR  R-1110    R-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        22  Diverse Steuerungen  AGFW Symposium DH   KA-0021           NaN         ROHR      LECKEIN    1     1.0    ROHR  V-3008    V-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        23  Diverse Steuerungen  AGFW Symposium DH   KA-0022           NaN         ROHR      LECKEIN    1     1.0    ROHR  R-3008    R-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        26  Diverse Steuerungen  AGFW Symposium DH   KA-0025           NaN         ROHR    LECKMENGE    1     1.0    ROHR  V-1905    V-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        27  Diverse Steuerungen  AGFW Symposium DH   KA-0027           NaN         ROHR    LECKMENGE    1     1.0    ROHR  R-1905    R-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        28  Diverse Steuerungen  AGFW Symposium DH   KA-0028           NaN         ROHR    LECKMENGE    1     1.0    ROHR  V-1110    V-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        29  Diverse Steuerungen  AGFW Symposium DH   KA-0029           NaN         ROHR    LECKMENGE    1     1.0    ROHR  R-1110    R-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        30  Diverse Steuerungen  AGFW Symposium DH   KA-0030           NaN         ROHR    LECKMENGE    1     1.0    ROHR  V-3008    V-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        31  Diverse Steuerungen  AGFW Symposium DH   KA-0031           NaN         ROHR    LECKMENGE    1     1.0    ROHR  R-3008    R-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        32  Diverse Steuerungen  AGFW Symposium DH   KA-0032  NTR_1_RL_Ein         ROHR           ZU    1     1.0    ROHR  R-1905    R-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        33  Diverse Steuerungen  AGFW Symposium DH   KA-0033  NTR_1_VL_Ein         ROHR           ZU    1     1.0    ROHR  V-1905    V-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        38  Diverse Steuerungen  AGFW Symposium DH   KA-0038  NTR_3_Ein_VL         ROHR           ZU    1     1.0    ROHR  V-3008    V-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        39  Diverse Steuerungen  AGFW Symposium DH   KA-0039  NTR_3_Ein_RL         ROHR           ZU    1     1.0    ROHR  R-3008    R-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        42  Diverse Steuerungen  AGFW Symposium DH   KA-0042  NTR_2_Ein_VL         ROHR           ZU    1     1.0    ROHR  V-1110    V-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        43  Diverse Steuerungen  AGFW Symposium DH   KA-0043  NTR_2_Ein_RL         ROHR           ZU    1     1.0    ROHR  R-1110    R-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN
-        13  Diverse Steuerungen  AGFW Symposium DH   KA-0005           NaN         TEVT         SOLL    1     NaN     NaN     NaN       NaN                NaN       2.0  TRST        NaN      NaN
+                           CONT        CONT_PARENT        KA    BESCHREIBUNG ITYP_OBJTYPE ITYP_OBJATTR  Chk  ik_Chk OBJTYPE  NAME_i    NAME_k             CONT_i  TABL_Chk  TABL       KNOT     RART       RART_TYP  RARTPG      RCPL RCPL_KNOT1 RCPL_KNOT2 NAME_i_PUMP NAME_k_PUMP
+        44  Diverse Steuerungen  AGFW Symposium DH   KA-0054             NaN         KNOT        PSOLL    1     NaN     NaN     NaN       NaN                NaN       NaN   NaN  A_DH_pDef      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        45  Diverse Steuerungen  AGFW Symposium DH   KA-0055             NaN         KNOT        PSOLL    1     NaN     NaN     NaN       NaN                NaN       NaN   NaN  A_DH_pDef      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        12  Diverse Steuerungen  AGFW Symposium DH   KA-0004             NaN         LFKT         SOLL    1     NaN     NaN     NaN       NaN                NaN       1.0  LFKT        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        2                     A  AGFW Symposium DH   KA-0045             NaN         PGRP        AKTIV    1     1.0    PGRP  R-A-SS  R-A-DS-2                  A       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        6                     B  AGFW Symposium DH   KA-0057             NaN         PGRP        AKTIV    1     1.0    PGRP  R-B-SS  R-B-DS-2                  B       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        10                    C  AGFW Symposium DH   KA-0060             NaN         PGRP        AKTIV    1     1.0    PGRP  R-C-SS  R-C-DS-2                  C       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        1                     A  AGFW Symposium DH   KA-0044             NaN         PGRP        DEAKT    1     1.0    PGRP  R-A-SS  R-A-DS-2                  A       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        5                     B  AGFW Symposium DH   KA-0053             NaN         PGRP        DEAKT    1     1.0    PGRP  R-B-SS  R-B-DS-2                  B       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        9                     C  AGFW Symposium DH   KA-0059             NaN         PGRP        DEAKT    1     1.0    PGRP  R-C-SS  R-C-DS-2                  C       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        48  Diverse Steuerungen  AGFW Symposium DH   KA-0050  Test ohne Fkt.         PGRP        PUDEA    1     1.0    PGRP  R-A-SS  R-A-DS-2                  A       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN      R-A-SS      R-A-DS
+        47  Diverse Steuerungen  AGFW Symposium DH   KA-0049  Test ohne Fkt.         PGRP         RART    1     1.0    PGRP  R-A-SS  R-A-DS-2                  A       NaN   NaN        NaN      NaN            NaN  A_dpdS       NaN        NaN        NaN         NaN         NaN
+        0                     A  AGFW Symposium DH  wNA_RSTN             NaN         PUMP            N    1     1.0    PUMP  R-A-SS    R-A-DS                  A       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        4                     B  AGFW Symposium DH  wNB_RSTN             NaN         PUMP            N    1     1.0    PUMP  R-B-SS    R-B-DS                  B       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        8                     C  AGFW Symposium DH  wNC_RSTN             NaN         PUMP            N    1     1.0    PUMP  R-C-SS    R-C-DS                  C       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        3                     A  AGFW Symposium DH   KA-0046             NaN         RART         SOLL    1     NaN     NaN     NaN       NaN                NaN       NaN   NaN        NaN   A_dpdS  Differenzd...     NaN       NaN        NaN        NaN         NaN         NaN
+        7                     B  AGFW Symposium DH   KA-0058             NaN         RART         SOLL    1     NaN     NaN     NaN       NaN                NaN       NaN   NaN        NaN  B_Menge  Durchfluss...     NaN       NaN        NaN        NaN         NaN         NaN
+        11                    C  AGFW Symposium DH   KA-0061             NaN         RART         SOLL    1     NaN     NaN     NaN       NaN                NaN       NaN   NaN        NaN  C_Menge  Durchfluss...     NaN       NaN        NaN        NaN         NaN         NaN
+        46  Diverse Steuerungen  AGFW Symposium DH   KA-0048  Test ohne Fkt.         RCPL         ROWT    1     NaN     NaN     NaN       NaN                NaN       NaN   NaN        NaN      NaN            NaN     NaN  RCPL_ADS     V-1131     R-1131         NaN         NaN
+        34  Diverse Steuerungen  AGFW Symposium DH   KA-0034    NTR_1_VL_Ein         ROHR          AUF    1     1.0    ROHR  V-1905    V-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        35  Diverse Steuerungen  AGFW Symposium DH   KA-0035    NTR_1_RL_Ein         ROHR          AUF    1     1.0    ROHR  R-1905    R-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        36  Diverse Steuerungen  AGFW Symposium DH   KA-0036    NTR_3_Aus_VL         ROHR          AUF    1     1.0    ROHR  V-3008    V-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        37  Diverse Steuerungen  AGFW Symposium DH   KA-0037    NTR_3_Aus_RL         ROHR          AUF    1     1.0    ROHR  R-3008    R-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        40  Diverse Steuerungen  AGFW Symposium DH   KA-0040    NTR_2_Aus_VL         ROHR          AUF    1     1.0    ROHR  V-1110    V-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        41  Diverse Steuerungen  AGFW Symposium DH   KA-0041    NTR_2_Aus_RL         ROHR          AUF    1     1.0    ROHR  R-1110    R-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        17  Diverse Steuerungen  AGFW Symposium DH   KA-0007             NaN         ROHR      LECKAUS    1     1.0    ROHR  R-1905    R-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        15  Diverse Steuerungen  AGFW Symposium DH   KA-0008             NaN         ROHR      LECKAUS    1     1.0    ROHR  V-1905    V-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        20  Diverse Steuerungen  AGFW Symposium DH   KA-0015             NaN         ROHR      LECKAUS    1     1.0    ROHR  V-1110    V-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        21  Diverse Steuerungen  AGFW Symposium DH   KA-0016             NaN         ROHR      LECKAUS    1     1.0    ROHR  R-1110    R-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        24  Diverse Steuerungen  AGFW Symposium DH   KA-0023             NaN         ROHR      LECKAUS    1     1.0    ROHR  V-3008    V-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        25  Diverse Steuerungen  AGFW Symposium DH   KA-0024             NaN         ROHR      LECKAUS    1     1.0    ROHR  R-3008    R-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        16  Diverse Steuerungen  AGFW Symposium DH   KA-0003             NaN         ROHR      LECKEIN    1     1.0    ROHR  R-1905    R-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        14  Diverse Steuerungen  AGFW Symposium DH   KA-0006             NaN         ROHR      LECKEIN    1     1.0    ROHR  V-1905    V-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        18  Diverse Steuerungen  AGFW Symposium DH   KA-0013             NaN         ROHR      LECKEIN    1     1.0    ROHR  V-1110    V-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        19  Diverse Steuerungen  AGFW Symposium DH   KA-0014             NaN         ROHR      LECKEIN    1     1.0    ROHR  R-1110    R-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        22  Diverse Steuerungen  AGFW Symposium DH   KA-0021             NaN         ROHR      LECKEIN    1     1.0    ROHR  V-3008    V-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        23  Diverse Steuerungen  AGFW Symposium DH   KA-0022             NaN         ROHR      LECKEIN    1     1.0    ROHR  R-3008    R-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        26  Diverse Steuerungen  AGFW Symposium DH   KA-0025             NaN         ROHR    LECKMENGE    1     1.0    ROHR  V-1905    V-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        27  Diverse Steuerungen  AGFW Symposium DH   KA-0027             NaN         ROHR    LECKMENGE    1     1.0    ROHR  R-1905    R-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        28  Diverse Steuerungen  AGFW Symposium DH   KA-0028             NaN         ROHR    LECKMENGE    1     1.0    ROHR  V-1110    V-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        29  Diverse Steuerungen  AGFW Symposium DH   KA-0029             NaN         ROHR    LECKMENGE    1     1.0    ROHR  R-1110    R-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        30  Diverse Steuerungen  AGFW Symposium DH   KA-0030             NaN         ROHR    LECKMENGE    1     1.0    ROHR  V-3008    V-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        31  Diverse Steuerungen  AGFW Symposium DH   KA-0031             NaN         ROHR    LECKMENGE    1     1.0    ROHR  R-3008    R-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        32  Diverse Steuerungen  AGFW Symposium DH   KA-0032    NTR_1_RL_Ein         ROHR           ZU    1     1.0    ROHR  R-1905    R-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        33  Diverse Steuerungen  AGFW Symposium DH   KA-0033    NTR_1_VL_Ein         ROHR           ZU    1     1.0    ROHR  V-1905    V-1906  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        38  Diverse Steuerungen  AGFW Symposium DH   KA-0038    NTR_3_Ein_VL         ROHR           ZU    1     1.0    ROHR  V-3008    V-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        39  Diverse Steuerungen  AGFW Symposium DH   KA-0039    NTR_3_Ein_RL         ROHR           ZU    1     1.0    ROHR  R-3008    R-3007  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        42  Diverse Steuerungen  AGFW Symposium DH   KA-0042    NTR_2_Ein_VL         ROHR           ZU    1     1.0    ROHR  V-1110    V-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        43  Diverse Steuerungen  AGFW Symposium DH   KA-0043    NTR_2_Ein_RL         ROHR           ZU    1     1.0    ROHR  R-1110    R-1111  AGFW Symposium DH       NaN   NaN        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
+        13  Diverse Steuerungen  AGFW Symposium DH   KA-0005             NaN         TEVT         SOLL    1     NaN     NaN     NaN       NaN                NaN       2.0  TRST        NaN      NaN            NaN     NaN       NaN        NaN        NaN         NaN         NaN
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -3746,25 +3757,133 @@ class Xm():
             vRSTN.loc[~(vRSTN['ITYP_OBJTYPE'].isin(['KNOT'])) & ~(vRSTN['KNOT'].isnull()),'KNOT']=None 
 
             # RART ---
-            vRSTN=pd.merge(vRSTN,self.dataFrames['vRART'][['pk','NAME']],left_on='fkRART',right_on='pk',suffixes=('','_Ra'),how='left')  # nur 1 Treffer moeglich ...
+            vRSTN=pd.merge(vRSTN,self.dataFrames['vRART'][['pk','NAME','INDSTD_TXT']],left_on='fkRART',right_on='pk',suffixes=('','_Ra'),how='left')  # nur 1 Treffer moeglich ...
             vRSTN.rename(columns={'NAME':'RART'},inplace=True)
+            vRSTN.rename(columns={'INDSTD_TXT':'RART_TYP'},inplace=True)
             # belegte Spalte auf unDef zurücksetzen, wenn OBJTYPE nicht passt                              
-            vRSTN.loc[~(vRSTN['ITYP_OBJTYPE'].isin(['RART'])) & ~(vRSTN['RART'].isnull()),'RART']=None 
+            vRSTN.loc[~(vRSTN['ITYP_OBJTYPE'].isin(['RART'])) & ~(vRSTN['RART'].isnull()),['RART','RART_TYP']]=None 
+
+        
+
+            #logger.debug("{0:s}{1:s}".format(logStr,str(vRSTN.columns.tolist()))) -----------------------
+
+            # RART PGRP --
+            vRSTN=pd.merge(vRSTN,self.dataFrames['vRART'][['pk','NAME','INDSTD_TXT']],left_on='fkRARTPG',right_on='pk',suffixes=('','_RaPGRP'),how='left')  # nur 1 Treffer moeglich ...
+            vRSTN.rename(columns={'NAME':'RARTPG'},inplace=True)
+            vRSTN.rename(columns={'INDSTD_TXT':'RARTPG_TYP'},inplace=True)
+            # belegte Spalte auf unDef zurücksetzen, wenn Stellglied nicht passt                           
+            vRSTN.loc[
+                ~(
+                vRSTN['ITYP_OBJTYPE'].isin(['PGRP']) 
+                &
+                vRSTN['ITYP_OBJATTR'].isin(['RART']) 
+                )
+                & 
+                ~(
+                vRSTN['RARTPG'].isnull()
+                )
+                ,
+                ['RARTPG','RARTPG_TYP']]=None 
+
+            # RART REGV --
+            vRSTN=pd.merge(vRSTN,self.dataFrames['vRART'][['pk','NAME','INDSTD_TXT']],left_on='fkRART',right_on='pk',suffixes=('','_RaREGV'),how='left')  # nur 1 Treffer moeglich ...
+            vRSTN.rename(columns={'NAME':'RARTRV'},inplace=True)
+            vRSTN.rename(columns={'INDSTD_TXT':'RARTRV_TYP'},inplace=True)
+            # belegte Spalte auf unDef zurücksetzen, wenn Stellglied nicht passt                           
+            vRSTN.loc[
+                ~(
+                vRSTN['ITYP_OBJTYPE'].isin(['REGV']) 
+                &
+                vRSTN['ITYP_OBJATTR'].isin(['RART']) 
+                )
+                & 
+                ~(
+                vRSTN['RARTRV'].isnull()
+                )
+                ,
+                ['RARTRV','RARTRV_TYP']]=None 
+
+
+            # RCPL ---
+            RCPL=self.dataFrames['RCPL']
+            RCPL_ROWT=self.dataFrames['RCPL_ROWT']
+            df=pd.merge(RCPL,RCPL_ROWT,left_on='pk',right_on='fk',suffixes=('','_ROWT'))
+            vKNOT=self.dataFrames['vKNOT']
+            df=pd.merge(df,vKNOT,left_on='fkKREF1',right_on='pk',suffixes=('','_KNOT1'))
+            df=pd.merge(df,vKNOT,left_on='fkKREF2',right_on='pk',suffixes=('','_KNOT2'))
+            df=df[[
+                'NAME'
+                ,'TYP'
+                ,'AKTIV_ROWT'
+                ,'W'
+                ,'NAME_KNOT1'
+                ,'NAME_KNOT2'
+                ,'pk'
+                ,'pk_ROWT'
+            ]]
+            
+            #510=RCPL_ROWT_AKT | 1511=RCPL_ROWT_SW
+
+            vRSTN=pd.merge(vRSTN,df,left_on=['fkRCPL','fkRCPL_ROWT'],right_on=['pk','pk_ROWT'],suffixes=('','_RCPL_ROWT'),how='left')  # nur 1 Treffer moeglich ...
+            vRSTN.rename(columns={'NAME':'RCPL'},inplace=True)
+            vRSTN.rename(columns={'NAME_KNOT1':'RCPL_KNOT1'},inplace=True)
+            vRSTN.rename(columns={'NAME_KNOT2':'RCPL_KNOT2'},inplace=True)
+            
+            # belegte Spalte auf unDef zurücksetzen, wenn Stellglied nicht passt     
+             
+            # >>> 'RCPL_ROWT_SW'.split(sep='_')
+            # ['RCPL', 'ROWT', 'SW']
+                                        
+            vRSTN.loc[
+                ~(
+                vRSTN['ITYP_OBJTYPE'].isin(['RCPL']) 
+                &
+                vRSTN['ITYP_OBJATTR'].isin(['ROWT']) 
+                )
+                & 
+                ~(
+                vRSTN['RCPL'].isnull()
+                )
+                ,
+                ['RCPL','RCPL_KNOT1','RCPL_KNOT2']]=None 
+
+
+            # PUMP PGRP ------
+            vRSTN=pd.merge(vRSTN,lookUpVbel,left_on='fkPUMPPG',right_on='OBJID',suffixes=('','_PUMP'),how='left')  
+            # belegte Spalte auf unDef zurücksetzen, wenn Stellglied nicht passt                           
+            vRSTN.loc[
+                ~(
+                vRSTN['ITYP_OBJTYPE'].isin(['PGRP']) 
+                &
+                vRSTN['ITYP_OBJATTR'].isin(['PUAKT','PUDEA']) 
+
+                  #704=PGRP_PUAKT | 705=PGRP_PUDEA 
+
+                )
+                & 
+                ~(
+                vRSTN['NAME_i_PUMP'].isnull()
+                )
+                ,
+                ['NAME_i_PUMP','NAME_k_PUMP']]=None 
 
             # pruefen, ob für jeden RSTN genau 1 Stellobjekt ermittelt wurde
-            # Ergebnisse
+                # Ergebnisse
             cols=[      
-             'CONT_i'   # stellvertretend für die Ergebnisspalten von VBEL Stellobjekten       
-            ,'TABL'
-            ,'KNOT'
-            ,'RART'
-            ]
+                 'CONT_i'   # stellvertretend für die Ergebnisspalten von VBEL Stellobjekten       
+                ,'TABL'
+                ,'KNOT'
+                ,'RART'
+                # ,'RARTPG'
+                # ,'RARTRV'
+                ,'RCPL'
+                #,'NAME_i_PUMP'
+                ]
             vRSTN['Chk']=vRSTN[cols].count(axis=1)   
-            # 0:  kein Stellobjekt
-            # 1:  Ok: genau 1 Stellobjekt
-            # >1: Ergebnisspalten dieses Views sind nicht konsistent befüllt
+                # 0:  kein Stellobjekt
+                # 1:  Ok: genau 1 Stellobjekt
+                # >1: Ergebnisspalten dieses Views sind nicht konsistent befüllt
 
-            #logger.debug("{0:s}{1:s}".format(logStr,str(vRSTN.columns.tolist()))) 
 
             vRSTN = vRSTN[[
 
@@ -3779,10 +3898,17 @@ class Xm():
                    ,'ITYP_OBJTYPE'
                    ,'ITYP_OBJATTR'
 
-                   ,'fkROHR', 'fkPGRP', 'fkPUMP', 'fkVENT' , 'fkFWES' # covered
-                   ,'fkDPRG', 'fkGVWK', 'fkKOMP', 'fkMREG', 'fkOBEH', 'fkPREG', 'fkPUMPPG', 'fkRARTPG', 'fkRCPL', 'fkRCPL_ROWT', 'fkREGV' # uncovered
-                                                                                                                 
-                   ,'fkLFKT', 'fkPHI1', 'fkPUMD', 'fkPVAR', 'fkQVAR', 'fkSWVT', 'fkTEVT', 'fkWEVT' # all covered
+                   ,'fkROHR', 'fkPGRP', 'fkPUMP', 'fkVENT' , 'fkFWES' , 'fkREGV' # covered
+                   ,'fkRART', 'fkRARTPG' # covered
+
+                   # uncovered
+
+                   ,'fkDPRG', 'fkGVWK', 'fkKOMP', 'fkMREG', 'fkOBEH', 'fkPREG'                  
+                                 
+                    
+                   # all covered
+
+                   ,'fkLFKT', 'fkPHI1', 'fkPUMD', 'fkPVAR', 'fkQVAR', 'fkSWVT', 'fkTEVT', 'fkWEVT' 
 
                    # Results:
                    
@@ -3812,14 +3938,30 @@ class Xm():
                              # diese sollte in der nachfolgenden Spalte korrekt angezeigt sein
 
                    #, 'pk_LFKT', 'pk_PHI1', 'pk_PUMD', 'pk_PVAR', 'pk_QVAR', 'pk_SWVT', 'pk_TEVT', 'pk_WEVT'                   
-                   ,'TABL'
+                   ,'TABL'  # befuellt wenn eine TABL Stellglied
 
                    #, 'pk_Kn
-                   , 'KNOT'
+                   , 'KNOT' # befuellt wenn KNOT Stellglied
                    
                    #, 'pk_Ra'
-                   , 'RART'
+                   , 'RART' # befuellt wenn RART Stellglied
+                   , 'RART_TYP'
+
+                   ,'RARTPG' # befuellt wenn PGRP RART Stellglied
+                   ,'RARTPG_TYP'
+
+                   ,'RARTRV' # befuellt wenn PGRP RART Stellglied
+                   ,'RARTRV_TYP'
                    
+                      #| 1510=RCPL_ROWT_AKT | 1511=RCPL_ROWT_SW' 
+                   ,'RCPL' # befuellt wenn RCPL Stellglied
+                   ,'RCPL_KNOT1'
+                   ,'RCPL_KNOT2'
+
+                    #704=PGRP_PUAKT | 705=PGRP_PUDEA 
+                   , 'NAME_i_PUMP'
+                   , 'NAME_k_PUMP'                  
+
                    ]]
          
         except Exception as e:
