@@ -1229,8 +1229,13 @@ class Xm():
                 for tableName in sorted(self.dataFrames.keys()):
                     table=self.dataFrames[tableName]
                     h5Key=relPath2XmlromCurDirH5BaseKey+h5KeySep+tableName      
-                    logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,tableName,h5Key))                                                
-                    h5Store.put(h5Key,table)#,format='table')                  
+                    logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,tableName,h5Key))     
+                    try:
+                        h5Store.put(h5Key,table)#,format='table')         
+                    except Exception as e:
+                        logger.error("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s} FAILED!".format(logStr,h5File,tableName,h5Key))    
+                        raise e
+                        
 
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -1394,30 +1399,33 @@ class Xm():
                     self.dataFrames['LAYR']=self.dataFrames['LAYR'][pd.notnull(self.dataFrames['LAYR']['OBJS'])]     
 
             # BESCHREIBUNG nicht in RLVG?...
-            try:
-                isinstance(self.dataFrames['RLVG']['BESCHREIBUNG'],pd.core.series.Series)
-            except:
-                logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RLVG']['BESCHREIBUNG']",'BESCHREIBUNG nicht in RLVG?...')) 
-                self.dataFrames['RLVG']['BESCHREIBUNG']=pd.Series()     
+            if 'RLVG'  in self.dataFrames:                    
+                try:
+                    isinstance(self.dataFrames['RLVG']['BESCHREIBUNG'],pd.core.series.Series)
+                except:
+                    logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RLVG']['BESCHREIBUNG']",'BESCHREIBUNG nicht in RLVG?...')) 
+                    self.dataFrames['RLVG']['BESCHREIBUNG']=pd.Series()     
 
             # BESCHREIBUNG nicht in RADD?...
-            try:
-                isinstance(self.dataFrames['RADD']['BESCHREIBUNG'],pd.core.series.Series)
-            except:
-                logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RADD']['BESCHREIBUNG']",'BESCHREIBUNG nicht in RADD?...')) 
-                self.dataFrames['RADD']['BESCHREIBUNG']=pd.Series()     
+            if 'RADD' in self.dataFrames:         
+                try:
+                    isinstance(self.dataFrames['RADD']['BESCHREIBUNG'],pd.core.series.Series)
+                except:
+                    logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RADD']['BESCHREIBUNG']",'BESCHREIBUNG nicht in RADD?...')) 
+                    self.dataFrames['RADD']['BESCHREIBUNG']=pd.Series()     
 
             # RSLW: WMIN/WMAX nicht immer vorhanden? ...
-            try:
-                isinstance(self.dataFrames['RSLW']['WMIN'],pd.core.series.Series)
-            except:
-                logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RSLW']['WMIN']",'WMIN nicht vorhanden?!')) 
-                self.dataFrames['RSLW']['WMIN']=pd.Series()               
-            try:
-                isinstance(self.dataFrames['RSLW']['WMAX'],pd.core.series.Series)
-            except:
-                logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RSLW']['WMAX']",'WMAX nicht vorhanden?!')) 
-                self.dataFrames['RSLW']['WMAX']=pd.Series()   
+            if 'RSLW' in self.dataFrames:               
+                try:
+                    isinstance(self.dataFrames['RSLW']['WMIN'],pd.core.series.Series)
+                except:
+                    logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RSLW']['WMIN']",'WMIN nicht vorhanden?!')) 
+                    self.dataFrames['RSLW']['WMIN']=pd.Series()               
+                try:
+                    isinstance(self.dataFrames['RSLW']['WMAX'],pd.core.series.Series)
+                except:
+                    logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RSLW']['WMAX']",'WMAX nicht vorhanden?!')) 
+                    self.dataFrames['RSLW']['WMAX']=pd.Series()   
                  
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -3039,6 +3047,9 @@ class Xm():
         64              0     3     NTRx2xAus  Diverse Steuerungen
         66              0     3     NTRx2xEin  Diverse Steuerungen
         68              0     3     NTRx2xEin  Diverse Steuerungen
+        105             0     3           NaN  Diverse Steuerungen
+        107             0     3           NaN  Diverse Steuerungen
+        109             0     3           NaN  Diverse Steuerungen
         29              1     1             1  Diverse Steuerungen
         40              1     3           NaN  Diverse Steuerungen
         41              1     3           NaN  Diverse Steuerungen
@@ -3049,9 +3060,9 @@ class Xm():
         80              1     3           NaN  Diverse Steuerungen
         82              1     3           NaN  Diverse Steuerungen
         83            100     1           100  Diverse Steuerungen
-        146           100     3           NaN        Sekundärwerte
-        149           100     3           NaN        Sekundärwerte
         152           100     3           NaN        Sekundärwerte
+        155           100     3           NaN        Sekundärwerte
+        158           100     3           NaN        Sekundärwerte
         30           ADum     1          ADum  Diverse Steuerungen
         31           ADum     3           NaN  Diverse Steuerungen
         32           ADum     3           NaN  Diverse Steuerungen
@@ -3077,12 +3088,15 @@ class Xm():
         98           ADum     3           NaN  Diverse Steuerungen
         99           ADum     3           NaN  Diverse Steuerungen
         104          ADum     3           NaN  Diverse Steuerungen
-        108          ADum     3           NaN                    A
-        110          ADum     3           NaN                    A
-        116          ADum     3           NaN                    B
-        118          ADum     3           NaN                    B
-        124          ADum     3           NaN                    C
-        125          ADum     3           NaN                    C
+        106          ADum     3           NaN  Diverse Steuerungen
+        108          ADum     3           NaN  Diverse Steuerungen
+        110          ADum     3           NaN  Diverse Steuerungen
+        114          ADum     3           NaN                    A
+        116          ADum     3           NaN                    A
+        122          ADum     3           NaN                    B
+        124          ADum     3           NaN                    B
+        130          ADum     3           NaN                    C
+        131          ADum     3           NaN                    C
         0      Leck_1_Ein     1    Leck_1_Ein    AGFW Symposium DH
         84     Leck_1_Ein     3           NaN  Diverse Steuerungen
         88     Leck_1_Ein     3           NaN  Diverse Steuerungen
@@ -3107,28 +3121,28 @@ class Xm():
         85        Leck_VL     3           NaN  Diverse Steuerungen
         95        Leck_VL     3           NaN  Diverse Steuerungen
         103       Leck_VL     3           NaN  Diverse Steuerungen
-        129        QDHGes     1        QDHGes        Sekundärwerte
-        140       dLastMW     1       dLastMW        Sekundärwerte
-        154       dUWMMax     1       dUWMMax        Sekundärwerte
-        153       dUWMMin     1       dUWMMin        Sekundärwerte
+        135        QDHGes     1        QDHGes        Sekundärwerte
+        146       dLastMW     1       dLastMW        Sekundärwerte
+        160       dUWMMax     1       dUWMMax        Sekundärwerte
+        159       dUWMMin     1       dUWMMin        Sekundärwerte
         12            dpA     1           dpA    AGFW Symposium DH
-        111           dpA     3           NaN                    A
+        117           dpA     3           NaN                    A
         13             qB     1            qB    AGFW Symposium DH
-        119            qB     3           NaN                    B
+        125            qB     3           NaN                    B
         14             qC     1            qC    AGFW Symposium DH
-        127            qC     3           NaN                    C
+        133            qC     3           NaN                    C
         6        vorOrtNA     1      vorOrtNA    AGFW Symposium DH
         15       vorOrtNA     3           NaN    AGFW Symposium DH
         17       vorOrtNB     1      vorOrtNB    AGFW Symposium DH
         18       vorOrtNB     3           NaN    AGFW Symposium DH
-        117      vorOrtNB     3           NaN                    B
-        120      vorOrtNB     3           NaN                    B
+        123      vorOrtNB     3           NaN                    B
+        126      vorOrtNB     3           NaN                    B
         20       vorOrtNC     1      vorOrtNC    AGFW Symposium DH
         21       vorOrtNC     3           NaN    AGFW Symposium DH
-        109      vorOrtNC     3           NaN                    A
-        112      vorOrtNC     3           NaN                    A
-        126      vorOrtNC     3           NaN                    C
-        128      vorOrtNC     3           NaN                    C
+        115      vorOrtNC     3           NaN                    A
+        118      vorOrtNC     3           NaN                    A
+        132      vorOrtNC     3           NaN                    C
+        134      vorOrtNC     3           NaN                    C
         11    wDH_BA_A_MD     1   wDH_BA_A_MD    AGFW Symposium DH
         78    wDH_BA_A_MD     3           NaN  Diverse Steuerungen
         9     wDH_BA_A_RD     1   wDH_BA_A_RD    AGFW Symposium DH
@@ -3144,45 +3158,45 @@ class Xm():
         75   wDH_RD_A_ERO     3           NaN  Diverse Steuerungen
         23          wLast     1         wLast    AGFW Symposium DH
         79          wLast     3           NaN  Diverse Steuerungen
-        136       wLastMW     1       wLastMW        Sekundärwerte
-        139       wLastMW     3           NaN        Sekundärwerte
+        142       wLastMW     1       wLastMW        Sekundärwerte
+        145       wLastMW     3           NaN        Sekundärwerte
         3             wNA     1           wNA    AGFW Symposium DH
-        106           wNA     3           NaN                    A
+        112           wNA     3           NaN                    A
         16         wNAEin     1        wNAEin    AGFW Symposium DH
-        105        wNAEin     3           NaN                    A
+        111        wNAEin     3           NaN                    A
         4             wNB     1           wNB    AGFW Symposium DH
-        114           wNB     3           NaN                    B
+        120           wNB     3           NaN                    B
         19         wNBEin     1        wNBEin    AGFW Symposium DH
-        107        wNBEin     3           NaN                    A
-        113        wNBEin     3           NaN                    B
-        115        wNBEin     3           NaN                    B
+        113        wNBEin     3           NaN                    A
+        119        wNBEin     3           NaN                    B
+        121        wNBEin     3           NaN                    B
         5             wNC     1           wNC    AGFW Symposium DH
-        122           wNC     3           NaN                    C
+        128           wNC     3           NaN                    C
         22         wNCEin     1        wNCEin    AGFW Symposium DH
-        121        wNCEin     3           NaN                    C
-        123        wNCEin     3           NaN                    C
+        127        wNCEin     3           NaN                    C
+        129        wNCEin     3           NaN                    C
         24          wTRST     1         wTRST    AGFW Symposium DH
         81          wTRST     3           NaN  Diverse Steuerungen
-        141          yAMW     1          yAMW        Sekundärwerte
-        145          yAMW     3           NaN        Sekundärwerte
-        142          yBMW     1          yBMW        Sekundärwerte
-        148          yBMW     3           NaN        Sekundärwerte
-        143          yCMW     1          yCMW        Sekundärwerte
-        151          yCMW     3           NaN        Sekundärwerte
-        130     yDH_dp2_A     1     yDH_dp2_A        Sekundärwerte
+        147          yAMW     1          yAMW        Sekundärwerte
+        151          yAMW     3           NaN        Sekundärwerte
+        148          yBMW     1          yBMW        Sekundärwerte
+        154          yBMW     3           NaN        Sekundärwerte
+        149          yCMW     1          yCMW        Sekundärwerte
+        157          yCMW     3           NaN        Sekundärwerte
+        136     yDH_dp2_A     1     yDH_dp2_A        Sekundärwerte
         70      yDH_dp2_A     3           NaN  Diverse Steuerungen
-        131     yDH_dp2_A     3           NaN        Sekundärwerte
-        132     yDH_pMD_A     1     yDH_pMD_A        Sekundärwerte
-        133     yDH_pRL_A     1     yDH_pRL_A        Sekundärwerte
-        134     yDH_pRL_A     3           NaN        Sekundärwerte
-        137       yLastMW     1       yLastMW        Sekundärwerte
-        138       yLastMW     3           NaN        Sekundärwerte
+        137     yDH_dp2_A     3           NaN        Sekundärwerte
+        138     yDH_pMD_A     1     yDH_pMD_A        Sekundärwerte
+        139     yDH_pRL_A     1     yDH_pRL_A        Sekundärwerte
+        140     yDH_pRL_A     3           NaN        Sekundärwerte
+        143       yLastMW     1       yLastMW        Sekundärwerte
         144       yLastMW     3           NaN        Sekundärwerte
-        147       yLastMW     3           NaN        Sekundärwerte
         150       yLastMW     3           NaN        Sekundärwerte
-        135          yUWM     1          yUWM        Sekundärwerte
-        156          yUWM     3           NaN        Sekundärwerte
-        155      yUWMLast     1      yUWMLast        Sekundärwerte
+        153       yLastMW     3           NaN        Sekundärwerte
+        156       yLastMW     3           NaN        Sekundärwerte
+        141          yUWM     1          yUWM        Sekundärwerte
+        162          yUWM     3           NaN        Sekundärwerte
+        161      yUWMLast     1      yUWMLast        Sekundärwerte
         >>> # ---
         >>> vRUESDefs=vRUES.loc[vRUES['IOTYP']=='1']
         >>> # für Defs die Originaldefinition finden ...
@@ -5786,15 +5800,119 @@ class Xm():
         >>> # ---
         >>> xm=xms['DHNetwork']
         >>> # ---         
-        >>> vRUES=xm.dataFrames['vRUES']
-        >>> vRUES.sort_values(by=['Kn','IOTYP'])[[ # pro Kn oten steht zuerst die Definition, dann die Referenz(en)
-        ...      'Kn'
-        ...     ,'IOTYP'       
-        ...     ,'IDUE' # zur Kontrolle       
-        ...     ,'CONT'       
-        ...     ]]
         >>> vRXXX=xm.dataFrames['vRXXX']                                   
         >>> vRXXX
+           OBJTYPE          BESCHREIBUNG            KA                 CONT                   pk                   tk
+        0     RSLW            Leck_1_Ein    Leck_1_Ein    AGFW Symposium DH  5706111677806224290  5706111677806224290
+        1     RSLW            Leck_2_Ein    Leck_2_Ein    AGFW Symposium DH  4704869532416514405  4704869532416514405
+        2     RSLW            Leck_3_Ein    Leck_3_Ein    AGFW Symposium DH  4808434710442736644  4808434710442736644
+        3     RSLW                   wNA           wNA    AGFW Symposium DH  4991855568438544033  4991855568438544033
+        4     RSLW                   wNB           wNB    AGFW Symposium DH  4658075570394029953  4658075570394029953
+        5     RSLW                   wNC           wNC    AGFW Symposium DH  5240575308071562858  5240575308071562858
+        6     RSLW              vorOrtNA      vorOrtNA    AGFW Symposium DH  5194343043762135519  5194343043762135519
+        7     RSLW              vorOrtNB      vorOrtNB    AGFW Symposium DH  4705080808435797677  4705080808435797677
+        8     RSLW              vorOrtNC      vorOrtNC    AGFW Symposium DH  5620348872583735825  5620348872583735825
+        9     RSLW                 wLast         wLast    AGFW Symposium DH  5741660563170722352  5741660563170722352
+        10    RSLW                 wTRST         wTRST    AGFW Symposium DH  5547011912763631199  5547011912763631199
+        11    RSLW            Leck_Menge    Leck_Menge    AGFW Symposium DH  5390061625789905096  5390061625789905096
+        12    RSLW               Leck_VL       Leck_VL    AGFW Symposium DH  4880440884169110259  4880440884169110259
+        13    RSLW               Leck_RL       Leck_RL    AGFW Symposium DH  5644481773793849108  5644481773793849108
+        14    RSLW              wDH_RD_A      wDH_RD_A    AGFW Symposium DH  4622192786925004485  4622192786925004485
+        15    RSLW              wDH_MD_A      wDH_MD_A    AGFW Symposium DH  5093705160009582980  5093705160009582980
+        16    RSLW  wDH_BA_A; 1=RD; 0=MD   wDH_BA_A_RD    AGFW Symposium DH  5322890886142492590  5322890886142492590
+        17    RSLW                   dpA           dpA    AGFW Symposium DH  4849866990207957614  4849866990207957614
+        18    RSLW                    qB            qB    AGFW Symposium DH  4771725364091629759  4771725364091629759
+        19    RSLW                    qC            qC    AGFW Symposium DH  4978409087288292434  4978409087288292434
+        20    RSLW                  None             0  Diverse Steuerungen  5486870913514090048  5486870913514090048
+        21    RSLW                  None             1  Diverse Steuerungen  5377084992102722959  5377084992102722959
+        22    RSLW          Analog Dummy          ADum  Diverse Steuerungen  5408457159782566744  5408457159782566744
+        23    RSLW                  None           100  Diverse Steuerungen  5055797784689898209  5055797784689898209
+        24    RSLW                   NaN            cp        Sekundärwerte  4838608935279518502  4838608935279518502
+        0     RMES                   NaN          yUWM        Sekundärwerte  5008805081156446169  5008805081156446169
+        1     RMES                   NaN            mP        Sekundärwerte  5180980864512333141  5180980864512333141
+        2     RMES                   NaN          TRSP        Sekundärwerte  4964809001779537631  4964809001779537631
+        3     RMES                   NaN           TVL        Sekundärwerte  5137355888694407298  5137355888694407298
+        4     RMES                   NaN       wLastMW        Sekundärwerte  4833634373103605497  4833634373103605497
+        5     RMES                   NaN       yLastMW        Sekundärwerte  4817923247686815456  4817923247686815456
+        6     RMES                   NaN          yAMW        Sekundärwerte  4726758453134789052  4726758453134789052
+        7     RMES                   NaN          yBMW        Sekundärwerte  5528896084200811302  5528896084200811302
+        8     RMES                   NaN          yCMW        Sekundärwerte  5274276049082272588  5274276049082272588
+        9     RMES                   NaN       dUWMMin        Sekundärwerte  5463544828758888616  5463544828758888616
+        10    RMES                   NaN       dUWMMax        Sekundärwerte  4672771372882677276  4672771372882677276
+        11    RMES                   NaN       KA-0026        Sekundärwerte  5714273708462554381  5714273708462554381
+        12    RMES                   NaN        QDHGes        Sekundärwerte  5345716897595312355  5345716897595312355
+        13    RMES                dp / 2     yDH_dp2_A        Sekundärwerte  5512879293670562022  5512879293670562022
+        14    RMES                  None     yDH_pRL_A        Sekundärwerte  4639451967914783278  4639451967914783278
+        0     RLVG                   NaN     wNAEin_vO    AGFW Symposium DH  4742316320267545359  4742316320267545359
+        1     RLVG                   NaN     wNBEin_vO    AGFW Symposium DH  5013654033692161674  5013654033692161674
+        2     RLVG                   NaN     wNCEin_vO    AGFW Symposium DH  5670691593026035398  5670691593026035398
+        3     RLVG                   NaN   wDH_BA_A_MD    AGFW Symposium DH  4873987359791313088  4873987359791313088
+        4     RLVG                   NaN     Leck_1_VL  Diverse Steuerungen  5669152199869266879  5669152199869266879
+        5     RLVG                   NaN    nLeck_1_VL  Diverse Steuerungen  5517055963660007188  5517055963660007188
+        6     RLVG                   NaN       KA-0001  Diverse Steuerungen  4937005671108174325  4937005671108174325
+        7     RLVG                   NaN       KA-0002  Diverse Steuerungen  5752519230439786595  5752519230439786595
+        8     RLVG                   NaN       KA-0009  Diverse Steuerungen  5660961189098354654  5660961189098354654
+        9     RLVG                   NaN       KA-0010  Diverse Steuerungen  5510085446018401887  5510085446018401887
+        10    RLVG                   NaN       KA-0011  Diverse Steuerungen  4894802981639605379  4894802981639605379
+        11    RLVG                   NaN       KA-0012  Diverse Steuerungen  5310832758005678867  5310832758005678867
+        12    RLVG                   NaN       KA-0017  Diverse Steuerungen  4879781051055847299  4879781051055847299
+        13    RLVG                   NaN       KA-0018  Diverse Steuerungen  4806239740367977881  4806239740367977881
+        14    RLVG                   NaN       KA-0019  Diverse Steuerungen  5447964234902471608  5447964234902471608
+        15    RLVG                   NaN       KA-0020  Diverse Steuerungen  4717907439365620025  4717907439365620025
+        0     RADD                   NaN            dT        Sekundärwerte  4654077245127093202  4654077245127093202
+        1     RADD                   NaN       dLastMW        Sekundärwerte  4611793887272861500  4611793887272861500
+        2     RADD                   NaN      yUWMLast        Sekundärwerte  5574611204646558662  5574611204646558662
+        3     RADD                   NaN     yDH_pMD_A        Sekundärwerte  5255402486218254174  5255402486218254174
+        4     RADD                   NaN  wDH_MD_A_ERO  Diverse Steuerungen  5729434727271745948  5729434727271745948
+        0     RSTN                   NaN      wNA_RSTN                    A  5165635044767172069  5165635044767172069
+        1     RSTN                   NaN       KA-0044                    A  5636962607360173089  5636962607360173089
+        2     RSTN                   NaN       KA-0045                    A  5597572325891198144  5597572325891198144
+        3     RSTN                   NaN       KA-0046                    A  5137384799783014264  5137384799783014264
+        4     RSTN                   NaN      wNB_RSTN                    B  5342104608381486733  5342104608381486733
+        5     RSTN                   NaN       KA-0053                    B  5338620382667478180  5338620382667478180
+        6     RSTN                   NaN       KA-0057                    B  5226612456739754122  5226612456739754122
+        7     RSTN                   NaN       KA-0058                    B  5537037692802520861  5537037692802520861
+        8     RSTN                   NaN      wNC_RSTN                    C  5103693862180601916  5103693862180601916
+        9     RSTN                   NaN       KA-0059                    C  4792266770335818241  4792266770335818241
+        10    RSTN                   NaN       KA-0060                    C  5286169822203128424  5286169822203128424
+        11    RSTN                   NaN       KA-0061                    C  4848495011382561496  4848495011382561496
+        12    RSTN                   NaN       KA-0004  Diverse Steuerungen  5625633953643797107  5625633953643797107
+        13    RSTN                   NaN       KA-0005  Diverse Steuerungen  4851348857631426312  4851348857631426312
+        14    RSTN                   NaN       KA-0006  Diverse Steuerungen  5185169121447805605  5185169121447805605
+        15    RSTN                   NaN       KA-0008  Diverse Steuerungen  4760680402451575539  4760680402451575539
+        16    RSTN                   NaN       KA-0003  Diverse Steuerungen  5249070009027066113  5249070009027066113
+        17    RSTN                   NaN       KA-0007  Diverse Steuerungen  5721409231684230901  5721409231684230901
+        18    RSTN                   NaN       KA-0013  Diverse Steuerungen  5075554822852863012  5075554822852863012
+        19    RSTN                   NaN       KA-0014  Diverse Steuerungen  5320878233009751638  5320878233009751638
+        20    RSTN                   NaN       KA-0015  Diverse Steuerungen  5749069735826810904  5749069735826810904
+        21    RSTN                   NaN       KA-0016  Diverse Steuerungen  5704472379299329003  5704472379299329003
+        22    RSTN                   NaN       KA-0021  Diverse Steuerungen  5629658054546932585  5629658054546932585
+        23    RSTN                   NaN       KA-0022  Diverse Steuerungen  5162821695312832398  5162821695312832398
+        24    RSTN                   NaN       KA-0023  Diverse Steuerungen  5357357577779591773  5357357577779591773
+        25    RSTN                   NaN       KA-0024  Diverse Steuerungen  5357348958190741976  5357348958190741976
+        26    RSTN                   NaN       KA-0025  Diverse Steuerungen  4635966862484721732  4635966862484721732
+        27    RSTN                   NaN       KA-0027  Diverse Steuerungen  5700600513951468434  5700600513951468434
+        28    RSTN                   NaN       KA-0028  Diverse Steuerungen  5367185280774605989  5367185280774605989
+        29    RSTN                   NaN       KA-0029  Diverse Steuerungen  5445770133105602710  5445770133105602710
+        30    RSTN                   NaN       KA-0030  Diverse Steuerungen  4885570100974274375  4885570100974274375
+        31    RSTN                   NaN       KA-0031  Diverse Steuerungen  5223383850171539514  5223383850171539514
+        32    RSTN          NTR_1_RL_Ein       KA-0032  Diverse Steuerungen  5333724089944967011  5333724089944967011
+        33    RSTN          NTR_1_VL_Ein       KA-0033  Diverse Steuerungen  4825143842549434339  4825143842549434339
+        34    RSTN          NTR_1_VL_Ein       KA-0034  Diverse Steuerungen  4693599139501858956  4693599139501858956
+        35    RSTN          NTR_1_RL_Ein       KA-0035  Diverse Steuerungen  5693503518255620080  5693503518255620080
+        36    RSTN          NTR_3_Aus_VL       KA-0036  Diverse Steuerungen  4901609871029871596  4901609871029871596
+        37    RSTN          NTR_3_Aus_RL       KA-0037  Diverse Steuerungen  5327767233627106399  5327767233627106399
+        38    RSTN          NTR_3_Ein_VL       KA-0038  Diverse Steuerungen  5760765754619184144  5760765754619184144
+        39    RSTN          NTR_3_Ein_RL       KA-0039  Diverse Steuerungen  4994799657516451637  4994799657516451637
+        40    RSTN          NTR_2_Aus_VL       KA-0040  Diverse Steuerungen  5348583181653286363  5348583181653286363
+        41    RSTN          NTR_2_Aus_RL       KA-0041  Diverse Steuerungen  5499083775210733192  5499083775210733192
+        42    RSTN          NTR_2_Ein_VL       KA-0042  Diverse Steuerungen  4990389026836623226  4990389026836623226
+        43    RSTN          NTR_2_Ein_RL       KA-0043  Diverse Steuerungen  5697786347617919077  5697786347617919077
+        44    RSTN                   NaN       KA-0054  Diverse Steuerungen  5623872434691357889  5623872434691357889
+        45    RSTN                   NaN       KA-0055  Diverse Steuerungen  5283008774827895454  5283008774827895454
+        46    RSTN        Test ohne Fkt.       KA-0048  Diverse Steuerungen  5451626161773298441  5451626161773298441
+        47    RSTN        Test ohne Fkt.       KA-0049  Diverse Steuerungen  4906317765393876716  4906317765393876716
+        48    RSTN        Test ohne Fkt.       KA-0050  Diverse Steuerungen  5153543836152416454  5153543836152416454
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -5816,9 +5934,13 @@ class Xm():
           
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-            logger.debug(logStrFinal)    
+            if isinstance(vRXXX,pd.core.frame.DataFrame):
+                logger.error(logStrFinal) 
+            else:
+                logger.debug(logStrFinal) 
+                vRXXX=pd.DataFrame()              
         finally:
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vRXXX
         
     def _vRXXX_XXXX(self,OBJTYPE=None):
@@ -5992,6 +6114,9 @@ class Xm():
         108  Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN             0       KA-0041             0_RUES       KA-0041_RSTN
         110  Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN             0       KA-0042             0_RUES       KA-0042_RSTN
         112  Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN             0       KA-0043             0_RUES       KA-0043_RSTN
+        123  Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN             0       KA-0048             0_RUES       KA-0048_RSTN
+        125  Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN             0       KA-0049             0_RUES       KA-0049_RSTN
+        127  Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN             0       KA-0050             0_RUES       KA-0050_RSTN
         35   Diverse Steuerungen    AGFW Symposium DH       RSLW       RUES           100           100           100_RSLW           100_RUES
         29   Diverse Steuerungen    AGFW Symposium DH       RSLW       RUES             1             1             1_RSLW             1_RUES
         32   Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN             1       KA-0004             1_RUES       KA-0004_RSTN
@@ -6027,12 +6152,15 @@ class Xm():
         109  Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN          ADum       KA-0041          ADum_RUES       KA-0041_RSTN
         111  Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN          ADum       KA-0042          ADum_RUES       KA-0042_RSTN
         113  Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN          ADum       KA-0043          ADum_RUES       KA-0043_RSTN
-        125                    A    AGFW Symposium DH       RUES       RSTN          ADum       KA-0044          ADum_RUES       KA-0044_RSTN
-        127                    A    AGFW Symposium DH       RUES       RSTN          ADum       KA-0045          ADum_RUES       KA-0045_RSTN
-        133                    B    AGFW Symposium DH       RUES       RSTN          ADum       KA-0053          ADum_RUES       KA-0053_RSTN
-        135                    B    AGFW Symposium DH       RUES       RSTN          ADum       KA-0057          ADum_RUES       KA-0057_RSTN
-        141                    C    AGFW Symposium DH       RUES       RSTN          ADum       KA-0059          ADum_RUES       KA-0059_RSTN
-        142                    C    AGFW Symposium DH       RUES       RSTN          ADum       KA-0060          ADum_RUES       KA-0060_RSTN
+        131                    A    AGFW Symposium DH       RUES       RSTN          ADum       KA-0044          ADum_RUES       KA-0044_RSTN
+        133                    A    AGFW Symposium DH       RUES       RSTN          ADum       KA-0045          ADum_RUES       KA-0045_RSTN
+        122  Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN          ADum       KA-0048          ADum_RUES       KA-0048_RSTN
+        124  Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN          ADum       KA-0049          ADum_RUES       KA-0049_RSTN
+        126  Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN          ADum       KA-0050          ADum_RUES       KA-0050_RSTN
+        139                    B    AGFW Symposium DH       RUES       RSTN          ADum       KA-0053          ADum_RUES       KA-0053_RSTN
+        141                    B    AGFW Symposium DH       RUES       RSTN          ADum       KA-0057          ADum_RUES       KA-0057_RSTN
+        147                    C    AGFW Symposium DH       RUES       RSTN          ADum       KA-0059          ADum_RUES       KA-0059_RSTN
+        148                    C    AGFW Symposium DH       RUES       RSTN          ADum       KA-0060          ADum_RUES       KA-0060_RSTN
         47   Diverse Steuerungen    AGFW Symposium DH       RLVG       RLVG       KA-0001       KA-0002       KA-0001_RLVG       KA-0002_RLVG
         45   Diverse Steuerungen    AGFW Symposium DH       RLVG       RSTN       KA-0001       KA-0003       KA-0001_RLVG       KA-0003_RSTN
         49   Diverse Steuerungen    AGFW Symposium DH       RLVG       RSTN       KA-0002       KA-0007       KA-0002_RLVG       KA-0007_RSTN
@@ -6048,7 +6176,7 @@ class Xm():
         75   Diverse Steuerungen    AGFW Symposium DH       RLVG       RLVG       KA-0019       KA-0020       KA-0019_RLVG       KA-0020_RLVG
         73   Diverse Steuerungen    AGFW Symposium DH       RLVG       RSTN       KA-0019       KA-0022       KA-0019_RLVG       KA-0022_RSTN
         77   Diverse Steuerungen    AGFW Symposium DH       RLVG       RSTN       KA-0020       KA-0024       KA-0020_RLVG       KA-0024_RSTN
-        160        Sekundärwerte  Diverse Steuerungen       RMES       RADD       KA-0026      yUWMLast       KA-0026_RMES      yUWMLast_RADD
+        166        Sekundärwerte  Diverse Steuerungen       RMES       RADD       KA-0026      yUWMLast       KA-0026_RMES      yUWMLast_RADD
         0      AGFW Symposium DH    AGFW Symposium DH       RSLW       RUES    Leck_1_Ein    Leck_1_Ein    Leck_1_Ein_RSLW    Leck_1_Ein_RUES
         43   Diverse Steuerungen    AGFW Symposium DH       RUES       RLVG    Leck_1_Ein       KA-0001    Leck_1_Ein_RUES       KA-0001_RLVG
         36   Diverse Steuerungen    AGFW Symposium DH       RUES       RLVG    Leck_1_Ein     Leck_1_VL    Leck_1_Ein_RUES     Leck_1_VL_RLVG
@@ -6075,30 +6203,30 @@ class Xm():
         53   Diverse Steuerungen    AGFW Symposium DH       RUES       RLVG       Leck_VL       KA-0009       Leck_VL_RUES       KA-0009_RLVG
         67   Diverse Steuerungen    AGFW Symposium DH       RUES       RLVG       Leck_VL       KA-0017       Leck_VL_RUES       KA-0017_RLVG
         37   Diverse Steuerungen    AGFW Symposium DH       RUES       RLVG       Leck_VL     Leck_1_VL       Leck_VL_RUES     Leck_1_VL_RLVG
-        162        Sekundärwerte  Diverse Steuerungen       RMES       RUES        QDHGes        QDHGes        QDHGes_RMES        QDHGes_RUES
-        146        Sekundärwerte  Diverse Steuerungen       RMES       RADD          TRSP            dT          TRSP_RMES            dT_RADD
-        147        Sekundärwerte  Diverse Steuerungen       RMES       RADD           TVL            dT           TVL_RMES            dT_RADD
-        153        Sekundärwerte  Diverse Steuerungen       RADD       RUES       dLastMW       dLastMW       dLastMW_RADD       dLastMW_RUES
-        158        Sekundärwerte  Diverse Steuerungen       RMES       RUES       dUWMMax       dUWMMax       dUWMMax_RMES       dUWMMax_RUES
-        157        Sekundärwerte  Diverse Steuerungen       RMES       RUES       dUWMMin       dUWMMin       dUWMMin_RMES       dUWMMin_RUES
+        168        Sekundärwerte  Diverse Steuerungen       RMES       RUES        QDHGes        QDHGes        QDHGes_RMES        QDHGes_RUES
+        152        Sekundärwerte  Diverse Steuerungen       RMES       RADD          TRSP            dT          TRSP_RMES            dT_RADD
+        153        Sekundärwerte  Diverse Steuerungen       RMES       RADD           TVL            dT           TVL_RMES            dT_RADD
+        159        Sekundärwerte  Diverse Steuerungen       RADD       RUES       dLastMW       dLastMW       dLastMW_RADD       dLastMW_RUES
+        164        Sekundärwerte  Diverse Steuerungen       RMES       RUES       dUWMMax       dUWMMax       dUWMMax_RMES       dUWMMax_RUES
+        163        Sekundärwerte  Diverse Steuerungen       RMES       RUES       dUWMMin       dUWMMin       dUWMMin_RMES       dUWMMin_RUES
         25     AGFW Symposium DH    AGFW Symposium DH       RSLW       RUES           dpA           dpA           dpA_RSLW           dpA_RUES
-        128                    A    AGFW Symposium DH       RUES       RSTN           dpA       KA-0046           dpA_RUES       KA-0046_RSTN
+        134                    A    AGFW Symposium DH       RUES       RSTN           dpA       KA-0046           dpA_RUES       KA-0046_RSTN
         42   Diverse Steuerungen    AGFW Symposium DH       RLVG       RSTN    nLeck_1_VL       KA-0008    nLeck_1_VL_RLVG       KA-0008_RSTN
         26     AGFW Symposium DH    AGFW Symposium DH       RSLW       RUES            qB            qB            qB_RSLW            qB_RUES
-        136                    B    AGFW Symposium DH       RUES       RSTN            qB       KA-0058            qB_RUES       KA-0058_RSTN
+        142                    B    AGFW Symposium DH       RUES       RSTN            qB       KA-0058            qB_RUES       KA-0058_RSTN
         27     AGFW Symposium DH    AGFW Symposium DH       RSLW       RUES            qC            qC            qC_RSLW            qC_RUES
-        144                    C    AGFW Symposium DH       RUES       RSTN            qC       KA-0061            qC_RUES       KA-0061_RSTN
+        150                    C    AGFW Symposium DH       RUES       RSTN            qC       KA-0061            qC_RUES       KA-0061_RSTN
         6      AGFW Symposium DH    AGFW Symposium DH       RSLW       RUES      vorOrtNA      vorOrtNA      vorOrtNA_RSLW      vorOrtNA_RUES
         7      AGFW Symposium DH    AGFW Symposium DH       RUES       RLVG      vorOrtNA     wNAEin_vO      vorOrtNA_RUES     wNAEin_vO_RLVG
         9      AGFW Symposium DH    AGFW Symposium DH       RSLW       RUES      vorOrtNB      vorOrtNB      vorOrtNB_RSLW      vorOrtNB_RUES
-        134                    B    AGFW Symposium DH       RUES       RSTN      vorOrtNB       KA-0057      vorOrtNB_RUES       KA-0057_RSTN
-        137                    B    AGFW Symposium DH       RUES       RSTN      vorOrtNB       KA-0058      vorOrtNB_RUES       KA-0058_RSTN
+        140                    B    AGFW Symposium DH       RUES       RSTN      vorOrtNB       KA-0057      vorOrtNB_RUES       KA-0057_RSTN
+        143                    B    AGFW Symposium DH       RUES       RSTN      vorOrtNB       KA-0058      vorOrtNB_RUES       KA-0058_RSTN
         10     AGFW Symposium DH    AGFW Symposium DH       RUES       RLVG      vorOrtNB     wNBEin_vO      vorOrtNB_RUES     wNBEin_vO_RLVG
         12     AGFW Symposium DH    AGFW Symposium DH       RSLW       RUES      vorOrtNC      vorOrtNC      vorOrtNC_RSLW      vorOrtNC_RUES
-        126                    A    AGFW Symposium DH       RUES       RSTN      vorOrtNC       KA-0045      vorOrtNC_RUES       KA-0045_RSTN
-        129                    A    AGFW Symposium DH       RUES       RSTN      vorOrtNC       KA-0046      vorOrtNC_RUES       KA-0046_RSTN
-        143                    C    AGFW Symposium DH       RUES       RSTN      vorOrtNC       KA-0060      vorOrtNC_RUES       KA-0060_RSTN
-        145                    C    AGFW Symposium DH       RUES       RSTN      vorOrtNC       KA-0061      vorOrtNC_RUES       KA-0061_RSTN
+        132                    A    AGFW Symposium DH       RUES       RSTN      vorOrtNC       KA-0045      vorOrtNC_RUES       KA-0045_RSTN
+        135                    A    AGFW Symposium DH       RUES       RSTN      vorOrtNC       KA-0046      vorOrtNC_RUES       KA-0046_RSTN
+        149                    C    AGFW Symposium DH       RUES       RSTN      vorOrtNC       KA-0060      vorOrtNC_RUES       KA-0060_RSTN
+        151                    C    AGFW Symposium DH       RUES       RSTN      vorOrtNC       KA-0061      vorOrtNC_RUES       KA-0061_RSTN
         13     AGFW Symposium DH    AGFW Symposium DH       RUES       RLVG      vorOrtNC     wNCEin_vO      vorOrtNC_RUES     wNCEin_vO_RLVG
         24     AGFW Symposium DH    AGFW Symposium DH       RLVG       RUES   wDH_BA_A_MD   wDH_BA_A_MD   wDH_BA_A_MD_RLVG   wDH_BA_A_MD_RUES
         121  Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN   wDH_BA_A_MD       KA-0055   wDH_BA_A_MD_RUES       KA-0055_RSTN
@@ -6112,41 +6240,41 @@ class Xm():
         118  Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN  wDH_RD_A_ERO       KA-0054  wDH_RD_A_ERO_RUES       KA-0054_RSTN
         20     AGFW Symposium DH    AGFW Symposium DH       RSLW       RUES      wDH_RD_A      wDH_RD_A      wDH_RD_A_RSLW      wDH_RD_A_RUES
         117  Diverse Steuerungen    AGFW Symposium DH       RUES       RUES      wDH_RD_A  wDH_RD_A_ERO      wDH_RD_A_RUES  wDH_RD_A_ERO_RUES
-        149        Sekundärwerte  Diverse Steuerungen       RMES       RUES       wLastMW       wLastMW       wLastMW_RMES       wLastMW_RUES
-        152        Sekundärwerte  Diverse Steuerungen       RUES       RADD       wLastMW       dLastMW       wLastMW_RUES       dLastMW_RADD
+        155        Sekundärwerte  Diverse Steuerungen       RMES       RUES       wLastMW       wLastMW       wLastMW_RMES       wLastMW_RUES
+        158        Sekundärwerte  Diverse Steuerungen       RUES       RADD       wLastMW       dLastMW       wLastMW_RUES       dLastMW_RADD
         15     AGFW Symposium DH    AGFW Symposium DH       RSLW       RUES         wLast         wLast         wLast_RSLW         wLast_RUES
         31   Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN         wLast       KA-0004         wLast_RUES       KA-0004_RSTN
-        122                    A    AGFW Symposium DH       RUES       RSTN        wNAEin      wNA_RSTN        wNAEin_RUES      wNA_RSTN_RSTN
+        128                    A    AGFW Symposium DH       RUES       RSTN        wNAEin      wNA_RSTN        wNAEin_RUES      wNA_RSTN_RSTN
         8      AGFW Symposium DH    AGFW Symposium DH       RLVG       RUES     wNAEin_vO        wNAEin     wNAEin_vO_RLVG        wNAEin_RUES
         3      AGFW Symposium DH    AGFW Symposium DH       RSLW       RUES           wNA           wNA           wNA_RSLW           wNA_RUES
-        123                    A    AGFW Symposium DH       RUES       RSTN           wNA      wNA_RSTN           wNA_RUES      wNA_RSTN_RSTN
-        124                    A    AGFW Symposium DH       RUES       RSTN        wNBEin       KA-0044        wNBEin_RUES       KA-0044_RSTN
-        132                    B    AGFW Symposium DH       RUES       RSTN        wNBEin       KA-0053        wNBEin_RUES       KA-0053_RSTN
-        130                    B    AGFW Symposium DH       RUES       RSTN        wNBEin      wNB_RSTN        wNBEin_RUES      wNB_RSTN_RSTN
+        129                    A    AGFW Symposium DH       RUES       RSTN           wNA      wNA_RSTN           wNA_RUES      wNA_RSTN_RSTN
+        130                    A    AGFW Symposium DH       RUES       RSTN        wNBEin       KA-0044        wNBEin_RUES       KA-0044_RSTN
+        138                    B    AGFW Symposium DH       RUES       RSTN        wNBEin       KA-0053        wNBEin_RUES       KA-0053_RSTN
+        136                    B    AGFW Symposium DH       RUES       RSTN        wNBEin      wNB_RSTN        wNBEin_RUES      wNB_RSTN_RSTN
         11     AGFW Symposium DH    AGFW Symposium DH       RLVG       RUES     wNBEin_vO        wNBEin     wNBEin_vO_RLVG        wNBEin_RUES
         4      AGFW Symposium DH    AGFW Symposium DH       RSLW       RUES           wNB           wNB           wNB_RSLW           wNB_RUES
-        131                    B    AGFW Symposium DH       RUES       RSTN           wNB      wNB_RSTN           wNB_RUES      wNB_RSTN_RSTN
-        140                    C    AGFW Symposium DH       RUES       RSTN        wNCEin       KA-0059        wNCEin_RUES       KA-0059_RSTN
-        138                    C    AGFW Symposium DH       RUES       RSTN        wNCEin      wNC_RSTN        wNCEin_RUES      wNC_RSTN_RSTN
+        137                    B    AGFW Symposium DH       RUES       RSTN           wNB      wNB_RSTN           wNB_RUES      wNB_RSTN_RSTN
+        146                    C    AGFW Symposium DH       RUES       RSTN        wNCEin       KA-0059        wNCEin_RUES       KA-0059_RSTN
+        144                    C    AGFW Symposium DH       RUES       RSTN        wNCEin      wNC_RSTN        wNCEin_RUES      wNC_RSTN_RSTN
         14     AGFW Symposium DH    AGFW Symposium DH       RLVG       RUES     wNCEin_vO        wNCEin     wNCEin_vO_RLVG        wNCEin_RUES
         5      AGFW Symposium DH    AGFW Symposium DH       RSLW       RUES           wNC           wNC           wNC_RSLW           wNC_RUES
-        139                    C    AGFW Symposium DH       RUES       RSTN           wNC      wNC_RSTN           wNC_RUES      wNC_RSTN_RSTN
+        145                    C    AGFW Symposium DH       RUES       RSTN           wNC      wNC_RSTN           wNC_RUES      wNC_RSTN_RSTN
         16     AGFW Symposium DH    AGFW Symposium DH       RSLW       RUES         wTRST         wTRST         wTRST_RSLW         wTRST_RUES
         33   Diverse Steuerungen    AGFW Symposium DH       RUES       RSTN         wTRST       KA-0005         wTRST_RUES       KA-0005_RSTN
-        154        Sekundärwerte  Diverse Steuerungen       RMES       RUES          yAMW          yAMW          yAMW_RMES          yAMW_RUES
-        155        Sekundärwerte  Diverse Steuerungen       RMES       RUES          yBMW          yBMW          yBMW_RMES          yBMW_RUES
-        156        Sekundärwerte  Diverse Steuerungen       RMES       RUES          yCMW          yCMW          yCMW_RMES          yCMW_RUES
-        163        Sekundärwerte  Diverse Steuerungen       RMES       RUES     yDH_dp2_A     yDH_dp2_A     yDH_dp2_A_RMES     yDH_dp2_A_RUES
+        160        Sekundärwerte  Diverse Steuerungen       RMES       RUES          yAMW          yAMW          yAMW_RMES          yAMW_RUES
+        161        Sekundärwerte  Diverse Steuerungen       RMES       RUES          yBMW          yBMW          yBMW_RMES          yBMW_RUES
+        162        Sekundärwerte  Diverse Steuerungen       RMES       RUES          yCMW          yCMW          yCMW_RMES          yCMW_RUES
+        169        Sekundärwerte  Diverse Steuerungen       RMES       RUES     yDH_dp2_A     yDH_dp2_A     yDH_dp2_A_RMES     yDH_dp2_A_RUES
         114  Diverse Steuerungen    AGFW Symposium DH       RUES       RADD     yDH_dp2_A  wDH_MD_A_ERO     yDH_dp2_A_RUES  wDH_MD_A_ERO_RADD
-        164        Sekundärwerte  Diverse Steuerungen       RUES       RADD     yDH_dp2_A     yDH_pMD_A     yDH_dp2_A_RUES     yDH_pMD_A_RADD
-        166        Sekundärwerte  Diverse Steuerungen       RADD       RUES     yDH_pMD_A     yDH_pMD_A     yDH_pMD_A_RADD     yDH_pMD_A_RUES
-        167        Sekundärwerte  Diverse Steuerungen       RMES       RUES     yDH_pRL_A     yDH_pRL_A     yDH_pRL_A_RMES     yDH_pRL_A_RUES
-        165        Sekundärwerte  Diverse Steuerungen       RUES       RADD     yDH_pRL_A     yDH_pMD_A     yDH_pRL_A_RUES     yDH_pMD_A_RADD
-        150        Sekundärwerte  Diverse Steuerungen       RMES       RUES       yLastMW       yLastMW       yLastMW_RMES       yLastMW_RUES
-        151        Sekundärwerte  Diverse Steuerungen       RUES       RADD       yLastMW       dLastMW       yLastMW_RUES       dLastMW_RADD
-        161        Sekundärwerte  Diverse Steuerungen       RADD       RUES      yUWMLast      yUWMLast      yUWMLast_RADD      yUWMLast_RUES
-        148        Sekundärwerte  Diverse Steuerungen       RMES       RUES          yUWM          yUWM          yUWM_RMES          yUWM_RUES
-        159        Sekundärwerte  Diverse Steuerungen       RUES       RADD          yUWM      yUWMLast          yUWM_RUES      yUWMLast_RADD
+        170        Sekundärwerte  Diverse Steuerungen       RUES       RADD     yDH_dp2_A     yDH_pMD_A     yDH_dp2_A_RUES     yDH_pMD_A_RADD
+        172        Sekundärwerte  Diverse Steuerungen       RADD       RUES     yDH_pMD_A     yDH_pMD_A     yDH_pMD_A_RADD     yDH_pMD_A_RUES
+        173        Sekundärwerte  Diverse Steuerungen       RMES       RUES     yDH_pRL_A     yDH_pRL_A     yDH_pRL_A_RMES     yDH_pRL_A_RUES
+        171        Sekundärwerte  Diverse Steuerungen       RUES       RADD     yDH_pRL_A     yDH_pMD_A     yDH_pRL_A_RUES     yDH_pMD_A_RADD
+        156        Sekundärwerte  Diverse Steuerungen       RMES       RUES       yLastMW       yLastMW       yLastMW_RMES       yLastMW_RUES
+        157        Sekundärwerte  Diverse Steuerungen       RUES       RADD       yLastMW       dLastMW       yLastMW_RUES       dLastMW_RADD
+        167        Sekundärwerte  Diverse Steuerungen       RADD       RUES      yUWMLast      yUWMLast      yUWMLast_RADD      yUWMLast_RUES
+        154        Sekundärwerte  Diverse Steuerungen       RMES       RUES          yUWM          yUWM          yUWM_RMES          yUWM_RUES
+        165        Sekundärwerte  Diverse Steuerungen       RUES       RADD          yUWM      yUWMLast          yUWM_RUES      yUWMLast_RADD
         >>> import networkx as nx
         >>> G=nx.from_pandas_edgelist(vREdges, source='KnExt_Ki', target='KnExt_Kk', edge_attr=True,create_using=nx.DiGraph())
         >>> list(G.selfloop_edges())
@@ -6231,12 +6359,16 @@ class Xm():
             vREdges['KnExt']=vREdges['Kn']+'_'+vREdges['OBJTYPE'] 
             vREdges=vREdges.rename(columns={'OBJTYPE':'OBJTYPE_Kk','BESCHREIBUNG':'BESCHREIBUNG_Kk','Kn':'Kn_Kk','pk':'pk_Kk','KnExt':'KnExt_Kk'})
             vREdges=vREdges[['OBJTYPE_Ki','BESCHREIBUNG_Ki','Kn_Ki','pk_Ki','OBJTYPE_Kk','BESCHREIBUNG_Kk','Kn_Kk','pk_Kk','CONT','CONT_PARENT','KnExt_Ki','KnExt_Kk']]           
-                     
+
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-            logger.debug(logStrFinal)    
+            if isinstance(vREdges,pd.core.frame.DataFrame):
+                logger.error(logStrFinal) 
+            else:
+                logger.debug(logStrFinal) 
+                vREdges=pd.DataFrame()              
         finally:
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vREdges
 
     def _MxSyncAddMx(self,ForceNoH5ReadForMx=False):
@@ -7888,7 +8020,10 @@ if __name__ == "__main__":
         parser.add_argument("-m","--moduleTest", help="execute the Module Doctest On/Off: -m 1 (default)", action="store",default='1')      
         parser.add_argument("-s","--singleTest", help='execute single Doctest: Exp.1: -s  "^Rm.": all Doctests in Module Rm are executed - but not the Module Doctest (which is named Rm) Exp.2:  -s "^Xm."  -s "^Mx."  -s "^Rm.": all Doctests in the 3 Modules are executed - but not the Module Doctests'
                             ,action="append"
-                            ,default=[])           
+                            ,default=[])  
+        parser.add_argument("-x","--singleTestNO", help='execute NOT single Doctest: Exp.1: -s  "^Rm.": NO Doctests in Module Rm are executed - but not the Module Doctest (which is named Rm) Exp.2:  -s "^Xm."  -s "^Mx."  -s "^Rm.": NO Doctests in the 3 Modules are executed - but not the Module Doctests'
+                            ,action="append"
+                            ,default=[])               
         parser.add_argument("-t","--delGenFiles", help="Tests: decide if generated Files - i.e. .h5-Files - shall be deleted: Exp.: -t both: generated Files are deleted before and after the Tests"
                             ,choices=['before', 'after', 'both','nothing'],default='nothing')
 
@@ -8070,15 +8205,30 @@ if __name__ == "__main__":
                                            ,'ms':ms})
 
             for test in dTests:
-                logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Test found',test.name)) 
+                pass
+                #logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Test found',test.name)) 
 
-            dtRunner=doctest.DocTestRunner(verbose=args.verbose) 
+            # gefundene Tests mit geforderten Tests abgleichen
+
+            testsToBeExecuted=[]
             for expr in args.singleTest:
-                logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Searching in Tests found for Expr',expr.strip("'")))                
-                testsForExpr=[test for test in dTests if re.search(expr.strip("'"),test.name) != None]
-                for test in testsForExpr:                                                  
-                        logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Running Test',test.name)) 
-                        dtRunner.run(test)                     
+                logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Searching in Tests found for Expr     TBD',expr.strip("'")))                
+                testsToBeExecuted=testsToBeExecuted+[test for test in dTests if re.search(expr.strip("'"),test.name) != None]     
+            logger.debug("{0:s}singleTests: {1:s}: {2:s}".format(logStr,'    TBD',str(sorted([test.name for test in testsToBeExecuted]))))                   
+
+            testsNotToBeExecuted=[]
+            for expr in args.singleTestNO:
+                logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Searching in Tests found for Expr NOT TBD',expr.strip("'")))      
+                testsNotToBeExecuted=testsNotToBeExecuted+[test for test in testsToBeExecuted if re.search(expr.strip("'"),test.name) != None]       
+            logger.debug("{0:s}singleTests: {1:s}: {2:s}".format(logStr,'NOT TBD',str(sorted([test.name for test in testsNotToBeExecuted]))))    
+
+            # effektiv auszuführende Tests 
+            testsToBeExecutedEff=sorted(set(testsToBeExecuted)-set(testsNotToBeExecuted),key=lambda test: test.name)
+            
+            dtRunner=doctest.DocTestRunner(verbose=args.verbose) 
+            for test in testsToBeExecutedEff:                      
+                    logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Running Test',test.name)) 
+                    dtRunner.run(test)                                        
 
         if args.delGenFiles in ['after','both']:              
             for testModel in testModels:   

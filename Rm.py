@@ -23,12 +23,12 @@
 >>> try:
 ...    from PT3S import Mx
 ... except ImportError:
-...    logger.debug("{0:s}{1:s}".format("DOCTEST: from PT3S import Mx: ImportError: ","trying import Mx maybe pip install -e . is active ..."))  
+...    logger.debug("{0:s}{1:s}".format("DOCTEST: from PT3S import Mx: ImportError: ","trying import Mx instead ... maybe pip install -e . is active ..."))  
 ...    import Mx
 >>> try:
 ...    from PT3S import Xm
 ... except ImportError:
-...    logger.debug("{0:s}{1:s}".format("DOCTEST: from PT3S import Xm: ImportError: ","trying import Xm maybe pip install -e . is active ..."))  
+...    logger.debug("{0:s}{1:s}".format("DOCTEST: from PT3S import Xm: ImportError: ","trying import Xm instead ... maybe pip install -e . is active ..."))  
 ...    import Xm
 >>> # ---
 >>> # testDir
@@ -177,13 +177,13 @@ else:
 try:
     from PT3S import Mx
 except ImportError:
-    logger.debug("{0:s}{1:s}".format('ImportError: ','from PT3S import Mx - trying import Mx maybe pip install -e . is active ...')) 
+    logger.debug("{0:s}{1:s}".format('ImportError: ','from PT3S import Mx - trying import Mx instead ... maybe pip install -e . is active ...')) 
     import Mx
 
 try:
     from PT3S import Xm
 except ImportError:
-    logger.debug("{0:s}{1:s}".format('ImportError: ','from PT3S import Xm - trying import Xm maybe pip install -e . is active ...')) 
+    logger.debug("{0:s}{1:s}".format('ImportError: ','from PT3S import Xm - trying import Xm instead ... maybe pip install -e . is active ...')) 
     import Xm
 
 # ---
@@ -2949,7 +2949,10 @@ if __name__ == "__main__":
         parser.add_argument("-m","--moduleTest", help="execute the Module Doctest On/Off: -m 1 (default)", action="store",default='1')      
         parser.add_argument("-s","--singleTest", help='execute single Doctest: Exp.1: -s  "^Rm.": all Doctests in Module Rm are executed - but not the Module Doctest (which is named Rm) Exp.2:  -s "^Xm."  -s "^Mx."  -s "^Rm.": all Doctests in the 3 Modules are executed - but not the Module Doctests'
                             ,action="append"
-                            ,default=[])           
+                            ,default=[])    
+        parser.add_argument("-x","--singleTestNO", help='execute NOT single Doctest: Exp.1: -s  "^Rm.": NO Doctests in Module Rm are executed - but not the Module Doctest (which is named Rm) Exp.2:  -s "^Xm."  -s "^Mx."  -s "^Rm.": NO Doctests in the 3 Modules are executed - but not the Module Doctests'
+                            ,action="append"
+                            ,default=[])               
         parser.add_argument("-t","--delGenFiles", help="Tests: decide if generated Files - i.e. .h5-Files - shall be deleted: Exp.: -t both: generated Files are deleted before and after the Tests"
                             ,choices=['before', 'after', 'both','nothing'],default='nothing')
 
@@ -3128,15 +3131,25 @@ if __name__ == "__main__":
                                            ,'mxs':mxs})
 
             for test in dTests:
-                logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Test found',test.name)) 
+                pass
+                #logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Test found',test.name)) 
 
-            dtRunner=doctest.DocTestRunner(verbose=args.verbose) 
+            # gefundene Tests mit geforderten Tests abgleichen
+
+            testsToBeExecuted=[]
             for expr in args.singleTest:
-                logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Searching in Tests found for Expr',expr.strip("'")))                
-                testsForExpr=[test for test in dTests if re.search(expr.strip("'"),test.name) != None]
-                for test in testsForExpr:                                                  
-                        logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Running Test',test.name)) 
-                        dtRunner.run(test)                     
+                logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Searching in Tests found for Expr     TBD',expr.strip("'")))                
+                testsToBeExecuted=testsToBeExecuted+[test for test in dTests if re.search(expr.strip("'"),test.name) != None]     
+            logger.debug("{0:s}singleTests: {1:s}: {2:s}".format(logStr,'    TBD',str(sorted([test.name for test in testsToBeExecuted]))))                   
+
+            testsNotToBeExecuted=[]
+            for expr in args.singleTestNO:
+                logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Searching in Tests found for Expr NOT TBD',expr.strip("'")))      
+                testsNotToBeExecuted=testsNotToBeExecuted+[test for test in testsToBeExecuted if re.search(expr.strip("'"),test.name) != None]       
+            logger.debug("{0:s}singleTests: {1:s}: {2:s}".format(logStr,'NOT TBD',str(sorted([test.name for test in testsNotToBeExecuted]))))    
+
+            # effektiv auszuführende Tests 
+            testsToBeExecutedEff=sorted(set(testsToBeExecuted)-set(testsNotToBeExecuted),key=lambda test: test.name)                 
 
         if args.delGenFiles in ['after','both']:              
             for testModel in testModels:   
