@@ -672,12 +672,12 @@ class Mx():
         * fileNames
             * .mx1File: base.Y.MX1-File 
 
-            derived from mx1File
+            * derived from mx1File
                 * .mx2File: base.MX2-File 
                 * .mxsFile: base.Y.MXS-File
                 * .mxsZipFile base.ZIP
                 *  constructed from MX during Init and Usage:
-                *  ------------------------------------------
+                * 
                 * .h5File: base.Y.h5-File
                 * .h5FileVecs: base.Y.vec.h5-File: MXS-H5Dump written implicitely 
                 * .h5FileMx1FmtString: base.Y.h5-File.metadata written implicitely

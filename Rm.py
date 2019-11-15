@@ -1292,8 +1292,8 @@ class Rm():
                         * query: query to filter pDf; default: None; Exp.: ="CONT_ID == '1001'"
                         * fmask: function to filter pDf; default: None; Exp.: =lambda row: True if row.KVR_i=='2' and row.KVR_k=='2' else False   
                         * query and fmask are used both (query 1st) if not None
-                        * sort_values_by: list of colNames defining the plot order; default: None
-                        * sort_values_ascending; default: False (d.h. kleine zuletzt und damit i.d.R. auch dünne über dicke)
+                        * sort_values_by: list of colNames defining the plot order; default: None (d.h. die Plotreihenfolge - und damit die z-Order - ist dann die pDF-Reihenfolge)
+                        * sort_values_ascending; default: False (d.h. kleine zuletzt und damit (wenn pAttrLineSize = pAttribute/pAttributeFunc) auch dünne über dicke); nur relevant bei sort_values_by
 
                 AXES:
                     pAx: Axes to be plotted on; if not specified: gca() is used
@@ -1314,8 +1314,8 @@ class Rm():
                     * pAttributeColorMap (default: plt.cm.cool)   
                     * Farbskalamapping:
                     * ------------------
-                    * pAttributeColorMapMin (default: pAttribute.min()); ordnet der kleinsten   Farbe einen Wert zu    
-                    * pAttributeColorMapMax (default: pAttribute.max()); ordnet der größten     Farbe einen Wert zu   
+                    * pAttributeColorMapMin (default: pAttribute.min()); ordnet der kleinsten   Farbe einen Wert zu; CM: wenn angegeben und unterschritten: <=    
+                    * pAttributeColorMapMax (default: pAttribute.max()); ordnet der größten     Farbe einen Wert zu; CM: wenn angegeben und überschritten:  >=   
                     * Standard: Farbskala wird (wenn die Werte die vorstehend parametrierten Min/Max erreichen) voll ausgenutzt
                     * pAttributeColorMapUsageStart (default: 0.; Wertebereich: [0,1[)                          
                         * hier: die Farbskala wird unten nur ab UsageStart genutzt ...
@@ -1340,7 +1340,7 @@ class Rm():
                     * pAttributeColorMap2ndFmask: function to filter pDf to decide to plot with colorMap2nd; default: =lambda row: False     
                     
                     * mit den beiden Funktionsmasken kann eine Filterung zusätzlich zu query und fmask realisiert werden
-                    * die Funktionsmasken sollten schnittmengenfrei sein - wenn nicht: 2nd überschreibt 
+                    * die Funktionsmasken sollten schnittmengenfrei sein; wenn nicht: 2nd überschreibt 
 
                     * pAttributeColorMap2nd (default: plt.cm.binary)    
                     * Farbskalamapping:
@@ -1356,7 +1356,7 @@ class Rm():
 
                 PIPE-Linesize:
                     * pAttrLineSize: column in pDf; if not specified: pAttribute/pAttributeFunc                
-                    * pAttrLineSizeFactor (>0): plot linewidth in pts = pAttrLineSizeFactor (default: ...) * fabs(pAttrLineSize) 
+                    * pAttrLineSizeFactor (>0): plot linewidth in pts = pAttrLineSizeFactor (default: =...) * fabs(pAttrLineSize) 
                     * ...: 1./(pDf[pAttrLineSize].std()*2.)      
                     * same for all colors if mutliple colors are specified
 
@@ -1375,10 +1375,13 @@ class Rm():
                 >>> # ---
                 >>> plt.close()
                 >>> size_DINA3quer=(16.5, 11.7) 
-                >>> plt.rc('figure',figsize=size_DINA3quer) 
-                >>> plt.rc('figure',dpi=72)
-                >>> plt.rc('savefig',dpi=72*2)
-                >>> fig=plt.figure()         
+                >>> dpiSize=72
+                >>> #
+                >>> #plt.rc('figure',figsize=size_DINA3quer) 
+                >>> #plt.rc('figure',dpi=72)
+                >>> #plt.rc('savefig',dpi=72*2)
+                >>> #                
+                >>> fig=plt.figure(figsize=size_DINA3quer,dpi=dpiSize)         
                 >>> gs = gridspec.GridSpec(4, 2)
                 >>> # ---
                 >>> vROHR=xm.dataFrames['vROHR']                 
@@ -1394,6 +1397,7 @@ class Rm():
                 ...     ,pAx=axNfd
                 ...     ,pAttribute='ROHR~*~*~*~QMAV'
                 ...     )     
+                >>> axNfd.set_title('RL QMAV')
                 >>> # ---
                 >>> # Function as Attribute
                 >>> # --------------------------
@@ -1404,6 +1408,7 @@ class Rm():
                 ...     ,pAx=axNfd
                 ...     ,pAttributeFunc=lambda row: math.fabs(row['ROHR~*~*~*~QMAV'])
                 ...     )
+                >>> axNfd.set_title('RL QMAV Abs')
                 >>> # --------------------------
                 >>> # ---
                 >>> # Farbskalamapping u. -eigenschaften u. Plotorder groß auf klein
@@ -1420,6 +1425,7 @@ class Rm():
                 ...     ,sort_values_by=['pAttributeFunc'] 
                 ...     ,sort_values_ascending=True                 
                 ...     )
+                >>> axNfd.set_title('RL QMAV Abs Mi/MaD zS auf')
                 >>> # --------------------------
                 >>> # ---
                 >>> # Farbskalamapping u. -eigenschaften u. Plotorder klein auf groß
@@ -1435,6 +1441,7 @@ class Rm():
                 ...     ,CBLabel='Q [t/h]'    
                 ...     ,sort_values_by=['pAttributeFunc'] 
                 ...     )
+                >>> axNfd.set_title('RL QMAV Abs Mi/MaD zS ab')
                 >>> # --------------------------
                 >>> # ---
                 >>> # Farbskalamapping u. -eigenschaften u. Plotorder  groß auf klein / 2nd Color
@@ -1442,7 +1449,7 @@ class Rm():
                 >>> vAGSN=xm.dataFrames['vAGSN']    
                 >>> hpRL=vAGSN[(vAGSN['LFDNR']=='1') & (vAGSN['Layer']==2)]               
                 >>> pDf=pd.merge(vROHR
-                ...     ,hpRL[hpRL.IptIdx=='S']
+                ...     ,hpRL[hpRL.IptIdx=='S'] # wg. Innenpunkte 
                 ...     ,how='left'
                 ...     ,left_on='pk'
                 ...     ,right_on='OBJID'
@@ -1461,6 +1468,7 @@ class Rm():
                 ...     ,pAttributeColorMapFmask=lambda row: True if not pd.isnull(row.OBJID) else False 
                 ...     ,pAttributeColorMap2ndFmask=lambda row: True if pd.isnull(row.OBJID) else False                 
                 ...     )
+                >>> axNfd.set_title('RL QMAV Abs Mi/MaD zS auf 2nd')
                 >>> # --------------------------
                 >>> # ---
                 >>> # Farbskalamapping u. -eigenschaften u. Plotorder  groß auf klein / 2nd Color / UsageLimits
@@ -1470,7 +1478,7 @@ class Rm():
                 ...     ,query="CONT_ID == '1001'"
                 ...     ,fmask=lambda row: True if row.KVR_i=='2' and row.KVR_k=='2' else False 
                 ...     ,pAx=axNfd
-                ...     ,pAttributeFunc=lambda row: math.fabs(row['ROHR~*~*~*~QMAV'])
+                ...     ,pAttributeFunc=lambda row: math.fabs(row['ROHR~*~*~*~QMAV'])                
                 ...     ,pAttributeColorMapMin=0.
                 ...     ,pAttributeColorMapMax=1600.
                 ...     ,CBLabel='Q [t/h]'    
@@ -1481,11 +1489,32 @@ class Rm():
                 ...     ,pAttributeColorMap2ndUsageStart=.5/5. # nicht zu weiß 
                 ...     ,pAttributeColorMap2ndUsageEnd=2.5/5. # nicht zu schwarz
                 ...     ,pAttributeColorMapUsageStart=5/16.
-                ...     ,pAttributeColorMapUsageEnd=11/16.
+                ...     ,pAttributeColorMapUsageEnd=11/16.                
                 ...     )
+                >>> axNfd.set_title('RL QMAV Abs Mi/MaD zS auf 2nd CMClip')
+                >>> # --------------------------
+                >>> # ---
+                >>> # 
+                >>> # --------------------------              
+                >>> axNfd = fig.add_subplot(gs[6])              
+                >>> Rm.Rm.pltNetPipes(pDf
+                ...     ,query="CONT_ID == '1001'"
+                ...     ,fmask=lambda row: True if row.KVR_i=='2' and row.KVR_k=='2' else False 
+                ...     ,pAx=axNfd
+                ...     ,pAttributeFunc=lambda row: math.fabs(row['ROHR~*~*~*~QMAV'])
+                ...     ,pAttributeColorMap=plt.cm.tab20c
+                ...     ,pAttributeColorMapMin=0.
+                ...     ,pAttributeColorMapMax=1600.
+                ...     ,CBLabel='Q [t/h]'    
+                ...     ,sort_values_by=['pAttributeFunc'] 
+                ...     ,sort_values_ascending=True       
+                ...     ,pAttributeColorMapFmask=lambda row: True if not pd.isnull(row.OBJID) else False 
+                ...     ,pAttributeColorMap2ndFmask=lambda row: True if pd.isnull(row.OBJID) else False               
+                ...     )
+                >>> axNfd.set_title('RL QMAV Abs Mi/MaD zS auf 2nd Disc')
                 >>> # --------------------------
                 >>> gs.tight_layout(fig)
-                >>> plt.savefig('pltNetPipes.pdf',format='pdf')
+                >>> plt.savefig('pltNetPipes.pdf',format='pdf',dpi=dpiSize*2)
         """
         logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -1722,6 +1751,30 @@ class Rm():
             usageEndLineValue2nd=maxLine2nd-(1.-kwds['pAttributeColorMap2ndUsageEnd'])*(maxLine2nd-minLine2nd)
             logger.debug("{:s}pAttributeColorMap2ndUsageEnd:   {:8.2f} ==> usageEndLineValue2nd:   {:8.2f} (maxLine2nd: {:8.2f})".format(logStr,kwds['pAttributeColorMap2ndUsageEnd'],usageEndLineValue2nd,maxLine2nd))
             usageEndLineColor2nd=kwds['pAttributeColorMap2nd'](normLine2nd(usageEndLineValue2nd))      
+          
+            # PIPE-Color 2nd: PLOT           
+            pDfColorMap2nd=pDf[pDf.apply(kwds['pAttributeColorMap2ndFmask'],axis=1)]
+            (rows   ,cols)=pDf.shape
+            (rows2nd,cols)=pDfColorMap2nd.shape
+            logger.debug("{:s}Color 2nd-PIPEs: {:d} von {:d}".format(logStr,rows2nd,rows))   
+            for xs,ys,vLine in zip(pDfColorMap2nd[kwds['pWAYPXCors']],pDfColorMap2nd[kwds['pWAYPYCors']],pDfColorMap2nd[kwds['pAttribute']]):        
+
+
+                if vLine >= usageStartLineValue2nd and vLine <= usageEndLineValue2nd:
+                    colorLine=kwds['pAttributeColorMap2nd'](normLine2nd(vLine))                     
+                elif vLine > usageEndLineValue2nd:
+                    colorLine=usageEndLineColor2nd                   
+                else:
+                    colorLine=usageStartLineColor2nd                                                          
+
+                pcLines=kwds['pAx'].plot(xs,ys
+                                ,color=colorLine
+                                ,linewidth=kwds['pAttrLineSizeFactor']*math.fabs(vLine) 
+                                ,ls=kwds['pAttributeLs']
+                                ,solid_capstyle='round'                             
+                                ,aa=True
+                                ,clip_on=kwds['pClip']
+                               )  
                   
             # PIPE-Color: PLOT            
             pDfColorMap=pDf[pDf.apply(kwds['pAttributeColorMapFmask'],axis=1)]  
@@ -1741,29 +1794,6 @@ class Rm():
                     colorLine=usageStartLineColor   
                     value=usageStartLineValue
                 colorsCBValues.append(value)                
-
-                pcLines=kwds['pAx'].plot(xs,ys
-                                ,color=colorLine
-                                ,linewidth=kwds['pAttrLineSizeFactor']*math.fabs(vLine) 
-                                ,ls=kwds['pAttributeLs']
-                                ,solid_capstyle='round'                             
-                                ,aa=True
-                                ,clip_on=kwds['pClip']
-                               )   
-
-            # PIPE-Color 2nd: PLOT
-            pDfColorMap2nd=pDf[pDf.apply(kwds['pAttributeColorMap2ndFmask'],axis=1)]
-            (rows2nd,cols)=pDfColorMap2nd.shape
-            logger.debug("{:s}Color 2nd-PIPEs: {:d} von {:d}".format(logStr,rows2nd,rows))   
-            for xs,ys,vLine in zip(pDfColorMap2nd[kwds['pWAYPXCors']],pDfColorMap2nd[kwds['pWAYPYCors']],pDfColorMap2nd[kwds['pAttribute']]):        
-
-
-                if vLine >= usageStartLineValue2nd and vLine <= usageEndLineValue2nd:
-                    colorLine=kwds['pAttributeColorMap2nd'](normLine2nd(vLine))                     
-                elif vLine > usageEndLineValue2nd:
-                    colorLine=usageEndLineColor2nd                   
-                else:
-                    colorLine=usageStartLineColor2nd                                                          
 
                 pcLines=kwds['pAx'].plot(xs,ys
                                 ,color=colorLine
@@ -1833,16 +1863,12 @@ class Rm():
         finally:       
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                   
 
-
-
-
-    """
-    Args:
-        xm: Xm.Xm Object
-
-        mx: Mx.Mx Object
-    """
     def __init__(self,xm=None,mx=None): 
+        """
+        Args:
+            xm: Xm.Xm Object
+            mx: Mx.Mx Object
+        """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -3149,7 +3175,12 @@ if __name__ == "__main__":
             logger.debug("{0:s}singleTests: {1:s}: {2:s}".format(logStr,'NOT TBD',str(sorted([test.name for test in testsNotToBeExecuted]))))    
 
             # effektiv auszuführende Tests 
-            testsToBeExecutedEff=sorted(set(testsToBeExecuted)-set(testsNotToBeExecuted),key=lambda test: test.name)                 
+            testsToBeExecutedEff=sorted(set(testsToBeExecuted)-set(testsNotToBeExecuted),key=lambda test: test.name)      
+            
+            dtRunner=doctest.DocTestRunner(verbose=args.verbose) 
+            for test in testsToBeExecutedEff:                      
+                    logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Running Test',test.name)) 
+                    dtRunner.run(test)    
 
         if args.delGenFiles in ['after','both']:              
             for testModel in testModels:   
