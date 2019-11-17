@@ -247,6 +247,118 @@ def pltMakeCategoricalCmap(nc, nsc, cmap="tab10", continuous=False):
     cmap = matplotlib.colors.ListedColormap(cols)
     return cmap
 
+
+def pltMakeCategoricalCmap2(catagoryCmap="tab10",catagoryColors=None,nOfSubCatsReq=3,reversedSubCatOrder=False):
+    """
+    Returns a cmap with nOfCatsReq * nOfSubCatsReq discrete colors.
+
+    Parameter:
+        catagoryCmap:    a discrete cmap with different "base"colors
+                         default: tab10
+        catagoryColors:  a list of "base"colors indices for this cmap
+                         the length of the list is the number of Categories requested: nOfCatsReq
+                         apparently cmap's nOfColors must be ge than nOfCatsReq
+                         default: None (==> nOfCatsReq = cmap's nOfColors)
+                         i.e. [2,8,3] for tab10 is green, yellow (ocher), red
+        nOfSubCatsReq:   number of Subcategories requested
+        
+    Returns:
+        cmap with nOfCatsReq * nOfSubCatsReq discrete colors; None if an error occurs
+        one "base"color per category
+        nOfSubCatsReq "sub"colors per category
+        so each category consists of nOfSubCatsReq colors
+        the 1st color of a category is from catagoryCmap - the "base"color of the category
+        the other colors of a category are derived from the "base"color 
+        if reversedSubCatOrder, the last color of a category is from catagoryCmap
+
+    Raises:
+        RmError
+
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> import Rm    
+    >>> Rm.pltMakeCategoricalCmap2().N
+    30
+    >>> Rm.pltMakeCategoricalCmap2(catagoryColors=[2,8,3]).N
+    9
+    >>> catagoryCmap="tab10"
+    >>> catagoryColors=[2,8,3]
+    >>> nOfSubCatsReq=4
+    >>> cm=Rm.pltMakeCategoricalCmap2(catagoryCmap=catagoryCmap,catagoryColors=catagoryColors,nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=True)
+    >>> nCat=len(catagoryColors)
+    >>> nCatSub=nOfSubCatsReq
+    >>> colorsY=np.ones(nCat*nCatSub) #1
+    >>> colorsX=np.ones(nCat*nCatSub) #1
+    >>> for idxC in range(nCat):
+    ...        for idxCatSub in range (nCatSub):
+    ...            colorsY[idxC*nCatSub+idxCatSub]=idxC
+    ...            colorsX[idxC*nCatSub+idxCatSub]=idxC*nCatSub+idxCatSub*nCatSub
+    >>> plt.close()
+    >>> size_DINA6quer=(5.8,4.1) 
+    >>> fig=plt.figure(figsize=size_DINA6quer)
+    >>> pco=plt.scatter(colorsX,colorsY, c=np.arange(nCat*nCatSub), s=180, cmap=cm)
+    >>> #plt.show()
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    cmap=None
+
+    try:  
+        # Farben, "base"colors, welche die cmap hat
+        nOfColors=plt.get_cmap(catagoryCmap).N
+
+        if catagoryColors==None:            
+            catagoryColors=np.arange(nOfColors,dtype=int)
+
+        # verlangte Kategorien
+        nOfCatsReq=len(catagoryColors)
+        
+        if nOfCatsReq > nOfColors:
+            logStrFinal="{0:s}: nOfCatsReq: {1:d} > cmap's nOfColors: {2:d}!".format(logStr,nOfCatsReq,nOfColors)                                 
+            raise RmError(logStrFinal)          
+                        
+        if max(catagoryColors) > nOfColors-1:
+            logStrFinal="{0:s}: max. Idx of catsReq: {1:d} > cmap's nOfColors-1: {2:d}!".format(logStr,max(catagoryColors),nOfColors-1)                                 
+            raise RmError(logStrFinal)      
+
+        # alle Farben holen, welche die cmap hat
+        ccolors = plt.get_cmap(catagoryCmap)(np.arange(nOfColors,dtype=int))
+        # die gewuenschten Kategoriefarben extrahieren
+        #ccolors=[color for idx,color in enumerate(ccolors) if idx in catagoryColors] # waere in Reihenfolge der cmap und nicht in der gewünschten Reihenfolge 
+        ccolors=[ccolors[idx] for idx in catagoryColors]
+    
+        # Farben bauen
+
+        # resultierende Farben vorbelegen
+        cols = np.zeros((nOfCatsReq*nOfSubCatsReq, 3))
+
+        # ueber alle Kategoriefarben
+        for i, c in enumerate(ccolors):
+            chsv = matplotlib.colors.rgb_to_hsv(c[:3])
+            arhsv = np.tile(chsv,nOfSubCatsReq).reshape(nOfSubCatsReq,3)
+            arhsv[:,1] = np.linspace(chsv[1],0.25,nOfSubCatsReq)
+            arhsv[:,2] = np.linspace(chsv[2],1,nOfSubCatsReq)
+            rgb = matplotlib.colors.hsv_to_rgb(arhsv)
+            if reversedSubCatOrder:
+                rgb=list(reversed(rgb))                
+            cols[i*nOfSubCatsReq:(i+1)*nOfSubCatsReq,:] = rgb
+            
+
+        cmap = matplotlib.colors.ListedColormap(cols)                
+
+                                                                                          
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return cmap
+
 def pltMakePatchSpinesInvisible(ax):
     ax.set_frame_on(True)
     ax.patch.set_visible(False)
@@ -1302,6 +1414,11 @@ class Rm():
                         * CBFraction in % (default: 5)
                         * CBHpad (default: 0.05)
                         * CBLabel (default: pAttribute/pAttributeFunc)  
+                        * CBBinTicks (default: None, d.h. keine Vorgabe von Außen); Vorgabe N: N yTicks; bei diskreten CM gemeint im Sinne von N-1 diskreten Kategorien
+                        * CBBinDiscrete (default: False, d.h. eine gegebene (kontinuierliche) CM wird nicht in eine diskrete gewandelt)
+                        * wenn CBBinDiscrete, dann gilt N aus CBBinTicks fuer die Ticks (bzw. Kategorien); ist CBBinTicks undef. gilt 4 (also 3 Kategorien)
+                        * bei den vorgenannten Kategorien handelt es sich um eine gleichmäßige Unterteilung des definierten Wertebereiches
+                        * CBBinBounds (default: None): wenn die CM eine diskrete ist, dann wird die BoundaryNorm angewandt; CBBinTicks hat dann keine Bedeutung
 
                 PIPE-Attribute:
                     * pAttribute: column in pDf (default: 'Attribute')     
@@ -1314,21 +1431,25 @@ class Rm():
                     * pAttributeColorMap (default: plt.cm.cool)   
                     * Farbskalamapping:
                     * ------------------
-                    * pAttributeColorMapMin (default: pAttribute.min()); ordnet der kleinsten   Farbe einen Wert zu; CM: wenn angegeben und unterschritten: <=    
-                    * pAttributeColorMapMax (default: pAttribute.max()); ordnet der größten     Farbe einen Wert zu; CM: wenn angegeben und überschritten:  >=   
-                    * Standard: Farbskala wird (wenn die Werte die vorstehend parametrierten Min/Max erreichen) voll ausgenutzt
+                    * pAttributeColorMapMin (default: pAttribute.min()); ordnet der kleinsten   Farbe einen Wert zu; CM: wenn angegeben _und unterschritten: <=    
+                    * pAttributeColorMapMax (default: pAttribute.max()); ordnet der größten     Farbe einen Wert zu; CM: wenn angegeben _und überschritten:  >=   
+                    * Standard: Farbskala wird voll ausgenutzt; d.h. der (ggf. mit Min/Max) eingegrenzte Wertebereich wird den Randfarben der Skala zugeordnet
+                    * wenn ein anderer, kleinerer, Wertebereich mit derselben Farbskala geplottet wird, dann sind die Farben in den Plots nicht vergleichbar ...
+                    * ... wenn eine Farbvergleichbarkeit erzielt werden soll, darf dieselbe Farbskala nicht voll ausgenutzt werden  
+
                     * pAttributeColorMapUsageStart (default: 0.; Wertebereich: [0,1[)                          
                         * hier: die Farbskala wird unten nur ab UsageStart genutzt ...
-                        * ... d.h. Werte die eine "kleinere" Farbe hätten, bekommen die Farbe von UsageStart
+                        * ... d.h. Werte die eine "kleinere" Farbe hätten, bekommen die Farbe von UsageStart; CM: v=
                     * pAttributeColorMapUsageEnd (default: 1.; Wertebereich: ]0,1])                           
                         * hier: die Farbskala wird oben nur bis UsageEnd genutzt ...
-                        * ... d.h. Werte die eine "größere" Farbe hätten, bekommen die Farbe von UsageEnd
+                        * ... d.h. Werte die eine "größere" Farbe hätten, bekommen die Farbe von UsageEnd; CM: ^=
+                        
+                    * etwas anderes ist es, wenn man eine Farbskala an den Rändern nicht voll ausnutzen möchte weil einem die Farben dort nicht gefallen ...
                                      
                 PIPE-Color 2nd:
-                    * um "unwichtige" Bereiche zu "dimmen":
-                    * Beispiele:
-                    * räumlich: nicht-Schnitt Bereiche; Bestand (2nd) vs. Ausbau; Zonen unwichtig (2nd) vs. Zonen wichtig
-                    * "Ampel": "uninteressante" Wertebereiche
+                    * um "unwichtige" Bereiche zu "dimmen": Beispiele:                    
+                    * räumlich: nicht-Schnitt Bereiche; Bestand (2nd) vs. Ausbau; Zonen unwichtig (2nd) vs. Zonen wichtig; Ok (2nd) von NOK
+                    * es werden erst die 2nd-Color Pipes gezeichnet; die (1st-)Color Pipes werden danach gezeichnet, liegen also "über" den "unwichtigen"
 
                     * es wird dieselbe Spalte pAttribute/pAttributeFunc für die 2. Farbskala verwendet
                     * es wird derselbe Linienstil (pAttributeLs) für die 2. Farbskala verwendet
@@ -1338,7 +1459,7 @@ class Rm():
 
                     * pAttributeColorMapFmask: function to filter pDf to decide to plot with colorMap; default: =lambda row: True       
                     * pAttributeColorMap2ndFmask: function to filter pDf to decide to plot with colorMap2nd; default: =lambda row: False     
-                    
+                                        
                     * mit den beiden Funktionsmasken kann eine Filterung zusätzlich zu query und fmask realisiert werden
                     * die Funktionsmasken sollten schnittmengenfrei sein; wenn nicht: 2nd überschreibt 
 
@@ -1365,7 +1486,8 @@ class Rm():
                     * pWAYPYCors: column in pDf (default: 'pWAYPYCors')     
                     * pClip (default: True)
 
-                >>> import pandas as pd     
+                >>> import pandas as pd
+                >>> import matplotlib
                 >>> import matplotlib.pyplot as plt
                 >>> import matplotlib.gridspec as gridspec
                 >>> import math
@@ -1428,20 +1550,28 @@ class Rm():
                 >>> axNfd.set_title('RL QMAV Abs Mi/MaD zS auf')
                 >>> # --------------------------
                 >>> # ---
-                >>> # Farbskalamapping u. -eigenschaften u. Plotorder klein auf groß
+                >>> # 
                 >>> # --------------------------
-                >>> axNfd = fig.add_subplot(gs[3])              
+                >>> axNfd = fig.add_subplot(gs[3])           
+                >>> cm = matplotlib.colors.ListedColormap(['cyan', 'royalblue', 'magenta', 'coral'])
+                >>> cm.set_over('0.25')
+                >>> cm.set_under('0.75')
+                >>> bounds = [10.,100.,200.,800.,1600.]
+                >>> norm = matplotlib.colors.BoundaryNorm(bounds, cm.N)
                 >>> Rm.Rm.pltNetPipes(vROHR
                 ...     ,query="CONT_ID == '1001'"
                 ...     ,fmask=lambda row: True if row.KVR_i=='2' and row.KVR_k=='2' else False 
                 ...     ,pAx=axNfd
-                ...     ,pAttributeFunc=lambda row: math.fabs(row['ROHR~*~*~*~QMAV'])
-                ...     ,pAttributeColorMapMin=0.
-                ...     ,pAttributeColorMapMax=1600.
+                ...     ,pAttributeFunc=lambda row: math.fabs(row['ROHR~*~*~*~QMAV'])     
+                ...     ,pAttributeColorMap=cm
+                ...     ,CBBinBounds=bounds
+                ...     #,pAttributeColorMapMin=0.
+                ...     #,pAttributeColorMapMax=1600.                
                 ...     ,CBLabel='Q [t/h]'    
                 ...     ,sort_values_by=['pAttributeFunc'] 
-                ...     )
-                >>> axNfd.set_title('RL QMAV Abs Mi/MaD zS ab')
+                ...     ,sort_values_ascending=True                   
+                ...     )              
+                >>> axNfd.set_title('RL QMAV Abs Mi/MaD xxx')
                 >>> # --------------------------
                 >>> # ---
                 >>> # Farbskalamapping u. -eigenschaften u. Plotorder  groß auf klein / 2nd Color
@@ -1461,14 +1591,15 @@ class Rm():
                 ...     ,pAx=axNfd
                 ...     ,pAttributeFunc=lambda row: math.fabs(row['ROHR~*~*~*~QMAV'])
                 ...     ,pAttributeColorMapMin=0.
-                ...     ,pAttributeColorMapMax=1600.
+                ...     ,pAttributeColorMapMax=1500.
+                ...     ,CBBinTicks=7 
                 ...     ,CBLabel='Q [t/h]'    
                 ...     ,sort_values_by=['pAttributeFunc'] 
                 ...     ,sort_values_ascending=True       
                 ...     ,pAttributeColorMapFmask=lambda row: True if not pd.isnull(row.OBJID) else False 
                 ...     ,pAttributeColorMap2ndFmask=lambda row: True if pd.isnull(row.OBJID) else False                 
                 ...     )
-                >>> axNfd.set_title('RL QMAV Abs Mi/MaD zS auf 2nd')
+                >>> axNfd.set_title('RL QMAV Abs Mi/MaD zS auf 2nd TicksD')
                 >>> # --------------------------
                 >>> # ---
                 >>> # Farbskalamapping u. -eigenschaften u. Plotorder  groß auf klein / 2nd Color / UsageLimits
@@ -1480,7 +1611,7 @@ class Rm():
                 ...     ,pAx=axNfd
                 ...     ,pAttributeFunc=lambda row: math.fabs(row['ROHR~*~*~*~QMAV'])                
                 ...     ,pAttributeColorMapMin=0.
-                ...     ,pAttributeColorMapMax=1600.
+                ...     ,pAttributeColorMapMax=1500.
                 ...     ,CBLabel='Q [t/h]'    
                 ...     ,sort_values_by=['pAttributeFunc'] 
                 ...     ,sort_values_ascending=True       
@@ -1488,8 +1619,8 @@ class Rm():
                 ...     ,pAttributeColorMap2ndFmask=lambda row: True if pd.isnull(row.OBJID) else False 
                 ...     ,pAttributeColorMap2ndUsageStart=.5/5. # nicht zu weiß 
                 ...     ,pAttributeColorMap2ndUsageEnd=2.5/5. # nicht zu schwarz
-                ...     ,pAttributeColorMapUsageStart=5/16.
-                ...     ,pAttributeColorMapUsageEnd=11/16.                
+                ...     ,pAttributeColorMapUsageStart=3/15.
+                ...     ,pAttributeColorMapUsageEnd=12/15.                
                 ...     )
                 >>> axNfd.set_title('RL QMAV Abs Mi/MaD zS auf 2nd CMClip')
                 >>> # --------------------------
@@ -1501,17 +1632,46 @@ class Rm():
                 ...     ,query="CONT_ID == '1001'"
                 ...     ,fmask=lambda row: True if row.KVR_i=='2' and row.KVR_k=='2' else False 
                 ...     ,pAx=axNfd
-                ...     ,pAttributeFunc=lambda row: math.fabs(row['ROHR~*~*~*~QMAV'])
-                ...     ,pAttributeColorMap=plt.cm.tab20c
+                ...     ,pAttributeFunc=lambda row: math.fabs(row['ROHR~*~*~*~QMAV'])                
                 ...     ,pAttributeColorMapMin=0.
-                ...     ,pAttributeColorMapMax=1600.
+                ...     ,pAttributeColorMapMax=1500.
+                ...     ,CBBinDiscrete=True 
                 ...     ,CBLabel='Q [t/h]'    
                 ...     ,sort_values_by=['pAttributeFunc'] 
                 ...     ,sort_values_ascending=True       
                 ...     ,pAttributeColorMapFmask=lambda row: True if not pd.isnull(row.OBJID) else False 
-                ...     ,pAttributeColorMap2ndFmask=lambda row: True if pd.isnull(row.OBJID) else False               
+                ...     ,pAttributeColorMap2ndFmask=lambda row: True if pd.isnull(row.OBJID) else False        
+                ...     ,pAttributeColorMap2ndUsageStart=.5/5. # nicht zu weiß 
+                ...     ,pAttributeColorMap2ndUsageEnd=2.5/5. # nicht zu schwarz                
                 ...     )
-                >>> axNfd.set_title('RL QMAV Abs Mi/MaD zS auf 2nd Disc')
+                >>> axNfd.set_title('RL QMAV Abs Mi/MaD zS auf 2nd DiscrD')
+                >>> # --------------------------
+                >>> # ---
+                >>> # 
+                >>> # --------------------------              
+                >>> catagoryCmap="tab10"
+                >>> catagoryColors=[9,6,1]
+                >>> nOfSubCatsReq=4
+                >>> cm=Rm.pltMakeCategoricalCmap2(catagoryCmap=catagoryCmap,catagoryColors=catagoryColors,nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=True)
+                >>> axNfd = fig.add_subplot(gs[7])              
+                >>> Rm.Rm.pltNetPipes(pDf
+                ...     ,query="CONT_ID == '1001'"
+                ...     ,fmask=lambda row: True if row.KVR_i=='2' and row.KVR_k=='2' else False 
+                ...     ,pAx=axNfd
+                ...     ,pAttributeFunc=lambda row: math.fabs(row['ROHR~*~*~*~QMAV'])
+                ...     ,pAttributeColorMap=cm
+                ...     ,pAttributeColorMapMin=0.
+                ...     ,pAttributeColorMapMax=1500.
+                ...     ,CBBinTicks=4
+                ...     ,CBLabel='Q [t/h]'    
+                ...     ,sort_values_by=['pAttributeFunc'] 
+                ...     ,sort_values_ascending=True       
+                ...     ,pAttributeColorMapFmask=lambda row: True if not pd.isnull(row.OBJID) else False 
+                ...     ,pAttributeColorMap2ndFmask=lambda row: True if pd.isnull(row.OBJID) else False     
+                ...     ,pAttributeColorMap2ndUsageStart=.5/5. # nicht zu weiß 
+                ...     ,pAttributeColorMap2ndUsageEnd=2.5/5. # nicht zu schwarz                
+                ...     )
+                >>> axNfd.set_title('RL QMAV Abs Mi/MaD zS auf 2nd Discr CM')
                 >>> # --------------------------
                 >>> gs.tight_layout(fig)
                 >>> plt.savefig('pltNetPipes.pdf',format='pdf',dpi=dpiSize*2)
@@ -1526,12 +1686,23 @@ class Rm():
                 if 'pAx' not in keys:
                     kwds['pAx']=plt.gca()
                 
+                # CB
                 if 'CBFraction' not in keys:
                     kwds['CBFraction']=5 # in %
                 if 'CBHpad' not in keys:
                     kwds['CBHpad']=0.05         
                 if 'CBLabel' not in keys:
-                    kwds['CBLabel']=None                           
+                    kwds['CBLabel']=None       
+                # CB / Farbskala
+                if 'CBBinTicks' not in keys:
+                    kwds['CBBinTicks']=None         
+                if 'CBBinDiscrete' not in keys:
+                    kwds['CBBinDiscrete']=False     
+                if  kwds['CBBinDiscrete']:
+                    if kwds['CBBinTicks']==None:                                           
+                        kwds['CBBinTicks']=4 # (d.h. 3 Kategorien)
+                if 'CBBinBounds' not in keys:
+                    kwds['CBBinBounds']=None
             
                 # DATA
                 if 'query' not in keys:
@@ -1558,6 +1729,12 @@ class Rm():
                     kwds['pAttributeColorMapMin']=None
                 if 'pAttributeColorMapMax' not in keys:
                     kwds['pAttributeColorMapMax']=None
+
+                # Trunc Cmap
+                if 'pAttributeColorMapUsageStart' not in keys and 'pAttributeColorMapUsageEnd' not in keys:
+                    kwds['pAttributeColorMapTrunc']=False
+                else:
+                    kwds['pAttributeColorMapTrunc']=True
                 if 'pAttributeColorMapUsageStart' not in keys:
                     kwds['pAttributeColorMapUsageStart']=0.     
                 if 'pAttributeColorMapUsageEnd' not in keys:
@@ -1705,6 +1882,13 @@ class Rm():
             kwds['pAx'].grid()
                                  
             # PIPE-Color: Farbskalamapping:
+            cMap=plt.cm.get_cmap(kwds['pAttributeColorMap'])
+            if kwds['CBBinDiscrete'] and hasattr(cMap,'from_list'): # diskrete Farbskala aus kontinuierlicher erzeugen                                
+                N=kwds['CBBinTicks']-1
+                color_list = cMap(np.linspace(0, 1, N))
+                cmap_name = cMap.name + str(N)
+                kwds['pAttributeColorMap']=cMap.from_list(cmap_name, color_list, N)            
+            
             minAttr=pDf[kwds['pAttribute']].min()      
             maxAttr=pDf[kwds['pAttribute']].max()  
             if kwds['pAttributeColorMapMin'] != None:
@@ -1717,20 +1901,43 @@ class Rm():
                 maxLine=maxAttr                  
             logger.debug("{:s}Attribute: minLine (used for CM-Scaling): {:8.2f} min (Data): {:8.2f}".format(logStr,minLine,minAttr))
             logger.debug("{:s}Attribute: maxLine (used for CM-Scaling): {:8.2f} max (Data): {:8.2f}".format(logStr,maxLine,maxAttr))
+
+            # Norm
             normLine=colors.Normalize(minLine,maxLine)
-            #
-            usageStartLineValue=minLine+kwds['pAttributeColorMapUsageStart']*(maxLine-minLine)
-            usageStartLineColor=kwds['pAttributeColorMap'](normLine(usageStartLineValue)) 
-            logger.debug("{:s}pAttributeColorMapUsageStart: {:6.2f} ==> usageStartLineValue: {:8.2f} (minLine: {:8.2f}) color: {:s}".format(logStr
-                                                                                                                                ,kwds['pAttributeColorMapUsageStart']
-                                                                                                                                ,usageStartLineValue,minLine,str(usageStartLineColor)))
-            #
-            usageEndLineValue=maxLine-(1.-kwds['pAttributeColorMapUsageEnd'])*(maxLine-minLine)
-            usageEndLineColor=kwds['pAttributeColorMap'](normLine(usageEndLineValue)) 
-            logger.debug("{:s}pAttributeColorMapUsageEnd:   {:6.2f} ==> usageEndLineValue:   {:8.2f} (maxLine: {:8.2f}) color: {:s}".format(logStr
-                                                                                                                                ,kwds['pAttributeColorMapUsageEnd']
-                                                                                                                                ,usageEndLineValue,maxLine,str(usageEndLineColor)))
-                                 
+
+            # kont. Farbskala und Norm ggf. anpassen
+            cMap=plt.cm.get_cmap(kwds['pAttributeColorMap'])   
+            if kwds['pAttributeColorMapTrunc'] and hasattr(cMap,'from_list'):   
+
+                #
+                usageStartLineValue=minLine+kwds['pAttributeColorMapUsageStart']*(maxLine-minLine)
+                usageStartLineColor=kwds['pAttributeColorMap'](normLine(usageStartLineValue)) 
+                logger.debug("{:s}pAttributeColorMapUsageStart: {:6.2f} ==> usageStartLineValue: {:8.2f} (minLine: {:8.2f}) color: {:s}".format(logStr
+                                                                                                                                    ,kwds['pAttributeColorMapUsageStart']
+                                                                                                                                    ,usageStartLineValue,minLine,str(usageStartLineColor)))
+                #
+                usageEndLineValue=maxLine-(1.-kwds['pAttributeColorMapUsageEnd'])*(maxLine-minLine)
+                usageEndLineColor=kwds['pAttributeColorMap'](normLine(usageEndLineValue)) 
+                logger.debug("{:s}pAttributeColorMapUsageEnd:   {:6.2f} ==> usageEndLineValue:   {:8.2f} (maxLine: {:8.2f}) color: {:s}".format(logStr
+                                                                                                                                    ,kwds['pAttributeColorMapUsageEnd']                                          
+                                                                                                                                    ,usageEndLineValue,maxLine,str(usageEndLineColor)))
+            
+                nColors=100
+                kwds['pAttributeColorMap'] = colors.LinearSegmentedColormap.from_list(
+                'trunc({n},{a:.2f},{b:.2f})'.format(n=cMap.name, a=kwds['pAttributeColorMapUsageStart'], b=kwds['pAttributeColorMapUsageEnd'])
+                ,cMap(np.linspace(kwds['pAttributeColorMapUsageStart'],kwds['pAttributeColorMapUsageEnd'],nColors)))
+                
+                normLine=colors.Normalize(max(minLine,usageStartLineValue),min(maxLine,usageEndLineValue))
+            
+            # diskrete Farbskala ggf. mit Kategorien
+            
+            cMap=plt.cm.get_cmap(kwds['pAttributeColorMap'])   
+            if kwds['CBBinBounds'] != None and not hasattr(cMap,'from_list'): # diskrete Farbskala liegt vor und Bounds sind vorgegeben
+                normLine = colors.BoundaryNorm(kwds['CBBinBounds'],cMap.N)
+                CBPropExtend='both'
+            else:
+                CBPropExtend='neither'
+                
             # PIPE-Color 2nd: Farbskalamapping:        
             if kwds['pAttributeColorMap2ndMin'] != None:
                 minLine2nd=kwds['pAttributeColorMap2ndMin']
@@ -1784,16 +1991,23 @@ class Rm():
             logger.debug("{:s}Color 1st-PIPEs: {:d} von {:d}".format(logStr,rows1st,rows))               
             for xs,ys,vLine in zip(pDfColorMap[kwds['pWAYPXCors']],pDfColorMap[kwds['pWAYPYCors']],pDfColorMap[kwds['pAttribute']]):        
 
-                if vLine >= usageStartLineValue and vLine <= usageEndLineValue:
-                    colorLine=kwds['pAttributeColorMap'](normLine(vLine))      
-                    value=vLine
-                elif vLine > usageEndLineValue:
-                    colorLine=usageEndLineColor   
-                    value=usageEndLineValue
-                else:
-                    colorLine=usageStartLineColor   
-                    value=usageStartLineValue
-                colorsCBValues.append(value)                
+                #if vLine >= usageStartLineValue and vLine <= usageEndLineValue:
+                #    colorLine=kwds['pAttributeColorMap'](normLine(vLine))      
+                #    value=vLine
+                #elif vLine > usageEndLineValue:
+                #    colorLine=usageEndLineColor   
+                #    value=usageEndLineValue
+                #else:
+                #    colorLine=usageStartLineColor   
+                #    value=usageStartLineValue
+                
+                ###
+                colorLine=kwds['pAttributeColorMap'](normLine(vLine))      
+                value=vLine
+                
+                colorsCBValues.append(value)           
+                
+
 
                 pcLines=kwds['pAx'].plot(xs,ys
                                 ,color=colorLine
@@ -1805,7 +2019,7 @@ class Rm():
                                )   
             
 
-            # PIPE-Color: PLOT der PIPE-Anfänge für Farbskala      
+            # PIPE-Color: PLOT der PIPE-Anfänge um Farbskala konstruieren zu koennen      
             s=kwds['pAttrLineSizeFactor']*pDfColorMap[kwds['pAttrLineSize']].apply(lambda x: math.fabs(x))     
             s=s.apply(lambda x: math.pow(x,2))  # https://stackoverflow.com/questions/14827650/pyplot-scatter-plot-marker-size   
             pcN=kwds['pAx'].scatter(pDfColorMap['pXCor_i'],pDfColorMap['pYCor_i']                          
@@ -1831,13 +2045,24 @@ class Rm():
             #logger.debug("{:s}ohne Änderung?!: x0: {:6.2f} y0: {:6.2f} w: {:6.2f} h: {:6.2f}".format(logStr,x0,y0,w,h))  
                       
             # CB
-            cB=plt.gcf().colorbar(pcN, cax=cax, orientation='vertical') 
+            cB=plt.gcf().colorbar(pcN, cax=cax, orientation='vertical',extend=CBPropExtend,spacing='proportional') 
+
+
+
+
+
             cB.set_label(kwds['CBLabel'])
 
             # CB Ticks
-            ticks=cB.get_ticks()           
-            ticksWithUsageTicks=np.unique(np.append(ticks,[usageStartLineValue,usageEndLineValue]))
-            cB.set_ticks(ticksWithUsageTicks)  
+            if kwds['CBBinTicks'] != None:
+                cB.set_ticks(np.linspace(minLine,maxLine,kwds['CBBinTicks']))
+                
+            ticks=cB.get_ticks()     
+            try:
+                ticks=np.unique(np.append(ticks,[usageStartLineValue,usageEndLineValue]))
+            except:
+                pass
+            cB.set_ticks(ticks)  
 
             # CB Ticklabels
             labels=cB.ax.get_yticklabels()
@@ -3156,9 +3381,7 @@ if __name__ == "__main__":
                                            ,'xms':xms
                                            ,'mxs':mxs})
 
-            for test in dTests:
-                pass
-                #logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Test found',test.name)) 
+            dTests.extend(dtFinder.find(pltMakeCategoricalCmap2))
 
             # gefundene Tests mit geforderten Tests abgleichen
 
