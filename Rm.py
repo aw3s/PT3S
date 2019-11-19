@@ -218,6 +218,50 @@ from matplotlib.path import Path
 
 import numpy as np
 
+def pltMakeCategoricalColors(color,nOfSubColorsReq=3,reversedOrder=False):
+    """
+    Returns an array of rgb colors derived from color.
+
+    Parameter:
+        color:             a rgb color                       
+        nOfSubColorsReq:   number of SubColors requested
+        
+    Raises:
+        RmError
+
+    >>> import matplotlib
+    >>> color='red'
+    >>> c=list(matplotlib.colors.to_rgb(color))
+    >>> import Rm    
+    >>> Rm.pltMakeCategoricalColors(c)
+    array([[1.   , 0.   , 0.   ],
+           [1.   , 0.375, 0.375],
+           [1.   , 0.75 , 0.75 ]])
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    rgb=None
+
+    try:             
+        chsv = matplotlib.colors.rgb_to_hsv(color[:3])
+        arhsv = np.tile(chsv,nOfSubColorsReq).reshape(nOfSubColorsReq,3)
+        arhsv[:,1] = np.linspace(chsv[1],0.25,nOfSubColorsReq)
+        arhsv[:,2] = np.linspace(chsv[2],1,nOfSubColorsReq)
+        rgb = matplotlib.colors.hsv_to_rgb(arhsv)
+        if reversedOrder:
+            rgb=list(reversed(rgb))                                                                                                                    
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return rgb
+
 def pltMakeCategoricalCmap(catagoryCmap="tab10",catagoryColors=None,nOfSubCatsReq=3,reversedSubCatOrder=False):
     """
     Returns a cmap with nOfCatsReq * nOfSubCatsReq discrete colors.
@@ -306,13 +350,17 @@ def pltMakeCategoricalCmap(catagoryCmap="tab10",catagoryColors=None,nOfSubCatsRe
 
         # ueber alle Kategoriefarben
         for i, c in enumerate(ccolors):
-            chsv = matplotlib.colors.rgb_to_hsv(c[:3])
-            arhsv = np.tile(chsv,nOfSubCatsReq).reshape(nOfSubCatsReq,3)
-            arhsv[:,1] = np.linspace(chsv[1],0.25,nOfSubCatsReq)
-            arhsv[:,2] = np.linspace(chsv[2],1,nOfSubCatsReq)
-            rgb = matplotlib.colors.hsv_to_rgb(arhsv)
-            if reversedSubCatOrder:
-                rgb=list(reversed(rgb))                
+
+            rgb=pltMakeCategoricalColors(c,nOfSubColorsReq=nOfSubCatsReq,reversedOrder=reversedSubCatOrder)
+
+
+            #chsv = matplotlib.colors.rgb_to_hsv(c[:3])
+            #arhsv = np.tile(chsv,nOfSubCatsReq).reshape(nOfSubCatsReq,3)
+            #arhsv[:,1] = np.linspace(chsv[1],0.25,nOfSubCatsReq)
+            #arhsv[:,2] = np.linspace(chsv[2],1,nOfSubCatsReq)
+            #rgb = matplotlib.colors.hsv_to_rgb(arhsv)
+            #if reversedSubCatOrder:
+            #    rgb=list(reversed(rgb))                
             cols[i*nOfSubCatsReq:(i+1)*nOfSubCatsReq,:] = rgb
             
 
@@ -1390,7 +1438,11 @@ class Rm():
                         * wenn CBBinDiscrete, dann gilt N aus CBBinTicks fuer die Ticks (bzw. Kategorien); ist CBBinTicks undef. gilt 4 (also 3 Kategorien)
                         * bei den vorgenannten Kategorien handelt es sich um eine gleichmäßige Unterteilung des definierten Wertebereiches
                         * CBBinBounds (default: None): wenn die CM eine diskrete ist, dann wird eine vorgegebene BoundaryNorm angewandt; CBBinTicks hat dann keine Bedeutung
-
+                      
+                        * CBTicks: individuell vorgegebene Ticks; wird am Schluss prozessiert, d.h. vorh. (ggf. auch durch CBBinTicks bzw. <=/>= u. v=/^= bereits manipulierte) ...
+                        * ... Ticks werden überschrieben; kann ohne CBTickLabels verwendet werden
+                        * CBTickLabels: individuell vorgegebene Ticklabels; wird danach prozessiert; Länge muss zu dann existierenden Ticks passen; kann auch ohne CBTicks verwendet werden
+                        
                 PIPE-Attribute:
                     * pAttribute: column in pDf (default: 'Attribute')     
                     * pAttributeFunc: 
@@ -1608,7 +1660,9 @@ class Rm():
                 ...     ,pAttributeColorMapFmask=lambda row: True if not pd.isnull(row.OBJID) else False 
                 ...     ,pAttributeColorMap2ndFmask=lambda row: True if pd.isnull(row.OBJID) else False        
                 ...     ,pAttributeColorMap2ndUsageStart=.5/5. # nicht zu weiß 
-                ...     ,pAttributeColorMap2ndUsageEnd=2.5/5. # nicht zu schwarz                
+                ...     ,pAttributeColorMap2ndUsageEnd=2.5/5. # nicht zu schwarz      
+                ...     ,CBTicks=[250,750,1250]
+                ...     ,CBTickLabels=['klein','mittel','groß']
                 ...     )
                 >>> txt=axNfd.set_title('Farbskala diskretisieren')
                 >>> # --------------------------
@@ -1628,7 +1682,7 @@ class Rm():
                 ...     ,pAttributeColorMap=cm
                 ...     ,pAttributeColorMapMin=0.
                 ...     ,pAttributeColorMapMax=1500.
-                ...     ,CBBinTicks=4
+                ...     ,CBBinTicks=16
                 ...     ,CBLabel='Q [t/h]'    
                 ...     ,sort_values_by=['pAttributeFunc'] 
                 ...     ,sort_values_ascending=True       
@@ -1669,6 +1723,12 @@ class Rm():
                         kwds['CBBinTicks']=4 # (d.h. 3 Kategorien)
                 if 'CBBinBounds' not in keys:
                     kwds['CBBinBounds']=None
+
+                # customized yTicks
+                if 'CBTicks' not in keys:
+                    kwds['CBTicks'] = None           
+                if 'CBTickLabels' not in keys:
+                    kwds['CBTickLabels'] = None 
             
                 # DATA
                 if 'query' not in keys:
@@ -2030,10 +2090,7 @@ class Rm():
             # CB
             cB=plt.gcf().colorbar(pcN, cax=cax, orientation='vertical',extend=CBPropExtend,spacing='proportional') 
 
-
-
-
-
+            # Label
             cB.set_label(kwds['CBLabel'])
 
             # CB Ticks
@@ -2062,7 +2119,26 @@ class Rm():
                 labels[-1].set_text(labels[-1].get_text()+" >=")
             if kwds['pAttributeColorMapMin'] != None and minLine>minAttr:
                 labels[0].set_text(labels[0].get_text()+" <=")
+
             cB.ax.set_yticklabels(labels)  
+
+            # customized yTicks --------------------
+
+            if kwds['CBTicks'] != None:                                
+                cB.set_ticks(kwds['CBTicks'])  
+            if kwds['CBTickLabels'] != None:              
+                labels=cB.ax.get_yticklabels()
+                if len(labels)==len(kwds['CBTickLabels']):
+                    for label,labelNew in zip(labels,kwds['CBTickLabels']):
+                        label.set_text(labelNew)
+                    cB.ax.set_yticklabels(labels)  
+                else:
+                    logStrFinal="{:s}Error: Anz. CB Ticklabels Ist: {:d} != Anz. Ticklabeles Soll: {:d} ?!".format(logStr,len(labels),len(kwds['CBTickLabels']))
+                    logger.error(logStrFinal) 
+                    raise RmError(logStrFinal)     
+
+        except RmError:
+            raise
                                                                     
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -3364,7 +3440,8 @@ if __name__ == "__main__":
                                            ,'xms':xms
                                            ,'mxs':mxs})
 
-            dTests.extend(dtFinder.find(pltMakeCategoricalCmap))
+            dTests.extend(dtFinder.find(pltMakeCategoricalColors))
+            dTests.extend(dtFinder.find(pltMakeCategoricalCmap))           
 
             # gefundene Tests mit geforderten Tests abgleichen
 
