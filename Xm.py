@@ -4531,6 +4531,131 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vKNOT
 
+    def vKNOTexpEBES(self):
+        """Expands ESQUELLSP-Resultcolumn in vKNOT. 
+
+        Precondition:
+            * vKNOT added with Resultcolumn ESQUELLSP
+
+        new Cols:
+            * qsStr: ESQUELLSP of the node as plain text
+            * qs_LFDNR_NAME: share of EBES Nr. LFDNR in the supply of the node
+            * the columns are derived from column ESQUELLSP
+            * the column ESQUELLSP is unchanged
+            * qsAnzKnoten
+            * qsRank: Rank of ESQUELLSP from EBES LFDNR order (the ESQUELLSP with max. share of 1st EBES is No. 1)
+            * qsRankAnzKnoten: Rank of ESQUELLSP from qsAnzKnoten order (the ESQUELLSP with max. AnzKnoten is No. 1)
+            * qsRank oder qsRankAnzKnoten könnten Indices einer diskreten Farbskala sein
+        
+        Returns:
+            * vKNOT with the new Cols
+
+        Raises:
+            XmError
+
+        >>> # ---
+        >>> xm=xms['DHNetwork']                      
+        >>> # ---
+        >>> vKNOT=xm.dataFrames['vKNOT']
+        >>> vKNOTexp=xm.vKNOTexpEBES()
+        >>> r,c=vKNOT.shape
+        >>> r2,c2=vKNOTexp.shape
+        >>> r==r2
+        True
+        >>> vKNOTexp[['KVR','qs_1_A','qs_2_B','qs_3_C','qsAnzKnoten','qsRank','qsRankAnzKnoten']].drop_duplicates(keep='first').sort_values(by=['qsRank'])      
+             KVR qs_1_A qs_2_B qs_3_C  qsAnzKnoten  qsRank  qsRankAnzKnoten
+        48     1    100      0      0          210       1                1
+        1426   1     99      1      0            9       2               11
+        1460   1     98      2      0            2       3               15
+        1208   1     97      3      0           55       4                3
+        1367   1     96      4      0           28       5                8
+        1439   1     95      5      0            2       6               15
+        1349   1     82     18      0           18       7                9
+        1452   1     76     24      0            1       8               16
+        1395   1     75     25      0           31       9                7
+        0      1     74     26      0           48      10                4
+        1448   1     67     33      0            4      11               13
+        1435   1     61     39      0            3      12               14
+        1441   1     58     42      0            4      13               13
+        1456   1     48     52      0            2      14               15
+        1445   1     39     61      0            2      15               15
+        258    1     36     64      0            8      16               12
+        1303   1     24     76      0           46      17                5
+        1447   1     11     89      0            1      18               16
+        266    1     10     90      0           12      19               10
+        1459   1      6     94      0            1      20               16
+        278    1      0    100      0          195      21                2
+        1438   1      0     93      7            1      22               16
+        1453   1      0     65     35            3      23               14
+        1458   1      0     43     57            1      24               16
+        1263   1      0      0    100           40      25                6
+        473    2      0      0      0          735      26               17
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:
+            vKNOTexp=None
+
+            # Ebes
+            EBES = self.dataFrames['EBES']
+            EBES_BZ = self.dataFrames['EBES_BZ']
+            vEBES=pd.merge(EBES,EBES_BZ,left_on='pk',right_on='fk',suffixes=('','_BZ')).sort_values(by=['LFDNR','AKTIVQS']).reset_index() # der alte Index bleibt als Index erhalten
+            vEBES=vEBES[vEBES['AKTIVQS']=='101'] # nur die berechneten Ebes
+            Names=vEBES['NAME'].tolist()
+            Lfdnrs=vEBES['LFDNR'].tolist()
+            expColNames=['qs' + '_' + str(Lfdnr) + '_' + Name for Lfdnr,Name in zip(Lfdnrs,Names)]
+
+            # vKnot
+            vKNOTexp=self.dataFrames['vKNOT']
+
+            vKNOTexp['qsStr']=vKNOTexp['KNOT~*~*~*~ESQUELLSP'].str.decode('utf-8')
+            vKNOTexp['qsStr']=vKNOTexp['qsStr'].str.rstrip()
+
+            # die Anzahl der Spalten ist die Anzahl der berechneten Ebes
+            expDf=vKNOTexp['qsStr'].str.split('\t', expand = True)
+
+            # die Spalten dranhängen (heißen 1,2,...)
+            vKNOTexp=pd.merge(vKNOTexp,expDf,left_index=True,right_index=True,suffixes=('','_expDf'))
+
+            # die Spalten umbenennen
+            if len(expDf.columns.tolist()) != len(expColNames):
+                logStrFinal="{:s}: Anzahl der expandierten qs-Komponenten: {:d} != Anzahl der als zu berechnen definierten Einspeisergruppen: {:d} ?!".format(logStr,len(expDf.columns.tolist()),len(expColNames))
+                logger.error(logStrFinal) 
+                raise XmError(logStrFinal)                    
+            else:
+                # neue Spaltennamen:
+                vKNOTexp=vKNOTexp.rename(columns={idx:colName for idx,colName in zip(expDf.columns.tolist(),expColNames)})
+       
+            # annotieren mit Anzahl Knoten pro Spektrum 
+            grpKatLst=['KVR']
+            grpObj=vKNOTexp.groupby(by=grpKatLst+['KNOT~*~*~*~ESQUELLSP'])
+            df=grpObj['NAME'].count()
+            df=df.reset_index()
+            df.rename(columns={'NAME':'qsAnzKnoten'},inplace=True)
+
+            # verbinden
+            cols=vKNOTexp.columns.tolist() 
+            cols.extend(['qsAnzKnoten'])
+            vKNOTexp=pd.merge(vKNOTexp,df,left_on='KNOT~*~*~*~ESQUELLSP',right_on='KNOT~*~*~*~ESQUELLSP',suffixes=('','_exp'))
+            vKNOTexp=vKNOTexp.filter(items=cols)           
+           
+            # Quellspektren numerieren
+            vKNOTexp['qsRank'] = vKNOTexp.sort_values(expColNames,ascending=False).groupby(expColNames,sort=False).ngroup() + 1
+            cols=['KVR']+['qsAnzKnoten']
+            vKNOTexp['qsRankAnzKnoten'] = vKNOTexp.sort_values(cols,ascending=[True]+[False]).groupby(cols,sort=False).ngroup() + 1
+
+        except XmError:
+            raise            
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)               
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            return vKNOTexp
+
     def _vROHR(self,vKNOT=None):
         """One row per Pipe (ROHR).
 
@@ -7142,7 +7267,7 @@ class Xm():
             self._MxAddvVBEL(dfSource=dfUnpacked)
             self._MxAddvROHRVecResults(dfSource=dfUnpacked)
             self._MxAddvAGSN()
-
+          
             if self.h5Read:
                 self.ToH5()          
                                                   
