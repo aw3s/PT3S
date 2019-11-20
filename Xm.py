@@ -4532,9 +4532,10 @@ class Xm():
             return vKNOT
 
     def vKNOTexpEBES(self):
-        """Expands ESQUELLSP-Resultcolumn in vKNOT. 
+        """Expands Resultcolumns in vKNOT: FWVB and ESQUELLSP. 
 
         Precondition:
+            * vFWVB added with Resultcolumns FWVB~*~*~*~W, FWVB~*~*~*~QM
             * vKNOT added with Resultcolumn ESQUELLSP
 
         new Cols:
@@ -4545,7 +4546,12 @@ class Xm():
             * qsAnzKnoten
             * qsRank: NrOfGroup: order is perc. desc. in EBES LFDNR order (the ESQUELLSP with max. share of 1st EBES is No. 1)
             * qsRankAnzKnoten: NrOfGroup: order is Anzahl Knoten (the ESQUELLSP with max. NOfNodes is No. 1)
-            * die qsRanks könnten Indices einer diskreten Farbskala sein
+            * qsRankAnzFwvb
+            * qsRankFWVB~*~*~*~W
+            * die qsRanks... könnten Indices einer diskreten Farbskala sein
+
+            * AnzFwvb, FWVB~*~*~*~W, FWVB~*~*~*~QM - aggregierte Größen per FWVB
+            * qsAnzFwvb, qsFWVB~*~*~*~W, qsFWVB~*~*~*~QM - aggregierte Größen per QS
         
         Returns:
             * vKNOT with the new Cols
@@ -4666,12 +4672,79 @@ class Xm():
         >>> # in vKNOTexp sind die FWVB in Summe Anz und Summe W korrekt
         >>> # --------------------------------------
         >>> grpObj=vKNOTexp[['KVR','KNOT~*~*~*~ESQUELLSP','FWVB~*~*~*~W','qsFWVB~*~*~*~W']].groupby(by=['KVR','KNOT~*~*~*~ESQUELLSP'],as_index=False)
-        >>> df=grpObj['FWVB~*~*~*~W'].sum()
+        >>> df=grpObj['FWVB~*~*~*~W'].sum() 
+        >>> df[['KVR','FWVB~*~*~*~W']]
+           KVR   FWVB~*~*~*~W
+        0    1   25189.337222
+        1    1     547.741989
+        2    1    1272.672709
+        3    1     373.658638
+        4    1   92498.919896
+        5    1     867.218987
+        6    1    3783.335512
+        7    1   18772.497437
+        8    1   27410.523649
+        9    1    4886.108555
+        10   1    2460.814911
+        11   1     414.377853
+        12   1    4138.589720
+        13   1    2089.917370
+        14   1    1941.467514
+        15   1   25104.875361
+        16   1    9364.807621
+        17   1     299.995468
+        18   1   10886.933908
+        19   1    6507.551270
+        20   1   20506.078226
+        21   1   40111.950760
+        22   1     617.931881
+        23   1    4651.422707
+        24   1  182017.396773
+        25   2       0.000000
         >>> WSumme==round(df['FWVB~*~*~*~W'].sum(),2)
         True
-        >>> df=grpObj['qsFWVB~*~*~*~W'].sum()
-        >>> WSumme==round(df['qsFWVB~*~*~*~W'].sum(),2)
+        >>> WSumme
+        486716.13
+        >>> df=grpObj['qsFWVB~*~*~*~W'].first() 
+        >>> dfFirst=df[['KVR','qsFWVB~*~*~*~W']]
+        >>> df=grpObj['qsFWVB~*~*~*~W'].last() 
+        >>> dfLast=df[['KVR','qsFWVB~*~*~*~W']]
+        >>> dfFirst.equals(dfLast)
         True
+        >>> df=grpObj['qsFWVB~*~*~*~W'].mean() 
+        >>> dfMean=df[['KVR','qsFWVB~*~*~*~W']]
+        >>> dfFirst.equals(dfMean)
+        True
+        >>> dfFirst.sort_values(by=['qsFWVB~*~*~*~W'],ascending=False)      
+           KVR  qsFWVB~*~*~*~W
+        24   1   182017.396773
+        4    1    92498.919896
+        21   1    40111.950760
+        8    1    27410.523649
+        0    1    25189.337222
+        15   1    25104.875361
+        20   1    20506.078226
+        7    1    18772.497437
+        18   1    10886.933908
+        16   1     9364.807621
+        19   1     6507.551270
+        9    1     4886.108555
+        23   1     4651.422707
+        12   1     4138.589720
+        6    1     3783.335512
+        10   1     2460.814911
+        13   1     2089.917370
+        14   1     1941.467514
+        2    1     1272.672709
+        5    1      867.218987
+        22   1      617.931881
+        1    1      547.741989
+        11   1      414.377853
+        3    1      373.658638
+        17   1      299.995468
+        25   2        0.000000
+        >>> round(dfFirst['qsFWVB~*~*~*~W'].sum(),2)
+        486716.13
         >>> #xm=xms['OneLPipe']                      
         >>> # ---        
         >>> #vKNOTexp=xm.vKNOTexpEBES()
@@ -4757,13 +4830,25 @@ class Xm():
                 if 'FWVB~*~*~*~QM' in vKNOTexp.columns:
                     d.update({'FWVB~*~*~*~QM':'sum'} )
                     dRename.update({'FWVB~*~*~*~QM':'qsFWVB~*~*~*~QM'} )
-                df=grpObj.agg(d)           
+                df=grpObj.agg(d)   
+                #print(df)
                 df.rename(columns=dRename,inplace=True)
+                #print(df)
+
+                #print(df['qsFWVB~*~*~*~W'].sum())
+
+                ###df['qsStr']=df['KNOT~*~*~*~ESQUELLSP'].str.decode('utf-8')
+                ###df['qsStr']=df['qsStr'].str.rstrip()
 
                 # verbinden
                 cols=vKNOTexp.columns.tolist()             
                 cols.extend(list(dRename.values()))            
+
+                #print(cols)
                 vKNOTexp=pd.merge(vKNOTexp,df,left_on=grpKatLst+['KNOT~*~*~*~ESQUELLSP'],right_on=grpKatLst+['KNOT~*~*~*~ESQUELLSP'],how='left',suffixes=('','_exp'))
+
+                #print(vKNOTexp.columns.tolist())
+                ###vKNOTexp=pd.merge(vKNOTexp,df,left_on=grpKatLst+['qsStr'],right_on=grpKatLst+['qsStr'],how='left',suffixes=('','_exp'))
                 vKNOTexp=vKNOTexp.filter(items=cols)   
            
                 # Quellspektren numerieren
