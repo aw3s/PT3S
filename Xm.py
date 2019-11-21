@@ -4771,43 +4771,51 @@ class Xm():
         True
         >>> grpObj=vKNOTexp.groupby(by=['qsigRankFWVB~*~*~*~W','qsRankFWVB~*~*~*~W'],as_index=False)        
         >>> d={col:'min' for col in ['qsigStr','qs_1_A','qs_2_B','qs_3_C','qsigqsRankFWVB~*~*~*~W']}       
+        >>> d.update({'qsigFWVB~*~*~*~W':'min'})
+        >>> d.update({'qsFWVB~*~*~*~W':'min'})
+        >>> d.update({'pk':'count'}) # Anzahl Knoten 
+        >>> d.update({'NAME':'first'}) # ein Knotenname
+        >>> # d.update({'AnzFwvb':'sum'}) # muss gleich d.update({'qsAnzFwvb':'first'}) sein
+        >>> d.update({'qsigAnzFwvb':'first'})
+        >>> d.update({'qsAnzFwvb':'first'})
         >>> df=grpObj.agg(d).sort_values(by=['qsigRankFWVB~*~*~*~W','qsRankFWVB~*~*~*~W'],ascending=True)       
+        >>> df.rename(columns={'pk':'AnzKnoten','NAME':'1 NAME'},inplace=True)
         >>> xm.dataFrames['df']=df
         >>> print(xm._getvXXXXAsOneString(vXXXX='df'))
-            qsigRankFWVB~*~*~*~W  qsRankFWVB~*~*~*~W qsigStr qs_1_A qs_2_B qs_3_C  qsigqsRankFWVB~*~*~*~W
-        0                      1                   3     110     97      3      0                       1
-        1                      1                   4     110     24     76      0                       2
-        2                      1                   6     110     74     26      0                       3
-        3                      1                   7     110     96      4      0                       4
-        4                      1                   8     110     11     89      0                       5
-        5                      1                   9     110     82     18      0                       6
-        6                      1                  10     110     75     25      0                       7
-        7                      1                  11     110     95      5      0                       8
-        8                      1                  12     110     36     64      0                       9
-        9                      1                  13     110     99      1      0                      10
-        10                     1                  14     110     58     42      0                      11
-        11                     1                  15     110     10     90      0                      12
-        12                     1                  16     110     39     61      0                      13
-        13                     1                  17     110     61     39      0                      14
-        14                     1                  18     110     67     33      0                      15
-        15                     1                  20     110      6     94      0                      16
-        16                     1                  21     110     98      2      0                      17
-        17                     1                  23     110     48     52      0                      18
-        18                     1                  25     110     76     24      0                      19
-        19                     2                   1     100    100      0      0                      20
-        20                     3                   2     010      0    100      0                      21
-        21                     4                   5     001      0      0    100                      22
-        22                     5                  19     011      0     65     35                      23
-        23                     5                  22     011      0     43     57                      24
-        24                     5                  24     011      0     93      7                      25
-        25                     6                  26     000      0      0      0                      26
+            qsigRankFWVB~*~*~*~W  qsRankFWVB~*~*~*~W qsigStr qs_1_A qs_2_B qs_3_C  qsigqsRankFWVB~*~*~*~W  qsigFWVB~*~*~*~W  qsFWVB~*~*~*~W  AnzKnoten  1 NAME  qsigAnzFwvb  qsAnzFwvb
+        0                      1                   3     110     97      3      0                       1     184816.398708    40111.950760         55  V-1852        598.0      157.0
+        1                      1                   4     110     24     76      0                       2     184816.398708    27410.523649         46  V-1630        598.0       92.0
+        2                      1                   6     110     74     26      0                       3     184816.398708    25104.875361         48  V-3611        598.0      101.0
+        3                      1                   7     110     96      4      0                       4     184816.398708    20506.078226         28  V-1773        598.0       58.0
+        4                      1                   8     110     11     89      0                       5     184816.398708    18772.497437          1  V-3109        598.0        3.0
+        5                      1                   9     110     82     18      0                       6     184816.398708    10886.933908         18  V-1712        598.0       38.0
+        6                      1                  10     110     75     25      0                       7     184816.398708     9364.807621         31  V-3002        598.0       49.0
+        7                      1                  11     110     95      5      0                       8     184816.398708     6507.551270          2  V-1132        598.0        1.0
+        8                      1                  12     110     36     64      0                       9     184816.398708     4886.108555          8  V-1744        598.0       18.0
+        9                      1                  13     110     99      1      0                      10     184816.398708     4651.422707          9  V-1335        598.0       17.0
+        10                     1                  14     110     58     42      0                      11     184816.398708     4138.589720          4  V-1751        598.0       12.0
+        11                     1                  15     110     10     90      0                      12     184816.398708     3783.335512         12  V-3426        598.0       19.0
+        12                     1                  16     110     39     61      0                      13     184816.398708     2460.814911          2  V-1372        598.0        4.0
+        13                     1                  17     110     61     39      0                      14     184816.398708     2089.917370          3  V-1742        598.0        7.0
+        14                     1                  18     110     67     33      0                      15     184816.398708     1941.467514          4  V-1607        598.0        8.0
+        15                     1                  20     110      6     94      0                      16     184816.398708      867.218987          1  V-1374        598.0        3.0
+        16                     1                  21     110     98      2      0                      17     184816.398708      617.931881          2  V-1803        598.0        7.0
+        17                     1                  23     110     48     52      0                      18     184816.398708      414.377853          2  V-1308        598.0        2.0
+        18                     1                  25     110     76     24      0                      19     184816.398708      299.995468          1  V-1743        598.0        2.0
+        19                     2                   1     100    100      0      0                      20     182017.396773   182017.396773        210  V-1208        485.0      485.0
+        20                     3                   2     010      0    100      0                      21      92498.919896    92498.919896        195  V-3202        338.0      338.0
+        21                     4                   5     001      0      0    100                      22      25189.337222    25189.337222         40  V-2400         74.0       74.0
+        22                     5                  19     011      0     65     35                      23       2194.073336     1272.672709          3  V-2351         10.0        5.0
+        23                     5                  22     011      0     43     57                      24       2194.073336      547.741989          1  V-2352         10.0        2.0
+        24                     5                  24     011      0     93      7                      25       2194.073336      373.658638          1  V-2140         10.0        3.0
+        25                     6                  26     000      0      0      0                      26          0.000000        0.000000        735  R-3709          0.0        0.0
         >>> import re
-        >>> qsColsEgrNames=[col for col in vKNOTexp.columns.tolist() if re.search('^qs_',col) != None]
-        >>> qsColsEgrNames
+        >>> qsColsEgr=[col for col in vKNOTexp.columns.tolist() if re.search('^qs_',col) != None]
+        >>> qsColsEgr
         ['qs_1_A', 'qs_2_B', 'qs_3_C']
-        >>> qsColsInfNames=[col for col in vKNOTexp.columns.tolist() if re.search('^qs',col) != None and re.search('^qs_',col) == None]
-        >>> qsColsInfNames
-        ['qsStr', 'qsigStr', 'qs100', 'qsSUM', 'qsA', 'qsNotA', 'qsAnzKnoten', 'qsAnzFwvb', 'qsFWVB~*~*~*~W', 'qsFWVB~*~*~*~QM', 'qsRank', 'qsRankAnzKnoten', 'qsRankAnzFwvb', 'qsRankFWVB~*~*~*~W', 'qsigAnzKnoten', 'qsigAnzFwvb', 'qsigFWVB~*~*~*~W', 'qsigFWVB~*~*~*~QM', 'qsigRank', 'qsigRankAnzKnoten', 'qsigRankAnzFwvb', 'qsigRankFWVB~*~*~*~W', 'qsigqsRankFWVB~*~*~*~W']
+        >>> qsColsInf=[col for col in vKNOTexp.columns.tolist() if re.search('^qs',col) != None and re.search('^qs_',col) == None]
+        >>> qsColsInf
+        ['qsStr', 'qsigStr', 'qs100', 'qsSUM', 'qsA', 'qsNotA', 'qsARank', 'qsAnzKnoten', 'qsAnzFwvb', 'qsFWVB~*~*~*~W', 'qsFWVB~*~*~*~QM', 'qsRank', 'qsRankAnzKnoten', 'qsRankAnzFwvb', 'qsRankFWVB~*~*~*~W', 'qsigAnzKnoten', 'qsigAnzFwvb', 'qsigFWVB~*~*~*~W', 'qsigFWVB~*~*~*~QM', 'qsigRank', 'qsigRankAnzKnoten', 'qsigRankAnzFwvb', 'qsigRankFWVB~*~*~*~W', 'qsigqsRankFWVB~*~*~*~W']
         >>> #xm=xms['OneLPipe']                     
         >>> # ---        
         >>> #vKNOTexp=xm.vKNOTexpEBES()
@@ -4879,6 +4887,10 @@ class Xm():
                 vKNOTexp['qsNotA']=vKNOTexp[NotACols].astype(int).sum(axis=1)
 
             # bis hier: ... ,'qsStr', 'qs_1_A', 'qs_2_B', 'qs_3_C', 'qsigStr', 'qs100', 'qsSUM', 'qsA', 'qsNotA' ...
+
+                colsARank=['KVR','qsA']
+                colsARankOrder=[True,False]
+                vKNOTexp['qsARank'] = vKNOTexp.sort_values(colsARank,ascending=colsARankOrder).groupby(colsARank,sort=False).ngroup() + 1
        
             # --- vKNOTexp annotieren mit FWVB-Aggregaten
             if 'vFWVB' in self.dataFrames.keys():
@@ -4992,6 +5004,218 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vKNOTexp
+
+    def vROHRexpEBES(self,vKNOTexpEBES):
+        """Expands Resultcolumns in vROHR with ESQUELLSP-columns. 
+       
+        Arguments:
+            * vKNOTexpEBES: df with ESQUELLSP-columns
+
+        new Cols:
+           
+        
+        Returns:
+            * vROHR with the new Cols
+
+        Raises:
+            XmError
+
+        >>> # ---
+        >>> xm=xms['DHNetwork']   
+        >>> vKNOTexp=xm.vKNOTexpEBES()
+        >>> vROHRexp=xm.vROHRexpEBES(vKNOTexp)
+        >>> r,c=xm.dataFrames['vROHR'].shape
+        >>> r2,c2=vROHRexp.shape
+        >>> r==r2
+        True
+        >>> c2>c
+        True
+        >>> grpObj=vROHRexp.groupby(by=['qsigRankFWVB~*~*~*~W','qsRankFWVB~*~*~*~W'],as_index=False)        
+        >>> d={col:'min' for col in ['qsigStr','qs_1_A','qs_2_B','qs_3_C','qsigqsRankFWVB~*~*~*~W']}       
+        >>> d.update({'qsigFWVB~*~*~*~W':'min'})
+        >>> d.update({'qsFWVB~*~*~*~W':'min'})
+        >>> #d.update({'NAME_k':'count'}) # Anzahl Knoten 
+        >>> d.update({'NAME_i':'first'}) # ein Knotenname
+        >>> # d.update({'AnzFwvb':'sum'}) # muss gleich d.update({'qsAnzFwvb':'first'}) sein
+        >>> d.update({'qsigAnzFwvb':'first'})
+        >>> d.update({'qsAnzFwvb':'first'})
+        >>> d.update({'pk':'count'}) # Anzahl Rohre
+        >>> #d.update({'L':'sum'}) # Länge Rohre 
+        >>> d.update({'qsigRank_sumL':'first'}) 
+        >>> d.update({'qsRank_sumL':'first'}) 
+        >>> d.update({'qsigRank_L':'first'}) 
+        >>> d.update({'qsRank_L':'first'}) 
+        >>> df=grpObj.agg(d).sort_values(by=['qsigRankFWVB~*~*~*~W','qsRankFWVB~*~*~*~W'],ascending=True)       
+        >>> df.rename(columns={'NAME_k':'AnzKnoten','NAME_i':'1 NAME','pk':'AnzRohre'},inplace=True)
+        >>> xm.dataFrames['df']=df
+        >>> print(xm._getvXXXXAsOneString(vXXXX='df'))
+            qsigRankFWVB~*~*~*~W  qsRankFWVB~*~*~*~W qsigStr qs_1_A qs_2_B qs_3_C  qsigqsRankFWVB~*~*~*~W  qsigFWVB~*~*~*~W  qsFWVB~*~*~*~W  1 NAME  qsigAnzFwvb  qsAnzFwvb  AnzRohre  qsigRank_sumL  qsRank_sumL  qsigRank_L  qsRank_L
+        0                      1                   3     110     97      3      0                       1     184816.398708    40111.950760  V-1802        598.0      157.0        71     51151.5221    9689.2412           1         4
+        1                      1                   4     110     24     76      0                       2     184816.398708    27410.523649  V-1633        598.0       92.0        53     51151.5221    9748.5460           1         3
+        2                      1                   6     110     74     26      0                       3     184816.398708    25104.875361  V-3150        598.0      101.0        57     51151.5221    9320.0000           1         5
+        3                      1                   7     110     96      4      0                       4     184816.398708    20506.078226  V-1114        598.0       58.0        33     51151.5221    4525.0030           1         8
+        4                      1                   9     110     82     18      0                       6     184816.398708    10886.933908  V-1760        598.0       38.0        20     51151.5221    2890.0000           1         9
+        5                      1                  10     110     75     25      0                       7     184816.398708     9364.807621  V-3505        598.0       49.0        32     51151.5221    6867.3411           1         7
+        6                      1                  11     110     95      5      0                       8     184816.398708     6507.551270  V-1132        598.0        1.0         1     51151.5221     150.0000           1        21
+        7                      1                  12     110     36     64      0                       9     184816.398708     4886.108555  V-1755        598.0       18.0        10     51151.5221    1350.0000           1        12
+        8                      1                  13     110     99      1      0                      10     184816.398708     4651.422707  V-1336        598.0       17.0         8     51151.5221    1425.3438           1        11
+        9                      1                  14     110     58     42      0                      11     184816.398708     4138.589720  V-1750        598.0       12.0         4     51151.5221     400.0000           1        16
+        10                     1                  15     110     10     90      0                      12     184816.398708     3783.335512  V-3420        598.0       19.0        11     51151.5221    2150.0000           1        10
+        11                     1                  16     110     39     61      0                      13     184816.398708     2460.814911  V-1373        598.0        4.0         2     51151.5221     290.0000           1        19
+        12                     1                  17     110     61     39      0                      14     184816.398708     2089.917370  V-1740        598.0        7.0         3     51151.5221     340.0000           1        18
+        13                     1                  18     110     67     33      0                      15     184816.398708     1941.467514  V-1605        598.0        8.0         4     51151.5221     550.0000           1        14
+        14                     1                  20     110      6     94      0                      16     184816.398708      867.218987  V-1374        598.0        3.0         1     51151.5221     360.0000           1        17
+        15                     1                  21     110     98      2      0                      17     184816.398708      617.931881  V-1802        598.0        7.0         3     51151.5221     450.0000           1        15
+        16                     1                  23     110     48     52      0                      18     184816.398708      414.377853  V-1308        598.0        2.0         3     51151.5221     556.0470           1        13
+        17                     1                  25     110     76     24      0                      19     184816.398708      299.995468  V-1742        598.0        2.0         1     51151.5221      90.0000           1        22
+        18                     2                   1     100    100      0      0                      20     182017.396773   182017.396773  V-1591        485.0      485.0       262     36841.2302   36841.2302           3         2
+        19                     3                   2     010      0    100      0                      21      92498.919896    92498.919896  V-3204        338.0      338.0       214     37422.8914   37422.8914           2         1
+        20                     4                   5     001      0      0    100                      22      25189.337222    25189.337222  V-2602         74.0       74.0        43      7278.5539    7278.5539           4         6
+        21                     5                  19     011      0     65     35                      23       2194.073336     1272.672709  V-2113         10.0        5.0         3       259.7644     259.7644           5        20
+        22                     6                  26     000      0      0      0                      26          0.000000        0.000000  R-1226          0.0        0.0       839    133013.8220  133013.8220           6        23
+        >>> grpObj=vROHRexp.groupby(by=['qsigRank_L','qsRank_L'],as_index=False)        
+        >>> d={col:'min' for col in ['qsigStr','qs_1_A','qs_2_B','qs_3_C','qsigqsRank_L']}       
+        >>> d.update({'qsigFWVB~*~*~*~W':'min'})
+        >>> d.update({'qsFWVB~*~*~*~W':'min'})
+        >>> #d.update({'NAME_k':'count'}) # Anzahl Knoten 
+        >>> d.update({'NAME_i':'first'}) # ein Knotenname
+        >>> # d.update({'AnzFwvb':'sum'}) # muss gleich d.update({'qsAnzFwvb':'first'}) sein
+        >>> d.update({'qsigAnzFwvb':'first'})
+        >>> d.update({'qsAnzFwvb':'first'})
+        >>> d.update({'pk':'count'}) # Anzahl Rohre
+        >>> #d.update({'L':'sum'}) # Länge Rohre 
+        >>> d.update({'qsigRank_sumL':'first'}) 
+        >>> d.update({'qsRank_sumL':'first'}) 
+        >>> #d.update({'qsigRank_L':'first'}) 
+        >>> #d.update({'qsRank_L':'first'}) 
+        >>> df=grpObj.agg(d).sort_values(by=['qsigRank_L','qsRank_L'],ascending=True)       
+        >>> df.rename(columns={'NAME_k':'AnzKnoten','NAME_i':'1 NAME','pk':'AnzRohre'},inplace=True)
+        >>> xm.dataFrames['df']=df
+        >>> print(xm._getvXXXXAsOneString(vXXXX='df'))
+            qsigRank_L  qsRank_L qsigStr qs_1_A qs_2_B qs_3_C  qsigqsRank_L  qsigFWVB~*~*~*~W  qsFWVB~*~*~*~W  1 NAME  qsigAnzFwvb  qsAnzFwvb  AnzRohre  qsigRank_sumL  qsRank_sumL
+        0            1         3     110     24     76      0            23     184816.398708    27410.523649  V-1633        598.0       92.0        53     51151.5221    9748.5460
+        1            1         4     110     97      3      0            22     184816.398708    40111.950760  V-1802        598.0      157.0        71     51151.5221    9689.2412
+        2            1         5     110     74     26      0            21     184816.398708    25104.875361  V-3150        598.0      101.0        57     51151.5221    9320.0000
+        3            1         7     110     75     25      0            20     184816.398708     9364.807621  V-3505        598.0       49.0        32     51151.5221    6867.3411
+        4            1         8     110     96      4      0            19     184816.398708    20506.078226  V-1114        598.0       58.0        33     51151.5221    4525.0030
+        5            1         9     110     82     18      0            18     184816.398708    10886.933908  V-1760        598.0       38.0        20     51151.5221    2890.0000
+        6            1        10     110     10     90      0            17     184816.398708     3783.335512  V-3420        598.0       19.0        11     51151.5221    2150.0000
+        7            1        11     110     99      1      0            16     184816.398708     4651.422707  V-1336        598.0       17.0         8     51151.5221    1425.3438
+        8            1        12     110     36     64      0            15     184816.398708     4886.108555  V-1755        598.0       18.0        10     51151.5221    1350.0000
+        9            1        13     110     48     52      0            14     184816.398708      414.377853  V-1308        598.0        2.0         3     51151.5221     556.0470
+        10           1        14     110     67     33      0            13     184816.398708     1941.467514  V-1605        598.0        8.0         4     51151.5221     550.0000
+        11           1        15     110     98      2      0            12     184816.398708      617.931881  V-1802        598.0        7.0         3     51151.5221     450.0000
+        12           1        16     110     58     42      0            11     184816.398708     4138.589720  V-1750        598.0       12.0         4     51151.5221     400.0000
+        13           1        17     110      6     94      0            10     184816.398708      867.218987  V-1374        598.0        3.0         1     51151.5221     360.0000
+        14           1        18     110     61     39      0             9     184816.398708     2089.917370  V-1740        598.0        7.0         3     51151.5221     340.0000
+        15           1        19     110     39     61      0             8     184816.398708     2460.814911  V-1373        598.0        4.0         2     51151.5221     290.0000
+        16           1        21     110     95      5      0             7     184816.398708     6507.551270  V-1132        598.0        1.0         1     51151.5221     150.0000
+        17           1        22     110     76     24      0             6     184816.398708      299.995468  V-1742        598.0        2.0         1     51151.5221      90.0000
+        18           2         1     010      0    100      0             5      92498.919896    92498.919896  V-3204        338.0      338.0       214     37422.8914   37422.8914
+        19           3         2     100    100      0      0             4     182017.396773   182017.396773  V-1591        485.0      485.0       262     36841.2302   36841.2302
+        20           4         6     001      0      0    100             3      25189.337222    25189.337222  V-2602         74.0       74.0        43      7278.5539    7278.5539
+        21           5        20     011      0     65     35             2       2194.073336     1272.672709  V-2113         10.0        5.0         3       259.7644     259.7644
+        22           6        23     000      0      0      0             1          0.000000        0.000000  R-1226          0.0        0.0       839    133013.8220  133013.8220
+        >>> #
+        >>> #xm=xms['OneLPipe']                     
+        >>> # ---        
+        >>> #vKNOTexp=xm.vKNOTexpEBES()
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:
+            vROHRexp=None
+            
+
+            qsColsEgr=[col for col in vKNOTexpEBES.columns.tolist() if re.search('^qs_',col) != None]
+            qsColsInf=[col for col in vKNOTexpEBES.columns.tolist() if re.search('^qs',col) != None and re.search('^qs_',col) == None]
+            qsCols=qsColsEgr+qsColsInf
+
+            vROHR=self.dataFrames['vROHR']
+            vROHRexp=pd.merge(vROHR,vKNOTexpEBES[['NAME']+qsCols],left_on='NAME_i',right_on='NAME',suffixes=('','_i'))          
+            vROHRexp.drop(['NAME'],axis=1,inplace=True)
+            vROHRexp.rename(columns={col:col+'_i' for col in qsCols},inplace=True)
+
+            vROHRexp=pd.merge(vROHRexp,vKNOTexpEBES[['NAME']+qsCols],left_on='NAME_k',right_on='NAME',suffixes=('','_k'))          
+            vROHRexp.drop(['NAME'],axis=1,inplace=True)
+            vROHRexp.rename(columns={col:col+'_k' for col in qsCols},inplace=True)
+
+            for col in qsCols:
+                vROHRexp[col]=vROHRexp.apply(lambda row: row[col+'_i'] if row['ROHR~*~*~*~QMAV'] >= 0 else row[col+'_k'] ,axis=1)
+            vROHRexp.drop([col+'_i' for col in qsCols],axis=1,inplace=True)
+            vROHRexp.drop([col+'_k' for col in qsCols],axis=1,inplace=True)
+
+
+            vROHRexp['L']=vROHRexp['L'].astype('float')
+
+            # Längensumme pro Signatur und Spektrum
+            for qsRankCol in ['qsigRank','qsRank']:    
+                grpObj=vROHRexp.groupby(by=[qsRankCol],as_index=False)   
+                d={'L':'sum'} 
+                df=grpObj.agg(d)
+                newColName=qsRankCol+'_sumL' #  
+                df.rename(columns={'L':newColName},inplace=True)
+                # verbinden
+                cols=vROHRexp.columns.tolist()             
+                cols.extend([newColName])     
+                #print(cols)
+                vROHRexp=pd.merge(vROHRexp,df,left_on=[qsRankCol],right_on=[qsRankCol],how='left',suffixes=('','_exp'))
+                #print(vROHRexp.columns.tolist() )
+                vROHRexp=vROHRexp.filter(items=cols)   
+                #print(vROHRexp.columns.tolist() )
+
+
+
+                
+
+
+
+            # nicht all QS müssen notwendigerweise durch Rohre erfasst werden
+            # wenn z.B. an einem Vereinigungsknoten der ein neues QS kreiert kein Rohr abgeht und dieses QS auch sonst nicht mehr mit einem abgehenden Rohr vorkommt
+            # das führt dazu, dass die Ranks Lücken haben - unhandlich für diskrete Farbskalen
+            # diese evtl. Lücken werden nachfolgend beseitigt
+            qsRankCols=['qsARank'
+                       #---
+                       ,'qsRank'
+                       ,'qsRankAnzKnoten'
+                       ,'qsRankAnzFwvb'
+                       ,'qsRankFWVB~*~*~*~W'
+                       #---
+                       ,'qsigRank'
+                       ,'qsigRankAnzKnoten'
+                       ,'qsigRankAnzFwvb'
+                       ,'qsigRankFWVB~*~*~*~W'
+                       #---
+                       ,'qsigqsRankFWVB~*~*~*~W']
+            for qsRankCol in qsRankCols:  
+                pass
+                #pass
+                #vROHRexp[qsRankCol]=vROHRexp[qsRankCol].rank(method='dense').astype('int')
+
+
+
+            cols=['qsigRank']                   
+            colsSort=['KVR']+['qsigRank_sumL']+['qsigRank']   
+            vROHRexp['qsigRank_L'] = vROHRexp.sort_values(colsSort,ascending=[True]+[False]+[True]).groupby(cols,sort=False).ngroup() + 1
+
+            cols=['qsRank']                   
+            colsSort=['KVR']+['qsRank_sumL']+['qsRank']   
+            vROHRexp['qsRank_L'] = vROHRexp.sort_values(colsSort,ascending=[True]+[False]+[True]).groupby(cols,sort=False).ngroup() + 1
+
+            cols=['qsigRank_L','qsRank_L']
+            vROHRexp['qsigqsRank_L'] = vROHRexp.sort_values(cols,ascending=[False]+[False]).groupby(cols,sort=False).ngroup() + 1
+
+        except XmError:
+            raise            
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)               
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            return vROHRexp
 
     def _vROHR(self,vKNOT=None):
         """One row per Pipe (ROHR).

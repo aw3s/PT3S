@@ -12,7 +12,7 @@
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <CommandLineArguments>-q -m 0 -s vKNOTexpEBES -w DHNetwork  -y no -z no </CommandLineArguments>
+    <CommandLineArguments>-q -m 0 -s vROHRexpEBES -w DHNetwork  -y no -z no </CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
     <InterpreterId>Global|ContinuumAnalytics|Anaconda36-64</InterpreterId>
   </PropertyGroup>
