@@ -2362,7 +2362,59 @@ class Rm():
                 ... )               
                 >>> txt=axNfd.set_title('HP 3')  
                 >>> gs.tight_layout(fig)
-                >>> plt.show()                                
+                >>> plt.show()     
+                >>> # ---
+                >>> mx=mxs['DHNetwork']       
+                >>> #
+                >>> xm.MxAdd(mx=mx,ForceNoH5Update=True)
+                >>> vAGSN=xm.dataFrames['vAGSN']
+                >>> colList=vAGSN.columns.tolist()
+                >>> sepColIdx=colList.index('mx2Idx')
+                >>> vAGSN_Sach=vAGSN[colList[:sepColIdx+1]]
+                >>> vAGSN_STAT=vAGSN[colList[sepColIdx+1:]]
+                >>> xm.MxAdd(mx=mx,aggReq='TMIN',ForceNoH5Update=True)
+                >>> vAGSN=xm.dataFrames['vAGSN']
+                >>> vAGSN_TMIN=vAGSN[colList[sepColIdx+1:]]
+                >>> xm.MxAdd(mx=mx,aggReq='TMAX',ForceNoH5Update=True)
+                >>> vAGSN=xm.dataFrames['vAGSN']
+                >>> vAGSN_TMAX=vAGSN[colList[sepColIdx+1:]]
+                >>> vAGSN=pd.concat([vAGSN_Sach,vAGSN_STAT,vAGSN_TMIN,vAGSN_TMAX],axis=1)
+                >>> colCount={col:0 for col in vAGSN.columns.tolist() }
+                >>> cols=[]
+                >>> for col in vAGSN.columns:
+                ...        if colCount[col] > 0:
+                ...            colName=str(col)+'_'+str(colCount[col])
+                ...        else:
+                ...            colName=col
+                ...        cols.append(colName)
+                ...        colCount[col]=colCount[col]+1                  
+                >>> vAGSN.columns = cols          
+                >>> for PH,P,RHO,Z in zip(['PH','PH_1','PH_2'],['P','P_1','P_2'],['RHO','RHO_1','RHO_2'],['Z','Z_1','Z_2']):
+                ...     vAGSN[PH]=vAGSN.apply(lambda row: row[P]*math.pow(10.,5.)/(row[RHO]*9.81),axis=1)
+                ...     vAGSN[PH]=vAGSN[PH]+vAGSN[Z].astype('float64')
+                >>> for bBzg,P,RHO,Z in zip(['bBzg','bBzg_1','bBzg_2'],['P','P_1','P_2'],['RHO','RHO_1','RHO_2'],['Z','Z_1','Z_2']):
+                ...     vAGSN[bBzg]=vAGSN.apply(lambda row: row[RHO]*9.81/math.pow(10.,5.),axis=1)
+                ...     vAGSN[bBzg]=vAGSN[P]+vAGSN[Z].astype('float64')*vAGSN[bBzg]   
+                >>> plt.close()
+                >>> fig=plt.figure(figsize=Rm.DINA3q,dpi=Rm.dpiSize)         
+                >>> gs = gridspec.GridSpec(3, 1)
+                >>> # --------------------------
+                >>> axNfd = fig.add_subplot(gs[0])       
+                >>> Rm.Rm.pltHP(vAGSN,pAx=axNfd
+                ... ,yCols=['bBzg','bBzg_1','bBzg_2']
+                ... ,yColProps={
+                ...     'AGFW Symposium DH_1_bBzg':{'label':'VL','color':'red' ,'linestyle':'-','linewidth':3}
+                ...    ,'AGFW Symposium DH_2_bBzg':{'label':'RL','color':'blue','linestyle':'-','linewidth':3}
+                ...    ,'AGFW Symposium DH_1_bBzg_1':{'label':'VL min','color':'red' ,'linestyle':'--','linewidth':2}
+                ...    ,'AGFW Symposium DH_2_bBzg_1':{'label':'RL min','color':'blue','linestyle':'--','linewidth':2}
+                ...    ,'AGFW Symposium DH_1_bBzg_2':{'label':'VL max','color':'red' ,'linestyle':'-.','linewidth':2}
+                ...    ,'AGFW Symposium DH_2_bBzg_2':{'label':'RL max','color':'blue','linestyle':'-.','linewidth':2}
+                ... }
+                ... )               
+                >>> txt=axNfd.set_title('HP 4')  
+                >>> gs.tight_layout(fig)
+                >>> plt.show()                     
+
         """
         logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 

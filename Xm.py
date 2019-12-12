@@ -8254,24 +8254,25 @@ class Xm():
         Result:
 
             * vAGSN
-                * from vVBEL: KNOT..._i and KNOT..._k and Q
-                * from vROHRVecResults: vecResults
-                * Topology:
-                    * nextNODE                   
+                * all cols from vAGSN_raw
+                * from vVBEL: 
+                    * KNOT..._i (droped for processed RVECS)
+                    * and KNOT..._k (droped for processed RVECS)
+                    * and Q; Q also contains vROHRVecResults - RVEC QMVEC is droped; Q in Schnittrichtung
+                * due to vROHRVecResults:                    
                     * IptIdx      
-                    
-                * Geometry:
-                    * dx                       
-                    * x                        
-                    * xVbel      
-                    * Z (the corresponding Z_i, Z_k and ZVEC are droped)
-
-                * Results:
-                    * Q: from Q before and QMVEC for PIPEs; in Schnittrichtung; QMVEC is droped
-                    * for available KNOT...#_i, KNOT...#_k and ...#VEC:
-                        * i.e. KNOT~*~*~*~P_i KNOT~*~*~*~P_k  ROHR~*~*~*~PVEC
-                        * P is new column
-                        * the correspondig 3 source-columns are droped
+                    * RVECs not processed, i.e. ROHR~*~*~*~MVEC
+                    * Geometry:
+                        * dx                       
+                        * x                        
+                        * xVbel      
+                    * RVECs processed, i.e.
+                        * RHO - the corresponding KNOT~*~*~*~RHO_i KNOT~*~*~*~RHO_k  ROHR~*~*~*~RHOVEC are droped
+                        * T   - the corresponding KNOT~*~*~*~T_i   KNOT~*~*~*~T_k    ROHR~*~*~*~TVEC   are droped 
+                        * P   - the corresponding KNOT~*~*~*~P_i   KNOT~*~*~*~P_k    ROHR~*~*~*~PVEC   are droped                                                           
+                            * P is new column
+                            * the correspondig 3 source-columns are droped
+                        * and Z (the corresponding Z_i, Z_k and ZVEC are droped)
 
         Raises:
             XmError
