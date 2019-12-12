@@ -195,11 +195,24 @@ import doctest
 
 import math
 
-# DIN A6 105 x 148 mm	4,13 x 5,83 in
-# DIN A5 148 x 210 mm	5,83 x 8,27 in
-# DIN A4 210 x 297 mm	8,27 x 11,69 in
-# DIN A3 297 x 420 mm	11,69 x 16,54 in
-# DIN A0 841 x 1189 mm	33,11 x 46,81 in
+DINA6 =  (4.13 ,  5.83)
+DINA5 =  (5.83 ,  8.27)
+DINA4 =  (8.27 , 11.69)
+DINA3 = (11.69 , 16.54)
+DINA2 = (16.54 , 23.39)
+DINA1 = (23.39 , 33.11)
+DINA0 = (33.11 , 46.81)
+
+DINA6q =  (  5.83, 4.13)
+DINA5q =  (  8.27, 5.83)
+DINA4q =  ( 11.69, 8.27)
+DINA3q =  ( 16.54,11.69)
+DINA2q =  ( 23.39,16.54)
+DINA1q =  ( 33.11,23.39)
+DINA0q =  ( 46.81,33.11)
+
+dpiSize=72
+
 
 DINA4_x=8.2677165354
 DINA4_y=11.6929133858
@@ -262,55 +275,94 @@ def pltMakeCategoricalColors(color,nOfSubColorsReq=3,reversedOrder=False):
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
         return rgb
 
-def pltMakeCategoricalCmap(catagoryCmap="tab10",catagoryColors=None,nOfSubCatsReq=3,reversedSubCatOrder=False):
+def pltMakeCategoricalCmap(baseColorsDef="tab10",catagoryColors=None,nOfSubCatsReq=3,reversedSubCatOrder=False):
     """
     Returns a cmap with nOfCatsReq * nOfSubCatsReq discrete colors.
 
     Parameter:
-        catagoryCmap:    a (discrete) cmap with different "base"colors
+        baseColorsDef:    a (discrete) cmap defining the "base"colors
                          default: tab10
+
+                         if baseColorsDef is not via get_cmap a matplotlib.colors.ListedColormap, baseColorsDef is interpreted via to_rgb as a list of colors
+                         in this case catagoryColors is ignored 
+
         catagoryColors:  a list of "base"colors indices for this cmap
                          the length of the list is the number of Categories requested: nOfCatsReq
                          apparently cmap's nOfColors must be ge than nOfCatsReq
                          default: None (==> nOfCatsReq = cmap's nOfColors)
                          i.e. [2,8,3] for tab10 is green, yellow (ocher), red
+
         nOfSubCatsReq:   number of Subcategories requested
+
+        reversedSubCatOrder: False (default): if True, the last color of a category is from baseColorsDef
+        reversedSubCatOrder can be a list
         
     Returns:
         cmap with nOfCatsReq * nOfSubCatsReq discrete colors; None if an error occurs
         one "base"color per category
         nOfSubCatsReq "sub"colors per category
         so each category consists of nOfSubCatsReq colors
-        the 1st color of a category is from catagoryCmap - the "base"color of the category
-        the other colors of a category are derived from the "base"color 
-        if reversedSubCatOrder, the last color of a category is from catagoryCmap
 
     Raises:
         RmError
 
+    >>> import matplotlib
     >>> import matplotlib.pyplot as plt
     >>> import numpy as np
     >>> import Rm    
     >>> Rm.pltMakeCategoricalCmap().N
     30
-    >>> Rm.pltMakeCategoricalCmap(catagoryColors=[2,8,3]).N
+    >>> Rm.pltMakeCategoricalCmap(catagoryColors=[2,8,3]).N # 2 8 3 in tab10: grün gelb rot
     9
-    >>> catagoryCmap="tab10"
+    >>> baseColorsDef="tab10"
     >>> catagoryColors=[2,8,3]
     >>> nOfSubCatsReq=4
-    >>> cm=Rm.pltMakeCategoricalCmap(catagoryCmap=catagoryCmap,catagoryColors=catagoryColors,nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=True)
-    >>> nCat=len(catagoryColors)
-    >>> nCatSub=nOfSubCatsReq
-    >>> colorsY=np.ones(nCat*nCatSub) #1
-    >>> colorsX=np.ones(nCat*nCatSub) #1
-    >>> for idxC in range(nCat):
-    ...        for idxCatSub in range (nCatSub):
-    ...            colorsY[idxC*nCatSub+idxCatSub]=idxC
-    ...            colorsX[idxC*nCatSub+idxCatSub]=idxC*nCatSub+idxCatSub*nCatSub
+    >>> # grün gelb rot mit je 4 Farben von hell nach dunkel
+    >>> cm=Rm.pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,catagoryColors=catagoryColors,nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=True)
+    >>> cm.colors
+    array([[0.75      , 1.        , 0.75      ],
+           [0.51819172, 0.87581699, 0.51819172],
+           [0.32570806, 0.75163399, 0.32570806],
+           [0.17254902, 0.62745098, 0.17254902],
+           [0.9983871 , 1.        , 0.75      ],
+           [0.91113148, 0.91372549, 0.51165404],
+           [0.82408742, 0.82745098, 0.30609849],
+           [0.7372549 , 0.74117647, 0.13333333],
+           [1.        , 0.75      , 0.75142857],
+           [0.94640523, 0.53069452, 0.53307001],
+           [0.89281046, 0.33167491, 0.3348814 ],
+           [0.83921569, 0.15294118, 0.15686275]])
+    >>> cm2=Rm.pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,catagoryColors=catagoryColors,nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=[False]+2*[True])
+    >>> cm.colors[nOfSubCatsReq-1]==cm2.colors[0]
+    array([ True,  True,  True])
     >>> plt.close()
-    >>> size_DINA6quer=(5.8,4.1) 
-    >>> fig=plt.figure(figsize=size_DINA6quer)
-    >>> pco=plt.scatter(colorsX,colorsY, c=np.arange(nCat*nCatSub), s=180, cmap=cm)
+    >>> size_DINA6quer=(5.8,4.1)    
+    >>> fig, ax = plt.subplots(figsize=size_DINA6quer)
+    >>> fig.subplots_adjust(bottom=0.5)
+    >>> norm=matplotlib.colors.Normalize(vmin=0, vmax=100)
+    >>> cb=matplotlib.colorbar.ColorbarBase(ax, cmap=cm2,norm=norm,orientation='horizontal')
+    >>> cb.set_label('baseColorsDef was (via get_cmap) a matplotlib.colors.ListedColormap')    
+    >>> #plt.show()
+    >>> cm3=Rm.pltMakeCategoricalCmap(baseColorsDef=['b','c','m'],nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=True)   
+    >>> cm3.colors
+    array([[0.75      , 0.75      , 1.        ],
+           [0.5       , 0.5       , 1.        ],
+           [0.25      , 0.25      , 1.        ],
+           [0.        , 0.        , 1.        ],
+           [0.75      , 1.        , 1.        ],
+           [0.45833333, 0.91666667, 0.91666667],
+           [0.20833333, 0.83333333, 0.83333333],
+           [0.        , 0.75      , 0.75      ],
+           [1.        , 0.75      , 1.        ],
+           [0.91666667, 0.45833333, 0.91666667],
+           [0.83333333, 0.20833333, 0.83333333],
+           [0.75      , 0.        , 0.75      ]])
+    >>> plt.close()     
+    >>> fig, ax = plt.subplots(figsize=size_DINA6quer)
+    >>> fig.subplots_adjust(bottom=0.5)
+    >>> norm=matplotlib.colors.Normalize(vmin=0, vmax=100)
+    >>> cb=matplotlib.colorbar.ColorbarBase(ax, cmap=cm3,norm=norm,orientation='horizontal')
+    >>> cb.set_label('baseColorsDef was (via to_rgb) a list of colors')   
     >>> #plt.show()
     """
 
@@ -320,52 +372,58 @@ def pltMakeCategoricalCmap(catagoryCmap="tab10",catagoryColors=None,nOfSubCatsRe
     cmap=None
 
     try:  
-        # Farben, "base"colors, welche die cmap hat
-        nOfColors=plt.get_cmap(catagoryCmap).N
 
-        if catagoryColors==None:            
-            catagoryColors=np.arange(nOfColors,dtype=int)
+        try:
+            # Farben, "base"colors, welche die cmap hat
+            nOfColors=plt.get_cmap(baseColorsDef).N
 
-        # verlangte Kategorien
-        nOfCatsReq=len(catagoryColors)
+            if catagoryColors==None:            
+                catagoryColors=np.arange(nOfColors,dtype=int)
+
+            # verlangte Kategorien
+            nOfCatsReq=len(catagoryColors)
         
-        if nOfCatsReq > nOfColors:
-            logStrFinal="{0:s}: nOfCatsReq: {1:d} > cmap's nOfColors: {2:d}!".format(logStr,nOfCatsReq,nOfColors)                                 
-            raise RmError(logStrFinal)          
+            if nOfCatsReq > nOfColors:
+                logStrFinal="{0:s}: nOfCatsReq: {1:d} > cmap's nOfColors: {2:d}!".format(logStr,nOfCatsReq,nOfColors)                                 
+                raise RmError(logStrFinal)          
                         
-        if max(catagoryColors) > nOfColors-1:
-            logStrFinal="{0:s}: max. Idx of catsReq: {1:d} > cmap's nOfColors-1: {2:d}!".format(logStr,max(catagoryColors),nOfColors-1)                                 
-            raise RmError(logStrFinal)      
+            if max(catagoryColors) > nOfColors-1:
+                logStrFinal="{0:s}: max. Idx of catsReq: {1:d} > cmap's nOfColors-1: {2:d}!".format(logStr,max(catagoryColors),nOfColors-1)                                 
+                raise RmError(logStrFinal)      
 
-        # alle Farben holen, welche die cmap hat
-        ccolors = plt.get_cmap(catagoryCmap)(np.arange(nOfColors,dtype=int))
-        # die gewuenschten Kategoriefarben extrahieren
-        #ccolors=[color for idx,color in enumerate(ccolors) if idx in catagoryColors] # waere in Reihenfolge der cmap und nicht in der gewünschten Reihenfolge 
-        ccolors=[ccolors[idx] for idx in catagoryColors]
+            # alle Farben holen, welche die cmap hat
+            ccolors = plt.get_cmap(baseColorsDef)(np.arange(nOfColors,dtype=int))
+            # die gewuenschten Kategorie"Basis"farben extrahieren        
+            ccolors=[ccolors[idx] for idx in catagoryColors]
+           
+        except:
+            listOfColors=baseColorsDef
+            nOfColors=len(listOfColors)
+            nOfCatsReq=nOfColors
+
+            ccolors=[]
+            for color in listOfColors:                
+                ccolors.append(list(matplotlib.colors.to_rgb(color)))
+
+        finally:
+            pass
     
-        # Farben bauen
+        # Farben bauen  -------------------------------------
 
         # resultierende Farben vorbelegen
         cols = np.zeros((nOfCatsReq*nOfSubCatsReq, 3))
 
         # ueber alle Kategoriefarben
+        if type(reversedSubCatOrder) is not list:
+            reversedSubCatOrderLst=nOfCatsReq*[reversedSubCatOrder]
+        else:
+            reversedSubCatOrderLst=reversedSubCatOrder
+
         for i, c in enumerate(ccolors):
-
-            rgb=pltMakeCategoricalColors(c,nOfSubColorsReq=nOfSubCatsReq,reversedOrder=reversedSubCatOrder)
-
-
-            #chsv = matplotlib.colors.rgb_to_hsv(c[:3])
-            #arhsv = np.tile(chsv,nOfSubCatsReq).reshape(nOfSubCatsReq,3)
-            #arhsv[:,1] = np.linspace(chsv[1],0.25,nOfSubCatsReq)
-            #arhsv[:,2] = np.linspace(chsv[2],1,nOfSubCatsReq)
-            #rgb = matplotlib.colors.hsv_to_rgb(arhsv)
-            #if reversedSubCatOrder:
-            #    rgb=list(reversed(rgb))                
+            rgb=pltMakeCategoricalColors(c,nOfSubColorsReq=nOfSubCatsReq,reversedOrder=reversedSubCatOrderLst[i])               
             cols[i*nOfSubCatsReq:(i+1)*nOfSubCatsReq,:] = rgb
             
-
         cmap = matplotlib.colors.ListedColormap(cols)                
-
                                                                                           
     except RmError:
         raise            
@@ -1517,6 +1575,11 @@ class Rm():
                 >>> import matplotlib.gridspec as gridspec
                 >>> import math
                 >>> # ---
+                >>> try:
+                ...   import Rm
+                ... except ImportError:                   
+                ...   from PT3S import Rm
+                >>> # ---
                 >>> xm=xms['DHNetwork']
                 >>> #mx=mxs['DHNetwork']                  
                 >>> # ---
@@ -1527,9 +1590,7 @@ class Rm():
                 >>> gs = gridspec.GridSpec(4, 2)
                 >>> # ---
                 >>> vROHR=xm.dataFrames['vROHR']                 
-                >>> # ---
-                >>> import Rm
-                >>> # ---
+                >>> # ---                               
                 >>> # Attribute (with neg. Values)
                 >>> # --------------------------
                 >>> axNfd = fig.add_subplot(gs[0])              
@@ -1669,10 +1730,10 @@ class Rm():
                 >>> # ---
                 >>> # Unterkategorien
                 >>> # --------------------------              
-                >>> catagoryCmap="tab10"
+                >>> baseColorsDef="tab10"
                 >>> catagoryColors=[9,6,1]
                 >>> nOfSubCatsReq=4
-                >>> cm=Rm.pltMakeCategoricalCmap(catagoryCmap=catagoryCmap,catagoryColors=catagoryColors,nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=True)
+                >>> cm=Rm.pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,catagoryColors=catagoryColors,nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=True)
                 >>> axNfd = fig.add_subplot(gs[7])              
                 >>> Rm.Rm.pltNetPipes(pDf
                 ...     ,query="CONT_ID == '1001'"
@@ -1694,7 +1755,42 @@ class Rm():
                 >>> txt=axNfd.set_title('Unterkategorien')
                 >>> # --------------------------
                 >>> gs.tight_layout(fig)
+                >>> plt.show()
                 >>> plt.savefig('pltNetPipes.pdf',format='pdf',dpi=dpiSize*2)
+                >>> # -----
+                >>> plt.close()
+                >>> fig=plt.figure(figsize=Rm.DINA3q,dpi=dpiSize)         
+                >>> gs = gridspec.GridSpec(1, 1)
+                >>> # ---
+                >>> # 
+                >>> # --------------------------
+                >>> axNfd = fig.add_subplot(gs[0])  
+                >>> Rm.Rm.pltNetPipes(vROHR
+                ...     ,query="CONT_ID == '1001'"
+                ...     ,fmask=lambda row: True if row.KVR_i=='2' and row.KVR_k=='2' and row.LTGR_NAME=='NWDUF2' else False 
+                ...     ,pAx=axNfd
+                ...     ,pAttributeFunc=lambda row: math.fabs(row['ROHR~*~*~*~QMAV'])
+                ...     )
+                >>> txt=axNfd.set_title('RL QMAV Abs (Ausschnitt)')      
+                >>> gs.tight_layout(fig)
+                >>> plt.show()               
+                >>> # -----
+                >>> plt.close()
+                >>> fig=plt.figure(figsize=Rm.DINA3,dpi=dpiSize)         
+                >>> gs = gridspec.GridSpec(1, 1)
+                >>> # ---
+                >>> # 
+                >>> # --------------------------
+                >>> axNfd = fig.add_subplot(gs[0])  
+                >>> Rm.Rm.pltNetPipes(vROHR
+                ...     ,query="CONT_ID == '1001'"
+                ...     ,fmask=lambda row: True if row.KVR_i=='2' and row.KVR_k=='2' and row.LTGR_NAME=='NWDUF2' else False 
+                ...     ,pAx=axNfd
+                ...     ,pAttributeFunc=lambda row: math.fabs(row['ROHR~*~*~*~QMAV'])
+                ...     )
+                >>> txt=axNfd.set_title('RL QMAV Abs (Ausschnitt)')      
+                >>> gs.tight_layout(fig)
+                >>> plt.show()                                
         """
         logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -1872,9 +1968,11 @@ class Rm():
                 logger.debug("{:s}pDf is sorted (=Plotreihenfolge) by {:s} ascending={:s}.".format(logStr,str(kwds['sort_values_by']),str(kwds['sort_values_ascending'])))  
                 pDf.sort_values(by=kwds['sort_values_by'],ascending=kwds['sort_values_ascending'],inplace=True)
                 
-            # x,y-Achsen: Lims ermitteln und setzen                                          
-            xMin=0          
-            yMin=0
+            # ----------------------------------------------------------------------------------------------------------------------------------------
+            # x,y-Achsen: Lims ermitteln und setzen  (das Setzen beeinflusst Ticks und data_ratio; ohne dieses Setzen wären diese auf Standardwerten)      
+            # ----------------------------------------------------------------------------------------------------------------------------------------                                                        
+            xMin=923456789          
+            yMin=923456789  
             xMax=0          
             yMax=0
             for xs,ys in zip(pDf[kwds['pWAYPXCors']],pDf[kwds['pWAYPYCors']]):
@@ -1888,31 +1986,76 @@ class Rm():
             dy=yMax-yMin
             dxdy=dx/dy
             dydx=1./dxdy
-        
-            kwds['pAx'].set_xlim(left=xMin)
-            kwds['pAx'].set_ylim(bottom=yMin)
-            kwds['pAx'].set_xlim(right=xMax)
-            kwds['pAx'].set_ylim(top=yMax)    
-        
-            # x,y-Seitenverhältnisse ermitteln  (derzeit nur zu DEBUG-/INFO-Zwecken)           
-            # total figure size
-            figW, figH = kwds['pAx'].get_figure().get_size_inches()
-            # Axis size on figure
-            x0, y0, w, h = kwds['pAx'].get_position().bounds
-            # Ratio of display units
-            disp_ratio = (figH * h) / (figW * w)
-            # Ratio of data units
-            data_ratio=kwds['pAx'].get_data_ratio()
-            #logger.debug("{:s}figH: {:6.2f} figW: {:6.2f}".format(logStr,figW,figH))  
+
+            # i.d.R. "krumme" Grenzen (die Ticks werden von mpl i.d.R. trotzdem "glatt" ermittelt)
+            kwds['pAx'].set_xlim(xMin,xMax)
+            kwds['pAx'].set_ylim(yMin,yMax)         
+                          
+            # ----------------------------------------------------------------------------------------------------------------------------------------
+            # x,y-Achsen: Ticks ermitteln aber NICHT verändern   -----------------------------------------------------------------
+            # auch bei "krummen" Grenzen setzt matplotlib i.d.R. "glatte" Ticks
+            # ----------------------------------------------------------------------------------------------------------------------------------------
+            
+            # Ticks ermitteln
+            xTicks=kwds['pAx'].get_xticks()
+            yTicks=kwds['pAx'].get_yticks()
+            dxTick = xTicks[1]-xTicks[0]
+            xTickSpan=xTicks[-1]-xTicks[0]
+            dyTick = yTicks[1]-yTicks[0]
+            yTickSpan=yTicks[-1]-yTicks[0]
+
+            logger.debug("{:s}xTicks    : {:s} dx: {:6.2f}".format(logStr,str(xTicks),dxTick))   
+            logger.debug("{:s}yTicks    : {:s} dy: {:6.2f}".format(logStr,str(yTicks),dyTick))  
+
+            # dTick gleich setzen (deaktiviert)
+            if dyTick == dxTick:
+                pass # nichts zu tun
+            elif dyTick > dxTick:
+                # dyTick zu dxTick (kleinere) setzen
+                dTickW=dxTick
+                # erf. Anzahl
+                numOfTicksErf=math.floor(dy/dTickW)+1
+                newTicks=[idx*dTickW+yTicks[0] for idx in range(numOfTicksErf)]
+                #kwds['pAx'].set_yticks(newTicks)  
+                #yTicks=kwds['pAx'].get_yticks()               
+                #dyTick = yTicks[1]-yTicks[0]
+                #logger.debug("{:s}yTicks NEU: {:s} dy: {:6.2f}".format(logStr,str(yTicks),dyTick))  
+            else:
+                # dxTick zu dyTick (kleinere) setzen
+                dTickW=dyTick
+                # erf. Anzahl
+                numOfTicksErf=math.floor(dx/dTickW)+1
+                newTicks=[idx*dTickW+xTicks[0] for idx in range(numOfTicksErf)]
+                #kwds['pAx'].set_xticks(newTicks)    
+                #xTicks=kwds['pAx'].get_xticks()               
+                #dxTick = xTicks[1]-xTicks[0]               
+                #logger.debug("{:s}xTicks NEU: {:s} dx: {:6.2f}".format(logStr,str(xTicks),dxTick)) 
+            
+            # ----------------------------------------------------------------------------------------------------------------------------------------
+            # Grid und Aspect            
+            # ----------------------------------------------------------------------------------------------------------------------------------------            
+            kwds['pAx'].grid()
+            kwds['pAx'].set_aspect(aspect='equal') # zur Sicherheit; andere als verzerrungsfreie Darstellungen machen im Netz kaum Sinn
+            kwds['pAx'].set_adjustable('box')
+            kwds['pAx'].set_anchor('SW')
+
+            ## x,y-Seitenverhältnisse ermitteln ---------------------------------------------------------------------------   
+            ## total figure size
+            #figW, figH = kwds['pAx'].get_figure().get_size_inches()
+            ## Axis pos. on figure
+            #x0, y0, w, h = kwds['pAx'].get_position().bounds
+            ## Ratio of display units
+            #disp_ratio = (figH * h) / (figW * w)
+            #disp_ratioA = (figH) / (figW )
+            #disp_ratioB = (h) / (w)
+            ## Ratio of data units
+            #data_ratio=kwds['pAx'].get_data_ratio()
+            #logger.debug("{:s}figW: {:6.2f} figH: {:6.2f}".format(logStr,figW,figH))  
             #logger.debug("{:s}x0: {:6.2f} y0: {:6.2f} w: {:6.2f} h: {:6.2f}".format(logStr,x0,y0,w,h))  
             #logger.debug("{:s}pWAYPCors: Y/X: {:6.2f}".format(logStr,dydx))  
-            #logger.debug("{:s}disp_ratio: {:6.2f} data_ratio: {:6.2f}".format(logStr,disp_ratio,data_ratio))  
-      
-            # x,y-Achsen: Ticks ermitteln und setzen         
-            xTicks=kwds['pAx'].get_xticks()
-            dxTick = xTicks[1]-xTicks[0]
-            yTicks=kwds['pAx'].set_yticks([idx*dxTick for idx in range(math.floor(dy/dxTick)+1)])   
-            kwds['pAx'].grid()
+            #logger.debug("{:s}Ticks:     Y/X: {:6.2f}".format(logStr,yTickSpan/xTickSpan))  
+            #logger.debug("{:s}disp_ratio:     {:6.2f} data_ratio:  {:6.2f}".format(logStr,disp_ratio,data_ratio))  
+            #logger.debug("{:s}disp_ratioA:    {:6.2f} disp_ratioB: {:6.2f}".format(logStr,disp_ratioA,disp_ratioB))  
                                  
             # PIPE-Color: Farbskalamapping:
             cMap=plt.cm.get_cmap(kwds['pAttributeColorMap'])
@@ -1967,7 +2110,8 @@ class Rm():
             cMap=plt.cm.get_cmap(kwds['pAttributeColorMap'])   
             if kwds['CBBinBounds'] != None and not hasattr(cMap,'from_list'): # diskrete Farbskala liegt vor und Bounds sind vorgegeben
                 normLine = colors.BoundaryNorm(kwds['CBBinBounds'],cMap.N)
-                CBPropExtend='both'
+                #CBPropExtend='both'
+                CBPropExtend='neither'
             else:
                 CBPropExtend='neither'
                 
@@ -2062,10 +2206,16 @@ class Rm():
                                )   
             
 
-            # PIPE-Color: PLOT der PIPE-Anfänge um Farbskala konstruieren zu koennen      
+            # PIPE-Color: PLOT der PIPE-Anfänge um Farbskala konstruieren zu koennen  
+            xScatter=[]
+            yScatter=[]
+            for xs,ys in zip(pDfColorMap[kwds['pWAYPXCors']],pDfColorMap[kwds['pWAYPYCors']]):
+                xScatter.append(xs[0])
+                yScatter.append(ys[0])
             s=kwds['pAttrLineSizeFactor']*pDfColorMap[kwds['pAttrLineSize']].apply(lambda x: math.fabs(x))     
             s=s.apply(lambda x: math.pow(x,2))  # https://stackoverflow.com/questions/14827650/pyplot-scatter-plot-marker-size   
-            pcN=kwds['pAx'].scatter(pDfColorMap['pXCor_i'],pDfColorMap['pYCor_i']                          
+            #pcN=kwds['pAx'].scatter(pDfColorMap['pXCor_i'],pDfColorMap['pYCor_i']         
+            pcN=kwds['pAx'].scatter(xScatter,yScatter                                             
                     ,s=s
                     ,linewidth=0 # the linewidth of the marker edges
                     # Farbskala
@@ -2137,6 +2287,165 @@ class Rm():
                     logger.error(logStrFinal) 
                     raise RmError(logStrFinal)     
 
+        except RmError:
+            raise
+                                                                    
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise RmError(logStrFinal)                       
+        finally:       
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                   
+
+    @classmethod
+    def pltHP(cls,pDf,**kwds):
+        """
+        Plots a Hydraulic Profile.
+        
+        Args:
+                DATA:
+                    pDf: dataFrame
+
+                    the HPs are defined by the cols 'NAME' and 'Layer'
+                    'NAME'_'Layer'_'yCol' is used as an Index in yProps
+
+                xCol:  col  for x for xy-Plot; example: ['x']
+                yCols: cols for y for xy-Plot; example: ['P']
+
+                yColProps: props for the yCols; example: {'NAME_1_P':{'color':'red','linestyle':'-','linewidth':3}}
+ 
+                AXES:
+                    pAx: Axes to be plotted on; if not specified: gca() is used
+
+                >>> #  -q -m 0 -s pltHP -y no -z no -w DHNetwork
+                >>> import pandas as pd
+                >>> import matplotlib
+                >>> import matplotlib.pyplot as plt
+                >>> import matplotlib.gridspec as gridspec
+                >>> import math
+                >>> try:
+                ...   import Rm
+                ... except ImportError:                   
+                ...   from PT3S import Rm
+                >>> # ---
+                >>> xm=xms['DHNetwork']       
+                >>> vAGSN=xm.dataFrames['vAGSN']
+                >>> vAGSN['PH']=vAGSN.apply(lambda row: row.P*math.pow(10.,5.)/(row.RHO*9.81),axis=1)
+                >>> vAGSN['PH']=vAGSN['PH']+vAGSN['Z'].astype('float64')
+                >>> vAGSN['bBzg']=vAGSN.apply(lambda row: row.RHO*9.81/math.pow(10.,5.),axis=1)
+                >>> vAGSN['bBzg']=vAGSN['P']+vAGSN['Z'].astype('float64')*vAGSN['bBzg']                
+                >>> # ---
+                >>> plt.close()
+                >>> fig=plt.figure(figsize=Rm.DINA3q,dpi=Rm.dpiSize)         
+                >>> gs = gridspec.GridSpec(3, 1)
+                >>> # --------------------------
+                >>> axNfd = fig.add_subplot(gs[0])                
+                >>> Rm.Rm.pltHP(vAGSN,pAx=axNfd)
+                >>> txt=axNfd.set_title('HP')      
+                >>> # --------------------------
+                >>> axNfd = fig.add_subplot(gs[1])                
+                >>> Rm.Rm.pltHP(vAGSN,pAx=axNfd
+                ... ,yCols=['bBzg']
+                ... ,yColProps={
+                ...     'AGFW Symposium DH_1_bBzg':{'label':'VL','color':'red','linestyle':'-','linewidth':3}
+                ... }
+                ... )               
+                >>> txt=axNfd.set_title('HP 2')  
+                >>> # --------------------------
+                >>> axNfd = fig.add_subplot(gs[2])                
+                >>> Rm.Rm.pltHP(vAGSN,pAx=axNfd
+                ... ,yCols=['bBzg']
+                ... ,yColProps={
+                ...     'AGFW Symposium DH_1_bBzg':{'label':'VL','color':'red' ,'linestyle':'-','linewidth':3}
+                ...    ,'AGFW Symposium DH_2_bBzg':{'label':'RL','color':'blue','linestyle':'-','linewidth':3}
+                ... }
+                ... )               
+                >>> txt=axNfd.set_title('HP 3')  
+                >>> gs.tight_layout(fig)
+                >>> plt.show()                                
+        """
+        logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try:
+                keys = sorted(kwds.keys())
+                
+                # AXES
+                if 'pAx' not in keys:
+                    kwds['pAx']=plt.gca()
+
+
+                if 'xCol' not in keys:
+                    kwds['xCol']='x'
+                if 'yCols' not in keys:
+                    kwds['yCols']=['P']
+                if 'yColProps' not in keys:
+                    kwds['yColProps']={'NAME_1_P':{'label':'HP NAME Layer 1 P','color':'red','linestyle':'-','linewidth':3}}
+
+
+                logger.debug("{:s}xCol:      {:s}.".format(logStr,kwds['xCol']))
+                logger.debug("{:s}yCols:     {:s}.".format(logStr,str(kwds['yCols'])))
+                logger.debug("{:s}yColProps: {:s}.".format(logStr,str(kwds['yColProps'])))
+
+                hPs=pDf[['NAME','Layer']].drop_duplicates()
+
+                #logger.debug("{:s}hPs: {:s}.".format(logStr,hPs.to_string()))
+
+                for row in hPs.itertuples(index=True):
+                    # über alle Schnitte und Layer    
+                    logger.debug("{:s}Schnitt: {:s} Layer: {:s} ...".format(logStr,row.NAME,str(row.Layer))) 
+                                                        
+                    # Schnitt+Layer filtern
+                    hPpDf=pDf[(pDf['NAME']==row.NAME) & (pDf['Layer']==row.Layer)]
+
+                    # über alle Spalten
+                    for yCol in kwds['yCols']:                       
+                        key=row.NAME+'_'+str(row.Layer)+'_'+yCol
+
+                        logger.debug("{:s}Line: {:s} ...".format(logStr,key))
+
+                        if key in kwds['yColProps']:
+                            yColProp=kwds['yColProps'][key]
+                            
+                            logger.debug("{:s}yColProp: {:s} ...".format(logStr,str(yColProp)))
+
+                            if 'label' not in yColProp:
+                                label=key
+                            else:
+                                label=yColProp['label']
+                            if 'color' not in yColProp:
+                                color='black'
+                            else:
+                                color=yColProp['color']
+                            if 'linestyle' not in yColProp:
+                                linestyle='-'
+                            else:
+                                linestyle=yColProp['linestyle']
+                            if 'linewidth' not in yColProp:
+                                linewidth=3
+                            else:
+                                linewidth=yColProp['linewidth']
+
+
+                        else:                            
+                            label=key
+                            color='black'
+                            linestyle='-'
+                            linewidth=3
+
+
+                        kwds['pAx'].plot(hPpDf[kwds['xCol']],hPpDf[yCol],label=label,color=color,linestyle=linestyle,linewidth=linewidth)
+
+                                
+
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise RmError(logStrFinal)                     
+        
+        try: 
+            pass
+                               
         except RmError:
             raise
                                                                     

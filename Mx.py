@@ -665,6 +665,11 @@ class Mx():
                         * The base.Y.MXS-File is read.      
                         * NoH5Read=True will delete base.Y.vec.h5-File.
 
+        * maxRecords (default: None):
+                    * number of records to be read from base.Y.MXS-File
+                    * by default all records are read
+                    * use maxRecords only for Test purposes
+
     Attributes:
         * states
             * h5Read: True, if read from H5
@@ -717,8 +722,35 @@ class Mx():
                 * Value: Aggregate (i.e. TMIN) for mx2Idx-Col
     Raises:
         MxError
+
+    >>> mx=mxs['LocalHeatingNetwork']     
+    >>> try:
+    ...     import Mx
+    ... except:
+    ...     from PT3S import Mx
+    >>> mx=Mx.Mx(mx.mx1File)
+    >>> mx.df.filter(items=['ALLG~~~4639827058859487185~SNAPSHOTTYPE','KNOT~V-L~~5736262931552588702~PH'])
+                              ALLG~~~4639827058859487185~SNAPSHOTTYPE  KNOT~V-L~~5736262931552588702~PH
+    2004-09-22 08:30:00+00:00                                 b'STAT'                          4.125885
+    2004-09-22 08:30:15+00:00                                 b'TIME'                          3.161918
+    2004-09-22 08:30:30+00:00                                 b'TIME'                          2.597010
+    2004-09-22 08:30:45+00:00                                 b'TIME'                          2.207441
+    2004-09-22 08:31:00+00:00                                 b'TIME'                          4.225861
+    >>> mx=Mx.Mx(mx.mx1File,NoH5Read=True,maxRecords=1)
+    >>> mx.df.filter(items=['ALLG~~~4639827058859487185~SNAPSHOTTYPE','KNOT~V-L~~5736262931552588702~PH'])
+                              ALLG~~~4639827058859487185~SNAPSHOTTYPE  KNOT~V-L~~5736262931552588702~PH
+    2004-09-22 08:30:00+00:00                                 b'STAT'                          4.125885
+    >>> mx=Mx.Mx(mx.mx1File,NoH5Read=True,maxRecords=2)
+    >>> mx.df.filter(items=['ALLG~~~4639827058859487185~SNAPSHOTTYPE','KNOT~V-L~~5736262931552588702~PH'])
+                              ALLG~~~4639827058859487185~SNAPSHOTTYPE  KNOT~V-L~~5736262931552588702~PH
+    2004-09-22 08:30:00+00:00                                 b'STAT'                          4.125885
+    >>> mx=Mx.Mx(mx.mx1File,NoH5Read=True,maxRecords=3)
+    >>> mx.df.filter(items=['ALLG~~~4639827058859487185~SNAPSHOTTYPE','KNOT~V-L~~5736262931552588702~PH'])
+                              ALLG~~~4639827058859487185~SNAPSHOTTYPE  KNOT~V-L~~5736262931552588702~PH
+    2004-09-22 08:30:00+00:00                                 b'STAT'                          4.125885
+    2004-09-22 08:30:15+00:00                                 b'TIME'                          3.161918
     """
-    def __init__(self,mx1File,NoH5Read=False,NoMxsRead=False): 
+    def __init__(self,mx1File,NoH5Read=False,NoMxsRead=False,maxRecords=None): 
         
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -808,7 +840,7 @@ class Mx():
                     if(mxsFileTime>=mx1FileTime) and not NoMxsRead: # inplace nach pip install tragen die Dateien denselben Zeitstempel; deswegen >= statt nur >
                         logger.debug("{:s}mxsFile {:s} exists _and is newer than mx1File {:s} _and NoMxsRead False:".format(logStr,self.mxsFile,self.mx1File))     
                         logger.debug("{:s}The mxsFile is read.".format(logStr))   
-                        self.setResultsToMxsFile(NewH5Vec=NoH5Read)  # wenn kein H5 gelesen werden soll, dann soll auch das H5Vec neu angelegt werden
+                        self.setResultsToMxsFile(NewH5Vec=NoH5Read,maxRecords=maxRecords)  # wenn kein H5 gelesen werden soll, dann soll auch das H5Vec neu angelegt werden
             else:                
                 self.FromH5(h5File=self.h5File)
                              

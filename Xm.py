@@ -710,6 +710,8 @@ class Xm():
                 * However: Usage of SIR 3S Modeldata is more convenient and efficient with appropriate Views.     
                 
         * pXCorZero, pYCorZero
+            * min. X aller Knoten der Netzansicht
+            * min. Y dito
    
     Raises:
         XmError
@@ -2192,8 +2194,8 @@ class Xm():
             df.drop(['SOURCE_i', 'SOURCE_k'], axis=1,inplace=True)
 
             # Testausgabe
-            self.dataFrames['vAGSN_raw']=df[['LFDNR','NAME','OBJTYPE','nrObjIdInAgsn','Layer','NAME_i','NAME_k','L','D','nextNODE','compNr','pEdgeNr']]
-            logger.debug("{0:s}df: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vAGSN_raw',index=True)))
+            self.dataFrames['vAGSN_rawTest']=df[['LFDNR','NAME','OBJTYPE','nrObjIdInAgsn','Layer','NAME_i','NAME_k','L','D','nextNODE','compNr','pEdgeNr']]
+            logger.debug("{0:s}df: {1:s}".format(logStr,self._getvXXXXAsOneString(vXXXX='vAGSN_rawTest',index=True)))
 
             vAGSN=df[(df['pEdgeNr']==0) # als parallel markierte Kanten eliminieren
                      & 
@@ -2332,15 +2334,20 @@ class Xm():
            
              * Layer (to use in constructed cut)
              * AKTIV (to use in constructed cut)
-             * NAME (to use in constructed cut): the cut will NOT be constructed if such a NAME already exists
+             * NAME (to use in constructed cut): the cut will NOT be constructed if such a NAME already exists: ERROR
+        
+        Returns:
+            True if successfull
+            False else
 
         Raises:
-            XmError             
+            XmError               
             
         >>> xmlFile=ms['GPipes']   
         >>> from Xm import Xm
         >>> xm=Xm(xmlFile=xmlFile,NoH5Read=True)       
         >>> xm.vAGSN_Add(nl=['GL','GR'])           
+        True
         >>> import pandas as pd
         >>> pd.set_option('display.max_columns',None)
         >>> pd.set_option('display.max_rows',None)
@@ -2386,6 +2393,7 @@ class Xm():
         35    21          NEU  None    VENT  5745097345184516675                 PT3S                 PT3S              6                  1      0       GR      1
         >>> # Test if the same NAME is _not constructed twice ...
         >>> xm.vAGSN_Add(nl=['GL','GR'])      
+        False
         >>> xm.dataFrames['vAGSN_raw'].shape 
         (36, 12)
         >>> # test if re-use works without erors ...
@@ -2393,6 +2401,7 @@ class Xm():
         >>> xm.MxAdd(mx=mx)    
         >>> # Test weight-Option ...
         >>> xm.vAGSN_Add(nl=['GL','GR'],weight='QAbsInv',NAME='GL-GR w')  # durchflussstaerksten Weg erzwingen  
+        True
         >>> df=xm.dataFrames['vAGSN_raw']
         >>> df.query("LFDNR in [21,22] and nextNODE=='GKD'")
            LFDNR     NAME AKTIV OBJTYPE                OBJID    pk    tk  nrObjIdInAgsn  nrObjIdTypeInAgsn  Layer nextNODE compNr
@@ -2404,19 +2413,21 @@ class Xm():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try: 
+            
+           retValue=False
 
            vAGSN_raw=self.dataFrames['vAGSN_raw']   
 
            if NAME in vAGSN_raw['NAME'].unique():
-                logger.debug("{0:s}Fehler: Schnitt {1:s} konnte nicht erzeugt werden da es bereits mind. 1 Schnitt dieses Namens im Modell gibt!".format(logStr,NAME))   
+                logger.debug("{0:s}Fehler: Schnitt {1:s} konnte nicht erzeugt werden da es bereits mind. einen Schnitt dieses Namens in df vAGSN_raw gibt!".format(logStr,NAME))   
                 
            else:                                
                 df=self.getvVBELwithNodeAttributeAdded()
                 df=Xm.constructShortestPathFromNodeList(df=df,nl=nl,weight=weight,query=query,fmask=fmask)  
 
                 if not df.empty:                                
-                        df['Layer']=0
-                        df['AKTIV']=None
+                        df['Layer']=Layer
+                        df['AKTIV']=AKTIV
                
                         df['NAME']=NAME
 
@@ -2438,6 +2449,8 @@ class Xm():
                         vAGSN_rawNew=pd.concat([vAGSN_raw,df])
 
                         self.dataFrames['vAGSN_raw']=vAGSN_rawNew.reset_index(drop=True)
+
+                        retValue=True
                 else:
                         logger.debug("{0:s}Fehler: Schnitt {1:s} konnte nicht erzeugt werden da die Pfadermittlung kein Ergebnis ergeben hat!".format(logStr,NAME))    
                 
@@ -2448,7 +2461,7 @@ class Xm():
                                                                               
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
-            return 
+            return retValue
 
     def _vRART(self):
         """One row per RART.
@@ -5054,25 +5067,25 @@ class Xm():
         1                      1                   4     110     24     76      0                       2     184816.398708    27410.523649  V-1633        598.0       92.0        53     51151.5221    9748.5460           1         3
         2                      1                   6     110     74     26      0                       3     184816.398708    25104.875361  V-3150        598.0      101.0        57     51151.5221    9320.0000           1         5
         3                      1                   7     110     96      4      0                       4     184816.398708    20506.078226  V-1114        598.0       58.0        33     51151.5221    4525.0030           1         8
-        4                      1                   9     110     82     18      0                       6     184816.398708    10886.933908  V-1760        598.0       38.0        20     51151.5221    2890.0000           1         9
-        5                      1                  10     110     75     25      0                       7     184816.398708     9364.807621  V-3505        598.0       49.0        32     51151.5221    6867.3411           1         7
-        6                      1                  11     110     95      5      0                       8     184816.398708     6507.551270  V-1132        598.0        1.0         1     51151.5221     150.0000           1        21
-        7                      1                  12     110     36     64      0                       9     184816.398708     4886.108555  V-1755        598.0       18.0        10     51151.5221    1350.0000           1        12
-        8                      1                  13     110     99      1      0                      10     184816.398708     4651.422707  V-1336        598.0       17.0         8     51151.5221    1425.3438           1        11
-        9                      1                  14     110     58     42      0                      11     184816.398708     4138.589720  V-1750        598.0       12.0         4     51151.5221     400.0000           1        16
-        10                     1                  15     110     10     90      0                      12     184816.398708     3783.335512  V-3420        598.0       19.0        11     51151.5221    2150.0000           1        10
-        11                     1                  16     110     39     61      0                      13     184816.398708     2460.814911  V-1373        598.0        4.0         2     51151.5221     290.0000           1        19
-        12                     1                  17     110     61     39      0                      14     184816.398708     2089.917370  V-1740        598.0        7.0         3     51151.5221     340.0000           1        18
-        13                     1                  18     110     67     33      0                      15     184816.398708     1941.467514  V-1605        598.0        8.0         4     51151.5221     550.0000           1        14
-        14                     1                  20     110      6     94      0                      16     184816.398708      867.218987  V-1374        598.0        3.0         1     51151.5221     360.0000           1        17
-        15                     1                  21     110     98      2      0                      17     184816.398708      617.931881  V-1802        598.0        7.0         3     51151.5221     450.0000           1        15
-        16                     1                  23     110     48     52      0                      18     184816.398708      414.377853  V-1308        598.0        2.0         3     51151.5221     556.0470           1        13
-        17                     1                  25     110     76     24      0                      19     184816.398708      299.995468  V-1742        598.0        2.0         1     51151.5221      90.0000           1        22
-        18                     2                   1     100    100      0      0                      20     182017.396773   182017.396773  V-1591        485.0      485.0       262     36841.2302   36841.2302           3         2
-        19                     3                   2     010      0    100      0                      21      92498.919896    92498.919896  V-3204        338.0      338.0       214     37422.8914   37422.8914           2         1
-        20                     4                   5     001      0      0    100                      22      25189.337222    25189.337222  V-2602         74.0       74.0        43      7278.5539    7278.5539           4         6
-        21                     5                  19     011      0     65     35                      23       2194.073336     1272.672709  V-2113         10.0        5.0         3       259.7644     259.7644           5        20
-        22                     6                  26     000      0      0      0                      26          0.000000        0.000000  R-1226          0.0        0.0       839    133013.8220  133013.8220           6        23
+        4                      1                   8     110     82     18      0                       5     184816.398708    10886.933908  V-1760        598.0       38.0        20     51151.5221    2890.0000           1         9
+        5                      1                   9     110     75     25      0                       6     184816.398708     9364.807621  V-3505        598.0       49.0        32     51151.5221    6867.3411           1         7
+        6                      1                  10     110     95      5      0                       7     184816.398708     6507.551270  V-1132        598.0        1.0         1     51151.5221     150.0000           1        21
+        7                      1                  11     110     36     64      0                       8     184816.398708     4886.108555  V-1755        598.0       18.0        10     51151.5221    1350.0000           1        12
+        8                      1                  12     110     99      1      0                       9     184816.398708     4651.422707  V-1336        598.0       17.0         8     51151.5221    1425.3438           1        11
+        9                      1                  13     110     58     42      0                      10     184816.398708     4138.589720  V-1750        598.0       12.0         4     51151.5221     400.0000           1        16
+        10                     1                  14     110     10     90      0                      11     184816.398708     3783.335512  V-3420        598.0       19.0        11     51151.5221    2150.0000           1        10
+        11                     1                  15     110     39     61      0                      12     184816.398708     2460.814911  V-1373        598.0        4.0         2     51151.5221     290.0000           1        19
+        12                     1                  16     110     61     39      0                      13     184816.398708     2089.917370  V-1740        598.0        7.0         3     51151.5221     340.0000           1        18
+        13                     1                  17     110     67     33      0                      14     184816.398708     1941.467514  V-1605        598.0        8.0         4     51151.5221     550.0000           1        14
+        14                     1                  19     110      6     94      0                      15     184816.398708      867.218987  V-1374        598.0        3.0         1     51151.5221     360.0000           1        17
+        15                     1                  20     110     98      2      0                      16     184816.398708      617.931881  V-1802        598.0        7.0         3     51151.5221     450.0000           1        15
+        16                     1                  21     110     48     52      0                      17     184816.398708      414.377853  V-1308        598.0        2.0         3     51151.5221     556.0470           1        13
+        17                     1                  22     110     76     24      0                      18     184816.398708      299.995468  V-1742        598.0        2.0         1     51151.5221      90.0000           1        22
+        18                     2                   1     100    100      0      0                      19     182017.396773   182017.396773  V-1591        485.0      485.0       262     36841.2302   36841.2302           3         2
+        19                     3                   2     010      0    100      0                      20      92498.919896    92498.919896  V-3204        338.0      338.0       214     37422.8914   37422.8914           2         1
+        20                     4                   5     001      0      0    100                      21      25189.337222    25189.337222  V-2602         74.0       74.0        43      7278.5539    7278.5539           4         6
+        21                     5                  18     011      0     65     35                      22       2194.073336     1272.672709  V-2113         10.0        5.0         3       259.7644     259.7644           5        20
+        22                     6                  23     000      0      0      0                      23          0.000000        0.000000  R-1226          0.0        0.0       839    133013.8220  133013.8220           6        23
         >>> grpObj=vROHRexp.groupby(by=['qsigRank_L','qsRank_L'],as_index=False)        
         >>> d={col:'min' for col in ['qsigStr','qs_1_A','qs_2_B','qs_3_C','qsigqsRank_L']}       
         >>> d.update({'qsigFWVB~*~*~*~W':'min'})
@@ -5085,7 +5098,7 @@ class Xm():
         >>> d.update({'pk':'count'}) # Anzahl Rohre
         >>> #d.update({'L':'sum'}) # Länge Rohre 
         >>> d.update({'qsigRank_sumL':'first'}) 
-        >>> d.update({'qsRank_sumL':'first'}) 
+        >>> d.update({'qsRank_sumL':'first'})         
         >>> #d.update({'qsigRank_L':'first'}) 
         >>> #d.update({'qsRank_L':'first'}) 
         >>> df=grpObj.agg(d).sort_values(by=['qsigRank_L','qsRank_L'],ascending=True)       
@@ -5093,29 +5106,29 @@ class Xm():
         >>> xm.dataFrames['df']=df
         >>> print(xm._getvXXXXAsOneString(vXXXX='df'))
             qsigRank_L  qsRank_L qsigStr qs_1_A qs_2_B qs_3_C  qsigqsRank_L  qsigFWVB~*~*~*~W  qsFWVB~*~*~*~W  1 NAME  qsigAnzFwvb  qsAnzFwvb  AnzRohre  qsigRank_sumL  qsRank_sumL
-        0            1         3     110     24     76      0            23     184816.398708    27410.523649  V-1633        598.0       92.0        53     51151.5221    9748.5460
-        1            1         4     110     97      3      0            22     184816.398708    40111.950760  V-1802        598.0      157.0        71     51151.5221    9689.2412
-        2            1         5     110     74     26      0            21     184816.398708    25104.875361  V-3150        598.0      101.0        57     51151.5221    9320.0000
-        3            1         7     110     75     25      0            20     184816.398708     9364.807621  V-3505        598.0       49.0        32     51151.5221    6867.3411
-        4            1         8     110     96      4      0            19     184816.398708    20506.078226  V-1114        598.0       58.0        33     51151.5221    4525.0030
-        5            1         9     110     82     18      0            18     184816.398708    10886.933908  V-1760        598.0       38.0        20     51151.5221    2890.0000
-        6            1        10     110     10     90      0            17     184816.398708     3783.335512  V-3420        598.0       19.0        11     51151.5221    2150.0000
-        7            1        11     110     99      1      0            16     184816.398708     4651.422707  V-1336        598.0       17.0         8     51151.5221    1425.3438
-        8            1        12     110     36     64      0            15     184816.398708     4886.108555  V-1755        598.0       18.0        10     51151.5221    1350.0000
-        9            1        13     110     48     52      0            14     184816.398708      414.377853  V-1308        598.0        2.0         3     51151.5221     556.0470
-        10           1        14     110     67     33      0            13     184816.398708     1941.467514  V-1605        598.0        8.0         4     51151.5221     550.0000
+        0            1         3     110     24     76      0             1     184816.398708    27410.523649  V-1633        598.0       92.0        53     51151.5221    9748.5460
+        1            1         4     110     97      3      0             2     184816.398708    40111.950760  V-1802        598.0      157.0        71     51151.5221    9689.2412
+        2            1         5     110     74     26      0             3     184816.398708    25104.875361  V-3150        598.0      101.0        57     51151.5221    9320.0000
+        3            1         7     110     75     25      0             4     184816.398708     9364.807621  V-3505        598.0       49.0        32     51151.5221    6867.3411
+        4            1         8     110     96      4      0             5     184816.398708    20506.078226  V-1114        598.0       58.0        33     51151.5221    4525.0030
+        5            1         9     110     82     18      0             6     184816.398708    10886.933908  V-1760        598.0       38.0        20     51151.5221    2890.0000
+        6            1        10     110     10     90      0             7     184816.398708     3783.335512  V-3420        598.0       19.0        11     51151.5221    2150.0000
+        7            1        11     110     99      1      0             8     184816.398708     4651.422707  V-1336        598.0       17.0         8     51151.5221    1425.3438
+        8            1        12     110     36     64      0             9     184816.398708     4886.108555  V-1755        598.0       18.0        10     51151.5221    1350.0000
+        9            1        13     110     48     52      0            10     184816.398708      414.377853  V-1308        598.0        2.0         3     51151.5221     556.0470
+        10           1        14     110     67     33      0            11     184816.398708     1941.467514  V-1605        598.0        8.0         4     51151.5221     550.0000
         11           1        15     110     98      2      0            12     184816.398708      617.931881  V-1802        598.0        7.0         3     51151.5221     450.0000
-        12           1        16     110     58     42      0            11     184816.398708     4138.589720  V-1750        598.0       12.0         4     51151.5221     400.0000
-        13           1        17     110      6     94      0            10     184816.398708      867.218987  V-1374        598.0        3.0         1     51151.5221     360.0000
-        14           1        18     110     61     39      0             9     184816.398708     2089.917370  V-1740        598.0        7.0         3     51151.5221     340.0000
-        15           1        19     110     39     61      0             8     184816.398708     2460.814911  V-1373        598.0        4.0         2     51151.5221     290.0000
-        16           1        21     110     95      5      0             7     184816.398708     6507.551270  V-1132        598.0        1.0         1     51151.5221     150.0000
-        17           1        22     110     76     24      0             6     184816.398708      299.995468  V-1742        598.0        2.0         1     51151.5221      90.0000
-        18           2         1     010      0    100      0             5      92498.919896    92498.919896  V-3204        338.0      338.0       214     37422.8914   37422.8914
-        19           3         2     100    100      0      0             4     182017.396773   182017.396773  V-1591        485.0      485.0       262     36841.2302   36841.2302
-        20           4         6     001      0      0    100             3      25189.337222    25189.337222  V-2602         74.0       74.0        43      7278.5539    7278.5539
-        21           5        20     011      0     65     35             2       2194.073336     1272.672709  V-2113         10.0        5.0         3       259.7644     259.7644
-        22           6        23     000      0      0      0             1          0.000000        0.000000  R-1226          0.0        0.0       839    133013.8220  133013.8220
+        12           1        16     110     58     42      0            13     184816.398708     4138.589720  V-1750        598.0       12.0         4     51151.5221     400.0000
+        13           1        17     110      6     94      0            14     184816.398708      867.218987  V-1374        598.0        3.0         1     51151.5221     360.0000
+        14           1        18     110     61     39      0            15     184816.398708     2089.917370  V-1740        598.0        7.0         3     51151.5221     340.0000
+        15           1        19     110     39     61      0            16     184816.398708     2460.814911  V-1373        598.0        4.0         2     51151.5221     290.0000
+        16           1        21     110     95      5      0            17     184816.398708     6507.551270  V-1132        598.0        1.0         1     51151.5221     150.0000
+        17           1        22     110     76     24      0            18     184816.398708      299.995468  V-1742        598.0        2.0         1     51151.5221      90.0000
+        18           2         1     010      0    100      0            19      92498.919896    92498.919896  V-3204        338.0      338.0       214     37422.8914   37422.8914
+        19           3         2     100    100      0      0            20     182017.396773   182017.396773  V-1591        485.0      485.0       262     36841.2302   36841.2302
+        20           4         6     001      0      0    100            21      25189.337222    25189.337222  V-2602         74.0       74.0        43      7278.5539    7278.5539
+        21           5        20     011      0     65     35            22       2194.073336     1272.672709  V-2113         10.0        5.0         3       259.7644     259.7644
+        22           6        23     000      0      0      0            23          0.000000        0.000000  R-1226          0.0        0.0       839    133013.8220  133013.8220
         >>> #
         >>> #xm=xms['OneLPipe']                     
         >>> # ---        
@@ -5147,6 +5160,27 @@ class Xm():
             vROHRexp.drop([col+'_i' for col in qsCols],axis=1,inplace=True)
             vROHRexp.drop([col+'_k' for col in qsCols],axis=1,inplace=True)
 
+            # nicht all QS müssen notwendigerweise durch Rohre erfasst werden
+            # wenn z.B. an einem Vereinigungsknoten der ein neues QS kreiert kein Rohr abgeht und dieses QS auch sonst nicht mehr mit einem abgehenden Rohr vorkommt
+            # das führt dazu, dass die Ranks Lücken haben - unhandlich für diskrete Farbskalen
+            # diese evtl. Lücken werden nachfolgend beseitigt
+            qsRankCols=['qsARank'
+                       #---
+                       ,'qsRank'
+                       ,'qsRankAnzKnoten'
+                       ,'qsRankAnzFwvb'
+                       ,'qsRankFWVB~*~*~*~W'
+                       #---
+                       ,'qsigRank'
+                       ,'qsigRankAnzKnoten'
+                       ,'qsigRankAnzFwvb'
+                       ,'qsigRankFWVB~*~*~*~W'
+                       #---
+                       ,'qsigqsRankFWVB~*~*~*~W']
+            for qsRankCol in qsRankCols:  
+                pass                
+                vROHRexp[qsRankCol]=vROHRexp[qsRankCol].rank(method='dense').astype('int')
+
 
             vROHRexp['L']=vROHRexp['L'].astype('float')
 
@@ -5172,27 +5206,7 @@ class Xm():
 
 
 
-            # nicht all QS müssen notwendigerweise durch Rohre erfasst werden
-            # wenn z.B. an einem Vereinigungsknoten der ein neues QS kreiert kein Rohr abgeht und dieses QS auch sonst nicht mehr mit einem abgehenden Rohr vorkommt
-            # das führt dazu, dass die Ranks Lücken haben - unhandlich für diskrete Farbskalen
-            # diese evtl. Lücken werden nachfolgend beseitigt
-            qsRankCols=['qsARank'
-                       #---
-                       ,'qsRank'
-                       ,'qsRankAnzKnoten'
-                       ,'qsRankAnzFwvb'
-                       ,'qsRankFWVB~*~*~*~W'
-                       #---
-                       ,'qsigRank'
-                       ,'qsigRankAnzKnoten'
-                       ,'qsigRankAnzFwvb'
-                       ,'qsigRankFWVB~*~*~*~W'
-                       #---
-                       ,'qsigqsRankFWVB~*~*~*~W']
-            for qsRankCol in qsRankCols:  
-                pass
-                #pass
-                #vROHRexp[qsRankCol]=vROHRexp[qsRankCol].rank(method='dense').astype('int')
+
 
 
 
@@ -5205,7 +5219,7 @@ class Xm():
             vROHRexp['qsRank_L'] = vROHRexp.sort_values(colsSort,ascending=[True]+[False]+[True]).groupby(cols,sort=False).ngroup() + 1
 
             cols=['qsigRank_L','qsRank_L']
-            vROHRexp['qsigqsRank_L'] = vROHRexp.sort_values(cols,ascending=[False]+[False]).groupby(cols,sort=False).ngroup() + 1
+            vROHRexp['qsigqsRank_L'] = vROHRexp.sort_values(cols,ascending=[True]+[True]).groupby(cols,sort=False).ngroup() + 1
 
         except XmError:
             raise            
@@ -5272,11 +5286,11 @@ class Xm():
                         * KVR_k, TM_k
                         * XKOR_k, YKOR_k, ZKOR_k
                     
-                    pXCor_i, pYCor_i
-                    pXCor_k, pYCor_k
+                    pXCor_i, pYCor_i # X / Y des KNOTens i
+                    pXCor_k, pYCor_k # X / Y des KNOTens k
                 PLOT
-                    * pXCors, pYCors
-                    * pWAYPXCors, pWAYPYCors        
+                    * pXCors, pYCors # KNOTenkoordinaten i,k als je 2-elementige Liste
+                    * pWAYPXCors, pWAYPYCors  # um min. X / min. Y aller Knoten der Netzansicht bereinigte Wegpunktkoordinatenlisten, d.h. der Wegpunkt "ganz links unten" hat die Koordinaten 0/0      
 
         Raises:
             XmError                           
@@ -6692,7 +6706,7 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
             return vRXXX     
 
-    def MxSync(self,mx=None,ForceNoH5ReadForMx=False):
+    def MxSync(self,mx=None,ForceNoH5ReadForMx=False,ForceNoH5Update=False):
         """Xm: NEW 1st Call: vNRCV_Mx1: vNRCV with MX1-Information. Some Xm-Views with MX2-Information (mx2Idx).Mx: Sir3sID Update in Mx-Object. 
 
         Args:
@@ -6700,9 +6714,9 @@ class Xm():
                 * If no Mx-Object is given the Mx-Object corresponding to the Xm-Object is constructed and returned.       
                 * Notes:                  
                     * The Sync-Result in Xm is persisted if xm were read from H5:                    
-                        * xm.ToH5() is called if xm.h5Read is True. 
+                        * xm.ToH5() is called if xm.h5Read is True and not ForceNoH5Update. 
                     * The Sync-Result in Mx is persisted if mx were read from H5:    
-                        * mx.ToH5() is called (from __Mx1_Sir3sIDUpd) if Sir3sID-Updates occured and mx.h5Read is True.
+                        * mx.ToH5() is called (from __Mx1_Sir3sIDUpd) if Sir3sID-Updates occured and mx.h5Read is True and not ForceNoH5Update.
 
             ForceNoH5ReadForMx (deafault: False): has an Effect onlx if a new Mx-Object is constructed
                 * ForceNoH5ReadForMx = True:
@@ -6711,6 +6725,8 @@ class Xm():
                     * the new Mx-Object is constructed with NoH5Read = not self.h5Read 
                     * if the Xm was read from H5 the Mx is constructed with NoH5Read=False
                     * if the Xm was not read from H5 the Mx is constructed with NoH5Read=True
+
+            ForceNoH5Update (default: False): if read from H5, H5 is updated if ForceNoH5Update is False
                        
         Returns:
             Mx-Object if no Mx-Object was given; Nothing else
@@ -6718,8 +6734,13 @@ class Xm():
         Raises:
             XmError
 
+        >>> # -q -m 0 -s MxAdd -t both -y yes -z no -w LocalHeatingNetwork        
         >>> xm=xms['LocalHeatingNetwork']
+        >>> xm.h5Read # False due to MockUp
+        False
         >>> mx=xm.MxSync()
+        >>> mx.h5Read # False due to MockUp
+        False
         """
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -6731,7 +6752,7 @@ class Xm():
             else:
                 mx=self._MxSyncAddMx(ForceNoH5ReadForMx=ForceNoH5ReadForMx)
              
-            self.__Mx1_Sir3sIDUpd(mx) # Sir3sID
+            self.__Mx1_Sir3sIDUpd(mx,ForceNoH5Update=ForceNoH5Update) # Sir3sID
 
             self.__Mx1_vNRCV(mx) # vNRCV
 
@@ -6740,7 +6761,7 @@ class Xm():
             self.__Mx2_vFWVB(mx) # vFWVB           
             self.__Mx2_vVBEL(mx) # vVBEL
 
-            if self.h5Read:
+            if self.h5Read and not ForceNoH5Update:
                 self.ToH5()
                                                        
         except Exception as e:
@@ -7095,12 +7116,13 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))             
             return mx
 
-    def __Mx1_Sir3sIDUpd(self,mx,checkAllChannels=True):
+    def __Mx1_Sir3sIDUpd(self,mx,checkAllChannels=True,ForceNoH5Update=False):
         """Update NAME1,2 and Sir3sID in mx.mx1Df and mx.df.
 
         Args:
             mx: Mx-Object
             checkAllChannels: if False only Channels with empty NAME1 are updated; default: True: all Channels are checked and updated if necessary
+            ForceNoH5Update: if False, H5 is updated if read from H5
 
         Notes:
             The following OBJTYPEs are covered:
@@ -7109,7 +7131,7 @@ class Xm():
                 * RXXXX
                 * all Channels in vVBEL
 
-            mx.ToH5() is called if Sir3sID-Updates occured and mx.h5Read is True. 
+            mx.ToH5() is called if Sir3sID-Updates occured and mx.h5Read is True and not ForceNoH5Update. 
 
         Raises:
             XmError
@@ -7202,7 +7224,7 @@ class Xm():
                         mx.df.rename(columns={row['Sir3sID']:row['Sir3sIDUpd']},inplace=True)  
                         logger.debug("{0:s}Changing Col {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))
 
-            if nOfSir3sIDsUpdated>0 and mx.h5Read:
+            if nOfSir3sIDsUpdated>0 and mx.h5Read and not ForceNoH5Update:
                 mx.ToH5()
                            
         except Exception as e:            
@@ -7552,6 +7574,7 @@ class Xm():
               # same Args as MxSync:
               ,mx=None
               ,ForceNoH5ReadForMx=False
+              ,ForceNoH5Update=False
               # Args special to MxAdd              
               ,timeReq=None
               ,aggReq=None
@@ -7559,7 +7582,7 @@ class Xm():
         """Add MX-Resultcolumns to some Xm-Views.  NEW 1st Call: vROHRVecResults, vAGSN.
 
         Args:               
-            * mx, ForceNoH5ReadForMx: same Args as for MxSync; see description there
+            * mx, ForceNoH5ReadForMx, ForceNoH5Update : same Args as for MxSync; see description there
             * timeReq:
                 * TIMESTAMP 
                 * if None 1st TIME in Mx is used               
@@ -7607,10 +7630,6 @@ class Xm():
                             * i.e. KNOT~*~*~*~P_i KNOT~*~*~*~P_k  ROHR~*~*~*~PVEC
                             * P is new column
                             * the correspondig 3 columns are droped
-        
-        Notes:
-            * The Add-Result is persisted if df were read from H5:        
-                        * xm.ToH5() is called if xm.h5Read is True.           
 
         Returns:
             Mx-Object if no Mx-Object was given; Nothing else
@@ -7618,6 +7637,7 @@ class Xm():
         Raises:
             XmError      
             
+        >>> # -q -m 0 -s MxAdd -t both -y yes -z no -w LocalHeatingNetwork -w GPipes
         >>> xm=xms['LocalHeatingNetwork']
         >>> mx=xm.MxAdd()
         >>> print(xm._getvXXXXAsOneString(vXXXX='vKNOT',filterColList=['BESCHREIBUNG','IDREFERENZ','NAME','KNOT~*~*~*~PH']))
@@ -7763,7 +7783,7 @@ class Xm():
                 mx=self._MxSyncAddMx(ForceNoH5ReadForMx=ForceNoH5ReadForMx)
                       
             if 'vNRCV_Mx1' not in self.dataFrames:
-                self.MxSync(mx=mx)
+                self.MxSync(mx=mx,ForceNoH5Update=ForceNoH5Update)
 
             if timeReq==None:
                 timeReq=mx.df.index[0]
@@ -7829,7 +7849,7 @@ class Xm():
             self._MxAddvROHRVecResults(dfSource=dfUnpacked)
             self._MxAddvAGSN()
           
-            if self.h5Read:
+            if self.h5Read and not ForceNoH5Update:
                 self.ToH5()          
                                                   
         except Exception as e:
