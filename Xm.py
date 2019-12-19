@@ -670,6 +670,18 @@ except ImportError:
 import argparse
 import unittest
 import doctest
+
+class renamer():
+    def __init__(self):
+        self.d = dict()
+
+    def __call__(self, x):
+        if x not in self.d:
+            self.d[x] = 0
+            return x
+        else:
+            self.d[x] += 1
+            return "%s_%d" % (x, self.d[x])
    
 class XmError(Exception):
     def __init__(self, value):
@@ -7129,7 +7141,14 @@ class Xm():
             weil SIR 3S die hier aktualisierten Kanal-Attribute _nicht nachführt, 
             wenn diese sich im referenzierten Objekt geändert haben.
             Die Nachführung hier stellt sicher, dass der Sir3sID Kanalbezeichner, der sich aus Mx Kanal-Attributen ergibt
-            dem Sir3sID Kanalbezeichner aus Xm Sachdaten-Attributen entspricht.            
+            dem Sir3sID Kanalbezeichner aus Xm Sachdaten-Attributen entspricht.   
+            
+            Unabhängig von der Nachführung: SirCalc:
+            WARNUNG  MXX  Es gibt in der MX1-Datei ... Datenpunkte mit falschem DATATLENGTH-Attributwert
+            WARNUNG  MXX  ... ungueltige oder unbekannte Datenpunkte erhalten das Ergebnis 0 oder Leerzeichen
+            Dieses Verhalten führt zu ... Spalten mit demselben Namen (nan) in mx.df.
+            Spalten mit demselben Namen sind generell in mehrfacher Hinsicht ungeeignet.
+            Kommen sie vor, werden sie wie folgt umbenannt: Vorher: x,x,x,... Nachher: x,x_1,x_2, ... 
 
             The following OBJTYPEs are covered:
                 * KNOT
@@ -7143,7 +7162,7 @@ class Xm():
             XmError
 
         >>> xm=xms['LocalHeatingNetwork']
-        >>> (wDir,modelDir,modelName,mx1File)=xm.getWDirModelDirModelName()  
+        >>> (wDir,modelDir,modelName,mx1File)=xm.getWDirModelDirModelName()          
         >>> try:
         ...     import Mx
         ... except:
@@ -7158,6 +7177,22 @@ class Xm():
         >>> mx.mx1Df.loc[mx.mx1Df['Sir3sID']=='FWVB~V-K003~R-K003~5695730293103267172~INDUV',['NAME1']]
              NAME1
         40  V-K003
+        >>> # -------
+        >>> # doppelte Spaltennamen behandeln
+        >>> # -------        
+        >>> mx.df.rename(columns={'PUMP~R-1~R2~5481331875203087055~ETAW':'Sir3sIDUpdTest'},inplace=True)
+        >>> mx.df.rename(columns={'PUMP~R-1~R2~5481331875203087055~DP':'Sir3sIDUpdTest'},inplace=True)
+        >>> list(mx.df.columns[mx.df.columns.duplicated()])
+        ['Sir3sIDUpdTest']
+        >>> mx.df.filter(regex='^Sir3sIDUpdTest').head(2)
+                                   Sir3sIDUpdTest  Sir3sIDUpdTest
+        2004-09-22 08:30:00+00:00        0.625636        2.311307
+        2004-09-22 08:30:15+00:00        0.705517        1.331398
+        >>> xm._Xm__Mx1_Sir3sIDUpd(mx) 
+        >>> mx.df.filter(regex='^Sir3sIDUpdTest').head(2)
+                                   Sir3sIDUpdTest  Sir3sIDUpdTest_1
+        2004-09-22 08:30:00+00:00        0.625636          2.311307
+        2004-09-22 08:30:15+00:00        0.705517          1.331398
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -7248,7 +7283,10 @@ class Xm():
                         logger.debug("{0:s}Changing Col {1!s} to {2!s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))
                 else:
                     pass
-                    #logger.debug("{0:s}Sir3sID {1!s:50s} == {2!s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))                        
+                    #logger.debug("{0:s}Sir3sID {1!s:50s} == {2!s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))            
+                    #
+            # doppelte Spaltennamen          
+            mx.df.rename(columns=renamer(),inplace=True)  
 
             if nOfSir3sIDsUpdated>0 and mx.h5Read and not ForceNoH5Update:
                 mx.ToH5()
