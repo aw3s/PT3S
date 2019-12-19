@@ -7125,16 +7125,39 @@ class Xm():
             ForceNoH5Update: if False, H5 is updated if read from H5
 
         Notes:
+            Das Update ist erforderlich,
+            weil SIR 3S die hier aktualisierten Kanal-Attribute _nicht nachführt, 
+            wenn diese sich im referenzierten Objekt geändert haben.
+            Die Nachführung hier stellt sicher, dass der Sir3sID Kanalbezeichner, der sich aus Mx Kanal-Attributen ergibt
+            dem Sir3sID Kanalbezeichner aus Xm Sachdaten-Attributen entspricht.            
+
             The following OBJTYPEs are covered:
                 * KNOT
                 * WBLZ
                 * RXXXX
-                * all Channels in vVBEL
+                * alle Kanäle von Objekten die in vVBEL vorkommen
 
             mx.ToH5() is called if Sir3sID-Updates occured and mx.h5Read is True and not ForceNoH5Update. 
 
         Raises:
             XmError
+
+        >>> xm=xms['LocalHeatingNetwork']
+        >>> (wDir,modelDir,modelName,mx1File)=xm.getWDirModelDirModelName()  
+        >>> try:
+        ...     import Mx
+        ... except:
+        ...     from PT3S import Mx
+        >>> mx=Mx.Mx(mx1File=mx1File)             
+        >>> mx.mx1Df.loc[mx.mx1Df['Sir3sID']=='FWVB~V-K003~R-K003~5695730293103267172~INDUV','NAME1']='Sir3sIDUpdTest'
+        >>> mx.mx1Df.loc[mx.mx1Df['Sir3sID']=='FWVB~V-K003~R-K003~5695730293103267172~INDUV','Sir3sID']='FWVB~Sir3sIDUpdTest~R-K003~5695730293103267172~INDUV'     
+        >>> mx.mx1Df.loc[mx.mx1Df['NAME1']=='Sir3sIDUpdTest',['Sir3sID']]
+                                                         Sir3sID
+        40  FWVB~Sir3sIDUpdTest~R-K003~5695730293103267172~INDUV
+        >>> xm._Xm__Mx1_Sir3sIDUpd(mx) 
+        >>> mx.mx1Df.loc[mx.mx1Df['Sir3sID']=='FWVB~V-K003~R-K003~5695730293103267172~INDUV',['NAME1']]
+             NAME1
+        40  V-K003
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -7149,7 +7172,7 @@ class Xm():
 
             nOfSir3sIDsUpdated=0
             
-            # KNOT
+            # KNOT -----------------------------------
             dfUpd=df[(df['OBJTYPE'].isin(['KNOT']))]
             if not checkAllChannels:
                 dfUpd=dfUpd[(dfUpd['NAME1'].str.len()==0)]
@@ -7157,7 +7180,7 @@ class Xm():
                                                                  ,dfUpd=dfUpd                                                                                                                                 
                                                                  ,dfNAME1=self.dataFrames['KNOT']
                                                                  ,NAME1Col='NAME')
-            # WBLZ
+            # WBLZ ------------------------------------
             dfUpd=df[(df['OBJTYPE'].isin(['WBLZ']))]
             if not checkAllChannels:
                 dfUpd=dfUpd[(dfUpd['NAME1'].str.len()==0)]
@@ -7166,7 +7189,7 @@ class Xm():
                                                                      ,dfUpd=dfUpd                                                                   
                                                                      ,dfNAME1=self.dataFrames['WBLZ']
                                                                      ,NAME1Col='NAME')
-            # RXXXX
+            # RXXXX -----------------------------
             for ObjType in ['RSLW','RMES','RFKT','RTOT','RVGL','RHYS','RINT','RPT1','RADD','RMUL','RDIV','RMIN','RPID','RVGL']:       
                 if ObjType in self.dataFrames:
                     dfUpd=df[(df['OBJTYPE'].isin([ObjType]))]
@@ -7177,7 +7200,7 @@ class Xm():
                                                                      ,dfNAME1=self.dataFrames[ObjType]
                                                                      ,NAME1Col='KA')
             
-            # VBEL (NAME1,2 und Sir3sID)
+            # VBEL (NAME1,2 und Sir3sID) ---------------------------------------------
             dfUpd=df[(df['OBJTYPE'].isin(vVBEL_edges))]
             if not checkAllChannels:
                 dfUpd=dfUpd[(dfUpd['NAME1'].str.len()==0)]
@@ -7212,17 +7235,20 @@ class Xm():
                     nOfSir3sIDsUpdated=nOfSir3sIDsUpdated+1
                     # set Sir3sID to Sir3sIDUpd in mx.mx1Df
                     mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sID'],'Sir3sID']=row['Sir3sIDUpd']
-                    logger.debug("{0:s}Changing Sir3sID {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))    
+                    logger.debug("{0:s}Changing Sir3sID {1!s} to {2!s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))    
                     # set NAME1 to NAME_i in mx.mx1Df
                     mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sIDUpd'],'NAME1']=row['NAME_i']
-                    logger.debug("{0:s}Changing NAME1 (now:{1:s}) to {2:s}.".format(logStr,row['NAME1'],row['NAME_i']))    
+                    logger.debug("{0:s}Changing NAME1 (now:{1:s}) to {2!s}.".format(logStr,row['NAME1'],row['NAME_i']))    
                     # set NAME2 to NAME_k in mx.mx1Df
                     mx.mx1Df.loc[lambda df: df.Sir3sID==row['Sir3sIDUpd'],'NAME2']=row['NAME_k']
-                    logger.debug("{0:s}Changing NAME2 (now:{1:s}) to {2:s}.".format(logStr,row['NAME2'],row['NAME_k']))    
+                    logger.debug("{0:s}Changing NAME2 (now:{1:s}) to {2!s}.".format(logStr,row['NAME2'],row['NAME_k']))    
                     if isinstance(mx.df,pd.core.frame.DataFrame):  
                         # rename the corresponding col in mx.df
                         mx.df.rename(columns={row['Sir3sID']:row['Sir3sIDUpd']},inplace=True)  
-                        logger.debug("{0:s}Changing Col {1:s} to {2:s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))
+                        logger.debug("{0:s}Changing Col {1!s} to {2!s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))
+                else:
+                    pass
+                    #logger.debug("{0:s}Sir3sID {1!s:50s} == {2!s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))                        
 
             if nOfSir3sIDsUpdated>0 and mx.h5Read and not ForceNoH5Update:
                 mx.ToH5()
