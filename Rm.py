@@ -2477,7 +2477,7 @@ class Rm():
                         # weitere y-Achse 
                         axHP = axHP.twinx()
                         axHP.spines["left"].set_position(("axes", yTwinedAxesPosDeltaHP*len(yAxes))) 
-                        Rm.pltMakePatchSpinesInvisible(axHP)
+                        pltMakePatchSpinesInvisible(axHP)
                         axHP.spines['left'].set_visible(True)  
                         axHP.yaxis.set_label_position('left')
                         axHP.yaxis.set_ticks_position('left')

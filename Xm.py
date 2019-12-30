@@ -7146,7 +7146,9 @@ class Xm():
             Unabhängig von der Nachführung: SirCalc:
             WARNUNG  MXX  Es gibt in der MX1-Datei ... Datenpunkte mit falschem DATATLENGTH-Attributwert
             WARNUNG  MXX  ... ungueltige oder unbekannte Datenpunkte erhalten das Ergebnis 0 oder Leerzeichen
-            Dieses Verhalten führt zu ... Spalten mit demselben Namen (nan) in mx.df.
+            Das ist ein Hinweis auf Zombie-Kanäle, Kanäle deren Objekt nicht (mehr) existiert. 
+
+            Diese Sachstände führen beim Nachführen zu ... Spalten mit demselben Namen (nan) in mx.df.
             Spalten mit demselben Namen sind generell in mehrfacher Hinsicht ungeeignet.
             Kommen sie vor, werden sie wie folgt umbenannt: Vorher: x,x,x,... Nachher: x,x_1,x_2, ... 
 
@@ -7286,7 +7288,10 @@ class Xm():
                     #logger.debug("{0:s}Sir3sID {1!s:50s} == {2!s}.".format(logStr,row['Sir3sID'],row['Sir3sIDUpd']))            
                     #
             # doppelte Spaltennamen          
-            mx.df.rename(columns=renamer(),inplace=True)  
+            l=list(mx.df.columns[mx.df.columns.duplicated()])
+            if len(l) > 0:      
+                logger.debug("{0:s}Spaltennamen X die mehrfach vorkommen (hier: {1!s}) werden in X,X_1,X_2, ... umbenannt.".format(logStr,l))
+                mx.df.rename(columns=renamer(),inplace=True)  
 
             if nOfSir3sIDsUpdated>0 and mx.h5Read and not ForceNoH5Update:
                 mx.ToH5()

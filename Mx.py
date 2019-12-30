@@ -1800,7 +1800,11 @@ class Mx():
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
-        try:         
+        try:      
+            firstTime=None
+            lastTime=None
+            keysH5=[]
+
             with pd.HDFStore(self.h5FileVecs) as mxsVecsH5Store: 
                                                                                                                                                
                 keys=sorted([int(key.replace('/','')) for key in mxsVecsH5Store.keys()])
@@ -1877,7 +1881,12 @@ class Mx():
                     if mxsFileTime>mxsH5FileTime:
                         # die zu lesende Mxs ist neuer als der Dump: Dump loeschen              
                         logger.debug("{:s}Delete H5Dump because Mxs {:s} To Read is newer than H5Dump {:s} ...".format(logStr,mxsFile,self.h5FileVecs))                             
-                        os.remove(self.h5FileVecs)      
+                        os.remove(self.h5FileVecs)   
+                    else:
+                        logger.debug("{:s}Datei {:s} existiert und wurde nicht gelöscht.".format(logStr,self.h5FileVecs)) 
+
+            else:
+                logger.debug("{:s}Datei {:s} existiert gar nicht.".format(logStr,self.h5FileVecs)) 
                         
         except MxError:
             raise
