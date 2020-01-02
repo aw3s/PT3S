@@ -1518,7 +1518,7 @@ class Xm():
             elif os.path.isdir(WDirFromModel) and not os.path.isdir(WDirFromModelFilePath):   
                     logStr="{:s}Only wDir {:s} exists.".format(logStr,WDirFromModel)                          
                     logger.debug(logStr)       
-                    wDir=wDirFromModel
+                    wDir=WDirFromModel
             elif not os.path.isdir(WDirFromModel) and os.path.isdir(WDirFromModelFilePath):   
                     logStr="{:s}Only wDir {:s} exists.".format(logStr,WDirFromModelFilePath)                          
                     logger.debug(logStr)       

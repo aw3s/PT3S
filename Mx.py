@@ -30,6 +30,10 @@ SIR 3S MX-Interface (short: MX)
 
     For Vectorchannels (including Pipevectorchannels) the sequence of Objects is defined in the .MX2-File.
 
+>>> # Module Test:
+>>> # -q -m 1 
+>>> # all Single Tests:
+>>> # -q -m 0 -s Mx -s Microseconds -t both -w OneLPipe -w LocalHeatingNetwork -w GPipe -w GPipes -w TinyWDN 
 >>> # ---
 >>> # SETUP
 >>> # ---
@@ -1402,8 +1406,9 @@ class Mx():
         Raises:
             MxError
 
+        >>> # -q -m 0 -s _readMxsFile -t both -w LocalHeatingNetwork 
         >>> mx=mxs['LocalHeatingNetwork']   
-        >>> mx.delFiles()       
+        >>> mx.delFiles()
         >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading
         5
         >>> mx.dfVecAggs.loc[(['TIME','TMIN','TMAX'],'KNOT~*~*~*~PH',slice(None),slice(None)),0:22]  
@@ -1546,10 +1551,8 @@ class Mx():
         try:   
             df = None 
                                                        
-            mxTimes=[]
-            mxTimesVecs=[]
-            mxValues=[]      
-            mxValuesVecs=[]           
+            mxTimes=[]            
+            mxValues=[]                           
             
             MxRecordLength=struct.calcsize(self.mxRecordStructFmtString)    
             if isinstance(maxRecords,int):
@@ -1567,6 +1570,7 @@ class Mx():
                 try:                    
                     while True:   # while f.tell() != os.fstat(f.fileno()).st_size does NOT work with Zip's file objects ...    
                             
+                        warnLogLevel=False
                         # read record 
                         try: 
                             record=mxsFilePtr.read(MxRecordLength)
@@ -1695,7 +1699,7 @@ class Mx():
                                         timesWrittenToMxsVecs+=1
                                         h5DumpLog="{:s}     Written DataFrame {:s} (Nr. {:6d}) with h5Key=/{!s:>20s}".format('H5Dump:','dfVecs',timesWrittenToMxsVecs,h5Key) 
                                         keysInH5Store.append('/'+str(h5Key))
-                                 else:
+                                 else: # kein h5Dump: also keine "normale" Zeit                                        
                                         if cSNAPSHOTTYPE in ['TIME','TMIN','TMAX']:       
                                             try:
                                                 h5DumpLogOld=h5DumpLog
@@ -1713,41 +1717,61 @@ class Mx():
                                             
                                                 dfVecs = pd.DataFrame.from_records([valuesVecs],index=[time.tz_localize(None)],columns=self.mxColumnNamesVecs)  
                                                 df=self.unPackMxsVecsFileDataDf(dfVecs,mIndex2)
-                                                df=pd.DataFrame(df.values,index=mIndex,columns=df.columns)
-                                                if self.dfVecAggs.empty:                                                    
-                                                    self.dfVecAggs=df
-                                                    h5DumpLog="{:s} processed to (empty) dfVecAggs with TIMESTAMPL: {!s:s}".format(h5DumpLogOld,time_read_finally)  
-                                                else:  
-                                                    dfVecAggsAdd=True
-                                                    if self.dfVecAggs.index.isin([x[0] for x in df.index],level=0).any(): # cSNAPSHOTTYPE existiert schon
-                                                        if self.dfVecAggs.loc[(cSNAPSHOTTYPE,slice(None),slice(None),slice(None)),:].index.isin([x[2] for x in df.index],level=2).any(): # mit time                                                       
-                                                            h5DumpLog="{:s} ... failed because cSNAPSHOTTYPE {:s} existiert schon mit Zeit {!s:s} ".format(h5DumpLog,cSNAPSHOTTYPE,time_read_finally)  
-                                                            dfVecAggsAdd=False
-                                                    if dfVecAggsAdd:     
-                                                        try:
-                                                            self.dfVecAggs=pd.concat([self.dfVecAggs,df])
-                                                            h5DumpLog="{:s} processed to         dfVecAggs with TIMESTAMPL: {!s:s}".format(h5DumpLogOld,time_read_finally)  
-                                                        except Exception as e:           
-                                                            h5DumpLog="{:s}... failed because concat failed?!".format(h5DumpLog)  
-                                                            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-                                                            logger.error(logStrFinal)  
-                                                            for idx,index in enumerate(df.index):                                                                
-                                                                logger.debug("{:s}df-Index:        Nr.: {:5d} Wert: {!s:10s} {!s:30s} {!s:20s} {!s:20s} Index: {!s:s}".format(logStr,idx,str(index[0]),str(index[1]),str(index[2]),str(index[3]),index))
-                                                            for idx,index in enumerate(self.dfVecAggs.index):
-                                                                logger.debug("{:s}dfVecAggs-Index: Nr.: {:5d} Wert: {!s:10s} {!s:30s} {!s:20s} {!s:20s} Index: {!s:s}".format(logStr,idx,str(index[0]),str(index[1]),str(index[2]),str(index[3]),index))
+                                                try:
+                                                    # 1/0
+                                                    df=pd.DataFrame(df.values,index=mIndex,columns=df.columns) # MemError Lbr?! bei TMIN
+                                                    if self.dfVecAggs.empty:                                                    
+                                                        self.dfVecAggs=df
+                                                        h5DumpLog="{:s} processed to (empty) dfVecAggs with TIMESTAMPL: {!s:s}".format(h5DumpLogOld,time_read_finally)  
+                                                    else:  
+                                                        dfVecAggsAdd=True
+                                                        if self.dfVecAggs.index.isin([x[0] for x in df.index],level=0).any(): # cSNAPSHOTTYPE existiert schon
+                                                            if self.dfVecAggs.loc[(cSNAPSHOTTYPE,slice(None),slice(None),slice(None)),:].index.isin([x[2] for x in df.index],level=2).any(): # mit time                                                       
+                                                                h5DumpLog="{:s} ... failed because cSNAPSHOTTYPE {:s} existiert schon mit Zeit {!s:s} ".format(h5DumpLog,cSNAPSHOTTYPE,time_read_finally)  
+                                                                dfVecAggsAdd=False
+                                                        if dfVecAggsAdd:   
+                                                            # 1/0
+                                                            self.dfVecAggs=pd.concat([self.dfVecAggs,df]) # MemError Lbr?! bei TMAX
+                                                            h5DumpLog="{:s} processed to         dfVecAggs with TIMESTAMPL: {!s:s}".format(h5DumpLogOld,time_read_finally)                                                                                                                            
+                                                except Exception as e:
+                                                    # Fehler markieren fuer Ausgabe
+                                                    h5DumpLog="{:s}... failed?!".format(h5DumpLog)  
+                                                    warnLogLevel=True
+                                                    # Fehler ausgeben
+                                                    logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                                                    logger.debug(logStrFinal)                                                      
+                                                    try:
+                                                        for idx,index in enumerate(df.index):                                                                
+                                                            logger.debug("{:s}df-Index:        Nr.: {:5d} Wert: {!s:10s} {!s:30s} {!s:20s} {!s:20s} Index: {!s:s}".format(logStr,idx,str(index[0]),str(index[1]),str(index[2]),str(index[3]),index))
+                                                    except:
+                                                        pass
+                                                    try:
+                                                        for idx,index in enumerate(self.dfVecAggs.index):
+                                                            logger.debug("{:s}dfVecAggs-Index: Nr.: {:5d} Wert: {!s:10s} {!s:30s} {!s:20s} {!s:20s} Index: {!s:s}".format(logStr,idx,str(index[0]),str(index[1]),str(index[2]),str(index[3]),index))                                                    
+                                                    except:
+                                                        pass
 
                                             except Exception as e:
-                                                logger.error("{0:s}dfVecAggs: Error?!".format(logStr))
+                                                logger.error("{0:s}Nicht abgefangener Fehler bei 2. stat. Zeit oder TMIN oder TMAX oder generell bei einer Zeit die es im H5 schon gibt: Error?!".format(logStr))
                                                 logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
                                                 logger.error(logStrFinal)                                                                                                                                            
-                                                     
-                        logger.debug("{:s}TimeNr. {:>6d} read and processed finally={!s:s} Time read after to_datetime: {!s:s} timeISO8601 read: {!s:s} Values (without TIMESTAMP): {:d} - {:s}.".format(logStr
-                                        ,recsReadFromFile+1
-                                        ,time_read_finally
-                                        ,time_read_after_to_datetime
-                                        ,timeISO8601
-                                        ,len(values)
-                                        ,h5DumpLog))  
+
+                        if  warnLogLevel:
+                            logger.warning("{:s}TimeNr. {:>6d} read and processed finally={!s:s} Time read after to_datetime: {!s:s} timeISO8601 read: {!s:s} Values (without TIMESTAMP): {:d} - {:s}.".format(logStr
+                                                                        ,recsReadFromFile+1
+                                                                        ,time_read_finally
+                                                                        ,time_read_after_to_datetime
+                                                                        ,timeISO8601
+                                                                        ,len(values)
+                                                                        ,h5DumpLog))                             
+                        else:
+                            logger.debug("{:s}TimeNr. {:>6d} read and processed finally={!s:s} Time read after to_datetime: {!s:s} timeISO8601 read: {!s:s} Values (without TIMESTAMP): {:d} - {:s}.".format(logStr
+                                            ,recsReadFromFile+1
+                                            ,time_read_finally
+                                            ,time_read_after_to_datetime
+                                            ,timeISO8601
+                                            ,len(values)
+                                            ,h5DumpLog))  
 
                         # next record                            
                         recsReadFromFile+=1                               
@@ -2160,6 +2184,14 @@ class Mx():
 
         Raises:
             MxError
+
+        # -q -m 0 -s ToH5 -t both -y yes -z no -p yes -w LocalHeatingNetwork 
+        >>> mx=mxs['LocalHeatingNetwork']   
+        >>> mx.ToH5()
+        >>> nOfRecs=mx.setResultsToMxsFile()
+        >>> nOfRecs
+        5
+        >>> mx.ToH5()
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -2188,9 +2220,6 @@ class Mx():
             logger.debug("{0:s}pd.HDFStore({1:s}) ...".format(logStr,h5File))                 
             with pd.HDFStore(h5File) as h5Store:  
                 if isinstance(self.mx1Df,pd.core.frame.DataFrame):      
-                    h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MX1' 
-                    logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'mx1Df',h5Key))           
-                    h5Store.put(h5Key,self.mx1Df)
 
                     recordStructFmtStringFile=self.h5FileMx1FmtString #self.h5File+'.metadata'
                     recordStructFmtStringFileKey='recordStructFmtStringFileKey'
@@ -2200,29 +2229,38 @@ class Mx():
                     #recordStructFmtStringKey='recordStructFmtStringKey'
                     #metadata=dict(recordStructFmtStringKey=self.mxRecordStructFmtString)
                         #File "C:\aroot\work\hdf5-1.8.15-patch1\src\H5Oalloc.c", line 1142, in H5O_alloc object header message is too large
-                    
+                                        
+                    h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MX1' 
+                    logger.debug("{0:s}{1:s}: Writing DataFrame {2:10s} {3!s:20s} {4:10.2f} kB with h5Key={5:s}".format(logStr,h5File,'mx1Df',self.mx1Df.shape,self.mx1Df.memory_usage(index=True).sum()/1000,h5Key))           
+                    h5Store.put(h5Key,self.mx1Df)
+
                     h5Store.get_storer(h5Key).attrs.metadata=metadata
                     #logger.debug("{:s}{:s}: Writing metadata for h5Key={:s} with key={:s}: {:s}".format(
                     #    logStr,h5File,h5Key,recordStructFmtStringKey,self.mxRecordStructFmtString)
                     #             )  
-                    logger.debug("{:s}{:s}: Writing metadata for h5Key={:s} with key={:s}: {:s}".format(
+                    logger.debug("{:s}{:s}: Writing metadata for              h5Key={:s} with key={:s}: {:s}".format(
                         logStr,h5File,h5Key,recordStructFmtStringFileKey,recordStructFmtStringFile)
                                  )  
      
                 if isinstance(self.mx2Df,pd.core.frame.DataFrame):      
                     h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MX2' 
-                    logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'mx2Df',h5Key))           
+                    logger.debug("{0:s}{1:s}: Writing DataFrame {2:10s} {3!s:20s} {4:10.2f} kB with h5Key={5:s}".format(logStr,h5File,'mx2Df',self.mx2Df.shape,self.mx2Df.memory_usage(index=True).sum()/1000,h5Key))                         
                     h5Store.put(h5Key,self.mx2Df)
 
                 if isinstance(self.df,pd.core.frame.DataFrame):    
                     h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MXS'  
-                    logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'df',h5Key))         
+                    logger.debug("{0:s}{1:s}: Writing DataFrame {2:10s} {3!s:20s} {4:10.2f} kB with h5Key={5:s}".format(logStr,h5File,'df',self.df.shape,self.df.memory_usage(index=True).sum()/1000,h5Key))                          
                     h5Store.put(h5Key,self.df)
 
                 if isinstance(self.dfVecAggs,pd.core.frame.DataFrame):    
                     h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'VecAggs'  
-                    logger.debug("{0:s}{1:s}: Writing DataFrame {2:s} with h5Key={3:s}".format(logStr,h5File,'df',h5Key))         
-                    h5Store.put(h5Key,self.dfVecAggs)
+                    logger.debug("{0:s}{1:s}: Writing DataFrame {2:10s} {3!s:20s} {4:10.2f} kB with h5Key={5:s}".format(logStr,h5File,'dfVecAggs',self.dfVecAggs.shape,self.dfVecAggs.memory_usage(index=True).sum()/1000,h5Key))                         
+                    try:                                
+                        h5Store.put(h5Key,self.dfVecAggs)
+                    except Exception as e:
+                        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                        logger.debug(logStrFinal) 
+                        logger.warning("{0:s}{1:s}: Writing DataFrame {2:10s} {3!s:20s} {4:10.2f} kB with h5Key={5:s} failed?!".format(logStr,h5File,'dfVecAggs',self.dfVecAggs.shape,self.dfVecAggs.memory_usage(index=True).sum()/1000,h5Key))                                               
              
         except MxError:
             raise
@@ -2241,7 +2279,7 @@ class Mx():
             * h5File(str)
                 * None (default): .h5File is used  
 
-        Keys expected
+        Keys processed:
             * /MX1
             * /MX2
             * /MXS
@@ -2249,6 +2287,10 @@ class Mx():
 
         Raises:
             MxError
+
+        # -q -m 0 -s FromH5 -t both -y no -z yes -w LocalHeatingNetwork 
+        >>> mx=mxs['LocalHeatingNetwork']                   
+        >>> mx.FromH5()
         """
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.'))  
@@ -2260,6 +2302,7 @@ class Mx():
 
             #Check if h5File exists
             if not os.path.exists(h5File):    
+                h5Store=None
                 logStrFinal="{0:s}{1:s}: Not Existing!".format(logStr,h5File)                                 
                 raise MxError(logStrFinal)           
   
@@ -2271,7 +2314,7 @@ class Mx():
                     match=re.search('('+h5KeySep+')(\w+$)',h5Key)
                     key=match.group(2)
                     if key == 'MX1':                            
-                        logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
+                        logger.debug("{0:s}{1:s}: Reading mx1Df with h5Key {2:s}.".format(logStr,h5File,h5Key)) 
                         self.mx1Df=h5Store[h5Key]
 
                         metadataAvailable=False
@@ -2301,11 +2344,11 @@ class Mx():
                         self._buildMxRecordStructUnpackFmtStringPost()      
 
                     if key == 'MX2':                            
-                        logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
+                        logger.debug("{0:s}{1:s}: Reading mx2Df with h5Key {2:s}.".format(logStr,h5File,h5Key)) 
                         self.mx2Df=h5Store[h5Key]       
                         
                     if key == 'MXS':                           
-                        logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
+                        logger.debug("{0:s}{1:s}: Reading df with h5Key {2:s}.".format(logStr,h5File,h5Key)) 
                         self.df=h5Store[h5Key]
                         # Check if .vec.h5 corresponds
                         firstTime=self.df.index[0]
@@ -2317,8 +2360,15 @@ class Mx():
                             logger.warning("{:s}{:s}: tupleDf {!s:s} != tupleVecH5 {!s:s}.".format(logStr,h5File,tupleDf,tupleVecH5))     
                             
                     if key == 'VecAggs':                           
-                        logger.debug("{0:s}{1:s}: Reading h5Key {2:s} to {3:s}.".format(logStr,h5File,h5Key,key)) 
-                        self.dfVecAggs=h5Store[h5Key]
+                        logger.debug("{0:s}{1:s}: Reading dfVecAggs with h5Key {2:s}.".format(logStr,h5File,h5Key)) 
+                        try:                                 
+                            self.dfVecAggs=h5Store[h5Key]
+                        except Exception as e:
+                            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                            logger.debug(logStrFinal)                         
+                            logger.warning("{0:s}{1:s}: Reading dfVecAggs with h5Key {2:s} failed?!".format(logStr,h5File,h5Key)) 
+                            self.dfVecAggs=pd.DataFrame()
+
                         
         except MxError:
             raise
@@ -2327,7 +2377,8 @@ class Mx():
             logger.error(logStrFinal) 
             raise MxError(logStrFinal)                           
         finally: 
-            h5Store.close()            
+            if h5Store != None:
+                h5Store.close()            
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                
 
     def getMxsVecsFileData(self,timesReq=None,fastMode=False):
@@ -2663,7 +2714,7 @@ class Mx():
     def getVecAggs(self,time1st=None,time1stIncluded=True,time2nd=None,time2ndIncluded=True):
         """Gets (or calcs) Aggregates (MIN, MAX, ...) of mxsVecsFileData between the 2 Times.   
 
-        * Newly calced Aggregates are stored in dfVecAggs.
+        * New calced Aggregates are stored in dfVecAggs.
 
         Args:
             * time1st: TIMESTAMP (first if None)
@@ -2681,6 +2732,7 @@ class Mx():
         Raises:
             MxError
                 
+        # -q -m 0 -s getVecAggs -t both -y yes -z no -p yes -w LocalHeatingNetwork 
         >>> mx=mxs['LocalHeatingNetwork']   
         >>> mx.delFiles()      
         >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading
@@ -3203,6 +3255,9 @@ if __name__ == "__main__":
         parser.add_argument("-z","--mockUpDetail2", help="MockUp Detail2: decide if Sync/Add and ToH5 shall be done during MockUps: Exp.: -z no"
                             ,choices=['no','yes'],default='yes')
 
+        parser.add_argument("-p","--mockUpDetail3", help="MockUp Detail3: decide if NoMxs shall be used during MockUp-Inits: Exp.: -p no"
+                            ,choices=['no','yes'],default='no')
+
         parser.add_argument("-u","--mockUpAtTheEnd", help="Tests: decide if after all Tests and after delGenFiles some mockUp shall be done: Exp.: -u yes"
                             ,choices=['no','yes'],default='no')
 
@@ -3294,6 +3349,11 @@ if __name__ == "__main__":
                                            })   
             unittest.TextTestRunner().run(suite)
 
+        if args.mockUpDetail3 in ['yes']:   
+            NoMxsRead=True
+        else:
+            NoMxsRead=False
+
           
         if len(args.singleTest)>0:
 
@@ -3329,9 +3389,9 @@ if __name__ == "__main__":
                 mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1'))    
                 
                 if args.mockUpDetail1 in ['yes']:   
-                    mx=Mx(mx1File=mx1File,NoH5Read=True) 
+                    mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=NoMxsRead) 
                 else:
-                    mx=Mx(mx1File=mx1File) 
+                    mx=Mx(mx1File=mx1File,NoMxsRead=NoMxsRead) 
                 
                 logger.debug("{:s}singleTests Vorbereitung {:s} mx instanziert.".format(logStr,testModel)) 
 
@@ -3356,12 +3416,8 @@ if __name__ == "__main__":
             dTests.extend(dtFinder.find(getMicrosecondsFromRefTime))
             dTests.extend(dtFinder.find(getTimeFromMicroseconds))
 
-            for test in dTests:
-                pass
-                #logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Test found',test.name)) 
 
             # gefundene Tests mit geforderten Tests abgleichen
-
             testsToBeExecuted=[]
             for expr in args.singleTest:
                 logger.debug("{0:s}singleTests: {1:s}: {2:s} ...".format(logStr,'Searching in Tests found for Expr     TBD',expr.strip("'")))                
@@ -3400,10 +3456,10 @@ if __name__ == "__main__":
                 #Mx
                 mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1')) 
                 if args.mockUpDetail1 in ['yes']:                 
-                    mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True) # avoid doing anything than just plain Init      
-                    mx.setResultsToMxsFile()
+                    mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=NoMxsRead) # avoid doing anything than just plain Init      
+                    #mx.setResultsToMxsFile()
                 else:
-                    mx=Mx(mx1File=mx1File)              
+                    mx=Mx(mx1File=mx1File,NoMxsRead=NoMxsRead)              
                    
                 if args.mockUpDetail2 in ['yes']:                                       
 
