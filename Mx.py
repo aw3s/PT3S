@@ -2859,7 +2859,7 @@ class Mx():
                 time2nd=self.df.index[-1]
             timesReq=[time1st,time2nd]
 
-            if time2nd <= time1st:
+            if time2nd <= time1st and not aTIME:
                 logger.error("{:s}Time2nd: {:s} <= Time1st {:s} ?!".format(logStr,str(time2nd),str(time1st)))    
                 raise MxError
            

@@ -7827,13 +7827,23 @@ class Xm():
         29  4769996343148550485       4      E        73.419998         3.004937         983.700012             60.0        -6.385540             20.0
         30  4939422678063487923       6      S         0.000000         5.125884         965.700012             90.0         6.385541             20.0
         31  4939422678063487923       6      E        68.599998         5.121495         965.700012             90.0         6.385541             20.0
+        >>> mx.dfVecAggs.shape # unverändert
+        (123, 32)
         >>> xm.MxAdd(mx=mx,aggReq='TMAX',ForceNoH5Update=True)
+        >>> mx.dfVecAggs.shape # unverändert
+        (123, 32)
         >>> dfTMax=xm.dataFrames['vROHRVecResults'].copy()        
-        >>> xm.MxAdd(mx=mx,aggReq='TMIN',ForceNoH5Update=True)
+        >>> xm.MxAdd(mx=mx,aggReq='TMIN',ForceNoH5Update=True)        
+        >>> mx.dfVecAggs.shape # unverändert 
+        (123, 32)
         >>> dfTMin=xm.dataFrames['vROHRVecResults'].copy() 
-        >>> xm.MxAdd(mx=mx,aggReq='MAX',ForceNoH5Update=True)
+        >>> xm.MxAdd(mx=mx,aggReq='MAX',ForceNoH5Update=True) # erzeugt MIN/MAX/DIF
+        >>> mx.dfVecAggs.shape
+        (246, 32)
         >>> dfMax=xm.dataFrames['vROHRVecResults'].copy()
-        >>> xm.MxAdd(mx=mx,aggReq='MIN',ForceNoH5Update=True)
+        >>> xm.MxAdd(mx=mx,aggReq='MIN',ForceNoH5Update=True) # ueberfluessig
+        >>> mx.dfVecAggs.shape
+        (246, 32)
         >>> dfMin=xm.dataFrames['vROHRVecResults'].copy()
         >>> import pandas as pd
         >>> decimals=pd.Series([6],index=['ROHR~*~*~*~PVEC'])        
@@ -7851,7 +7861,7 @@ class Xm():
         >>> rn,cn=mx.dfVecAggs.shape
         >>> (r,c)
         (246, 32)
-        >>> (rn,cn)
+        >>> (rn,cn) # 41 neue Einträge = 123/3
         (287, 32)
         >>> xm.MxAdd(mx=mx,aggReq='TIME',timeReq=mx.df.index[3],ForceNoH5Update=True)
         >>> (rn,cn)==mx.dfVecAggs.shape
@@ -7869,6 +7879,11 @@ class Xm():
         >>> mx.dfVecAggs.shape # h5-Inhalt unver#ndert
         (123, 32)
         >>> xm.MxAdd(mx=mx,aggReq=['TIME','TMIN','TMAX'],timeReq=[mx.df.index[0],mx.df.index[0],mx.df.index[0]],timeReq2nd=[mx.df.index[0],mx.df.index[-1],mx.df.index[-1]],ForceNoH5Update=True)
+        >>> mx.dfVecAggs.shape 
+        (123, 32)
+        >>> xm.MxAdd(mx=mx,aggReq=['TIME','MIN','MAX'],timeReq=[mx.df.index[3],mx.df.index[0],mx.df.index[0]],timeReq2nd=[mx.df.index[3],mx.df.index[-3],mx.df.index[-3]],ForceNoH5Update=True)
+        >>> mx.dfVecAggs.shape 
+        (287, 32)
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -7906,6 +7921,28 @@ class Xm():
                 # unPack
                 dfUnpacked=mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex,returnMultiIndex=False)
 
+                # process
+                vKNOT=self.dataFrames['vKNOT']
+                vKNOT=self.__MxAddForOneDf(dfTarget=vKNOT
+                                            ,dfSource=dfUnpacked.filter(regex='^KNOT'),testStr='KNOT')
+
+                vROHR=self.dataFrames['vROHR']
+                vROHR=self.__MxAddForOneDf(dfTarget=vROHR
+                                            ,dfSource=dfUnpacked.filter(regex='^ROHR').filter(regex='^(?!.*VEC)'),testStr='ROHR')
+
+                vFWVB=self.dataFrames['vFWVB']            
+                if not vFWVB.empty:
+                    vFWVB=self.__MxAddForOneDf(dfTarget=vFWVB 
+                                                ,dfSource=dfUnpacked.filter(regex='^FWVB'),testStr='FWVB')
+           
+                self.dataFrames['vKNOT']=vKNOT
+                self.dataFrames['vROHR']=vROHR
+                self.dataFrames['vFWVB']=vFWVB
+
+                self._MxAddvVBEL(dfSource=dfUnpacked)
+                self._MxAddvROHRVecResults(dfSource=dfUnpacked)
+                self._MxAddvAGSN()
+
             else:      
                 if timeReq2nd==None:
                     timeReq2nd=mx.df.index[-1]                
@@ -7932,7 +7969,7 @@ class Xm():
                     timeReq2ndL=[timeReq2nd]  
                     
                 
-                for aggReq, timeReq, timeReq2nd in zip(aggReqL, timeReqL, timeReq2ndL):
+                for idx, (aggReq, timeReq, timeReq2nd) in enumerate(zip(aggReqL, timeReqL, timeReq2ndL)):
                     
                     reqAggFound=False
                     if mx.dfVecAggs.index.isin([aggReq],level=0).any(): # aggReq existiert 
@@ -7966,29 +8003,27 @@ class Xm():
                         logger.debug("{:s}aggReq {:s} with TimeL {!s:30s} and TimeR {!s:30s} not in mx.dfVecAggs.".format(logStr,aggReq,timeReq,timeReq2nd)) 
                         raise XmError(logStrFinal)    
 
-                  
-            
-            if not aggReqListmode:
-                vKNOT=self.dataFrames['vKNOT']
-                vKNOT=self.__MxAddForOneDf(dfTarget=vKNOT
-                                            ,dfSource=dfUnpacked.filter(regex='^KNOT'),testStr='KNOT')
+                    # process                      
+                    vKNOT=self.dataFrames['vKNOT']
+                    vKNOT=self.__MxAddForOneDf(dfTarget=vKNOT
+                                                ,dfSource=dfUnpacked.filter(regex='^KNOT'),testStr='KNOT')
 
-                vROHR=self.dataFrames['vROHR']
-                vROHR=self.__MxAddForOneDf(dfTarget=vROHR
-                                            ,dfSource=dfUnpacked.filter(regex='^ROHR').filter(regex='^(?!.*VEC)'),testStr='ROHR')
+                    vROHR=self.dataFrames['vROHR']
+                    vROHR=self.__MxAddForOneDf(dfTarget=vROHR
+                                                ,dfSource=dfUnpacked.filter(regex='^ROHR').filter(regex='^(?!.*VEC)'),testStr='ROHR')
 
-                vFWVB=self.dataFrames['vFWVB']            
-                if not vFWVB.empty:
-                    vFWVB=self.__MxAddForOneDf(dfTarget=vFWVB 
-                                                ,dfSource=dfUnpacked.filter(regex='^FWVB'),testStr='FWVB')
+                    vFWVB=self.dataFrames['vFWVB']            
+                    if not vFWVB.empty:
+                        vFWVB=self.__MxAddForOneDf(dfTarget=vFWVB 
+                                                    ,dfSource=dfUnpacked.filter(regex='^FWVB'),testStr='FWVB')
            
-                self.dataFrames['vKNOT']=vKNOT
-                self.dataFrames['vROHR']=vROHR
-                self.dataFrames['vFWVB']=vFWVB
+                    self.dataFrames['vKNOT']=vKNOT
+                    self.dataFrames['vROHR']=vROHR
+                    self.dataFrames['vFWVB']=vFWVB
 
-                self._MxAddvVBEL(dfSource=dfUnpacked)
-                self._MxAddvROHRVecResults(dfSource=dfUnpacked)
-                self._MxAddvAGSN()
+                    self._MxAddvVBEL(dfSource=dfUnpacked)
+                    self._MxAddvROHRVecResults(dfSource=dfUnpacked)
+                    self._MxAddvAGSN()
           
             if self.h5Read and not ForceNoH5Update:
                 self.ToH5()          
