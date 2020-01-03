@@ -652,7 +652,7 @@ vRXXX_nodes =['RSLW','RMES','RHYS','RLVG','RLSR','RMMA','RADD','RMUL','RDIV','RT
 # ---
 # --- PT3S Imports
 # ---
-logger = logging.getLogger('PT3S.Xm')  
+logger = logging.getLogger('PT3S')  
 if __name__ == "__main__":
     logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context:','.')) 
 else:
@@ -5141,10 +5141,6 @@ class Xm():
         20           4         6     001      0      0    100            21      25189.337222    25189.337222  V-2602         74.0       74.0        43      7278.5539    7278.5539
         21           5        20     011      0     65     35            22       2194.073336     1272.672709  V-2113         10.0        5.0         3       259.7644     259.7644
         22           6        23     000      0      0      0            23          0.000000        0.000000  R-1226          0.0        0.0       839    133013.8220  133013.8220
-        >>> #
-        >>> #xm=xms['OneLPipe']                     
-        >>> # ---        
-        >>> #vKNOTexp=xm.vKNOTexpEBES()
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -7654,14 +7650,16 @@ class Xm():
             * mx, ForceNoH5ReadForMx, ForceNoH5Update : same Args as for MxSync; see description there
             * timeReq:
                 * TIMESTAMP 
-                * if None 1st TIME in Mx is used               
-            * aggReq:
+                * if None 1st TIME in Mx is used                     
+            * aggReq:               
                 * 'TIME','TMIN','TMAX' (source: MXS) or 'MIN','MAX', ... (source: mx.getVecAggs())
+                * if not None, timeReq und timeReq2nd define the timespan: 
                 * timeReq    is considered as TIMESTAMPL
                 * timeReq2nd is considered as TIMESTAMPR
+                * if List, MX-Resultcolumns for several times/timespans are added; timeReq and timeReq2nd must also be Lists
             * timeReq2nd:
                 * TIMESTAMP 
-                * if None last TIME in Mx is used    
+                * if None last TIME in Mx is used                    
 
         Views with MX2-Results added:            
             * in the Xm-Views below col mx2Idx must exist (i.e. MxSync mus have been called)
@@ -7706,9 +7704,14 @@ class Xm():
         Raises:
             XmError      
             
-        >>> # -q -m 0 -s MxAdd -t both -y yes -z no -w LocalHeatingNetwork -w GPipes
+        >>> 
+
+        >>> # # vorbereiten: -q -m 0 -t before -u yes -y yes -z yes -w LocalHeatingNetwork -w GPipes
+        >>> # # testen:      -q -m 0 -s MxAdd         -y no  -z no  -w LocalHeatingNetwork -w GPipes       
         >>> xm=xms['LocalHeatingNetwork']
-        >>> mx=xm.MxAdd()
+        >>> mx=xm.MxAdd(ForceNoH5Update=True)           
+        >>> mx.dfVecAggs.shape
+        (123, 32)
         >>> print(xm._getvXXXXAsOneString(vXXXX='vKNOT',filterColList=['BESCHREIBUNG','IDREFERENZ','NAME','KNOT~*~*~*~PH']))
                               BESCHREIBUNG IDREFERENZ         NAME  KNOT~*~*~*~PH
         0                             None         -1       R-K004       2.302971
@@ -7824,13 +7827,13 @@ class Xm():
         29  4769996343148550485       4      E        73.419998         3.004937         983.700012             60.0        -6.385540             20.0
         30  4939422678063487923       6      S         0.000000         5.125884         965.700012             90.0         6.385541             20.0
         31  4939422678063487923       6      E        68.599998         5.121495         965.700012             90.0         6.385541             20.0
-        >>> xm.MxAdd(mx=mx,aggReq='TMAX')
+        >>> xm.MxAdd(mx=mx,aggReq='TMAX',ForceNoH5Update=True)
         >>> dfTMax=xm.dataFrames['vROHRVecResults'].copy()        
-        >>> xm.MxAdd(mx=mx,aggReq='TMIN')
+        >>> xm.MxAdd(mx=mx,aggReq='TMIN',ForceNoH5Update=True)
         >>> dfTMin=xm.dataFrames['vROHRVecResults'].copy() 
-        >>> xm.MxAdd(mx=mx,aggReq='MAX')
+        >>> xm.MxAdd(mx=mx,aggReq='MAX',ForceNoH5Update=True)
         >>> dfMax=xm.dataFrames['vROHRVecResults'].copy()
-        >>> xm.MxAdd(mx=mx,aggReq='MIN')
+        >>> xm.MxAdd(mx=mx,aggReq='MIN',ForceNoH5Update=True)
         >>> dfMin=xm.dataFrames['vROHRVecResults'].copy()
         >>> import pandas as pd
         >>> decimals=pd.Series([6],index=['ROHR~*~*~*~PVEC'])        
@@ -7838,12 +7841,42 @@ class Xm():
         True
         >>> dfTMin.round(decimals=decimals).equals(dfMin.round(decimals=decimals))
         True
+        >>> # ----- einzelne Zeiten
+        >>> r,c=mx.dfVecAggs.shape
+        >>> xm.MxAdd(mx=mx,aggReq='TIME',ForceNoH5Update=True)
+        >>> rn,cn=mx.dfVecAggs.shape
+        >>> (rn,cn)==(r,c)
+        True
+        >>> xm.MxAdd(mx=mx,aggReq='TIME',timeReq=mx.df.index[3],ForceNoH5Update=True)
+        >>> rn,cn=mx.dfVecAggs.shape
+        >>> (r,c)
+        (246, 32)
+        >>> (rn,cn)
+        (287, 32)
+        >>> xm.MxAdd(mx=mx,aggReq='TIME',timeReq=mx.df.index[3],ForceNoH5Update=True)
+        >>> (rn,cn)==mx.dfVecAggs.shape
+        True
+        >>> mx=xm.MxAdd(ForceNoH5Update=True)           
+        >>> mx.dfVecAggs.shape # h5-Inhalt unver#ndert
+        (123, 32)
+        >>> # --- mehrere Zeiten/Aggs
+        >>> wDir,modelDir,modelName,mx1Filename = xm.getWDirModelDirModelName()
+        >>> try:
+        ...     import Mx
+        ... except:
+        ...     from PT3S import Mx
+        >>> mx=Mx.Mx(mx1File=mx1Filename)   
+        >>> mx.dfVecAggs.shape # h5-Inhalt unver#ndert
+        (123, 32)
+        >>> # xm.MxAdd(mx=mx,aggReq=['TIME','TMIN','TMAX'],timeReq=[mx.df.index[0],mx.df.index[0],mx.df.index[-1]],timeReq2nd=[mx.df.index[0],mx.df.index[0],mx.df.index[-1]],ForceNoH5Update=True)
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try: 
+
+            logger.debug("{:s}aggReq: {!s} TimeL {!s:30s} TimeR {!s:30s} (Eingabeparameter).".format(logStr,aggReq,timeReq,timeReq2nd))   
 
             returnNothing=False
             if isinstance(mx,Mx.Mx):                
@@ -7859,6 +7892,8 @@ class Xm():
 
             if aggReq==None:
 
+                logger.debug("{:s}aggReq: {!s} TimeL {!s:30s} TimeR {!s:30s} (Eingabeparameter verarbeitet).".format(logStr,aggReq,timeReq,timeReq2nd))   
+
                 mxVecsFileData=mx.getMxsVecsFileData(timesReq=[timeReq])[0] 
 
                 # unPack requests a mIndex ...
@@ -7872,17 +7907,48 @@ class Xm():
             else:      
                 if timeReq2nd==None:
                     timeReq2nd=mx.df.index[-1]                
+                
+                logger.debug("{:s}aggReq: {!s} TimeL {!s:30s} TimeR {!s:30s} (Eingabeparameter verarbeitet - vor Check auf Liste).".format(logStr,aggReq,timeReq,timeReq2nd))   
+
+                if isinstance(aggReq,list):
+                    if isinstance(timeReq,list) and isinstance(timeReq2nd,list):
+                        if len(aggReq)==len(timeReq) and len(aggReq)==len(timeReq2nd):
+                            logger.debug("{:s}aggReq: {!s} TimeL {!s} TimeR {!s}: aggReq ist Liste - die Zeiten auch - ok.".format(logStr,aggReq,timeReq,timeReq2nd))  
+                            aggReqL=aggReq
+                            timeReqL=timeReq
+                            timeReq2ndL=timeReq2nd
+                        else:
+                            logStrFinal="{:s}aggReq: {!s} TimeL {!s} TimeR {!s}: aggReq ist Liste - die Zeiten auch - aber nicht selbe Länge?!".format(logStr,aggReq,timeReq,timeReq2nd)                               
+                            raise XmError(logStrFinal)                             
+                    else:
+                        logStrFinal="{:s}aggReq: {!s} TimeL {!s} TimeR {!s}: aggReq ist Liste - die Zeiten aber nicht?!".format(logStr,aggReq,timeReq,timeReq2nd)                               
+                        raise XmError(logStrFinal)  
+                else:
+                    pass
+                    aggReqL=[aggReq]
+                    timeReqL=[timeReq]
+                    timeReq2ndL=[timeReq2nd]  
+
+
+                
+                #for aggReq, timeReq, timeReq2nd in zip(aggReqL, timeReqL, timeReq2ndL):
+                    
+
                 reqAggFound=False
                 if mx.dfVecAggs.index.isin([aggReq],level=0).any(): # aggReq existiert 
                     if mx.dfVecAggs.loc[(aggReq,slice(None),slice(None),slice(None)),:].index.isin([timeReq],level=2).any(): # mit dieser ZeitL
                         if mx.dfVecAggs.loc[(aggReq,slice(None),timeReq,slice(None)),:].index.isin([timeReq2nd],level=3).any(): # mit dieser ZeitR
-                            logger.debug("{:s}aggReq {:s} with TimeL {!s:30s} and TimeR {!s:30s} in mx.dfVecAggs.".format(logStr,aggReq,timeReq,timeReq2nd))   
+                            logger.debug("{:s}aggReq: {!s} TimeL {!s:30s} TimeR {!s:30s}     in mx.dfVecAggs.".format(logStr,aggReq,timeReq,timeReq2nd))                               
                             reqAggFound=True
 
-                if not reqAggFound:                                                                      
-                    df,tL,tR=mx.getVecAggs(time1st=timeReq,time2nd=timeReq2nd)
-                    logger.debug("{:s}aggReq {:s} with TimeL {!s:30s} and TimeR {!s:30s} not in mx.dfVecAggs. mx.getVecAggs() called.".format(logStr,aggReq,timeReq,timeReq2nd))    
-
+                if not reqAggFound:                         
+                    logger.debug("{:s}aggReq: {!s} TimeL {!s:30s} TimeR {!s:30s} not in mx.dfVecAggs. mx.getVecAggs() called ...".format(logStr,aggReq,timeReq,timeReq2nd))   
+                    if aggReq == 'TIME':
+                        aTIME=True
+                    else:
+                        aTIME=False
+                    df,tL,tR=mx.getVecAggs(time1st=timeReq,time2nd=timeReq2nd,aTIME=aTIME)
+ 
                 try:
                     df=mx.dfVecAggs.loc[(aggReq,slice(None),timeReq,timeReq2nd),:]
                     dfT=df.transpose(copy=True)
@@ -7899,16 +7965,16 @@ class Xm():
              
             vKNOT=self.dataFrames['vKNOT']
             vKNOT=self.__MxAddForOneDf(dfTarget=vKNOT
-                                      ,dfSource=dfUnpacked.filter(regex='^KNOT'),testStr='KNOT')
+                                        ,dfSource=dfUnpacked.filter(regex='^KNOT'),testStr='KNOT')
 
             vROHR=self.dataFrames['vROHR']
             vROHR=self.__MxAddForOneDf(dfTarget=vROHR
-                                      ,dfSource=dfUnpacked.filter(regex='^ROHR').filter(regex='^(?!.*VEC)'),testStr='ROHR')
+                                        ,dfSource=dfUnpacked.filter(regex='^ROHR').filter(regex='^(?!.*VEC)'),testStr='ROHR')
 
             vFWVB=self.dataFrames['vFWVB']            
             if not vFWVB.empty:
                 vFWVB=self.__MxAddForOneDf(dfTarget=vFWVB 
-                                          ,dfSource=dfUnpacked.filter(regex='^FWVB'),testStr='FWVB')
+                                            ,dfSource=dfUnpacked.filter(regex='^FWVB'),testStr='FWVB')
            
             self.dataFrames['vKNOT']=vKNOT
             self.dataFrames['vROHR']=vROHR

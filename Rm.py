@@ -168,7 +168,7 @@ import logging
 # ---
 # --- PT3S Imports
 # ---
-logger = logging.getLogger('PT3S.Rm')  
+logger = logging.getLogger('PT3S')  
 if __name__ == "__main__":
     logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context','.')) 
 else:

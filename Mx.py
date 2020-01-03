@@ -458,7 +458,7 @@ import logging
 # ---
 # --- PT3S Imports
 # ---
-logger = logging.getLogger('PT3S.Mx')  
+logger = logging.getLogger('PT3S')  
 if __name__ == "__main__":
     logger.debug("{0:s}{1:s}".format('in MODULEFILE: __main__ Context','.')) 
 else:
@@ -583,7 +583,7 @@ def getMxsVecsFileDataAggsCalcAggs(df,mIndex):
         df: MultiIndexed dataFrame:
             Level 0: TYPE: TIMESTAMPs or Aggregates (MIN, MAX, ...)
             Level 1: Sir3sID: Sir3sIDs
-            col-Labels: mx2Ids; IptIds for Pipe-Vecs
+            col-Labels: mx2Ids; IptIds for Vecs
             col-Values: Vec-Values
         mIndex: MultiIndex as described above
     """
@@ -2711,7 +2711,7 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             return df
 
-    def getVecAggs(self,time1st=None,time1stIncluded=True,time2nd=None,time2ndIncluded=True):
+    def getVecAggs(self,time1st=None,time1stIncluded=True,time2nd=None,time2ndIncluded=True,aTIME=False):
         """Gets (or calcs) Aggregates (MIN, MAX, ...) of mxsVecsFileData between the 2 Times.   
 
         * New calced Aggregates are stored in dfVecAggs.
@@ -2719,15 +2719,18 @@ class Mx():
         Args:
             * time1st: TIMESTAMP (first if None)
             * time2nd: TIMESTAMP (last if None)
+            * time1stIncluded
+            * time2ndIncluded
+            * aTIME: if true, time1st is considered to be a TIME to be fetched; time2nd is ignored
                            
         Returns:
             * dfs with MultiIndex: 
                 * Level 0: 'MIN', 'MAX', ...
                 * Level 1: col (Sir3sID)
+                [* the 2 Time Idx (Level 2 and 3) are droped]
                 *  cols: mx2Idx
-
-            * TIMESTAMPL: left  ScenTimeStamp included in calculating the Aggregate
-            * TIMESTAMPR: right ScenTimeStamp included in calculating the Aggregate
+            * timeL: left  ScenTimeStamp included in calculating the Aggregate
+            * timeR: right ScenTimeStamp included in calculating the Aggregate
 
         Raises:
             MxError
@@ -2881,21 +2884,34 @@ class Mx():
                 time1stIncludedOffset=1
             timesReq=list(self.df.index[time1stIdx+time1stIncludedOffset:time2ndIdx+time2ndIncludedOffset])  
 
-            #check if Aggregates were already calculated
+            if aTIME:
+                timesReq[-1]=timesReq[0]
+
+            if aTIME:
+                testTYPE='TIME'
+            else:
+                testTYPE='MIN' # exemplarisch für eines der Aggregate
+
             inDfVecAggs=False
-            if self.dfVecAggs.index.isin(['MIN'],level=0).any(): # 'MIN' (exemplarisch) existiert schon
-                if self.dfVecAggs.loc[('MIN',slice(None),slice(None),slice(None)),:].index.isin([timesReq[0]],level=2).any(): # mit dieser ZeitL
-                    if self.dfVecAggs.loc[('MIN',slice(None),timesReq[0],slice(None)),:].index.isin([timesReq[-1]],level=3).any(): # mit dieser ZeitR
+            if self.dfVecAggs.index.isin([testTYPE],level=0).any(): # Type (exemplarisch) existiert schon
+                if self.dfVecAggs.loc[(testTYPE,slice(None),slice(None),slice(None)),:].index.isin([timesReq[0]],level=2).any(): # mit dieser ZeitL
+                    if self.dfVecAggs.loc[(testTYPE,slice(None),timesReq[0],slice(None)),:].index.isin([timesReq[-1]],level=3).any(): # mit dieser ZeitR
                         inDfVecAggs=True
 
+            if aTIME:
+                resTYPEs=['TIME']
+            else:
+                resTYPEs=['MIN','MAX','DIF'] # alle Aggregate
+
             if inDfVecAggs:                                 
-                df=self.dfVecAggs.loc[(['MIN','MAX'],slice(None),timesReq[0],timesReq[-1]),:]
+                df=self.dfVecAggs.loc[(resTYPEs,slice(None),timesReq[0],timesReq[-1]),:]
                 mIndex=df.index.droplevel(level=3)
                 mIndex=mIndex.droplevel(level=2)
                 df=pd.DataFrame(df.values,index=mIndex,columns=df.columns)
-                logger.debug("{:s}Index: MIN etc. {!s:30s} {!s:30s} already in dfVecAggs.".format(logStr,timesReq[0],timesReq[-1]))   
+                logger.debug("{:s}Index: {!s:20s} {!s:30s} {!s:30s} already in dfVecAggs.".format(logStr,resTYPEs,timesReq[0],timesReq[-1]))   
 
-            if not inDfVecAggs:                                           
+            if not inDfVecAggs:         
+                logger.debug("{:s}Index: {!s:20s} {!s:30s} {!s:30s} not     in dfVecAggs.".format(logStr,resTYPEs,timesReq[0],timesReq[-1]))   
                 # read the 1st Time
                 mxVecsFileDataLst=self.getMxsVecsFileData(timesReq=[timesReq[0]])
                 mxVecsFileData=mxVecsFileDataLst[0]
@@ -2906,73 +2922,83 @@ class Mx():
                 tuples = list(zip(*arrays))        
                 mIndex = pd.MultiIndex.from_tuples(tuples, names=['TYPE', 'Sir3sID'])               
                 # store it with Time (create the df)
-                df=self.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex)            
-                # calc Aggs
-                dfAggs=getMxsVecsFileDataAggsCalcAggs(df,mIndex)            
-                # store Aggs with Agg
-                df=pd.concat([df,dfAggs])
-                # 1 TIMETAMP 
-                # all Aggregates
+                df=self.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex)     
+                # 1 Zeit; pro Vec-Sir3sID viele Spalten ...:
+                ### logger.debug("{:s}df vor      getMxsVecsFileDataAggsCalcAggs: {!s}".format(logStr,df.to_string()))                 
 
-                # over all Times            
-                oldTime=timesReq[0]
-                for time in timesReq[1:]:               
-                    # drop oldTime
-                    df.drop(oldTime,level=0,inplace=True)
-                    # add new Time
-                    # read it
-                    mxVecsFileDataLst=self.getMxsVecsFileData(timesReq=[time],fastMode=True) 
-                    mxVecsFileData=mxVecsFileDataLst[0]
-                    # unpack ...             
-                    arrays=[[mxVecsFileData.index[0]]*len(Sir3sIDs),Sir3sIDs]
-                    tuples = list(zip(*arrays))        
-                    mIndex = pd.MultiIndex.from_tuples(tuples, names=['TYPE', 'Sir3sID'])               
-                    # ... and store it  
-                    df=pd.concat([df,self.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex)])
-                
-                    # df:
-                    # 1 (new) TIMETAMP 
-                    # all (old) Aggs
-                    dfAggs=getMxsVecsFileDataAggsCalcAggs(df,mIndex)
-                
-                    # drop old Aggs
-                    df.drop('MIN',level=0,inplace=True)
-                    df.drop('MAX',level=0,inplace=True)
-            
-                    # store new Aggs
+                if not aTIME:
+                    # calc Aggs
+                    dfAggs=getMxsVecsFileDataAggsCalcAggs(df,mIndex)    # die Funktion bildet MIN/MAX - hier aus nur 1 Zeit  (das Ergebnis ist identisch mit der Zeit)       
+                    # all Aggs; pro Vec-Sir3sID viele Spalten ...:
+                    ###logger.debug("{:s}dfAggs nach getMxsVecsFileDataAggsCalcAggs: {!s}".format(logStr,dfAggs.to_string())) 
+                    # store Aggs with Agg
                     df=pd.concat([df,dfAggs])
-                    # 1 TIMETAMP 
-                    # all Aggregates                
-                               
-                    oldTime=time
-                
-                df.drop(oldTime,level=0,inplace=True)                       
-                #mIndex:
-                #MultiIndex(levels=[[2019-01-01 00:30:00, 'MAX', 'MIN'],...: droped oldTime otherwise still in levels ?!: 
-                mIndex=df.index.remove_unused_levels()
-                
-                df=pd.DataFrame(df.values,index=mIndex,columns=df.columns)
-                
-                # Read both Times
-                mxVecsFileDataLst=self.getMxsVecsFileData(timesReq=[timesReq[0],timesReq[-1]],fastMode=True) 
-                # construct Index for unpacking 
-                arrays=[['DIF']*len(Sir3sIDs),Sir3sIDs]
-                tuples=list(zip(*arrays))        
-                mIndex=pd.MultiIndex.from_tuples(tuples, names=['TYPE', 'Sir3sID'])       
-                # calc the difference
-                dfDIF=self.unPackMxsVecsFileDataDf(mxVecsFileDataLst[1],mIndex).sub(self.unPackMxsVecsFileDataDf(mxVecsFileDataLst[0],mIndex))       
-                # ... and store it  
-                df=pd.concat([df,dfDIF])
+                    ###logger.debug("{:s}df     nach getMxsVecsFileDataAggsCalcAggs: {!s}".format(logStr,df.to_string())) 
+                    # 1 TIMETAMP (der 1.)
+                    # all Aggregates
 
+                    # over all Times            
+                    oldTime=timesReq[0]
+                    for time in timesReq[1:]:               
+                        # drop oldTime
+                        df.drop(oldTime,level=0,inplace=True)
+                        # add new Time
+                        # read it
+                        mxVecsFileDataLst=self.getMxsVecsFileData(timesReq=[time],fastMode=True) 
+                        mxVecsFileData=mxVecsFileDataLst[0]
+                        # unpack ...             
+                        arrays=[[mxVecsFileData.index[0]]*len(Sir3sIDs),Sir3sIDs]
+                        tuples = list(zip(*arrays))        
+                        mIndex = pd.MultiIndex.from_tuples(tuples, names=['TYPE', 'Sir3sID'])               
+                        # ... and store it  
+                        df=pd.concat([df,self.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex)])
+                
+                        # df:
+                        # 1 (new) TIMETAMP 
+                        # all (old) Aggs
+                        dfAggs=getMxsVecsFileDataAggsCalcAggs(df,mIndex) # erst jetzt kann die Funktion "arbeiten", da sie MIN/MAX aus der neuen Zeit und den vorherigen MIN/MAX bildet
+                
+                        # drop old Aggs
+                        df.drop('MIN',level=0,inplace=True)
+                        df.drop('MAX',level=0,inplace=True)
+            
+                        # store new Aggs
+                        df=pd.concat([df,dfAggs])
+                        # 1 TIMETAMP 
+                        # all Aggregates                
+                               
+                        oldTime=time
+                
+                    df.drop(oldTime,level=0,inplace=True)                       
+                    #mIndex:
+                    #MultiIndex(levels=[[2019-01-01 00:30:00, 'MAX', 'MIN'],...: droped oldTime otherwise still in levels ?!: 
+                    mIndex=df.index.remove_unused_levels()
+                
+                    df=pd.DataFrame(df.values,index=mIndex,columns=df.columns)
+                
+                    # Read both Times
+                    mxVecsFileDataLst=self.getMxsVecsFileData(timesReq=[timesReq[0],timesReq[-1]],fastMode=True) 
+                    # construct Index for unpacking 
+                    arrays=[['DIF']*len(Sir3sIDs),Sir3sIDs]
+                    tuples=list(zip(*arrays))        
+                    mIndex=pd.MultiIndex.from_tuples(tuples, names=['TYPE', 'Sir3sID'])       
+                    # calc the difference
+                    dfDIF=self.unPackMxsVecsFileDataDf(mxVecsFileDataLst[1],mIndex).sub(self.unPackMxsVecsFileDataDf(mxVecsFileDataLst[0],mIndex))       
+                    # ... and store it  
+                    df=pd.concat([df,dfDIF])
+                else:                                                          
+                    df.rename(index={timesReq[0]:'TIME'},inplace=True)
+                    
                 # store in dfVecAggs
                 Sir3sIDs=df.index.unique(level=1).values
+                resTYPEs=df.index.unique(level=0).values
                 for aggType in df.index.unique(level=0).values:
                     try:
                         arrays=[[aggType]*len(Sir3sIDs),Sir3sIDs,[timesReq[0].tz_localize(None)]*len(Sir3sIDs),[timesReq[-1].tz_localize(None)]*len(Sir3sIDs)]
                         tuples=list(zip(*arrays))        
                         mIndex=pd.MultiIndex.from_tuples(tuples,names=['TYPE','Sir3sID','TIMESTAMPL','TIMESTAMPR'])
                         self.dfVecAggs=pd.concat([self.dfVecAggs,pd.DataFrame(df.loc[(aggType,slice(None)),:].values,index=mIndex,columns=df.columns)])
-                        logger.debug("{:s}Index: MIN etc. {!s:30s} {!s:30s} stored in dfVecAggs.".format(logStr,timesReq[0],timesReq[-1]))     
+                        logger.debug("{:s}Index: {!s:20s} {!s:30s} {!s:30s} stored in dfVecAggs.".format(logStr,resTYPEs,timesReq[0],timesReq[-1]))     
                     except Exception as e:
                         logStrFinal="{:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
                         logger.error(logStrFinal) 
