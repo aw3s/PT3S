@@ -2851,12 +2851,13 @@ class Mx():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
         try:           
-            df=pd.DataFrame()
+            df=pd.DataFrame()            
 
             if time1st==None:
                 time1st=self.df.index[0]
             if time2nd==None:
                 time2nd=self.df.index[-1]
+            timesReq=[time1st,time2nd]
 
             if time2nd <= time1st:
                 logger.error("{:s}Time2nd: {:s} <= Time1st {:s} ?!".format(logStr,str(time2nd),str(time1st)))    

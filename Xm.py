@@ -7868,7 +7868,7 @@ class Xm():
         >>> mx=Mx.Mx(mx1File=mx1Filename)   
         >>> mx.dfVecAggs.shape # h5-Inhalt unver#ndert
         (123, 32)
-        >>> # xm.MxAdd(mx=mx,aggReq=['TIME','TMIN','TMAX'],timeReq=[mx.df.index[0],mx.df.index[0],mx.df.index[-1]],timeReq2nd=[mx.df.index[0],mx.df.index[0],mx.df.index[-1]],ForceNoH5Update=True)
+        >>> xm.MxAdd(mx=mx,aggReq=['TIME','TMIN','TMAX'],timeReq=[mx.df.index[0],mx.df.index[0],mx.df.index[0]],timeReq2nd=[mx.df.index[0],mx.df.index[-1],mx.df.index[-1]],ForceNoH5Update=True)
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -7889,6 +7889,8 @@ class Xm():
 
             if timeReq==None:
                 timeReq=mx.df.index[0]
+
+            aggReqListmode=False
 
             if aggReq==None:
 
@@ -7917,72 +7919,76 @@ class Xm():
                             aggReqL=aggReq
                             timeReqL=timeReq
                             timeReq2ndL=timeReq2nd
+                            aggReqListmode=True
                         else:
                             logStrFinal="{:s}aggReq: {!s} TimeL {!s} TimeR {!s}: aggReq ist Liste - die Zeiten auch - aber nicht selbe Länge?!".format(logStr,aggReq,timeReq,timeReq2nd)                               
                             raise XmError(logStrFinal)                             
                     else:
                         logStrFinal="{:s}aggReq: {!s} TimeL {!s} TimeR {!s}: aggReq ist Liste - die Zeiten aber nicht?!".format(logStr,aggReq,timeReq,timeReq2nd)                               
                         raise XmError(logStrFinal)  
-                else:
-                    pass
+                else:                    
                     aggReqL=[aggReq]
                     timeReqL=[timeReq]
                     timeReq2ndL=[timeReq2nd]  
-
-
-                
-                #for aggReq, timeReq, timeReq2nd in zip(aggReqL, timeReqL, timeReq2ndL):
                     
+                
+                for aggReq, timeReq, timeReq2nd in zip(aggReqL, timeReqL, timeReq2ndL):
+                    
+                    reqAggFound=False
+                    if mx.dfVecAggs.index.isin([aggReq],level=0).any(): # aggReq existiert 
+                        if mx.dfVecAggs.loc[(aggReq,slice(None),slice(None),slice(None)),:].index.isin([timeReq],level=2).any(): # mit dieser ZeitL
+                            if mx.dfVecAggs.loc[(aggReq,slice(None),timeReq,slice(None)),:].index.isin([timeReq2nd],level=3).any(): # mit dieser ZeitR
+                                logger.debug("{:s}aggReq: {!s} TimeL {!s:30s} TimeR {!s:30s}     in mx.dfVecAggs.".format(logStr,aggReq,timeReq,timeReq2nd))                               
+                                reqAggFound=True
 
-                reqAggFound=False
-                if mx.dfVecAggs.index.isin([aggReq],level=0).any(): # aggReq existiert 
-                    if mx.dfVecAggs.loc[(aggReq,slice(None),slice(None),slice(None)),:].index.isin([timeReq],level=2).any(): # mit dieser ZeitL
-                        if mx.dfVecAggs.loc[(aggReq,slice(None),timeReq,slice(None)),:].index.isin([timeReq2nd],level=3).any(): # mit dieser ZeitR
-                            logger.debug("{:s}aggReq: {!s} TimeL {!s:30s} TimeR {!s:30s}     in mx.dfVecAggs.".format(logStr,aggReq,timeReq,timeReq2nd))                               
-                            reqAggFound=True
-
-                if not reqAggFound:                         
-                    logger.debug("{:s}aggReq: {!s} TimeL {!s:30s} TimeR {!s:30s} not in mx.dfVecAggs. mx.getVecAggs() called ...".format(logStr,aggReq,timeReq,timeReq2nd))   
-                    if aggReq == 'TIME':
-                        aTIME=True
-                    else:
-                        aTIME=False
-                    df,tL,tR=mx.getVecAggs(time1st=timeReq,time2nd=timeReq2nd,aTIME=aTIME)
+                    if not reqAggFound:                         
+                        logger.debug("{:s}aggReq: {!s} TimeL {!s:30s} TimeR {!s:30s} not in mx.dfVecAggs. mx.getVecAggs() called ...".format(logStr,aggReq,timeReq,timeReq2nd))   
+                        if aggReq == 'TIME':
+                            aTIME=True
+                        else:
+                            aTIME=False
+                        df,tL,tR=mx.getVecAggs(time1st=timeReq,time2nd=timeReq2nd,aTIME=aTIME)
+                        if df.empty:
+                            logStrFinal="{:s}aggReq: {!s} TimeL {!s} TimeR {!s}: mx.getVecAggs kein Ergebnis!".format(logStr,aggReq,timeReq,timeReq2nd)                               
+                            raise XmError(logStrFinal)   
  
-                try:
-                    df=mx.dfVecAggs.loc[(aggReq,slice(None),timeReq,timeReq2nd),:]
-                    dfT=df.transpose(copy=True)
-                    colIndex=dfT.columns.droplevel(level=0)
-                    colIndex=colIndex.droplevel(level=1)
-                    colIndex=colIndex.droplevel(level=1)
-                    colIndex.name=None
-                    dfUnpacked=pd.DataFrame(dfT.values,columns=colIndex)
-                except Exception as e:
-                    logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
-                    logger.error(logStrFinal) 
-                    logger.debug("{:s}aggReq {:s} with TimeL {!s:30s} and TimeR {!s:30s} not in mx.dfVecAggs.".format(logStr,aggReq,timeReq,timeReq2nd)) 
-                    raise XmError(logStrFinal)    
-             
-            vKNOT=self.dataFrames['vKNOT']
-            vKNOT=self.__MxAddForOneDf(dfTarget=vKNOT
-                                        ,dfSource=dfUnpacked.filter(regex='^KNOT'),testStr='KNOT')
+                    try:
+                        df=mx.dfVecAggs.loc[(aggReq,slice(None),timeReq,timeReq2nd),:]
+                        dfT=df.transpose(copy=True)
+                        colIndex=dfT.columns.droplevel(level=0)
+                        colIndex=colIndex.droplevel(level=1)
+                        colIndex=colIndex.droplevel(level=1)
+                        colIndex.name=None
+                        dfUnpacked=pd.DataFrame(dfT.values,columns=colIndex)
+                    except Exception as e:
+                        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))                       
+                        logger.error(logStrFinal) 
+                        logger.debug("{:s}aggReq {:s} with TimeL {!s:30s} and TimeR {!s:30s} not in mx.dfVecAggs.".format(logStr,aggReq,timeReq,timeReq2nd)) 
+                        raise XmError(logStrFinal)    
 
-            vROHR=self.dataFrames['vROHR']
-            vROHR=self.__MxAddForOneDf(dfTarget=vROHR
-                                        ,dfSource=dfUnpacked.filter(regex='^ROHR').filter(regex='^(?!.*VEC)'),testStr='ROHR')
+                  
+            
+            if not aggReqListmode:
+                vKNOT=self.dataFrames['vKNOT']
+                vKNOT=self.__MxAddForOneDf(dfTarget=vKNOT
+                                            ,dfSource=dfUnpacked.filter(regex='^KNOT'),testStr='KNOT')
 
-            vFWVB=self.dataFrames['vFWVB']            
-            if not vFWVB.empty:
-                vFWVB=self.__MxAddForOneDf(dfTarget=vFWVB 
-                                            ,dfSource=dfUnpacked.filter(regex='^FWVB'),testStr='FWVB')
+                vROHR=self.dataFrames['vROHR']
+                vROHR=self.__MxAddForOneDf(dfTarget=vROHR
+                                            ,dfSource=dfUnpacked.filter(regex='^ROHR').filter(regex='^(?!.*VEC)'),testStr='ROHR')
+
+                vFWVB=self.dataFrames['vFWVB']            
+                if not vFWVB.empty:
+                    vFWVB=self.__MxAddForOneDf(dfTarget=vFWVB 
+                                                ,dfSource=dfUnpacked.filter(regex='^FWVB'),testStr='FWVB')
            
-            self.dataFrames['vKNOT']=vKNOT
-            self.dataFrames['vROHR']=vROHR
-            self.dataFrames['vFWVB']=vFWVB
+                self.dataFrames['vKNOT']=vKNOT
+                self.dataFrames['vROHR']=vROHR
+                self.dataFrames['vFWVB']=vFWVB
 
-            self._MxAddvVBEL(dfSource=dfUnpacked)
-            self._MxAddvROHRVecResults(dfSource=dfUnpacked)
-            self._MxAddvAGSN()
+                self._MxAddvVBEL(dfSource=dfUnpacked)
+                self._MxAddvROHRVecResults(dfSource=dfUnpacked)
+                self._MxAddvAGSN()
           
             if self.h5Read and not ForceNoH5Update:
                 self.ToH5()          
