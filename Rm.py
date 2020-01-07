@@ -2320,6 +2320,11 @@ class Rm():
 
                     'NAME'_'Layer'_'hpLine' is used as an Index in hpLineProps 
 
+                    if 'NAME'_'Layer'_'hpLine' not in hpLineProps:
+                        default props are used
+                    if hpLineProps['NAME'_'Layer'_'hpLine'] == None:
+                        HPLINE is not plotted
+
                     y-Axes:
                         * werden ermittelt aus hpLines
                         * der Spaltenname - z.B. 'P' - wird dabei als Bezeichner für den Achsentyp benutzt
@@ -2327,9 +2332,12 @@ class Rm():
                         * Bezeichner wie 'P','P_1',... werden dabei als vom selben Achsentyp 'P' (selbe y-Achse also) gewertet 
                         * P_1, P_2, ... können z.B. P zu verschiedenen Zeiten sein oder Aggregate über die Zeit wie Min/Max 
                        
- 
                 AXES:
                     pAx: Axes to be plotted on; if not specified: gca() is used
+
+        Return:
+                yAxes: dct with AXES; key=y-Achsentypen
+                yLines: dct with Line2Ds; key=Index from hpLineProps
 
                 >>> #  -q -m 0 -s pltHP -y no -z no -w DHNetwork
                 >>> import pandas as pd
@@ -2343,92 +2351,40 @@ class Rm():
                 ...   from PT3S import Rm
                 >>> # ---
                 >>> xm=xms['DHNetwork']       
+                >>> mx=mxs['DHNetwork']   
+                >>> xm.MxAdd(mx=mx,aggReq=['TIME','TMIN','TMAX'],timeReq=3*[mx.df.index[0]],timeReq2nd=3*[mx.df.index[-1]],viewList=['vAGSN'],ForceNoH5Update=True)
                 >>> vAGSN=xm.dataFrames['vAGSN']
-                >>> vAGSN['PH']=vAGSN.apply(lambda row: row.P*math.pow(10.,5.)/(row.RHO*9.81),axis=1)
-                >>> vAGSN['PH']=vAGSN['PH']+vAGSN['Z'].astype('float64')
-                >>> vAGSN['bBzg']=vAGSN.apply(lambda row: row.RHO*9.81/math.pow(10.,5.),axis=1)
-                >>> vAGSN['bBzg']=vAGSN['P']+vAGSN['Z'].astype('float64')*vAGSN['bBzg']                
-                >>> # ---
-                >>> plt.close()
-                >>> fig=plt.figure(figsize=Rm.DINA3q,dpi=Rm.dpiSize)         
-                >>> gs = gridspec.GridSpec(3, 1)
-                >>> # --------------------------
-                >>> axNfd = fig.add_subplot(gs[0])                
-                >>> Rm.Rm.pltHP(vAGSN,pAx=axNfd)
-                >>> txt=axNfd.set_title('HP')      
-                >>> # --------------------------
-                >>> axNfd = fig.add_subplot(gs[1])                
-                >>> Rm.Rm.pltHP(vAGSN,pAx=axNfd
-                ... ,hpLines=['bBzg']
-                ... ,hpLineProps={
-                ...     'AGFW Symposium DH_1_bBzg':{'label':'VL','color':'red','linestyle':'-','linewidth':3}
-                ... }
-                ... )               
-                >>> txt=axNfd.set_title('HP 2')  
-                >>> # --------------------------
-                >>> axNfd = fig.add_subplot(gs[2])                
-                >>> Rm.Rm.pltHP(vAGSN,pAx=axNfd
-                ... ,hpLines=['bBzg']
-                ... ,hpLineProps={
-                ...     'AGFW Symposium DH_1_bBzg':{'label':'VL','color':'red' ,'linestyle':'-','linewidth':3}
-                ...    ,'AGFW Symposium DH_2_bBzg':{'label':'RL','color':'blue','linestyle':'-','linewidth':3}
-                ... }
-                ... )               
-                >>> txt=axNfd.set_title('HP 3')  
-                >>> gs.tight_layout(fig)
-                >>> plt.show()     
-                >>> # ---
-                >>> mx=mxs['DHNetwork']       
-                >>> #
-                >>> xm.MxAdd(mx=mx,ForceNoH5Update=True)
-                >>> vAGSN=xm.dataFrames['vAGSN']
-                >>> colList=vAGSN.columns.tolist()
-                >>> sepColIdx=colList.index('mx2Idx')
-                >>> vAGSN_Sach=vAGSN[colList[:sepColIdx+1]]
-                >>> vAGSN_STAT=vAGSN[colList[sepColIdx+1:]]
-                >>> xm.MxAdd(mx=mx,aggReq='TMIN',ForceNoH5Update=True)
-                >>> vAGSN=xm.dataFrames['vAGSN']
-                >>> vAGSN_TMIN=vAGSN[colList[sepColIdx+1:]]
-                >>> xm.MxAdd(mx=mx,aggReq='TMAX',ForceNoH5Update=True)
-                >>> vAGSN=xm.dataFrames['vAGSN']
-                >>> vAGSN_TMAX=vAGSN[colList[sepColIdx+1:]]
-                >>> vAGSN=pd.concat([vAGSN_Sach,vAGSN_STAT,vAGSN_TMIN,vAGSN_TMAX],axis=1)
-                >>> colCount={col:0 for col in vAGSN.columns.tolist() }
-                >>> cols=[]
-                >>> for col in vAGSN.columns:
-                ...        if colCount[col] > 0:
-                ...            colName=str(col)+'_'+str(colCount[col])
-                ...        else:
-                ...            colName=col
-                ...        cols.append(colName)
-                ...        colCount[col]=colCount[col]+1                  
-                >>> vAGSN.columns = cols          
                 >>> for PH,P,RHO,Z in zip(['PH','PH_1','PH_2'],['P','P_1','P_2'],['RHO','RHO_1','RHO_2'],['Z','Z_1','Z_2']):
                 ...     vAGSN[PH]=vAGSN.apply(lambda row: row[P]*math.pow(10.,5.)/(row[RHO]*9.81),axis=1)
                 ...     vAGSN[PH]=vAGSN[PH]+vAGSN[Z].astype('float64')
                 >>> for bBzg,P,RHO,Z in zip(['bBzg','bBzg_1','bBzg_2'],['P','P_1','P_2'],['RHO','RHO_1','RHO_2'],['Z','Z_1','Z_2']):
                 ...     vAGSN[bBzg]=vAGSN.apply(lambda row: row[RHO]*9.81/math.pow(10.,5.),axis=1)
-                ...     vAGSN[bBzg]=vAGSN[P]+vAGSN[Z].astype('float64')*vAGSN[bBzg]   
+                ...     vAGSN[bBzg]=vAGSN[P]+vAGSN[Z].astype('float64')*vAGSN[bBzg]                
                 >>> plt.close()
                 >>> fig=plt.figure(figsize=Rm.DINA3q,dpi=Rm.dpiSize)         
                 >>> gs = gridspec.GridSpec(3, 1)
                 >>> # --------------------------
                 >>> axNfd = fig.add_subplot(gs[0])       
-                >>> Rm.Rm.pltHP(vAGSN,pAx=axNfd
+                >>> yAxes,yLines=Rm.Rm.pltHP(vAGSN,pAx=axNfd
                 ... ,hpLines=['bBzg','bBzg_1','bBzg_2','Q']
                 ... ,hpLineProps={
                 ...     'AGFW Symposium DH_1_bBzg':{'label':'VL','color':'red' ,'linestyle':'-','linewidth':3}
                 ...    ,'AGFW Symposium DH_2_bBzg':{'label':'RL','color':'blue','linestyle':'-','linewidth':3}                
                 ...    ,'AGFW Symposium DH_2_bBzg_1':{'label':'RL min','color':'blue','linestyle':'-.','linewidth':1}
                 ...    ,'AGFW Symposium DH_1_bBzg_2':{'label':'VL max','color':'red' ,'linestyle':'-.','linewidth':1}  
-                ...    ,'AGFW Symposium DH_1_Q':{'label':'VL','color':'magenta' ,'linestyle':'--','linewidth':2}
-                ...    ,'AGFW Symposium DH_2_Q':{'label':'RL','color':'lightblue','linestyle':'--','linewidth':2}                          
+                ...    ,'AGFW Symposium DH_1_bBzg_1':None
+                ...    ,'AGFW Symposium DH_2_bBzg_2':None  
+                ...    ,'AGFW Symposium DH_1_Q':{'label':'VL Q','color':'magenta' ,'linestyle':'--','linewidth':2}
+                ...    ,'AGFW Symposium DH_2_Q':{'label':'RL Q','color':'lightblue','linestyle':'--','linewidth':2}                          
                 ... }
-                ... )               
-                >>> txt=axNfd.set_title('HP 4')  
+                ... )          
+                >>> yAxes.keys()
+                dict_keys(['bBzg', 'Q'])
+                >>> yLines.keys()      
+                dict_keys(['AGFW Symposium DH_1_bBzg', 'AGFW Symposium DH_1_bBzg_2', 'AGFW Symposium DH_1_Q', 'AGFW Symposium DH_2_bBzg', 'AGFW Symposium DH_2_bBzg_1', 'AGFW Symposium DH_2_Q'])
+                >>> txt=axNfd.set_title('HP')  
                 >>> gs.tight_layout(fig)
-                >>> plt.show()                     
-
+                >>> plt.show()                    
         """
         logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -2448,10 +2404,19 @@ class Rm():
                 if 'hpLineProps' not in keys:
                     kwds['hpLineProps']={'NAME_1_P':{'label':'HP NAME Layer 1 P','color':'red','linestyle':'-','linewidth':3}}
 
+                if 'yTwinedAxesPosDeltaHPStart' not in keys:
+                     # (negativer) Abstand der 1. y-Achse von der Zeichenfläche
+                    kwds['yTwinedAxesPosDeltaHPStart']=-0.0125
+
+                if 'yTwinedAxesPosDeltaHP' not in keys:
+                     # (negativer) Abstand jeder weiteren y-Achse von der Zeichenfläche
+                    kwds['yTwinedAxesPosDeltaHP']=-0.05
 
                 logger.debug("{:s}xCol:      {:s}.".format(logStr,kwds['xCol']))
                 logger.debug("{:s}hpLines:     {:s}.".format(logStr,str(kwds['hpLines'])))
                 logger.debug("{:s}hpLineProps: {:s}.".format(logStr,str(kwds['hpLineProps'])))
+                logger.debug("{:s}yTwinedAxesPosDeltaHPStart: {:s}.".format(logStr,str(kwds['yTwinedAxesPosDeltaHPStart'])))
+                logger.debug("{:s}yTwinedAxesPosDeltaHP: {:s}.".format(logStr,str(kwds['yTwinedAxesPosDeltaHP'])))
 
                 # Schnitte und Layer ermitteln
                 hPs=pDf[['NAME','Layer']].drop_duplicates()
@@ -2460,30 +2425,31 @@ class Rm():
                 # y-Achsen-Typen ermitteln
                 hpLineTypesSequence=[col if re.search('([\w ]+)(_)(\d+)$',col)==None else re.search('([\w ]+)(_)(\d+)$',col).group(1) for col in kwds['hpLines']]          
                 
-                # (negativer) Abstand einer weiteren y-Achse von der Zeichenfläche
-                yTwinedAxesPosDeltaHP=-0.100
-
                 # y-Achsen konstruieren
                 yAxes={}
                 colType1st=hpLineTypesSequence[0]
                 axHP=kwds['pAx'] 
+                axHP.spines["left"].set_position(("axes",kwds['yTwinedAxesPosDeltaHPStart'] )) 
+
                 axHP.set_ylabel(colType1st)  
                 yAxes[colType1st]=axHP                  
                 logger.debug("{:s}colType: {:s} is attached to Axes pcAx .".format(logStr,colType1st))
-                for colType in hpLineTypesSequence[1:]:
+                for idx,colType in enumerate(hpLineTypesSequence[1:]):
                     if colType not in yAxes:    
-                        logger.debug("{:s}colType: {:s}: new Axes ...".format(logStr,colType))
+                        yPos=kwds['yTwinedAxesPosDeltaHPStart']+kwds['yTwinedAxesPosDeltaHP']*len(yAxes)
+                        logger.debug("{:s}colType: {:s}: new Axes_ yPos: {:1.4f} ...".format(logStr,colType,yPos))
 
                         # weitere y-Achse 
                         axHP = axHP.twinx()
-                        axHP.spines["left"].set_position(("axes", yTwinedAxesPosDeltaHP*len(yAxes))) 
+                        axHP.spines["left"].set_position(("axes", yPos)) 
                         pltMakePatchSpinesInvisible(axHP)
                         axHP.spines['left'].set_visible(True)  
                         axHP.yaxis.set_label_position('left')
                         axHP.yaxis.set_ticks_position('left')
-                        axHP.set_ylabel('colType')  
+                        axHP.set_ylabel(colType)  
                         yAxes[colType]=axHP 
 
+                yLines={}
                 for row in hPs.itertuples(index=True):
                     # über alle Schnitte und Layer    
                     logger.debug("{:s}Schnitt: {:s} Layer: {:s} ...".format(logStr,row.NAME,str(row.Layer))) 
@@ -2498,58 +2464,37 @@ class Rm():
                         logger.debug("{:s}Line: {:s} ...".format(logStr,key))
 
                         if key in kwds['hpLineProps']:
-                            hpLineProp=kwds['hpLineProps'][key]
-                            
-                            logger.debug("{:s}hpLineProp: {:s} ...".format(logStr,str(hpLineProp)))
+                            hpLineProp=kwds['hpLineProps'][key]                                                       
+                            if hpLineProp == None:
+                                logger.debug("{:s}Line: {:s} ...: kein Plot.".format(logStr,key))
+                                continue # kein Plot
 
-                            if 'label' not in hpLineProp:
-                                label=key
-                            else:
-                                label=hpLineProp['label']
-                            if 'color' not in hpLineProp:
-                                color='black'
-                            else:
-                                color=hpLineProp['color']
-                            if 'linestyle' not in hpLineProp:
-                                linestyle='-'
-                            else:
-                                linestyle=hpLineProp['linestyle']
-                            if 'linewidth' not in hpLineProp:
-                                linewidth=3
-                            else:
-                                linewidth=hpLineProp['linewidth']
-
-
-                        else:                            
-                            label=key
-                            color='black'
-                            linestyle='-'
-                            linewidth=3
-
+                        label=key
+                        color='black'
+                        linestyle='-'
+                        linewidth=3
 
                         hpLineType=hpLineTypesSequence[idx]
                         axHP=yAxes[hpLineType]
-                        axHP.plot(hPpDf[kwds['xCol']],hPpDf[hpLine],label=label,color=color,linestyle=linestyle,linewidth=linewidth)
+                        lines=axHP.plot(hPpDf[kwds['xCol']],hPpDf[hpLine],label=label,color=color,linestyle=linestyle,linewidth=linewidth)
+                        yLines[label]=lines[0]
 
-                                
-
-        except Exception as e:
-            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-            logger.error(logStrFinal) 
-            raise RmError(logStrFinal)                     
-        
-        try: 
-            pass
-                               
-        except RmError:
-            raise
-                                                                    
+                        if key in kwds['hpLineProps']:
+                            hpLineProp=kwds['hpLineProps'][key]                                                                                   
+                            if hpLineProp == None:
+                                continue
+                            else:
+                                logger.debug("{:s}hpLineProp: {:s} ...".format(logStr,str(hpLineProp)))
+                                for prop,value in hpLineProp.items():
+                                    plt.setp(yLines[label],"{:s}".format(prop),value)
+                                                                                                                                                          
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
             raise RmError(logStrFinal)                       
         finally:       
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                   
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))       
+            return yAxes,yLines
 
     def __init__(self,xm=None,mx=None): 
         """

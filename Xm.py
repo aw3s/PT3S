@@ -7643,28 +7643,33 @@ class Xm():
               # Args special to MxAdd              
               ,timeReq=None
               ,aggReq=None
-              ,timeReq2nd=None):
-        """Add MX-Resultcolumns to some Xm-Views.  NEW 1st Call: vROHRVecResults, vAGSN.
+              ,timeReq2nd=None
+              ,viewList=[]):
+        """Add MX-Resultcolumn-Set to some Xm-Views.  NEW 1st Call: vROHRVecResults, vAGSN.
 
         Args:               
             * mx, ForceNoH5ReadForMx, ForceNoH5Update : same Args as for MxSync; see description there
             * timeReq:
-                * TIMESTAMP 
+                * TIMESTAMP (defining the MX-Resultcolumn-Set) 
                 * if None 1st TIME in Mx is used                     
-            * aggReq:               
+            * aggReq (defining the MX-Resultcolumn-Set):               
                 * 'TIME','TMIN','TMAX' (source: MXS) or 'MIN','MAX', ... (source: mx.getVecAggs())
                 * if not None, timeReq und timeReq2nd define the timespan: 
                 * timeReq    is considered as TIMESTAMPL
                 * timeReq2nd is considered as TIMESTAMPR
-                * if List, MX-Resultcolumns for several times/timespans are added; timeReq and timeReq2nd must also be Lists
-            * timeReq2nd:
+                * if List
+                    * MX-Resultcolumns for several times/timespans are calculated 
+                    * timeReq and timeReq2nd must also be Lists
+                    * if viewList is not None, in the views several MX-Resultcolumn-Sets are added: one per requested time/timespan
+                    * the 2nd Resultcol of the same type is named _1, the 3rd _2, ...                    
+            * timeReq2nd (defining the MX-Resultcolumn-Set):
                 * TIMESTAMP 
                 * if None last TIME in Mx is used                    
 
-        Views with MX2-Results added:            
+        Views with MX2-Result-Set added:            
             * in the Xm-Views below col mx2Idx must exist (i.e. MxSync mus have been called)
             * mx2Idx is considered to be the last of the Model-cols
-            * right from mx2Idx Result-cols are added if not already existing
+            * right from mx2Idx all available Result-cols are added if not already existing
             * already existing Result-cols are overwritten
             * mx2Idx-Views:
                 * vKNOT (KNOT...) 
@@ -7881,9 +7886,68 @@ class Xm():
         >>> xm.MxAdd(mx=mx,aggReq=['TIME','TMIN','TMAX'],timeReq=[mx.df.index[0],mx.df.index[0],mx.df.index[0]],timeReq2nd=[mx.df.index[0],mx.df.index[-1],mx.df.index[-1]],ForceNoH5Update=True)
         >>> mx.dfVecAggs.shape 
         (123, 32)
-        >>> xm.MxAdd(mx=mx,aggReq=['TIME','MIN','MAX'],timeReq=[mx.df.index[3],mx.df.index[0],mx.df.index[0]],timeReq2nd=[mx.df.index[3],mx.df.index[-3],mx.df.index[-3]],ForceNoH5Update=True)
+        >>> xm.MxAdd(mx=mx,aggReq=['TIME','MIN'],timeReq=[mx.df.index[3],mx.df.index[0]],timeReq2nd=[mx.df.index[3],mx.df.index[-3]],ForceNoH5Update=True)
         >>> mx.dfVecAggs.shape 
         (287, 32)
+        >>> xm=xms['LocalHeatingNetwork']
+        >>> mx=xm.MxAdd(ForceNoH5Update=True)           
+        >>> mx.dfVecAggs.shape
+        (123, 32)
+        >>> # mx.dfVecAggs.loc[(slice(None),['KNOT~*~*~*~P','ROHR~*~*~*~QMI','ROHR~*~*~*~PVECMIN_INST'],slice(None),slice(None)),[0,1,2,31]].round(2)        
+        >>> vAGSN=xm.dataFrames['vAGSN']
+        >>> vAGSN.shape   
+        (32, 55)
+        >>> xm.MxAdd(mx=mx,aggReq=['TIME','TMIN','TMAX'],timeReq=3*[mx.df.index[0]],timeReq2nd=3*[mx.df.index[-1]],viewList=['vAGSN'],ForceNoH5Update=True)
+        >>> mx.dfVecAggs.shape 
+        (123, 32)
+        >>> vAGSN=xm.dataFrames['vAGSN']
+        >>> vAGSN.shape   
+        (32, 111)
+        >>> # vAGSN.filter(regex='([\w ]+)(_)(\d+)$').columns  
+        >>> xm.dataFrames['vAGSNTmp']=vAGSN.round(2)
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vAGSNTmp',filterColList=['P','P_1','P_2'])) 
+               P   P_1   P_2
+        0   5.13  3.21  5.23
+        1   5.12  3.21  5.22
+        2   5.12  3.21  5.22
+        3   5.08  3.20  5.18
+        4   5.08  3.20  5.18
+        5   4.99  3.18  5.09
+        6   4.99  3.18  5.09
+        7   4.85  3.16  4.95
+        8   4.85  3.16  4.95
+        9   4.83  3.16  4.93
+        10  4.83  3.16  4.93
+        11  4.82  3.16  4.92
+        12  4.82  3.16  4.92
+        13  4.82  3.16  4.92
+        14  4.82  3.16  4.92
+        15  4.81  3.15  4.91
+        16  3.00  3.00  3.00
+        17  3.00  3.00  3.00
+        18  3.00  3.00  3.00
+        19  3.04  3.01  3.04
+        20  3.04  3.01  3.04
+        21  3.14  3.03  3.14
+        22  3.14  3.03  3.14
+        23  3.28  3.05  3.28
+        24  3.28  3.05  3.28
+        25  3.30  3.05  3.30
+        26  3.30  3.05  3.30
+        27  3.31  3.05  3.31
+        28  3.31  3.05  3.31
+        29  3.31  3.05  3.31
+        30  3.31  3.05  3.31
+        31  3.31  3.05  3.31
+        >>> mx.dfVecAggs.shape 
+        (123, 32)
+        >>> xm.MxAdd(mx=mx,aggReq=['MIN'],timeReq=1*[mx.df.index[1]],timeReq2nd=1*[mx.df.index[-2]],viewList=['vAGSN'],ForceNoH5Update=True)
+        >>> mx.dfVecAggs.shape 
+        (246, 32)
+        >>> xm.MxAdd(mx=mx,aggReq=['MAX'],timeReq=1*[mx.df.index[0]],timeReq2nd=1*[mx.df.index[1]],viewList=['vAGSN','vKNOT','vFWVB','vROHR'],ForceNoH5Update=True)
+        >>> mx.dfVecAggs.shape 
+        (369, 32)
+        >>> #mx.dfVecAggs.loc[(slice(None),['KNOT~*~*~*~P','ROHR~*~*~*~QMI','ROHR~*~*~*~PVECMIN_INST'],slice(None),slice(None)),[0,1,2,31]].round(2)      
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -8024,6 +8088,49 @@ class Xm():
                     self._MxAddvVBEL(dfSource=dfUnpacked)
                     self._MxAddvROHRVecResults(dfSource=dfUnpacked)
                     self._MxAddvAGSN()
+
+                    if idx == 0: # nach dem ersten Durchlauf: 
+                        sepColIdxDct={}   
+                        dfDct={}
+                        for vView in viewList: #['vAGSN']:
+                            vViewDf = self.dataFrames[vView]
+
+                            colList=vViewDf.columns.tolist()
+                            sepColIdx=colList.index('mx2Idx')
+                            sepColIdxDct[vView]=sepColIdx
+
+                            dfDct[vView]=pd.concat(
+                                [
+                                     vViewDf[colList[:sepColIdx+1]]
+                                    ,vViewDf[colList[sepColIdx+1:]]
+                                ],axis=1
+                                 )
+
+                    if idx >= 1: # ab nach dem zweiten Durchlauf                        
+                        for vView in viewList: #['vAGSN']:
+                            vViewDf = self.dataFrames[vView]                            
+                            sepColIdx=sepColIdxDct[vView]                           
+                            dfDct[vView]=pd.concat(
+                                [
+                                     dfDct[vView]
+                                    ,vViewDf[colList[sepColIdx+1:]]
+                                ],axis=1
+                                 )
+                        
+                    if idx == len(aggReqL)-1 and len(aggReqL) > 1:
+                        for vView in viewList: # ['vAGSN']:
+                             colCount={col:0 for col in dfDct[vView].columns.tolist() }
+                             cols=[]
+                             for col in dfDct[vView].columns:
+                                if colCount[col] > 0:
+                                    colName=str(col)+'_'+str(colCount[col])
+                                else:
+                                    colName=col
+                                cols.append(colName)
+                                colCount[col]=colCount[col]+1                  
+                             
+                             dfDct[vView].columns = cols          
+                             self.dataFrames[vView]=dfDct[vView]  
           
             if self.h5Read and not ForceNoH5Update:
                 self.ToH5()          
