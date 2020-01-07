@@ -2003,13 +2003,13 @@ class Mx():
                 # Unique index ...
                 if not dfMxs.index.is_unique:                        
                      logger.debug("{0:s}Mxs: {1:s}: NOT unique TIMESTAMPS: Their dfMxs Shape: {2!s}.".format(logStr,mxsFile,dfMxs[dfMxs.index.duplicated()].shape))    
-                     dfMxs=dfMxs[dfMxs.index.duplicated() == False]     
-                     logger.debug("{0:s}Mxs: {1:s}: New unique                   dfMxs Shape: {2!s}.".format(logStr,mxsFile,dfMxs.shape))   
+                     ###dfMxs=dfMxs.loc[dfMxs.index.duplicated() == False]   # Lbr MemError?!                                          
+                     ###logger.debug("{0:s}Mxs: {1:s}: New unique                   dfMxs Shape: {2!s}.".format(logStr,mxsFile,dfMxs.shape))   
                 if not add or not isinstance(self.df,pd.core.frame.DataFrame): 
-                    self.df=dfMxs
+                    self.df=dfMxs.loc[dfMxs.index.duplicated() == False] #dfMxs wg.  # Lbr MemError?!     
                     logger.debug("{0:s}Mxs: {1:s}: Assigned.     df Shape: {2!s}.".format(logStr,mxsFile,self.df.shape))    
                 else:
-                    self.df=pd.concat([self.df,dfMxs])
+                    self.df=pd.concat([self.df,dfMxs.loc[dfMxs.index.duplicated() == False] ]) #dfMxs]) wg.  # Lbr MemError?!     
                     logger.debug("{0:s}Mxs: {1:s}: Added.    New df Shape: {2!s}.".format(logStr,mxsFile,self.df.shape))    
                     if not self.df.index.is_unique:                        
                         logger.debug("{0:s}Mxs: {1:s}: NOT unique TIMESTAMPS added (intersection): Their df Shape: {2!s}.".format(logStr,mxsFile,self.df[self.df.index.duplicated()].shape))    
