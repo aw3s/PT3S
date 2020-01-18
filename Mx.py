@@ -256,7 +256,7 @@ True
 >>> (rows,cols)=mx.df.shape
 >>> rows
 12
->>> isinstance(mx.df.index[0],pd.tslib.Timestamp)
+>>> isinstance(mx.df.index[0],pd.Timestamp)
 True
 >>> str(mx.df.index[0])
 '2018-03-03 00:00:00+00:00'
@@ -306,27 +306,27 @@ True
 >>> mx=Mx(mx1File=mx1File,NoH5Read=True)
 >>> os.path.exists(mx.h5File)
 False
->>> pd.set_option('display.max_columns',None)
->>> pd.set_option('display.max_rows',None)
->>> pd.set_option('display.max_colwidth',666666)   
->>> pd.set_option('display.width',666666666)
+>>> #pd.set_option('display.max_columns',None)
+>>> #pd.set_option('display.max_rows',None)
+>>> #pd.set_option('display.max_colwidth',666666)   
+>>> #pd.set_option('display.width',666666666)
 >>> print(mx._getMx1DfAsOneString().replace('\\n','\\n '))
 ATTRTYPE  DATALENGTH DATATYPE  DATATYPELENGTH  FLAGS OBJTYPE           OBJTYPE_PK                TITLE    UNIT
-      PH           4     REAL               4   1265    KNOT  5289899964753656852                Druck   [bar]
-      QM           4     REAL               4   1265    KNOT  5289899964753656852  Externer Durchfluss  [m3/h]
-      PH           4     REAL               4   1265    KNOT  5642914844465475844                Druck   [bar]
-      QM           4     REAL               4   1265    KNOT  5642914844465475844  Externer Durchfluss  [m3/h]
+       PH           4     REAL               4   1265    KNOT  5289899964753656852                Druck   [bar]
+       QM           4     REAL               4   1265    KNOT  5289899964753656852  Externer Durchfluss  [m3/h]
+       PH           4     REAL               4   1265    KNOT  5642914844465475844                Druck   [bar]
+       QM           4     REAL               4   1265    KNOT  5642914844465475844  Externer Durchfluss  [m3/h]
 >>> print("'''{:s}'''".format(repr(mx.mx2Df).replace('\\n','\\n   ')))
-'''       AttrType                                        Data  DataLength DataType  DataTypeLength  NOfItems       ObjType
-   0  tk            [5642914844465475844, 5289899964753656852]          40     CHAR              20         2  KNOT        
-   1  pk                                 [5252810657060947333]          20     CHAR              20         1  LFKT        
-   2  pk                                 [5502689500012692689]          20     CHAR              20         1  PHI1        
-   3  pk                                 [5732781659713982525]          20     CHAR              20         1  PUMD        
-   4  pk                                 [5163733225086798083]          20     CHAR              20         1  PVAR        
-   5  pk                                 [4742976321174242828]          20     CHAR              20         1  QVAR        
-   6  tk                                 [4737064599036143765]          20     CHAR              20         1  ROHR        
-   7  N_OF_POINTS                                       (101,)           4     INT4               4         1  ROHR        
-   8  pk                                 [5396761270498593493]          20     CHAR              20         1  SWVT        '''
+'''        ObjType      AttrType DataType  DataTypeLength  DataLength  NOfItems                                        Data
+   0  KNOT          tk               CHAR              20          40         2  [5642914844465475844, 5289899964753656852]
+   1  LFKT          pk               CHAR              20          20         1                       [5252810657060947333]
+   2  PHI1          pk               CHAR              20          20         1                       [5502689500012692689]
+   3  PUMD          pk               CHAR              20          20         1                       [5732781659713982525]
+   4  PVAR          pk               CHAR              20          20         1                       [5163733225086798083]
+   5  QVAR          pk               CHAR              20          20         1                       [4742976321174242828]
+   6  ROHR          tk               CHAR              20          20         1                       [4737064599036143765]
+   7  ROHR          N_OF_POINTS      INT4               4           4         1                                      (101,)
+   8  SWVT          pk               CHAR              20          20         1                       [5396761270498593493]'''
 >>> print(mx._getDfAsOneString())
                           KNOT~~~5289899964753656852~PH KNOT~~~5289899964753656852~QM KNOT~~~5642914844465475844~PH KNOT~~~5642914844465475844~QM
 2018-03-03 00:00:00+00:00                           0.0                        -176.7                           4.2                         176.7
@@ -392,24 +392,24 @@ True
 >>> mx=Mx(mx1File=mx1File,NoH5Read=True,NoMxsRead=True)
 >>> print(mx._getMx1DfAsOneString().replace('\\n','\\n '))
 ATTRTYPE  DATALENGTH DATATYPE  DATATYPELENGTH  FLAGS OBJTYPE           OBJTYPE_PK TITLE    UNIT
-      PH           4     REAL               4      1    KNOT  4711309381204507891         [bar]
-      PH           4     REAL               4      1    KNOT  5179406559406617933         [bar]
-      QM           4     REAL               4      1    KNOT  5179406559406617933        [m3/h]
+       PH           4     REAL               4      1    KNOT  4711309381204507891         [bar]
+       PH           4     REAL               4      1    KNOT  5179406559406617933         [bar]
+       QM           4     REAL               4      1    KNOT  5179406559406617933        [m3/h]
 >>> print("'''{:s}'''".format(repr(mx.mx2Df).replace('\\n','\\n   ')))
-'''        AttrType                                                                                                                                                                                                                                                                                                                                                                                                                                                                            Data  DataLength DataType  DataTypeLength  NOfItems       ObjType
-   0   tk                                                                                                                     [5179406559406617933, 5706345341889312301, 5028754475676510796, 4880261452311588026, 4711309381204507891, 5697271655044179265, 5165939128645634755, 4790715298669926433, 5629305599838467353, 5388350113283448399, 4702108116010765829, 5095105260880965618, 5113971272348625691, 5042575626021291052, 4780213881308610359, 4832703654265095420, 5498009282312522569]         340     CHAR              20        17  KNOT        
-   1   pk                                                                                                                                                                                                                                                                                                                                                                                                                                                                     [4673068329861421062]          20     CHAR              20         1  LFKT        
-   2   tk                                                                                                                                                                                                                                                                                                                                                                                                                                                                     [4914542339545953765]          20     CHAR              20         1  OBEH        
-   3   pk                                                                                                                                                                                                                                                                                                                                                                                                                                                                     [5295290952622367198]          20     CHAR              20         1  PHI1        
-   4   pk                                                                                                                                                                                                                                                                                                                                                                                                                                                                     [5623478865255556069]          20     CHAR              20         1  PUMD        
-   5   pk                                                                                                                                                                                                                                                                                                                                                                                                                                                                     [4728046487162557851]          20     CHAR              20         1  PVAR        
-   6   pk                                                                                                                                                                                                                                                                                                                                                                                                                                                                     [5377391575499483345]          20     CHAR              20         1  QVAR        
-   7   tk            [4820249423461369400, 5508607066407516090, 5095827458323717990, 5700891034663173564, 5729543164571807746, 5067763789937102564, 4799443678518131207, 5605831797210762998, 5126294008398890918, 5419686039699182683, 5312551747276023841, 5296152509037292880, 5670035893444309530, 5433880705192526755, 4648047345314768819, 4984438795139137900, 5644872080928983958, 5148090523913666712, 5461179577260327606, 4978978527327130204, 5497762617222653432, 5076321356874807093]         440     CHAR              20        22  ROHR        
-   8   N_OF_POINTS                                                                                                                                                                                                                                                                                                                                                                                                               (5, 6, 5, 3, 4, 3, 3, 3, 3, 3, 3, 3, 3, 2, 5, 4, 3, 3, 4, 3, 2, 2)          88     INT4               4        22  ROHR        
-   9   pk                                                                                                                                                                                                                                                                                                                                                                                                                                                                     [4955975670134047353]          20     CHAR              20         1  SWVT        
-   10  pk                                                                                                                                                                                                                                                                                                                                                                                                                                                                     [4821755615165519990]          20     CHAR              20         1  TEVT        
-   11  tk                                                                                                                                                                                                                                                                                                                                                                                                                                                                     [5466655470152247657]          20     CHAR              20         1  VENT        
-   12  pk                                                                                                                                                                                                                                                                                                                                                                                                                                                                     [5736734929574151957]          20     CHAR              20         1  WEVT        '''
+'''         ObjType      AttrType DataType  DataTypeLength  DataLength  NOfItems                                                                                                                                                                                                                                                                                                                                                                                                                                                                            Data
+   0   KNOT          tk               CHAR              20         340        17                                                                                                           [5179406559406617933, 5706345341889312301, 5028754475676510796, 4880261452311588026, 4711309381204507891, 5697271655044179265, 5165939128645634755, 4790715298669926433, 5629305599838467353, 5388350113283448399, 4702108116010765829, 5095105260880965618, 5113971272348625691, 5042575626021291052, 4780213881308610359, 4832703654265095420, 5498009282312522569]
+   1   LFKT          pk               CHAR              20          20         1                                                                                                                                                                                                                                                                                                                                                                                                                                                           [4673068329861421062]
+   2   OBEH          tk               CHAR              20          20         1                                                                                                                                                                                                                                                                                                                                                                                                                                                           [4914542339545953765]
+   3   PHI1          pk               CHAR              20          20         1                                                                                                                                                                                                                                                                                                                                                                                                                                                           [5295290952622367198]
+   4   PUMD          pk               CHAR              20          20         1                                                                                                                                                                                                                                                                                                                                                                                                                                                           [5623478865255556069]
+   5   PVAR          pk               CHAR              20          20         1                                                                                                                                                                                                                                                                                                                                                                                                                                                           [4728046487162557851]
+   6   QVAR          pk               CHAR              20          20         1                                                                                                                                                                                                                                                                                                                                                                                                                                                           [5377391575499483345]
+   7   ROHR          tk               CHAR              20         440        22  [4820249423461369400, 5508607066407516090, 5095827458323717990, 5700891034663173564, 5729543164571807746, 5067763789937102564, 4799443678518131207, 5605831797210762998, 5126294008398890918, 5419686039699182683, 5312551747276023841, 5296152509037292880, 5670035893444309530, 5433880705192526755, 4648047345314768819, 4984438795139137900, 5644872080928983958, 5148090523913666712, 5461179577260327606, 4978978527327130204, 5497762617222653432, 5076321356874807093]
+   8   ROHR          N_OF_POINTS      INT4               4          88        22                                                                                                                                                                                                                                                                                                                                                                                                              (5, 6, 5, 3, 4, 3, 3, 3, 3, 3, 3, 3, 3, 2, 5, 4, 3, 3, 4, 3, 2, 2)
+   9   SWVT          pk               CHAR              20          20         1                                                                                                                                                                                                                                                                                                                                                                                                                                                           [4955975670134047353]
+   10  TEVT          pk               CHAR              20          20         1                                                                                                                                                                                                                                                                                                                                                                                                                                                           [4821755615165519990]
+   11  VENT          tk               CHAR              20          20         1                                                                                                                                                                                                                                                                                                                                                                                                                                                           [5466655470152247657]
+   12  WEVT          pk               CHAR              20          20         1                                                                                                                                                                                                                                                                                                                                                                                                                                                           [5736734929574151957]'''
 >>> mx.setResultsToMxsFile(maxRecords=1)
 1
 >>> print(mx._getDfAsOneString())
@@ -1412,13 +1412,13 @@ class Mx():
         >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading
         5
         >>> mx.dfVecAggs.loc[(['TIME','TMIN','TMAX'],'KNOT~*~*~*~PH',slice(None),slice(None)),0:22]  
-                                                                          0         1         2         3         4         5         6         7         8         9         10        11        12        13   14        15        16        17        18   19        20        21        22
+                                                                           0         1         2         3         4         5         6         7         8         9        10        11        12        13   14        15        16        17        18   19        20        21        22
         TYPE Sir3sID       TIMESTAMPL          TIMESTAMPR                                                                                                                                                                                                                                     
         TIME KNOT~*~*~*~PH 2004-09-22 08:30:00 2004-09-22 08:30:00  2.302971  3.985846  4.083384  4.121495  2.043288  2.283566  2.004937  4.311307  4.126019  2.309655  4.291591  2.000133  2.141440  3.825970  2.0  3.819467  2.314658  3.816599  2.312659  2.0  3.845104  4.125885  3.814690
         TMIN KNOT~*~*~*~PH 2004-09-22 08:30:00 2004-09-22 08:31:00  2.052100  2.183028  2.200011  2.206647  2.007717  2.048865  2.000910  2.248923  2.207463  2.053240  2.234365  2.000021  2.025138  2.156905  2.0  2.155822  2.054124  2.155325  2.053771  2.0  2.160025  2.207441  2.154995
         TMAX KNOT~*~*~*~PH 2004-09-22 08:30:00 2004-09-22 08:31:00  2.302971  4.085822  4.183360  4.221471  2.043288  2.283566  2.004937  4.411284  4.225996  2.309655  4.391567  2.000133  2.141440  3.925947  2.0  3.919444  2.314658  3.916576  2.312659  2.0  3.945080  4.225861  3.914667
         >>> mx.dfVecAggs
-                                                                                      0           1             2           3           4           5           6           7           8           9           10          11          12          13          14          15          16          17          18          19          20          21          22          23          24          25          26          27          28          29          30          31
+                                                                                       0           1             2           3           4           5           6           7           8           9          10          11          12          13          14          15          16          17          18          19          20          21          22          23          24          25          26          27          28          29          30          31
         TYPE Sir3sID                 TIMESTAMPL          TIMESTAMPR                                                                                                                                                                                                                                                                                                                                                                                                           
         TIME ROHR~*~*~*~QMI          2004-09-22 08:30:00 2004-09-22 08:30:00   -8.509475   19.059780 -1.537890e+01    8.509476  -22.987946   22.987946   22.987947   -3.928166   22.987947   15.378901    3.928167  -22.987946  -19.059778   -3.928166    3.928167  -22.987946         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
              KNOT~*~*~*~P            2004-09-22 08:30:00 2004-09-22 08:30:00    3.302971    4.985846  5.083384e+00    5.121495    3.043288    3.283566    3.004937    5.311307    5.126019    3.309655    5.291591    3.000133    3.141440    4.825970    3.000000    4.819467    3.314658    4.816599    3.312659    3.000000    4.845104    5.125885    4.814690         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN         NaN
@@ -2563,14 +2563,10 @@ class Mx():
         >>> import pandas as pd
         >>> mIndex = pd.MultiIndex.from_tuples(tuples, names=['Timestamp', 'Sir3sID'])        
         >>> mIndex
-        MultiIndex(levels=[[2004-09-22 08:30:00+00:00], ['KNOT~*~*~*~PH', 'ROHR~*~*~*~QMAV', 'ROHR~*~*~*~SVEC']],
-                   labels=[[0, 0, 0], [2, 1, 0]],
+        MultiIndex([('2004-09-22 08:30:00+00:00', 'ROHR~*~*~*~SVEC'),
+                    ('2004-09-22 08:30:00+00:00', 'ROHR~*~*~*~QMAV'),
+                    ('2004-09-22 08:30:00+00:00',   'KNOT~*~*~*~PH')],
                    names=['Timestamp', 'Sir3sID'])
-        >>> colIdx=mIndex.get_level_values('Sir3sID')
-        >>> colIdx
-        Index(['ROHR~*~*~*~SVEC', 'ROHR~*~*~*~QMAV', 'KNOT~*~*~*~PH'], dtype='object', name='Sir3sID')
-        >>> colIdx.values.tolist()      
-        ['ROHR~*~*~*~SVEC', 'ROHR~*~*~*~QMAV', 'KNOT~*~*~*~PH']
         >>> # construct MultiIndex End ... ---
         >>> mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex,returnMultiIndex=False)
             ROHR~*~*~*~SVEC  ROHR~*~*~*~QMAV  KNOT~*~*~*~PH
@@ -2607,7 +2603,7 @@ class Mx():
         30         0.000000              NaN            NaN
         31        76.400002              NaN            NaN
         >>> mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex)        
-                                                         0          1          2           3          4          5          6          7          8          9         10          11         12         13        14          15        16         17        18         19        20          21       22          23   24          25   26          27   28          29   30         31
+                                                          0          1          2           3          4          5          6          7          8          9        10          11         12         13        14          15        16         17        18         19        20          21       22          23   24          25   26          27   28          29   30         31
         Timestamp                 Sir3sID                                                                                                                                                                                                                                                                                                                                                
         2004-09-22 08:30:00+00:00 ROHR~*~*~*~SVEC  0.000000  88.019997   0.000000  405.959991   0.000000  83.550003   0.000000  88.019997   0.000000  73.419998  0.000000  195.529999   0.000000  68.599998  0.000000  109.769997  0.000000  76.400002  0.000000  83.550003  0.000000  164.910004  0.00000  195.529999  0.0  405.959991  0.0  164.910004  0.0  109.769997  0.0  76.400002
                                   ROHR~*~*~*~QMAV -8.509475  19.059780 -15.378901    8.509476 -22.987946  22.987946  22.987947  -3.928166  22.987947  15.378901  3.928167  -22.987946 -19.059778  -3.928166  3.928167  -22.987946       NaN        NaN       NaN        NaN       NaN         NaN      NaN         NaN  NaN         NaN  NaN         NaN  NaN         NaN  NaN        NaN
@@ -2622,7 +2618,7 @@ class Mx():
         >>> idx=pd.IndexSlice
         >>> dfOneVecChannel=df.loc[(idx[:],'KNOT~*~*~*~PH'),0:22] # df.loc[(idx[:],idx[:]),idx[:]]: everything   
         >>> dfOneVecChannel
-                                                       0         1         2         3         4         5         6         7         8         9         10        11        12        13   14        15        16        17        18   19        20        21        22
+                                                        0         1         2         3         4         5         6         7         8         9        10        11        12        13   14        15        16        17        18   19        20        21        22
         Timestamp                 Sir3sID                                                                                                                                                                                                                                  
         2004-09-22 08:30:00+00:00 KNOT~*~*~*~PH  2.302971  3.985846  4.083384  4.121495  2.043288  2.283565  2.004937  4.311307  4.126019  2.309655  4.291591  2.000133  2.141440  3.825970  2.0  3.819467  2.314658  3.816599  2.312659  2.0  3.845104  4.125885  3.814690
         2004-09-22 08:30:15+00:00 KNOT~*~*~*~PH  2.272133  3.034820  3.123339  3.157926  2.039330  2.255054  2.004493  3.331398  3.162040  2.277968  3.311887  2.000120  2.128487  2.892818  2.0  2.887151  2.282320  2.884661  2.280581  2.0  2.909634  3.161918  2.883003
@@ -2758,7 +2754,7 @@ class Mx():
         >>> import pandas as pd
         >>> #idx=pd.IndexSlice        
         >>> df.loc[(['MIN','MAX','DIF'],'KNOT~*~*~*~PH'),0:22].round(6) ## df.loc[(slice(None),'KNOT~*~*~*~PH'),slice(None)] # df.loc[(idx[:],'KNOT~*~*~*~PH'),idx[:]]
-                                  0         1         2         3         4         5         6         7         8         9         10        11        12        13   14        15        16        17        18   19        20        21        22
+                                   0         1         2         3         4         5         6         7         8         9        10        11        12        13   14        15        16        17        18   19        20        21        22
         TYPE Sir3sID                                                                                                                                                                                                                                  
         MIN  KNOT~*~*~*~PH  2.052100  2.183028  2.200011  2.206647  2.007717  2.048865  2.000910  2.248923  2.207463  2.053240  2.234365  2.000021  2.025138  2.156905  2.0  2.155822  2.054124  2.155325  2.053771  2.0  2.160025  2.207441  2.154995
         MAX  KNOT~*~*~*~PH  2.302971  4.085822  4.183360  4.221471  2.043288  2.283566  2.004937  4.411284  4.225996  2.309655  4.391567  2.000133  2.141440  3.925947  2.0  3.919444  2.314658  3.916576  2.312659  2.0  3.945080  4.225861  3.914667
@@ -3178,9 +3174,9 @@ class Mx():
                 formatters[colNameNew]=f
             dfRenamed=dfFiltered.rename(newColNames,axis='columns')
 
-            dfSorted=dfRenamed.reindex_axis(sorted(dfRenamed.columns), axis=1)
+            dfSorted=dfRenamed.reindex(sorted(dfRenamed.columns), axis=1,copy=False)
             
-            dfContentAsOneString=dfSorted.to_string(formatters=formatters)                                                                            
+            dfContentAsOneString=dfSorted.to_string(formatters=formatters,justify='right')                                                                            
         except MxError:
             raise            
         except Exception as e:
@@ -3216,9 +3212,9 @@ class Mx():
                 formatters[colNameNew]=f
             dfRenamed=dfFiltered.rename(newColNames,axis='columns')
 
-            dfSorted=dfRenamed.reindex_axis(sorted(dfRenamed.columns), axis=1)
+            dfSorted=dfRenamed.reindex(sorted(dfRenamed.columns), axis=1,copy=False)
             
-            dfContentAsOneString=dfSorted.to_string(formatters=formatters)                                                                            
+            dfContentAsOneString=dfSorted.to_string(formatters=formatters,justify='right')                                                                            
         except MxError:
             raise            
         except Exception as e:

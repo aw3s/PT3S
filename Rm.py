@@ -2306,8 +2306,17 @@ class Rm():
                 DATA:
                     pDf: dataFrame
 
-                    the different HPs in pDf are identified by the cols 'NAME' and 'Layer'
+                defining the HPLINES (xy-curves) Identification:
+
+                    the different HPs in pDf are identified by the cols
+                    NAMECol: default: 'NAME'
+                    and 
+                    LayerCol: default: 'Layer'
+
                     for each HP several lines (xy-curves) are plotted
+
+                    if NAMECol is None only LayerCol is used
+                    if LayerCol also in None, all rows are treated as "the" HPLINE
 
                 defining the HPLINES (xy-curves):
 
@@ -2396,6 +2405,11 @@ class Rm():
                 if 'pAx' not in keys:
                     kwds['pAx']=plt.gca()
 
+                if 'NAMECol' not in keys:
+                    kwds['NAMECol']='NAME'
+                if 'LayerCol' not in keys:
+                    kwds['LayerCol']='Layer'
+
 
                 if 'xCol' not in keys:
                     kwds['xCol']='x'
@@ -2419,7 +2433,17 @@ class Rm():
                 logger.debug("{:s}yTwinedAxesPosDeltaHP: {:s}.".format(logStr,str(kwds['yTwinedAxesPosDeltaHP'])))
 
                 # Schnitte und Layer ermitteln
-                hPs=pDf[['NAME','Layer']].drop_duplicates()
+                if kwds['NAMECol'] != None and kwds['LayerCol'] != None:
+                    hPs=pDf[[kwds['NAMECol'],kwds['LayerCol']]].drop_duplicates()
+                elif kwds['NAMECol'] != None:
+                    hPs=pDf[[kwds['NAMECol']]].drop_duplicates()
+                    hPs['Layer']=None
+                elif kwds['LayerCol'] != None:
+                    hPs=pDf[[kwds['LayerCol']]].drop_duplicates()
+                    hPs['NAME']=None
+                    hPs=hPs[['NAME','Layer']]
+                else:
+                    hPs=pd.DataFrame(data={'NAME':[None],'Layer':[None]})
                 #logger.debug("{:s}hPs: {:s}.".format(logStr,hPs.to_string()))
 
                 # y-Achsen-Typen ermitteln
@@ -2450,16 +2474,38 @@ class Rm():
                         yAxes[colType]=axHP 
 
                 yLines={}
-                for row in hPs.itertuples(index=True):
+                for index,row in hPs.iterrows():
                     # über alle Schnitte und Layer    
-                    logger.debug("{:s}Schnitt: {:s} Layer: {:s} ...".format(logStr,row.NAME,str(row.Layer))) 
+                    
                                                         
                     # Schnitt+Layer filtern
-                    hPpDf=pDf[(pDf['NAME']==row.NAME) & (pDf['Layer']==row.Layer)]
-
+                    if kwds['NAMECol'] != None and kwds['LayerCol'] != None:
+                        hPpDf=pDf[
+                            (pDf[kwds['NAMECol']]==row[kwds['NAMECol']]) 
+                            & 
+                            (pDf[kwds['LayerCol']]==row[kwds['LayerCol']])
+                               ]
+                        keyBase=str(row[kwds['NAMECol']])+'_'+str(row[kwds['LayerCol']])+'_'#+hpLine
+                        logger.debug("{:s}Schnitt: {!s:s} Layer: {!s:s} ...".format(logStr,row[kwds['NAMECol']],row[kwds['LayerCol']])) 
+                    elif kwds['NAMECol'] != None:
+                        hPpDf=pDf[
+                            (pDf[kwds['NAMECol']]==row[kwds['NAMECol']])                       
+                               ]           
+                        keyBase=str(row[kwds['NAMECol']])+'_'#+hpLine
+                        logger.debug("{:s}Schnitt: {!s:s} ...".format(logStr,row[kwds['NAMECol']])) 
+                    elif kwds['LayerCol'] != None:
+                        hPpDf=pDf[
+                            (pDf[kwds['LayerCol']]==row[kwds['LayerCol']])                       
+                               ]        
+                        keyBase=str(row[kwds['LayerCol']])+'_'#+hpLine
+                        logger.debug("{:s}Layer: {!s:s} ...".format(logStr,row[kwds['LayerCol']])) 
+                    else:
+                        hPpDf=pDf
+                        keyBase=''
+                   
                     # über alle Spalten
                     for idx,hpLine in enumerate(kwds['hpLines']):                       
-                        key=row.NAME+'_'+str(row.Layer)+'_'+hpLine
+                        key=keyBase+hpLine
 
                         logger.debug("{:s}Line: {:s} ...".format(logStr,key))
 
