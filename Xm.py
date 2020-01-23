@@ -682,6 +682,8 @@ class renamer():
         else:
             self.d[x] += 1
             return "%s_%d" % (x, self.d[x])
+
+
    
 class XmError(Exception):
     def __init__(self, value):
@@ -728,6 +730,75 @@ class Xm():
     Raises:
         XmError
     """
+
+    @classmethod
+    #def constructNewMultiindexFromCols(cls,df=None,mColNames=['OBJTYPE','pk'],mIdxNames=['OBJTYPE','OBJID']):
+
+    def _xmlRoot2Dfs(cls,root):
+        """Parse root into DataFrames.
+           
+        * Return: 
+            * dict with dfs with root-content
+
+        Raises:
+            XmError
+        >>> XmlString='<data><country name="Liechtenstein"><rank>1</rank><year>2008</year><gdppc>141100</gdppc><neighbor name="Austria" direction="E"/><neighbor name="Switzerland" direction="W"/></country><country name="Singapore"><rank>4</rank><year>2011</year><gdppc>59900</gdppc><neighbor name="Malaysia" direction="N"/></country></data>'
+        >>> import xml.etree.ElementTree as ET
+        >>> root = ET.fromstring(XmlString)
+        >>> import Xm
+        >>> dfDct=Xm.Xm._xmlRoot2Dfs(root)
+        >>> dfDct.keys()
+        dict_keys(['country'])
+        >>> dfDct['country']
+          rank  year   gdppc neighbor
+        0    1  2008  141100     None
+        1    4  2011   59900     None
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            
+            logger.debug("{0:s}parse Xml ...".format(logStr))                     
+           
+            pm = {c:p for p in root.iter() for c in p}   # parentMap
+            logger.debug("{0:s}... done.".format(logStr)) 
+
+
+            logger.debug("{0:s}Xml to pandas DataFrames ...".format(logStr))      
+            tableNames=[]
+            oldTableName=None
+            for element in root.iter():
+                p = None
+                if element in pm:
+                    p = pm[element]
+                if p != root:
+                    continue
+                actTableName=element.tag
+                if actTableName != oldTableName:
+                    tableNames.append(actTableName)
+                    oldTableName=actTableName                
+            dataFrames={}
+            for tableName in tableNames:
+                all_records = []
+                for elementRow in root.iter(tag=tableName):
+                    record = {}
+                    for elementCol in elementRow:                       
+                        record[elementCol.tag] = elementCol.text
+                    all_records.append(record)
+                dataFrames[tableName]=pd.DataFrame(all_records) 
+            logger.debug("{0:s}... done.".format(logStr)) 
+            logger.debug("tableNames: {!s:s}.".format(logStr,sorted(dataFrames.keys()))) 
+                                           
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise XmError(logStrFinal)                
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            return dataFrames
+
 
     @classmethod
     def constructNewMultiindexFromCols(cls,df=None,mColNames=['OBJTYPE','pk'],mIdxNames=['OBJTYPE','OBJID']):
@@ -1095,6 +1166,11 @@ class Xm():
 
         Raises:
             XmError
+
+        >>> # -q -m 0 -s xmlRead -t nothing -y yes -z no -w OneLPipe         
+        >>> xmlFile=ms['OneLPipe']   
+        >>> import Xm
+        >>> xm=Xm.Xm(xmlFile)       
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1105,34 +1181,37 @@ class Xm():
             logger.debug("{0:s}xmlFile: {1:s} parse Xml ...".format(logStr,self.xmlFile))                     
             tree = ET.parse(self.xmlFile) # ElementTree                 
             root = tree.getroot()  # Element
-            pm = {c:p for p in root.iter() for c in p}   # parentMap
-            logger.debug("{0:s}xmlFile: {1:s} done.".format(logStr,self.xmlFile)) 
+
+            self.dataFrames=Xm._xmlRoot2Dfs(root)
+
+                    #pm = {c:p for p in root.iter() for c in p}   # parentMap
+                    #logger.debug("{0:s}xmlFile: {1:s} done.".format(logStr,self.xmlFile)) 
 
 
-            logger.debug("{0:s}xmlFile: {1:s} Xml to pandas DataFrames ...".format(logStr,self.xmlFile))      
-            tableNames=[]
-            oldTableName=None
-            for element in root.iter():
-                p = None
-                if element in pm:
-                    p = pm[element]
-                if p != root:
-                    continue
-                actTableName=element.tag
-                if actTableName != oldTableName:
-                    tableNames.append(actTableName)
-                    oldTableName=actTableName                
-            self.dataFrames={}
-            for tableName in tableNames:
-                all_records = []
-                for elementRow in root.iter(tag=tableName):
-                    record = {}
-                    for elementCol in elementRow:                       
-                        record[elementCol.tag] = elementCol.text
-                    all_records.append(record)
-                self.dataFrames[tableName]=pd.DataFrame(all_records) 
-            logger.debug("{0:s}xmlFile: {1:s} done.".format(logStr,self.xmlFile)) 
-            logger.debug("{:s}xmlFile: {:s}: tableNames: {!s:s}.".format(logStr,self.xmlFile,sorted(self.dataFrames.keys()))) 
+                    #logger.debug("{0:s}xmlFile: {1:s} Xml to pandas DataFrames ...".format(logStr,self.xmlFile))      
+                    #tableNames=[]
+                    #oldTableName=None
+                    #for element in root.iter():
+                    #    p = None
+                    #    if element in pm:
+                    #        p = pm[element]
+                    #    if p != root:
+                    #        continue
+                    #    actTableName=element.tag
+                    #    if actTableName != oldTableName:
+                    #        tableNames.append(actTableName)
+                    #        oldTableName=actTableName                
+                    #self.dataFrames={}
+                    #for tableName in tableNames:
+                    #    all_records = []
+                    #    for elementRow in root.iter(tag=tableName):
+                    #        record = {}
+                    #        for elementCol in elementRow:                       
+                    #            record[elementCol.tag] = elementCol.text
+                    #        all_records.append(record)
+                    #    self.dataFrames[tableName]=pd.DataFrame(all_records) 
+                    #logger.debug("{0:s}xmlFile: {1:s} done.".format(logStr,self.xmlFile)) 
+                    #logger.debug("{:s}xmlFile: {:s}: tableNames: {!s:s}.".format(logStr,self.xmlFile,sorted(self.dataFrames.keys()))) 
 
             #fixes and conversions
             self._convertAndFix()
