@@ -750,9 +750,31 @@ class Xm():
         >>> dfDct.keys()
         dict_keys(['country'])
         >>> dfDct['country']
-          rank  year   gdppc neighbor
-        0    1  2008  141100     None
-        1    4  2011   59900     None
+          rank  year   gdppc neighbor neighborname neighbordirection
+        0    1  2008  141100     None  Switzerland                 W
+        1    4  2011   59900     None     Malaysia                 N
+        >>> xmlAgsnLayout='<Layout><DIAGRAM><PK_DB>5556431006082193278</PK_DB><RK_DB>5556431006082193278</RK_DB><TITLE>HP GLD-WAA</TITLE><TYPE>3</TYPE><LINES_PER_GAP>2</LINES_PER_GAP><AVOID_SLACK_LINE>0</AVOID_SLACK_LINE><IDPH_DIM_TABLE_RA>0</IDPH_DIM_TABLE_RA><IDPH_DIM_TABLE_PRESSURES>2</IDPH_DIM_TABLE_PRESSURES><WATER_PRESSURE_DIMENSION>0</WATER_PRESSURE_DIMENSION><OVERVIEW>0</OVERVIEW><SHOW_NODE_NAMES>1</SHOW_NODE_NAMES><SHOW_KM>1</SHOW_KM><SHOW_DIAMETERS>1</SHOW_DIAMETERS><SHOW_PUMP>1</SHOW_PUMP><SHOW_KLAP>1</SHOW_KLAP><SHOW_REGV>1</SHOW_REGV><SHOW_VENT>0</SHOW_VENT><SHOW_BEVE>1</SHOW_BEVE><SHOW_BEWI>1</SHOW_BEWI><SHOW_OBEH>1</SHOW_OBEH><SHOW_STRO>1</SHOW_STRO><SHOW_WIND>1</SHOW_WIND><SHOW_ACT_P>1</SHOW_ACT_P><SHOW_PIPE_AXIS>1</SHOW_PIPE_AXIS><SHOW_STAT_PRESSURE_LINE>1</SHOW_STAT_PRESSURE_LINE><SHOW_PDAMPF_LINE>1</SHOW_PDAMPF_LINE><SHOW_PNIV_LINE>0</SHOW_PNIV_LINE><SHOW_PMAX_LINE>1</SHOW_PMAX_LINE><SHOW_PMIN_LINE>1</SHOW_PMIN_LINE><SHOW_PEND_LINE>1</SHOW_PEND_LINE><SHOW_MAOP>1</SHOW_MAOP><SHOW_STAT_QM_LINE>0</SHOW_STAT_QM_LINE><SHOW_STAT_TEMP_LINE>0</SHOW_STAT_TEMP_LINE><SHOW_ACT_QM_LINE>1</SHOW_ACT_QM_LINE><SHOW_ACT_TEMP_LINE>0</SHOW_ACT_TEMP_LINE><LINE_STYLE_PIPE_AXIS>1</LINE_STYLE_PIPE_AXIS><LINE_STYLE_STAT_LINE>5</LINE_STYLE_STAT_LINE><LINE_STYLE_STAT_LINE_RL>5</LINE_STYLE_STAT_LINE_RL><LINE_STYLE_PDAMPF>5</LINE_STYLE_PDAMPF><LINE_STYLE_PDAMPF_RL>5</LINE_STYLE_PDAMPF_RL><LINE_STYLE_PNIV>3</LINE_STYLE_PNIV><LINE_STYLE_MAOP>5</LINE_STYLE_MAOP><LINE_STYLE_ACT_P>5</LINE_STYLE_ACT_P><LINE_STYLE_ACT_P_RL>5</LINE_STYLE_ACT_P_RL><LINE_STYLE_MAX>5</LINE_STYLE_MAX><LINE_STYLE_MAX_RL>1</LINE_STYLE_MAX_RL><LINE_STYLE_MIN>2</LINE_STYLE_MIN><LINE_STYLE_MIN_RL>2</LINE_STYLE_MIN_RL><LINE_STYLE_END>5</LINE_STYLE_END><LINE_STYLE_END_RL>5</LINE_STYLE_END_RL><LINE_STYLE_STAT_QM>5</LINE_STYLE_STAT_QM><LINE_STYLE_STAT_QM_RL>5</LINE_STYLE_STAT_QM_RL><LINE_STYLE_STAT_TEMP>5</LINE_STYLE_STAT_TEMP><LINE_STYLE_STAT_TEMP_RL>5</LINE_STYLE_STAT_TEMP_RL><LINE_STYLE_ACT_QM>5</LINE_STYLE_ACT_QM><LINE_STYLE_ACT_QM_RL>4</LINE_STYLE_ACT_QM_RL><LINE_STYLE_ACT_TEMP>4</LINE_STYLE_ACT_TEMP><LINE_STYLE_ACT_TEMP_RL>4</LINE_STYLE_ACT_TEMP_RL><LINE_WIDTH_ACT_P>0,4</LINE_WIDTH_ACT_P><LINE_WIDTH_ACT_P_RL>0,4</LINE_WIDTH_ACT_P_RL><LINE_WIDTH_PIPE_AXIS>0,3</LINE_WIDTH_PIPE_AXIS><LINE_WIDTH_STAT_LINE>0,6</LINE_WIDTH_STAT_LINE><LINE_WIDTH_STAT_LINE_RL>0,6</LINE_WIDTH_STAT_LINE_RL><LINE_WIDTH_PDAMPF>0,2</LINE_WIDTH_PDAMPF><LINE_WIDTH_PDAMPF_RL>0,2</LINE_WIDTH_PDAMPF_RL><LINE_WIDTH_PNIV>0,3</LINE_WIDTH_PNIV><LINE_WIDTH_MAOP>0,1</LINE_WIDTH_MAOP><LINE_WIDTH_MAX>0,1</LINE_WIDTH_MAX><LINE_WIDTH_MAX_RL>0,4</LINE_WIDTH_MAX_RL><LINE_WIDTH_MIN>0,4</LINE_WIDTH_MIN><LINE_WIDTH_MIN_RL>0,4</LINE_WIDTH_MIN_RL><LINE_WIDTH_END>0,8</LINE_WIDTH_END><LINE_WIDTH_END_RL>0,4</LINE_WIDTH_END_RL><LINE_WIDTH_STAT_QM>0,3</LINE_WIDTH_STAT_QM><LINE_WIDTH_STAT_QM_RL>0,3</LINE_WIDTH_STAT_QM_RL><LINE_WIDTH_STAT_TEMP>0,3</LINE_WIDTH_STAT_TEMP><LINE_WIDTH_STAT_TEMP_RL>0,3</LINE_WIDTH_STAT_TEMP_RL><LINE_WIDTH_ACT_QM>0,3</LINE_WIDTH_ACT_QM><LINE_WIDTH_ACT_QM_RL>0,3</LINE_WIDTH_ACT_QM_RL><LINE_WIDTH_ACT_TEMP>0,3</LINE_WIDTH_ACT_TEMP><LINE_WIDTH_ACT_TEMP_RL>0,3</LINE_WIDTH_ACT_TEMP_RL></DIAGRAM><Y_AXIS><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><USE_DEF_SETTINGS>0</USE_DEF_SETTINGS><YMIN>0</YMIN><YMAX>1400</YMAX><INTERVALS>7</INTERVALS><PRECISION>0</PRECISION><USE_DEF_SETTINGS_T>1</USE_DEF_SETTINGS_T><YMIN_T>0</YMIN_T><YMAX_T>150</YMAX_T><PRECISION_T>2</PRECISION_T><USE_DEF_SETTINGS_QM>0</USE_DEF_SETTINGS_QM><YMIN_QM>0</YMIN_QM><YMAX_QM>280</YMAX_QM><PRECISION_QM>0</PRECISION_QM></Y_AXIS><X_AXIS><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM></X_AXIS><TEXT><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><X>75,1943462897527</X><Y>249,988250732422</Y><FONT_HEIGHT_MM>4</FONT_HEIGHT_MM><FONT_COLOR>0</FONT_COLOR><FONT_NAME>Arial</FONT_NAME><FONT_BOLD>0</FONT_BOLD><FONT_ITALIC>0</FONT_ITALIC><ANGLE>90</ANGLE><UNDERLINE>0</UNDERLINE><STRIKEOUT>0</STRIKEOUT><TEXT_CONTENT>GLONS</TEXT_CONTENT></TEXT><TEXT><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><X>381,908127208481</X><Y>250,977630615234</Y><FONT_HEIGHT_MM>4</FONT_HEIGHT_MM><FONT_COLOR>0</FONT_COLOR><FONT_NAME>Arial</FONT_NAME><FONT_BOLD>0</FONT_BOLD><FONT_ITALIC>0</FONT_ITALIC><ANGLE>90</ANGLE><UNDERLINE>0</UNDERLINE><STRIKEOUT>0</STRIKEOUT><TEXT_CONTENT>WAHN</TEXT_CONTENT></TEXT><TEXT><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><X>155,005889281508</X><Y>250,318023681641</Y><FONT_HEIGHT_MM>4</FONT_HEIGHT_MM><FONT_COLOR>0</FONT_COLOR><FONT_NAME>Arial</FONT_NAME><FONT_BOLD>0</FONT_BOLD><FONT_ITALIC>0</FONT_ITALIC><ANGLE>90</ANGLE><UNDERLINE>0</UNDERLINE><STRIKEOUT>0</STRIKEOUT><TEXT_CONTENT>Dt. Grenze</TEXT_CONTENT></TEXT><TEXT><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><X>177,762073027091</X><Y>250,647811889648</Y><FONT_HEIGHT_MM>4</FONT_HEIGHT_MM><FONT_COLOR>0</FONT_COLOR><FONT_NAME>Arial</FONT_NAME><FONT_BOLD>0</FONT_BOLD><FONT_ITALIC>0</FONT_ITALIC><ANGLE>90</ANGLE><UNDERLINE>0</UNDERLINE><STRIKEOUT>0</STRIKEOUT><TEXT_CONTENT>Würselen 1</TEXT_CONTENT></TEXT><TEXT><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><X>368,716136631331</X><Y>250,977615356445</Y><FONT_HEIGHT_MM>4</FONT_HEIGHT_MM><FONT_COLOR>0</FONT_COLOR><FONT_NAME>Arial</FONT_NAME><FONT_BOLD>0</FONT_BOLD><FONT_ITALIC>0</FONT_ITALIC><ANGLE>90</ANGLE><UNDERLINE>0</UNDERLINE><STRIKEOUT>0</STRIKEOUT><TEXT_CONTENT>ALD</TEXT_CONTENT></TEXT><TEXT><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><X>268,687115981817</X><Y>251,146667480469</Y><FONT_HEIGHT_MM>4</FONT_HEIGHT_MM><FONT_COLOR>0</FONT_COLOR><FONT_NAME>Arial</FONT_NAME><FONT_BOLD>0</FONT_BOLD><FONT_ITALIC>0</FONT_ITALIC><ANGLE>90</ANGLE><UNDERLINE>0</UNDERLINE><STRIKEOUT>0</STRIKEOUT><TEXT_CONTENT>LX1</TEXT_CONTENT></TEXT><TEXT><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><X>330,787173430551</X><Y>250,313110351563</Y><FONT_HEIGHT_MM>4</FONT_HEIGHT_MM><FONT_COLOR>0</FONT_COLOR><FONT_NAME>Arial</FONT_NAME><FONT_BOLD>0</FONT_BOLD><FONT_ITALIC>0</FONT_ITALIC><ANGLE>90</ANGLE><UNDERLINE>0</UNDERLINE><STRIKEOUT>0</STRIKEOUT><TEXT_CONTENT>URX</TEXT_CONTENT></TEXT><PROFILE_LINE><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><LINE_TYPE>1</LINE_TYPE><DRUCKNIV_P>1</DRUCKNIV_P><LINE_COLOR>0</LINE_COLOR><LINE_COLOR_RL>0</LINE_COLOR_RL><LINE_STYLE>1</LINE_STYLE><LINE_STYLE_RL>5</LINE_STYLE_RL></PROFILE_LINE><PROFILE_LINE><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><LINE_TYPE>2</LINE_TYPE><DRUCKNIV_P>1</DRUCKNIV_P><LINE_COLOR>16744448</LINE_COLOR><LINE_COLOR_RL>16711680</LINE_COLOR_RL><LINE_STYLE>5</LINE_STYLE><LINE_STYLE_RL>5</LINE_STYLE_RL></PROFILE_LINE><PROFILE_LINE><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><LINE_TYPE>8</LINE_TYPE><DRUCKNIV_P>1</DRUCKNIV_P><LINE_COLOR>65280</LINE_COLOR><LINE_COLOR_RL>16711680</LINE_COLOR_RL><LINE_STYLE>5</LINE_STYLE><LINE_STYLE_RL>5</LINE_STYLE_RL></PROFILE_LINE><PROFILE_LINE><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><LINE_TYPE>3</LINE_TYPE><DRUCKNIV_P>1</DRUCKNIV_P><LINE_COLOR>9109643</LINE_COLOR><LINE_COLOR_RL>12615680</LINE_COLOR_RL><LINE_STYLE>5</LINE_STYLE><LINE_STYLE_RL>5</LINE_STYLE_RL></PROFILE_LINE><PROFILE_LINE><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><LINE_TYPE>13</LINE_TYPE><DRUCKNIV_P>1</DRUCKNIV_P><LINE_COLOR>255</LINE_COLOR><LINE_COLOR_RL>255</LINE_COLOR_RL><LINE_STYLE>5</LINE_STYLE><LINE_STYLE_RL>5</LINE_STYLE_RL></PROFILE_LINE><PROFILE_LINE><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><LINE_TYPE>5</LINE_TYPE><DRUCKNIV_P>1</DRUCKNIV_P><LINE_COLOR>33023</LINE_COLOR><LINE_COLOR_RL>16711680</LINE_COLOR_RL><LINE_STYLE>5</LINE_STYLE><LINE_STYLE_RL>1</LINE_STYLE_RL></PROFILE_LINE><PROFILE_LINE><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><LINE_TYPE>6</LINE_TYPE><DRUCKNIV_P>1</DRUCKNIV_P><LINE_COLOR>16711680</LINE_COLOR><LINE_COLOR_RL>16711680</LINE_COLOR_RL><LINE_STYLE>2</LINE_STYLE><LINE_STYLE_RL>2</LINE_STYLE_RL></PROFILE_LINE><PROFILE_LINE><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><LINE_TYPE>7</LINE_TYPE><DRUCKNIV_P>1</DRUCKNIV_P><LINE_COLOR>16744703</LINE_COLOR><LINE_COLOR_RL>32768</LINE_COLOR_RL><LINE_STYLE>5</LINE_STYLE><LINE_STYLE_RL>5</LINE_STYLE_RL></PROFILE_LINE><PROFILE_LINE><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><LINE_TYPE>12</LINE_TYPE><DRUCKNIV_P>1</DRUCKNIV_P><LINE_COLOR>16744576</LINE_COLOR><LINE_COLOR_RL>32768</LINE_COLOR_RL><LINE_STYLE>5</LINE_STYLE><LINE_STYLE_RL>4</LINE_STYLE_RL></PROFILE_LINE><PROFILE_LINE_COLORS><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><ACT_P>65280</ACT_P><ACT_P_RL>16711680</ACT_P_RL><RA>0</RA><STAT>16744448</STAT><STAT_RL>16711680</STAT_RL><DAMPF>9109643</DAMPF><DAMPF_RL>12615680</DAMPF_RL><DRUCKNIV_P>8421504</DRUCKNIV_P><MAOP>255</MAOP><MIN>16711680</MIN><MIN_RL>16711680</MIN_RL><MAX>33023</MAX><MAX_RL>16711680</MAX_RL><END>16744703</END><END_RL>32768</END_RL><ACT_TEMP>13688896</ACT_TEMP><ACT_TEMP_RL>13422920</ACT_TEMP_RL><ACT_QM>16744576</ACT_QM><ACT_QM_RL>32768</ACT_QM_RL><STAT_TEMP>3107669</STAT_TEMP><STAT_TEMP_RL>2330219</STAT_TEMP_RL><STAT_QM>25600</STAT_QM><STAT_QM_RL>32768</STAT_QM_RL></PROFILE_LINE_COLORS><FORCE_DISPLAY_NODES><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><NODE_NAME>7-41-GLD-RBT</NODE_NAME><NODE_LABEL>7-41-GLD-RBT</NODE_LABEL><SHOW_LABEL>1</SHOW_LABEL><LABEL_DIRECTION>1</LABEL_DIRECTION><FK_KNOT>4981170782120393923</FK_KNOT></FORCE_DISPLAY_NODES><FORCE_DISPLAY_NODES><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><NODE_NAME>7-41-NO1</NODE_NAME><NODE_LABEL>7-41-NO1</NODE_LABEL><SHOW_LABEL>1</SHOW_LABEL><LABEL_DIRECTION>1</LABEL_DIRECTION><FK_KNOT>5584076006373654663</FK_KNOT></FORCE_DISPLAY_NODES><FORCE_DISPLAY_NODES><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><NODE_NAME>7-41-ORV</NODE_NAME><NODE_LABEL>7-41-ORV</NODE_LABEL><SHOW_LABEL>1</SHOW_LABEL><LABEL_DIRECTION>1</LABEL_DIRECTION><FK_KNOT>4964043826387417801</FK_KNOT></FORCE_DISPLAY_NODES><FORCE_DISPLAY_NODES><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><NODE_NAME>7-41-WU1-RB</NODE_NAME><NODE_LABEL>7-41-WU1-RB</NODE_LABEL><SHOW_LABEL>1</SHOW_LABEL><LABEL_DIRECTION>1</LABEL_DIRECTION><FK_KNOT>4627214911656931640</FK_KNOT></FORCE_DISPLAY_NODES><FORCE_DISPLAY_NODES><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><NODE_NAME>7-43-WWV</NODE_NAME><NODE_LABEL>7-43-WWV</NODE_LABEL><SHOW_LABEL>1</SHOW_LABEL><LABEL_DIRECTION>1</LABEL_DIRECTION><FK_KNOT>5324151752243791071</FK_KNOT></FORCE_DISPLAY_NODES><FORCE_DISPLAY_NODES><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><NODE_NAME>7-43-KRV</NODE_NAME><NODE_LABEL>7-43-KRV</NODE_LABEL><SHOW_LABEL>1</SHOW_LABEL><LABEL_DIRECTION>1</LABEL_DIRECTION><FK_KNOT>4843167124143783966</FK_KNOT></FORCE_DISPLAY_NODES><FORCE_DISPLAY_NODES><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><NODE_NAME>7-43-LX1-RB</NODE_NAME><NODE_LABEL>7-43-LX1-RB</NODE_LABEL><SHOW_LABEL>1</SHOW_LABEL><LABEL_DIRECTION>1</LABEL_DIRECTION><FK_KNOT>5228061767436841487</FK_KNOT></FORCE_DISPLAY_NODES><FORCE_DISPLAY_NODES><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><NODE_NAME>7-44-RBV</NODE_NAME><NODE_LABEL>7-44-RBV</NODE_LABEL><SHOW_LABEL>1</SHOW_LABEL><LABEL_DIRECTION>1</LABEL_DIRECTION><FK_KNOT>5648059305057361817</FK_KNOT></FORCE_DISPLAY_NODES><FORCE_DISPLAY_NODES><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><NODE_NAME>7-44-URX</NODE_NAME><NODE_LABEL>7-44-URX</NODE_LABEL><SHOW_LABEL>1</SHOW_LABEL><LABEL_DIRECTION>1</LABEL_DIRECTION><FK_KNOT>5471075831203424054</FK_KNOT></FORCE_DISPLAY_NODES><FORCE_DISPLAY_NODES><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><NODE_NAME>7-44-NKV</NODE_NAME><NODE_LABEL>7-44-NKV</NODE_LABEL><SHOW_LABEL>1</SHOW_LABEL><LABEL_DIRECTION>1</LABEL_DIRECTION><FK_KNOT>5259889438821344021</FK_KNOT></FORCE_DISPLAY_NODES><FORCE_DISPLAY_NODES><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><NODE_NAME>7-44-SPV</NODE_NAME><NODE_LABEL>7-44-SPV</NODE_LABEL><SHOW_LABEL>1</SHOW_LABEL><LABEL_DIRECTION>1</LABEL_DIRECTION><FK_KNOT>5548917687498105828</FK_KNOT></FORCE_DISPLAY_NODES><FORCE_DISPLAY_NODES><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><NODE_NAME>7-44-ALD-RB</NODE_NAME><NODE_LABEL>7-44-ALD-RB</NODE_LABEL><SHOW_LABEL>1</SHOW_LABEL><LABEL_DIRECTION>1</LABEL_DIRECTION><FK_KNOT>5395654839887243877</FK_KNOT></FORCE_DISPLAY_NODES><FORCE_DISPLAY_NODES><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><NODE_NAME>7-51-WAA-RBT</NODE_NAME><NODE_LABEL>7-51-WAA-RBT</NODE_LABEL><SHOW_LABEL>1</SHOW_LABEL><LABEL_DIRECTION>1</LABEL_DIRECTION><FK_KNOT>5564393610957983223</FK_KNOT></FORCE_DISPLAY_NODES><NOMINAL_VALUE_DISPLAY><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><FK_KNOT>5696816027628008633</FK_KNOT><FK_RSLW>4808829114850961099</FK_RSLW><SHOW_NUMERIC_VALUE>0</SHOW_NUMERIC_VALUE><RL>0</RL><VALUE_TYPE>0</VALUE_TYPE></NOMINAL_VALUE_DISPLAY><NOMINAL_VALUE_DISPLAY><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><FK_KNOT>4774229715715644595</FK_KNOT><FK_RSLW>5468150380408270201</FK_RSLW><SHOW_NUMERIC_VALUE>0</SHOW_NUMERIC_VALUE><RL>0</RL><VALUE_TYPE>0</VALUE_TYPE></NOMINAL_VALUE_DISPLAY><NOMINAL_VALUE_DISPLAY><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><FK_KNOT>5013655786080686882</FK_KNOT><FK_RSLW>5732389966512168862</FK_RSLW><SHOW_NUMERIC_VALUE>0</SHOW_NUMERIC_VALUE><RL>0</RL><VALUE_TYPE>0</VALUE_TYPE></NOMINAL_VALUE_DISPLAY><NOMINAL_VALUE_DISPLAY><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><FK_KNOT>4943746274077686975</FK_KNOT><FK_RSLW>5026408578843360078</FK_RSLW><SHOW_NUMERIC_VALUE>0</SHOW_NUMERIC_VALUE><RL>0</RL><VALUE_TYPE>0</VALUE_TYPE></NOMINAL_VALUE_DISPLAY><NOMINAL_VALUE_DISPLAY><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><FK_KNOT>5591473557944807466</FK_KNOT><FK_RSLW>5172478010600045505</FK_RSLW><SHOW_NUMERIC_VALUE>0</SHOW_NUMERIC_VALUE><RL>0</RL><VALUE_TYPE>0</VALUE_TYPE></NOMINAL_VALUE_DISPLAY><NOMINAL_VALUE_DISPLAY><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><FK_KNOT>5681287721180972670</FK_KNOT><FK_RSLW>4847471410361330583</FK_RSLW><SHOW_NUMERIC_VALUE>0</SHOW_NUMERIC_VALUE><RL>0</RL><VALUE_TYPE>0</VALUE_TYPE></NOMINAL_VALUE_DISPLAY><NOMINAL_VALUE_DISPLAY><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><FK_KNOT>4733201276580834622</FK_KNOT><FK_RSLW>4862900383109045212</FK_RSLW><SHOW_NUMERIC_VALUE>0</SHOW_NUMERIC_VALUE><RL>0</RL><VALUE_TYPE>0</VALUE_TYPE></NOMINAL_VALUE_DISPLAY><NOMINAL_VALUE_DISPLAY><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><FK_KNOT>5535372591188407609</FK_KNOT><FK_RSLW>4909877841151045872</FK_RSLW><SHOW_NUMERIC_VALUE>0</SHOW_NUMERIC_VALUE><RL>0</RL><VALUE_TYPE>0</VALUE_TYPE></NOMINAL_VALUE_DISPLAY><NOMINAL_VALUE_DISPLAY><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><FK_KNOT>4688009443988778540</FK_KNOT><FK_RSLW>5592902961516490161</FK_RSLW><SHOW_NUMERIC_VALUE>0</SHOW_NUMERIC_VALUE><RL>0</RL><VALUE_TYPE>0</VALUE_TYPE></NOMINAL_VALUE_DISPLAY><NOMINAL_VALUE_DISPLAY><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><FK_KNOT>5027825128788497349</FK_KNOT><FK_RSLW>5374847666199546461</FK_RSLW><SHOW_NUMERIC_VALUE>0</SHOW_NUMERIC_VALUE><RL>0</RL><VALUE_TYPE>0</VALUE_TYPE></NOMINAL_VALUE_DISPLAY><NOMINAL_VALUE_DISPLAY><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><FK_KNOT>5570221034797298909</FK_KNOT><FK_RSLW>5650209335377114460</FK_RSLW><SHOW_NUMERIC_VALUE>0</SHOW_NUMERIC_VALUE><RL>0</RL><VALUE_TYPE>0</VALUE_TYPE></NOMINAL_VALUE_DISPLAY><NOMINAL_VALUE_DISPLAY><FK_DIAGRAM>5556431006082193278</FK_DIAGRAM><FK_KNOT>5168063508501641470</FK_KNOT><FK_RSLW>5191618168634067049</FK_RSLW><SHOW_NUMERIC_VALUE>0</SHOW_NUMERIC_VALUE><RL>0</RL><VALUE_TYPE>0</VALUE_TYPE></NOMINAL_VALUE_DISPLAY></Layout>'
+        >>> root = ET.fromstring(xmlAgsnLayout)        
+        >>> dfDct=Xm.Xm._xmlRoot2Dfs(root)
+        >>> dfDct.keys()
+        dict_keys(['DIAGRAM', 'Y_AXIS', 'X_AXIS', 'TEXT', 'PROFILE_LINE', 'PROFILE_LINE_COLORS', 'FORCE_DISPLAY_NODES', 'NOMINAL_VALUE_DISPLAY'])
+        >>> dfDct['DIAGRAM']
+                         PK_DB                RK_DB       TITLE TYPE LINES_PER_GAP AVOID_SLACK_LINE IDPH_DIM_TABLE_RA IDPH_DIM_TABLE_PRESSURES WATER_PRESSURE_DIMENSION OVERVIEW SHOW_NODE_NAMES SHOW_KM SHOW_DIAMETERS SHOW_PUMP SHOW_KLAP SHOW_REGV SHOW_VENT SHOW_BEVE SHOW_BEWI SHOW_OBEH SHOW_STRO SHOW_WIND SHOW_ACT_P SHOW_PIPE_AXIS SHOW_STAT_PRESSURE_LINE SHOW_PDAMPF_LINE SHOW_PNIV_LINE SHOW_PMAX_LINE SHOW_PMIN_LINE SHOW_PEND_LINE SHOW_MAOP SHOW_STAT_QM_LINE SHOW_STAT_TEMP_LINE SHOW_ACT_QM_LINE SHOW_ACT_TEMP_LINE LINE_STYLE_PIPE_AXIS LINE_STYLE_STAT_LINE LINE_STYLE_STAT_LINE_RL LINE_STYLE_PDAMPF LINE_STYLE_PDAMPF_RL LINE_STYLE_PNIV LINE_STYLE_MAOP LINE_STYLE_ACT_P LINE_STYLE_ACT_P_RL LINE_STYLE_MAX LINE_STYLE_MAX_RL LINE_STYLE_MIN LINE_STYLE_MIN_RL LINE_STYLE_END LINE_STYLE_END_RL LINE_STYLE_STAT_QM LINE_STYLE_STAT_QM_RL LINE_STYLE_STAT_TEMP LINE_STYLE_STAT_TEMP_RL LINE_STYLE_ACT_QM LINE_STYLE_ACT_QM_RL LINE_STYLE_ACT_TEMP LINE_STYLE_ACT_TEMP_RL LINE_WIDTH_ACT_P LINE_WIDTH_ACT_P_RL LINE_WIDTH_PIPE_AXIS LINE_WIDTH_STAT_LINE LINE_WIDTH_STAT_LINE_RL LINE_WIDTH_PDAMPF LINE_WIDTH_PDAMPF_RL LINE_WIDTH_PNIV LINE_WIDTH_MAOP LINE_WIDTH_MAX LINE_WIDTH_MAX_RL LINE_WIDTH_MIN LINE_WIDTH_MIN_RL LINE_WIDTH_END LINE_WIDTH_END_RL LINE_WIDTH_STAT_QM LINE_WIDTH_STAT_QM_RL LINE_WIDTH_STAT_TEMP LINE_WIDTH_STAT_TEMP_RL LINE_WIDTH_ACT_QM LINE_WIDTH_ACT_QM_RL LINE_WIDTH_ACT_TEMP LINE_WIDTH_ACT_TEMP_RL
+        0  5556431006082193278  5556431006082193278  HP GLD-WAA    3             2                0                 0                        2                        0        0               1       1              1         1         1         1         0         1         1         1         1         1          1              1                       1                1              0              1              1              1         1                 0                   0                1                  0                    1                    5                       5                 5                    5               3               5                5                   5              5                 1              2                 2              5                 5                  5                     5                    5                       5                 5                    4                   4                      4              0,4                 0,4                  0,3                  0,6                     0,6               0,2                  0,2             0,3             0,1            0,1               0,4            0,4               0,4            0,8               0,4                0,3                   0,3                  0,3                     0,3               0,3                  0,3                 0,3                    0,3
+        >>> dfDct['NOMINAL_VALUE_DISPLAY']
+                     FK_DIAGRAM              FK_KNOT              FK_RSLW SHOW_NUMERIC_VALUE RL VALUE_TYPE
+        0   5556431006082193278  5696816027628008633  4808829114850961099                  0  0          0
+        1   5556431006082193278  4774229715715644595  5468150380408270201                  0  0          0
+        2   5556431006082193278  5013655786080686882  5732389966512168862                  0  0          0
+        3   5556431006082193278  4943746274077686975  5026408578843360078                  0  0          0
+        4   5556431006082193278  5591473557944807466  5172478010600045505                  0  0          0
+        5   5556431006082193278  5681287721180972670  4847471410361330583                  0  0          0
+        6   5556431006082193278  4733201276580834622  4862900383109045212                  0  0          0
+        7   5556431006082193278  5535372591188407609  4909877841151045872                  0  0          0
+        8   5556431006082193278  4688009443988778540  5592902961516490161                  0  0          0
+        9   5556431006082193278  5027825128788497349  5374847666199546461                  0  0          0
+        10  5556431006082193278  5570221034797298909  5650209335377114460                  0  0          0
+        11  5556431006082193278  5168063508501641470  5191618168634067049                  0  0          0
         """
 
         logStr = "{0:s}.{1:s}: ".format(__class__.__name__, sys._getframe().f_code.co_name)
@@ -786,10 +808,12 @@ class Xm():
                     record = {}
                     for elementCol in elementRow:                       
                         record[elementCol.tag] = elementCol.text
+                        for key, value in elementCol.attrib.items():
+                            record[elementCol.tag+key]=value                            
                     all_records.append(record)
                 dataFrames[tableName]=pd.DataFrame(all_records) 
             logger.debug("{0:s}... done.".format(logStr)) 
-            logger.debug("tableNames: {!s:s}.".format(logStr,sorted(dataFrames.keys()))) 
+            logger.debug("{:s}tableNames: {!s:s}.".format(logStr,sorted(dataFrames.keys()))) 
                                            
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -1183,35 +1207,6 @@ class Xm():
             root = tree.getroot()  # Element
 
             self.dataFrames=Xm._xmlRoot2Dfs(root)
-
-                    #pm = {c:p for p in root.iter() for c in p}   # parentMap
-                    #logger.debug("{0:s}xmlFile: {1:s} done.".format(logStr,self.xmlFile)) 
-
-
-                    #logger.debug("{0:s}xmlFile: {1:s} Xml to pandas DataFrames ...".format(logStr,self.xmlFile))      
-                    #tableNames=[]
-                    #oldTableName=None
-                    #for element in root.iter():
-                    #    p = None
-                    #    if element in pm:
-                    #        p = pm[element]
-                    #    if p != root:
-                    #        continue
-                    #    actTableName=element.tag
-                    #    if actTableName != oldTableName:
-                    #        tableNames.append(actTableName)
-                    #        oldTableName=actTableName                
-                    #self.dataFrames={}
-                    #for tableName in tableNames:
-                    #    all_records = []
-                    #    for elementRow in root.iter(tag=tableName):
-                    #        record = {}
-                    #        for elementCol in elementRow:                       
-                    #            record[elementCol.tag] = elementCol.text
-                    #        all_records.append(record)
-                    #    self.dataFrames[tableName]=pd.DataFrame(all_records) 
-                    #logger.debug("{0:s}xmlFile: {1:s} done.".format(logStr,self.xmlFile)) 
-                    #logger.debug("{:s}xmlFile: {:s}: tableNames: {!s:s}.".format(logStr,self.xmlFile,sorted(self.dataFrames.keys()))) 
 
             #fixes and conversions
             self._convertAndFix()
@@ -2653,30 +2648,43 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             return vRART
 
-    def _OBJS(self,dfName):
+    def _OBJS(self,dfName,OBJSDecodedColName='OBJSDec'):
         """Decode a column OBJS (a BLOB containing a SIR 3S OBJ collection).
 
         Args:
             dfName: Name of a dataFrame with column OBJS
             
-            columns used (in self.dataFrames[dfName]):
-                * OBJS (BLOB): i.e.: KNOT~4668229590574507160\t...
-                * pk: ID (of the row) 
-                * None is returned if these columns are missing
-                * in this case no changes in column OBJS in self.dataFrames[dfName]
+                columns used (in self.dataFrames[dfName]):
+                    * OBJS (BLOB): i.e.: KNOT~4668229590574507160\t...
+                    * pk: ID (of the row) 
+                    * None is returned if these columns are missing
+                    * in this case no changes concerning column OBJSDecodedColName in self.dataFrames[dfName]
+
+            OBJSDecodedColName: colName of the decoded OBJS; default: OBJSDec (i.e. the BLOB is not overwritten)
 
         Returns:
-            column OBJS in self.dataFrames[dfName] is decoded
-            to 'XXXX~' if OBJS was None 
+            column OBJSDecodedColName in self.dataFrames[dfName] set to OBJS decoded
+                decoded to 'XXXX~' if OBJS was None 
 
             dfOBJS: dataFrame with one row per OBJ in OBJS: 
                 columns added (compared to self.dataFrames[dfName]):
                     * OBJTYPE
                     * OBJID 
+                    * OBJSDecodedColName (if not set to 'OBJS')
                 rows missing (compared to self.dataFrames[dfName]):
                     * rows with OBJS None
         Raises:
-            XmError                                
+            XmError
+                    
+        >>> # -q -m 0 -t both -s _OBJS -y yes -z no -w LocalHeatingNetwork
+        >>> xm=xms['LocalHeatingNetwork']
+        >>> df=xm._OBJS('AGSN')
+        >>> df['OBJSDecStrShort']=df['OBJSDec'].str[1:24]        
+        >>> df[['pk','NAME','OBJSDecStrShort','OBJTYPE','OBJID']].iloc[:3]
+                            pk                                      NAME          OBJSDecStrShort OBJTYPE                OBJID
+        0  5252525269080005909  Netzdruckdiagramm VL/RL: BHKW - Netzende  ROHR~493942267806348792    ROHR  4939422678063487923
+        1  5252525269080005909  Netzdruckdiagramm VL/RL: BHKW - Netzende  ROHR~493942267806348792    ROHR  4984202422877610920
+        2  5252525269080005909  Netzdruckdiagramm VL/RL: BHKW - Netzende  ROHR~493942267806348792    ROHR  4789218195240364437
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -2699,15 +2707,24 @@ class Xm():
                  logger.debug("{0:s}column pk not in dataFrame!".format(logStr)) 
                  logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
                  return dfOBJS
-           
-           
-            # Spalte OBJS dekodieren; wenn leer ((noch) keine OBJS), dann 'XXXX~'      
-            #                                                                   4668229590574507160
-            self.dataFrames[dfName].loc[:,'OBJS']=self.dataFrames[dfName]['OBJS'].apply(lambda x: 'XXXX~' if x is None else base64.b64decode(x)).str.decode('utf-8')
+                      
+            try:           
+                # Spalte OBJS dekodieren; wenn leer ((noch) keine OBJS), dann 'XXXX~'      
+                #                                                                   4668229590574507160
+                # cp1252
+                self.dataFrames[dfName].loc[:,OBJSDecodedColName]=self.dataFrames[dfName]['OBJS'].apply(lambda x: 'XXXX~' if x is None else base64.b64decode(x)).str.decode('utf-8')                
+            except UnicodeDecodeError as e:  
+                x=self.dataFrames[dfName]['OBJS'].iloc[0]
+                logger.debug("{:s} {!s:s} {!s:s}".format(logStr,x,base64.b64decode(x)))    
+                logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                logger.error(logStrFinal) 
+                raise XmError(logStrFinal)      
+                
+                
 
             # einzelne OBJS als neuer df
             # ------------------------->           
-            sList=[pd.Series(row['pk'],index=row['OBJS'].split('\t'),name='pk_Echo') for index,row in self.dataFrames[dfName].iterrows()]                
+            sList=[pd.Series(row['pk'],index=row[OBJSDecodedColName].split('\t'),name='pk_Echo') for index,row in self.dataFrames[dfName].iterrows()]                
 
             # sList[0]:
             # index:                      pk_Echo 
@@ -2752,6 +2769,106 @@ class Xm():
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             return dfOBJS
+
+    def _LAYOUT_XML(self,dfName):
+        """Decode a column LAYOUT_XML (a BLOB containing XML) in dfName.
+
+        Args:
+            dfName: Name of a dataFrame with column LAYOUT_XML
+            
+                columns used (in self.dataFrames[dfName]):
+                    * LAYOUT_XML (BLOB)                   
+                    * None is returned if these columns are missing                   
+
+        Returns:
+            dctDfsLAYOUT: a dct with dfs with LAYOUT-content
+ 
+        Raises:
+            XmError
+                    
+        >>> # -v -m 0 -t both -s _LAYOUT_XML -y yes -z no -w LocalHeatingNetwork
+        >>> xm=xms['LocalHeatingNetwork']
+        >>> dctDfsLAYOUT=xm._LAYOUT_XML('AGSN')
+        >>> sorted(dctDfsLAYOUT.keys())
+        ['DIAGRAM', 'PROFILE_LINE', 'PROFILE_LINE_COLORS', 'X_AXIS', 'Y_AXIS']
+        >>> dctDfsLAYOUT['PROFILE_LINE']
+                    FK_DIAGRAM LINE_TYPE DRUCKNIV_P LINE_COLOR LINE_COLOR_RL LINE_STYLE LINE_STYLE_RL
+        0  5252525269080005909         1          1          0             0          1             5
+        1  5252525269080005909         8          1        255      16711680          5             5
+        2  5252525269080005909         3          1   16711935           128          5             5
+        3  5252525269080005909         5          1        255      16711680          1             1
+        4  5252525269080005909         6          1        255      16711680          2             2
+        5  5252525269080005909        12          1      25600       4227327          4             4
+        >>> dctDfsLAYOUT=xm._LAYOUT_XML('SPLZ')        
+        >>> sorted(dctDfsLAYOUT.keys())
+        ['DIAGRAM', 'LINE', 'Y_AXIS']
+        >>> dctDfsLAYOUT['LINE']
+                    FK_DIAGRAM LINE_TYPE LABEL            DATAPOINT LINE_COLOR CONST_NIVEAU_VALUE LINE_STYLE DYNAMIC LINE_WIDTH FACTOR ADDEND
+        0  4715028732328060917         1  None  5458207635769388996   11829830                  0          5       0        0,4      1      0
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try: 
+            dctDfsLAYOUT=None
+
+            if dfName not in self.dataFrames.keys():
+                 logStrFinal="{0:s}{1:s} not in dataFrames.keys()!".format(logStr,dfName)
+                 logger.debug(logStrFinal) 
+                 raise XmError(logStrFinal)                   
+            else:
+                 logger.debug("{0:s}{1:s}     in dataFrames.keys().".format(logStr,dfName)) 
+
+            if 'LAYOUT_XML' not in self.dataFrames[dfName].columns.tolist():
+                 logStrFinal="{0:s}column LAYOUT_XML not in dataFrame!".format(logStr)
+                 logger.debug(logStrFinal) 
+                 raise XmError(logStrFinal) 
+            else:
+                 logger.debug("{0:s}column LAYOUT_XML    in dataFrame.".format(logStr))
+                      
+            try:     
+                dctDfsLAYOUTLst=[]
+                for index, row in self.dataFrames[dfName].iterrows():                    
+                    xmlBLOB=row['LAYOUT_XML']
+                    logger.debug("{:s}xmlBLOB={!s:s}".format(logStr,xmlBLOB)) 
+                    xmlBLOBInB=base64.b64decode(xmlBLOB)
+                    logger.debug("{:s}xmlBLOBInB={!s:s}".format(logStr,xmlBLOBInB)) 
+                    xmlBLOBInStr=xmlBLOBInB.decode('cp1252') 
+                    logger.debug("{:s}xmlBLOBInStr={:s}".format(logStr,re.sub('\r\n[ ]*','',xmlBLOBInStr))) 
+                    root = ET.fromstring(xmlBLOBInStr)
+                    dctDfsLAYOUTLst.append(Xm._xmlRoot2Dfs(root))
+
+                # TabellenTypen ermitteln
+                tabTypes=set()
+                for dct in  dctDfsLAYOUTLst:
+                    tabTypes=tabTypes.union(dct.keys())
+
+                dctDfsLAYOUT={}
+                # ueber alle Tabellen
+                for tabType in tabTypes:                    
+                    tabTypeTables=[]
+                    for dct in dctDfsLAYOUTLst:
+                        if tabType not in dct.keys():
+                            continue
+                        else:
+                            # Tabelle anhängen
+                            tabTypeTables.append(dct[tabType])
+                    # ... wenn nicht alle Tabellen dieselben Spalten haben ?! ...
+                    dctDfsLAYOUT[tabType]=pd.concat(tabTypeTables)
+         
+            except UnicodeDecodeError as e:                 
+                logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                logger.error(logStrFinal) 
+                raise XmError(logStrFinal)      
+                              
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+                                                  
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+            return dctDfsLAYOUT
 
     def _vLFKT(self):
         """One row per Loadfactor Timeseries.
