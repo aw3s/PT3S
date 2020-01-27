@@ -2725,6 +2725,7 @@ class Mx():
                 * Level 1: col (Sir3sID)
                 [* the 2 Time Idx (Level 2 and 3) are droped]
                 *  cols: mx2Idx
+
             * timeL: left  ScenTimeStamp included in calculating the Aggregate
             * timeR: right ScenTimeStamp included in calculating the Aggregate
 
