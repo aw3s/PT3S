@@ -2308,27 +2308,43 @@ class Rm():
 
                 defining the HPLINES (xy-curves) Identification:
 
-                    the different HPs in pDf are identified by the cols
-                    NAMECol: default: 'NAME'
+                    the different HPs in pDf are identified by the two cols
+                    NAMECol: default: 'NAME'; set to None if NAMECol is not criteria ...
                     and 
-                    LayerCol: default: 'Layer'
+                    LayerCol: default: 'Layer'; set to None if LayerCol is not criteria ...
 
                     for each HP several lines (xy-curves) are plotted
 
+                    not criteria ...
                     if NAMECol is None only LayerCol is used
-                    if LayerCol also in None, all rows are treated as "the" HPLINE
+                    if LayerCol also is None, all rows are treated as "the" HPLINE
 
-                defining the HPLINES (xy-curves):
+                defining the HPLINES (xy-curves) Geometry:
 
-                    xCol: col in pDf for x; example: 'x'
+                    * xCol: col in pDf for x; example: 'x'
                     the col is the same for all HPs and all y
 
-                    hpLines: list of cols in pDf for y;  example: ['P']
-                    each col in hpLines defines a line (xy-curve) to be plotted 
+                    * 'NAME'_'Layer' (i.e. Nord-Süd_1) is used as an Index in hpLineGeoms
+
+                    * hpLineGeoms - Example - = {
+                        'Nord-Süd-Abzweig_1':{'parentHP':'Nord-Süd_1','matchType':'starts'}                       
+                    }
+
+                defining the HPLINES (xy-curves) Types (y-Axes):
+
+                    * hpLines: list of cols in pDf for y;  example: ['P']
+                    each col in hpLines defines a hpLine (a xy-curve) to be plotted 
                     for each identified HP all defined hpLines are plotted 
 
-                    'NAME'_'Layer'_'hpLine' is used as an Index in hpLineProps 
+                defining the HPLINES (xy-curves) Layout:
 
+                    # 'NAME'_'Layer'_'hpLineType' (i.e. Nord-Süd_1_P) is used as an Index in hpLineProps 
+
+                    * hpLineProps - Example - = {
+                        'Nord-Süd_1_P':{'label':'VL','color':'red' ,'linestyle':'-','linewidth':3}
+                       ,'Nord-Süd_2_P':{'label':'RL','color':'blue','linestyle':'-','linewidth':3}        
+                    }
+                    
                     if 'NAME'_'Layer'_'hpLine' not in hpLineProps:
                         default props are used
                     if hpLineProps['NAME'_'Layer'_'hpLine'] == None:
@@ -2393,7 +2409,47 @@ class Rm():
                 dict_keys(['AGFW Symposium DH_1_bBzg', 'AGFW Symposium DH_1_bBzg_2', 'AGFW Symposium DH_1_Q', 'AGFW Symposium DH_2_bBzg', 'AGFW Symposium DH_2_bBzg_1', 'AGFW Symposium DH_2_Q'])
                 >>> txt=axNfd.set_title('HP')  
                 >>> gs.tight_layout(fig)
-                >>> plt.show()                    
+                >>> plt.show()        
+                >>> ###
+                >>> Rcuts=[{'NAME':'R-Abzweig','nl':['R-3107','R-3427']}]
+                >>> Vcuts=[{'NAME':'V-Abzweig','nl':['V-3107','V-3427']}]
+                >>> fV=lambda row: True if row.KVR_i=='1' and row.KVR_k=='1' else False
+                >>> fR=lambda row: True if row.KVR_i=='2' and row.KVR_k=='2' else False                
+                >>> for vcut,rcut in zip(Vcuts,Rcuts):
+                ...     ret=xm.vAGSN_Add(nl=vcut['nl'],weight='L',Layer=1,AKTIV=None,NAME=vcut['NAME'],fmask=fV)
+                ...     ret=xm.vAGSN_Add(nl=rcut['nl'],weight='L',Layer=2,AKTIV=None,NAME=rcut['NAME'],fmask=fR)
+                >>> # Schnitte erneut mit Ergebnissen versorgen, da Schnitte neu definiert wurden
+                >>> xm.MxAdd(mx=mx,ForceNoH5Update=True)
+                >>> vAGSN=xm.dataFrames['vAGSN']
+                >>> for PH,P,RHO,Z in zip(['PH'],['P'],['RHO'],['Z']):
+                ...     vAGSN[PH]=vAGSN.apply(lambda row: row[P]*math.pow(10.,5.)/(row[RHO]*9.81),axis=1)
+                ...     vAGSN[PH]=vAGSN[PH]+vAGSN[Z].astype('float64')
+                >>> for bBzg,P,RHO,Z in zip(['bBzg'],['P'],['RHO'],['Z']):
+                ...     vAGSN[bBzg]=vAGSN.apply(lambda row: row[RHO]*9.81/math.pow(10.,5.),axis=1)
+                ...     vAGSN[bBzg]=vAGSN[P]+vAGSN[Z].astype('float64')*vAGSN[bBzg]            
+                >>> plt.close()
+                >>> fig=plt.figure(figsize=Rm.DINA3q,dpi=Rm.dpiSize)         
+                >>> gs = gridspec.GridSpec(3, 1)
+                >>> # --------------------------
+                >>> axNfd = fig.add_subplot(gs[0])       
+                >>> yAxes,yLines=Rm.Rm.pltHP(vAGSN[vAGSN['NAME'].isin(['R-Abzweig','V-Abzweig','AGFW Symposium DH'])],pAx=axNfd
+                ... ,hpLines=['bBzg','Q']
+                ... ,hpLineGeoms={'V-Abzweig_1':{'masterHP':'AGFW Symposium DH_1','masterNode':'R-3107','matchType':'starts'}}
+                ... ,hpLineProps={
+                ...     'AGFW Symposium DH_1_bBzg':{'label':'VL','color':'red' ,'linestyle':'-','linewidth':3}
+                ...    ,'AGFW Symposium DH_2_bBzg':{'label':'RL','color':'blue','linestyle':'-','linewidth':3}        
+                ...    ,'AGFW Symposium DH_1_Q':None #{'label':'VL Q','color':'magenta' ,'linestyle':'--','linewidth':2}
+                ...    ,'AGFW Symposium DH_2_Q':None #{'label':'RL Q','color':'lightblue','linestyle':'--','linewidth':2}                           
+                ...    ,'V-Abzweig_1_bBzg':{'label':'VL','color':'red' ,'linestyle':'-','linewidth':3}
+                ...    ,'R-Abzweig_2_bBzg':{'label':'RL','color':'blue' ,'linestyle':'-','linewidth':3}
+                ...    ,'V-Abzweig_1_Q':{'label':'VL Q','color':'magenta' ,'linestyle':'--','linewidth':2}         
+                ...    ,'R-Abzweig_2_Q':{'label':'VL Q','color':'lightblue' ,'linestyle':'--','linewidth':2}                         
+                ... }
+                ... )                        
+                >>> txt=axNfd.set_title('HP')  
+                >>> gs.tight_layout(fig)
+                >>> plt.show()        
+                >>> 
         """
         logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -2410,13 +2466,14 @@ class Rm():
                 if 'LayerCol' not in keys:
                     kwds['LayerCol']='Layer'
 
-
                 if 'xCol' not in keys:
                     kwds['xCol']='x'
                 if 'hpLines' not in keys:
                     kwds['hpLines']=['P']
                 if 'hpLineProps' not in keys:
                     kwds['hpLineProps']={'NAME_1_P':{'label':'HP NAME Layer 1 P','color':'red','linestyle':'-','linewidth':3}}
+                if 'hpLineGeoms' not in keys:
+                    kwds['hpLineGeoms']=None 
 
                 if 'yTwinedAxesPosDeltaHPStart' not in keys:
                      # (negativer) Abstand der 1. y-Achse von der Zeichenfläche
@@ -2429,6 +2486,7 @@ class Rm():
                 logger.debug("{:s}xCol:      {:s}.".format(logStr,kwds['xCol']))
                 logger.debug("{:s}hpLines:     {:s}.".format(logStr,str(kwds['hpLines'])))
                 logger.debug("{:s}hpLineProps: {:s}.".format(logStr,str(kwds['hpLineProps'])))
+                logger.debug("{:s}hpLineGeoms: {:s}.".format(logStr,str(kwds['hpLineGeoms'])))
                 logger.debug("{:s}yTwinedAxesPosDeltaHPStart: {:s}.".format(logStr,str(kwds['yTwinedAxesPosDeltaHPStart'])))
                 logger.debug("{:s}yTwinedAxesPosDeltaHP: {:s}.".format(logStr,str(kwds['yTwinedAxesPosDeltaHP'])))
 
@@ -2445,6 +2503,7 @@ class Rm():
                 else:
                     hPs=pd.DataFrame(data={'NAME':[None],'Layer':[None]})
                 #logger.debug("{:s}hPs: {:s}.".format(logStr,hPs.to_string()))
+                # hPs hat 2 Spalten: NAME und Layer
 
                 # y-Achsen-Typen ermitteln
                 hpLineTypesSequence=[col if re.search('([\w ]+)(_)(\d+)$',col)==None else re.search('([\w ]+)(_)(\d+)$',col).group(1) for col in kwds['hpLines']]          
@@ -2475,35 +2534,105 @@ class Rm():
 
                 yLines={}
                 for index,row in hPs.iterrows():
-                    # über alle Schnitte und Layer    
-                    
-                                                        
-                    # Schnitt+Layer filtern
-                    if kwds['NAMECol'] != None and kwds['LayerCol'] != None:
-                        hPpDf=pDf[
-                            (pDf[kwds['NAMECol']]==row[kwds['NAMECol']]) 
-                            & 
-                            (pDf[kwds['LayerCol']]==row[kwds['LayerCol']])
-                               ]
-                        keyBase=str(row[kwds['NAMECol']])+'_'+str(row[kwds['LayerCol']])+'_'#+hpLine
-                        logger.debug("{:s}Schnitt: {!s:s} Layer: {!s:s} ...".format(logStr,row[kwds['NAMECol']],row[kwds['LayerCol']])) 
-                    elif kwds['NAMECol'] != None:
-                        hPpDf=pDf[
-                            (pDf[kwds['NAMECol']]==row[kwds['NAMECol']])                       
-                               ]           
-                        keyBase=str(row[kwds['NAMECol']])+'_'#+hpLine
-                        logger.debug("{:s}Schnitt: {!s:s} ...".format(logStr,row[kwds['NAMECol']])) 
-                    elif kwds['LayerCol'] != None:
-                        hPpDf=pDf[
-                            (pDf[kwds['LayerCol']]==row[kwds['LayerCol']])                       
-                               ]        
-                        keyBase=str(row[kwds['LayerCol']])+'_'#+hpLine
-                        logger.debug("{:s}Layer: {!s:s} ...".format(logStr,row[kwds['LayerCol']])) 
-                    else:
-                        hPpDf=pDf
-                        keyBase=''
+                    # über alle Schnitte (NAME) und Layer (Layer)   
+
+                    def getKeyBaseAndDf(pDf,col1Name,col2Name,col1Value,col2Value):                                                                                                  
+                        # pDf bzgl. cols filtern
+                        if col1Name != None and col2Name != None:
+                            hPpDf=pDf[
+                                (pDf[col1Name]==col1Value) 
+                                & 
+                                (pDf[col2Name]==col2Value)
+                                   ]
+                            keyBase=str(row[col1Name])+'_'+str(col2Value)+'_'#+hpLine
+                            logger.debug("{:s}getKeyBaseAndDf: Schnitt: {!s:s} Layer: {!s:s} ...".format(logStr,col1Value,col2Value)) 
+                        elif col1Name != None:
+                            hPpDf=pDf[
+                                (pDf[col1Name]==col1Value)                       
+                                   ]           
+                            keyBase=str(col1Value)+'_'#+hpLine
+                            logger.debug("{:s}getKeyBaseAndDf: Schnitt: {!s:s} ...".format(logStr,row[col1Name])) 
+                        elif col2Name != None:
+                            hPpDf=pDf[
+                                (pDf[col2Name]==col2Value)                       
+                                   ]        
+                            keyBase=str(col2Value)+'_'#+hpLine
+                            logger.debug("{:s}getKeyBaseAndDf: Layer: {!s:s} ...".format(logStr,col2Value)) 
+                        else:
+                            hPpDf=pDf
+                            keyBase=''
+
+                        return keyBase, hPpDf
+
+                    # Schnitt+Layer nach hPpDf filtern
+                    keyBase,hPpDf=getKeyBaseAndDf(pDf
+                                                  ,kwds['NAMECol'] # Spaltenname 1
+                                                  ,kwds['LayerCol'] # Spaltenname 2
+                                                  ,row[kwds['NAMECol']] # Spaltenwert 1
+                                                  ,row[kwds['LayerCol']] # Spaltenwert 2
+                                                  )
+
+                    if kwds['hpLineGeoms'] != None:
+                        if keyBase.rstrip('_') in kwds['hpLineGeoms'].keys():
+                            hpLineGeom=kwds['hpLineGeoms'][keyBase.rstrip('_')]
+
+                                                            
+                            if 'masterHP' in hpLineGeom.keys():
+                                    masterHP=hpLineGeom['masterHP']
+                                    name=masterHP.split('_')[0]
+                                    layer=masterHP.replace(name,'')
+                                    layer=layer.replace('_','')
+
+                                    keyBase,hPpDfMaster=getKeyBaseAndDf(pDf
+                                                  ,kwds['NAMECol'] # Spaltenname 1
+                                                  ,kwds['LayerCol'] # Spaltenname 2
+                                                  ,name # Spaltenwert 1
+                                                  ,layer # Spaltenwert 2
+                                                  )
+
+
+                                    if 'masterNode' in hpLineGeom.keys():
+                                        masterNode=hpLineGeom['masterNode']
+
+                                        
+                                                       
+                                    # max. x des Knotens
+                                    xParentMax=hPpDfMaster[(hPpDfMaster['nextNODE'].isin([masterNode])) 
+                                             | (hPpDfMaster['NAME_i'].isin([masterNode]))
+                                             | (hPpDfMaster['NAME_k'].isin([masterNode]))][kwds['xCol']].max()
+                                    # min. x des Knoten
+                                    xParentMin=hPpDfMaster[(hPpDfMaster['nextNODE'].isin([masterNode])) 
+                                             | (hPpDfMaster['NAME_i'].isin([masterNode]))
+                                             | (hPpDfMaster['NAME_k'].isin([masterNode]))][kwds['xCol']].min()                    
+
+                                    logger.debug("{:s}Schnitt: {!s:s}_{!s:s} Master: {!s:s}_{!s:s} ...".format(logStr,row[kwds['NAMECol']],row[kwds['LayerCol']],name,layer)) 
+                        
+                                    #matchType=HPLine['matchType']
+                                    #if matchType == 'ends':                        
+                                    #    # Ende + xParentOffset = xParentMin (endet    am min. x des Knotens)
+                                    #    xParentOffset=xParentMin-df[colX].max() # das Ende
+                        
+                                    #elif matchType == 'starts':                
+                                    #    # Beginn + xParentOffset = xParentMax  (startet am max. x des Knotens)
+                                    #    xParentOffset=xParentMax-df[colX].min() # der Beginn
+                        
+                                    #elif matchType == 'matches':                        
+                                    #    xMatchParent=xParentMax # matched per willkürlicher Def. hier am max. x des Knotens
+                                    #    xMatchChild=df[(df['nextNODE'].isin([atParentNode]))
+                                    #                  |(df['NAME_i'].isin([atParentNode]))
+                                    #                  |(df['NAME_k'].isin([atParentNode]))][colX].max() # matched per willkürlicher Def. hier am max. x des Knotens
+                                    #    # xMatchChild + xParentOffset = xMatchParent
+                                    #    xParentOffset=xMatchParent-xMatchChild  
+                        
+                                    #    if parent in indOffsets.keys():
+                                    #        xParentOffset=xParentOffset+indOffsets[parent]
+                                    
+                        #else:
+                        #    xParentOffset=0     
+
+
                    
-                    # über alle Spalten
+                    # über alle Spalten (d.h. darzustellenden y-Werten)
                     for idx,hpLine in enumerate(kwds['hpLines']):                       
                         key=keyBase+hpLine
 
