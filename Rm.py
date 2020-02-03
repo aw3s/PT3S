@@ -2434,7 +2434,7 @@ class Rm():
                 >>> axNfd = fig.add_subplot(gs[0])       
                 >>> yAxes,yLines=Rm.Rm.pltHP(vAGSN[vAGSN['NAME'].isin(['R-Abzweig','V-Abzweig','AGFW Symposium DH'])],pAx=axNfd
                 ... ,hpLines=['bBzg','Q']
-                ... ,hpLineGeoms={'V-Abzweig_1':{'masterHP':'AGFW Symposium DH_1','masterNode':'R-3107','matchType':'starts'}}
+                ... ,hpLineGeoms={'V-Abzweig_1':{'masterHP':'AGFW Symposium DH_1','masterNode':'V-3107','matchType':'starts'}}
                 ... ,hpLineProps={
                 ...     'AGFW Symposium DH_1_bBzg':{'label':'VL','color':'red' ,'linestyle':'-','linewidth':3}
                 ...    ,'AGFW Symposium DH_2_bBzg':{'label':'RL','color':'blue','linestyle':'-','linewidth':3}        
@@ -2536,33 +2536,38 @@ class Rm():
                 for index,row in hPs.iterrows():
                     # über alle Schnitte (NAME) und Layer (Layer)   
 
-                    def getKeyBaseAndDf(pDf,col1Name,col2Name,col1Value,col2Value):                                                                                                  
-                        # pDf bzgl. cols filtern
+                    def getKeyBaseAndDf(dfSource,col1Name,col2Name,col1Value,col2Value):             
+                        
+                        logger.debug("{:s}getKeyBaseAndDf: dfSource: {:s} ...".format(logStr,dfSource[[col1Name,col2Name,'nextNODE']].to_string())) 
+
+                        # dfSource bzgl. cols filtern
                         if col1Name != None and col2Name != None:
-                            hPpDf=pDf[
-                                (pDf[col1Name]==col1Value) 
+                            dfFiltered=dfSource[
+                                (dfSource[col1Name].astype(str)==str(col1Value)) 
                                 & 
-                                (pDf[col2Name]==col2Value)
+                                (dfSource[col2Name].astype(str)==str(col2Value))
                                    ]
                             keyBase=str(row[col1Name])+'_'+str(col2Value)+'_'#+hpLine
                             logger.debug("{:s}getKeyBaseAndDf: Schnitt: {!s:s} Layer: {!s:s} ...".format(logStr,col1Value,col2Value)) 
                         elif col1Name != None:
-                            hPpDf=pDf[
-                                (pDf[col1Name]==col1Value)                       
+                            dfFiltered=dfSource[
+                                (dfSource[col1Name].str.contains('^'+col1Value+'$'))                       
                                    ]           
                             keyBase=str(col1Value)+'_'#+hpLine
-                            logger.debug("{:s}getKeyBaseAndDf: Schnitt: {!s:s} ...".format(logStr,row[col1Name])) 
+                            logger.debug("{:s}getKeyBaseAndDf: Schnitt: {!s:s} ...".format(logStr,col1Value)) 
                         elif col2Name != None:
-                            hPpDf=pDf[
-                                (pDf[col2Name]==col2Value)                       
+                            dfFiltered=dfSource[
+                                (dfSource[col2Name].str.contains('^'+col2Value+'$'))                       
                                    ]        
                             keyBase=str(col2Value)+'_'#+hpLine
                             logger.debug("{:s}getKeyBaseAndDf: Layer: {!s:s} ...".format(logStr,col2Value)) 
                         else:
-                            hPpDf=pDf
+                            dfFiltered=dfSource
                             keyBase=''
 
-                        return keyBase, hPpDf
+
+                        logger.debug("{:s}getKeyBaseAndDf: dfFiltered: {:s} ...".format(logStr,dfFiltered[[col1Name,col2Name,'nextNODE']].to_string())) 
+                        return keyBase, dfFiltered
 
                     # Schnitt+Layer nach hPpDf filtern
                     keyBase,hPpDf=getKeyBaseAndDf(pDf
@@ -2583,7 +2588,7 @@ class Rm():
                                     layer=masterHP.replace(name,'')
                                     layer=layer.replace('_','')
 
-                                    keyBase,hPpDfMaster=getKeyBaseAndDf(pDf
+                                    keyBaseMaster,hPpDfMaster=getKeyBaseAndDf(pDf
                                                   ,kwds['NAMECol'] # Spaltenname 1
                                                   ,kwds['LayerCol'] # Spaltenname 2
                                                   ,name # Spaltenwert 1
@@ -2596,16 +2601,17 @@ class Rm():
 
                                         
                                                        
-                                    # max. x des Knotens
-                                    xParentMax=hPpDfMaster[(hPpDfMaster['nextNODE'].isin([masterNode])) 
-                                             | (hPpDfMaster['NAME_i'].isin([masterNode]))
-                                             | (hPpDfMaster['NAME_k'].isin([masterNode]))][kwds['xCol']].max()
-                                    # min. x des Knoten
-                                    xParentMin=hPpDfMaster[(hPpDfMaster['nextNODE'].isin([masterNode])) 
-                                             | (hPpDfMaster['NAME_i'].isin([masterNode]))
-                                             | (hPpDfMaster['NAME_k'].isin([masterNode]))][kwds['xCol']].min()                    
+                                        # max. x des Knotens
+                                        xMasterMax=hPpDfMaster[(hPpDfMaster['nextNODE'].isin([masterNode])) 
+                                                 | (hPpDfMaster['NAME_i'].isin([masterNode]))
+                                                 | (hPpDfMaster['NAME_k'].isin([masterNode]))][kwds['xCol']].max()
+                                        # min. x des Knoten
+                                        xMasterMin=hPpDfMaster[(hPpDfMaster['nextNODE'].isin([masterNode])) 
+                                                 | (hPpDfMaster['NAME_i'].isin([masterNode]))
+                                                 | (hPpDfMaster['NAME_k'].isin([masterNode]))][kwds['xCol']].min()                    
 
-                                    logger.debug("{:s}Schnitt: {!s:s}_{!s:s} Master: {!s:s}_{!s:s} ...".format(logStr,row[kwds['NAMECol']],row[kwds['LayerCol']],name,layer)) 
+                                        logger.debug("{:s}masterHP: {:s} ...".format(logStr,hPpDfMaster.to_string())) 
+                                        logger.debug("{:s}Schnitt: {!s:s}_{!s:s} Master: {!s:s}_{!s:s} masterNode: {!s:s} xMasterMin={:9.3f}  xMasterMax={:9.3f} ...".format(logStr,row[kwds['NAMECol']],row[kwds['LayerCol']],name,layer,masterNode,xMasterMin,xMasterMax)) 
                         
                                     #matchType=HPLine['matchType']
                                     #if matchType == 'ends':                        
