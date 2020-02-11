@@ -2371,7 +2371,15 @@ class Rm():
         Return:
                 yAxes: dct with AXES; key=y-Achsentypen
                 yLines: dct with Line2Ds; key=Index from hpLineProps
-
+                xNodeInfs: dct with NodeInformation; key=Index also used in i.e. hpLineGeoms
+                    key: NAMECol_LayerCol
+                    value: dct
+                        key: node
+                        value: dct
+                            kwds['xCol']:        x in HP
+                            kwds['xCol']+'Plot': x in HP-Plot
+                            pDfIdx:              Index in pDf
+                            
                 >>> #  -q -m 0 -s pltHP -y no -z no -w DHNetwork
                 >>> import pandas as pd
                 >>> import matplotlib
@@ -2398,7 +2406,7 @@ class Rm():
                 >>> gs = gridspec.GridSpec(3, 1)
                 >>> # --------------------------
                 >>> axNfd = fig.add_subplot(gs[0])       
-                >>> yAxes,yLines=Rm.Rm.pltHP(vAGSN,pAx=axNfd
+                >>> yAxes,yLines,xNodeInfs=Rm.Rm.pltHP(vAGSN,pAx=axNfd
                 ... ,hpLines=['bBzg','bBzg_1','bBzg_2','Q']
                 ... ,hpLineProps={
                 ...     'AGFW Symposium DH_1_bBzg':{'label':'VL','color':'red' ,'linestyle':'-','linewidth':3}
@@ -2448,7 +2456,7 @@ class Rm():
                 >>> gs = gridspec.GridSpec(3, 1)
                 >>> # --------------------------
                 >>> axNfd = fig.add_subplot(gs[0])       
-                >>> yAxes,yLines=Rm.Rm.pltHP(vAGSN[vAGSN['NAME'].isin(['R-Abzweig','V-Abzweig','AGFW Symposium DH','R-EndsTest','V-EndsTest','R-MatchesTest','V-MatchesTest'])],pAx=axNfd
+                >>> yAxes,yLines,xNodeInfs=Rm.Rm.pltHP(vAGSN[vAGSN['NAME'].isin(['R-Abzweig','V-Abzweig','AGFW Symposium DH','R-EndsTest','V-EndsTest','R-MatchesTest','V-MatchesTest'])],pAx=axNfd
                 ... ,hpLines=['bBzg','Q']
                 ... ,hpLineGeoms={
                 ...    'V-Abzweig_1':{'masterHP':'AGFW Symposium DH_1','masterNode':'V-3107','matchType':'starts'}
@@ -2479,7 +2487,23 @@ class Rm():
                 ... )                        
                 >>> txt=axNfd.set_title('HP')  
                 >>> gs.tight_layout(fig)
-                >>> plt.show()        
+                >>> plt.show()     
+                >>> sorted(xNodeInfs.keys())
+                ['AGFW Symposium DH_1', 'AGFW Symposium DH_2', 'R-Abzweig_2', 'R-EndsTest_2', 'R-MatchesTest_2', 'V-Abzweig_1', 'V-EndsTest_1', 'V-MatchesTest_1']
+                >>> xNodeInf=xNodeInfs['R-Abzweig_2']
+                >>> nl=Rcuts[0]['nl']
+                >>> nodeInfS=xNodeInf[nl[0]]
+                >>> nodeInfE=xNodeInf[nl[-1]]
+                >>> sorted(nodeInfS.keys())
+                ['pDfIdx', 'x', 'xPlot']
+                >>> dxPlot=nodeInfE['xPlot']-nodeInfS['xPlot']
+                >>> dxHP=nodeInfE['x']-nodeInfS['x']
+                >>> dxPlot==dxHP
+                True
+                >>> nodeInfE['x']=round(nodeInfE['x'],3)
+                >>> nodeInfE['xPlot']=round(nodeInfE['xPlot'],3)
+                >>> nodeInfE            
+                {'x': 3285.0, 'pDfIdx': 663, 'xPlot': 20312.428}
                 >>> 
         """
         logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
@@ -2573,6 +2597,7 @@ class Rm():
                         yAxes[colType]=axHP 
 
                 yLines={}
+                xNodeInfs={}
                 for index,row in hPs.iterrows():
                     # über alle Schnitte (NAME) und Layer (Layer)   
 
@@ -2715,15 +2740,19 @@ class Rm():
                                             xOffset=xMasterOffset-hPpDf[kwds['xCol']].min() # der Beginn
                                             # matchNode ist Anfang
                                             if hPpDf[kwds['edgeColSequence'][2]].iloc[0] == hPpDf[kwds['edgeColSequence'][1]].iloc[0]:
+                                                # nextNode = k
                                                 matchNode=hPpDf[kwds['edgeColSequence'][0]].iloc[0]
                                             else:
+                                                # nextNode = i
                                                 matchNode=hPpDf[kwds['edgeColSequence'][1]].iloc[0]
                                         elif matchType=='ends':
                                             xOffset=xMasterOffset-hPpDf[kwds['xCol']].max() # das Ende
                                             # matchNode ist Ende
                                             if hPpDf[kwds['edgeColSequence'][2]].iloc[-1] == hPpDf[kwds['edgeColSequence'][1]].iloc[-1]:
+                                                # nextNode = k
                                                 matchNode=hPpDf[kwds['edgeColSequence'][1]].iloc[-1]
                                             else:
+                                                # nextNode = i
                                                 matchNode=hPpDf[kwds['edgeColSequence'][0]].iloc[-1]
                                         else: # 'matches'
                                             # per Knoten
@@ -2736,6 +2765,29 @@ class Rm():
                                         logger.debug("{:s}hPpDfMatched: {:s} ...".format(logStr,hPpDfMatched[[kwds['NAMECol'],kwds['LayerCol'],'nextNODE',kwds['xCol'],'NAME_i','NAME_k','OBJTYPE','IptIdx']].to_string())) 
                                         logger.debug("{:s}hPpDfMasterMatched: {:s} ...".format(logStr,hPpDfMasterMatched[[kwds['NAMECol'],kwds['LayerCol'],'nextNODE',kwds['xCol'],'NAME_i','NAME_k','OBJTYPE','IptIdx']].to_string())) 
                                                           
+                    # xNodeInfs ermitteln                    
+                    nodeList=hPpDf[kwds['edgeColSequence'][2]].copy()
+                    if hPpDf[kwds['edgeColSequence'][2]].iloc[0] == hPpDf[kwds['edgeColSequence'][1]].iloc[0]:
+                        # nextNode = k
+                        # 1. Knoten i                        
+                        nodeList.iloc[0]=hPpDf[kwds['edgeColSequence'][0]].iloc[0]
+                    else:
+                        # nextNode = i
+                        # 1. Knoten k
+                        nodeList.iloc[0]=hPpDf[kwds['edgeColSequence'][1]].iloc[0]
+                    nodeList=nodeList.unique()
+                    xNodeInf={}
+                    for idx,node in enumerate(nodeList):
+                        nodeInf={}                        
+                        if idx==0:
+                            nodeInf[kwds['xCol']]=0
+                            nodeInf['pDfIdx']=hPpDf.index.values[0]
+                        else:
+                            nodeInf[kwds['xCol']]=hPpDf[hPpDf[kwds['edgeColSequence'][2]]==node][kwds['xCol']].max()
+                            nodeInf['pDfIdx']=hPpDf[hPpDf[kwds['edgeColSequence'][2]]==node][kwds['xCol']].idxmax()
+                        nodeInf[kwds['xCol']+'Plot']=nodeInf[kwds['xCol']]*xFactorStatic+xOffset+xOffsetStatic
+                        xNodeInf[node]=nodeInf
+                    xNodeInfs[keyBase.rstrip('_')]=xNodeInf
 
                     # über alle Spalten (d.h. darzustellenden y-Werten)
                     for idx,hpLine in enumerate(kwds['hpLines']):                       
@@ -2774,7 +2826,7 @@ class Rm():
             raise RmError(logStrFinal)                       
         finally:       
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))       
-            return yAxes,yLines
+            return yAxes,yLines,xNodeInfs
 
     def __init__(self,xm=None,mx=None): 
         """
