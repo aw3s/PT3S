@@ -875,6 +875,13 @@ class Xm():
     
                 Args:
                     * df: DataFrame with (all) Edges (one per row)
+                        * adjusting/filtering/constructing (if the corresponding cols are existing) _before using df
+                            * L: converted to float before usage here
+                            * Q:
+                                * non Null Q-rows filtered 
+                                * constructed:
+                                    * QAbs
+                                    * QAbsInv
                     * nl: NodeList
                     * weight: columnName of the weight attribute
             
@@ -885,16 +892,13 @@ class Xm():
 
                         # also bei konstantem Kantengewicht die kleinste Kantenanzahl
                         # kürzeste Weglaenge: L als Gewicht
-                        # Durchflussstärkster Weg: 1 / Abs(Q) (Flüsse mit 0 oder Kanten ohne Flusswert müssen vorher eliminiert werden ...
+                        # Durchflussstärkster Weg: 1 / Abs(Q) (Flüsse mit 0 oder Kanten ohne Flusswert müssen vorher eliminiert werden um das Kriterium berechnen zu können ...
                         # ... birgt die Gefahr, dass es dann keinen Weg mehr gibt)
                         # Durchflussschwächster Weg: Q
 
                         * examples for weight: 
-                            * 'L': converted to float before usage here
-                            * if 'Q' is already a column in df:
-                                * non Null Q-rows filtered here - then:
-                                * 'QAbs': constructed here
-                                * 'QAbsInv': constructed here
+                            * L 
+                            * Q (QAbs,QAbsInv)
        
                         * query: query to filter vVBEL (to filter Edges) before constructing the Graph 
                         * fmask: function to filter vVBEL (to filter Edges) before constructing the Graph 
@@ -915,6 +919,7 @@ class Xm():
                             * 1 for all edges if all nodes in NodeList are connected
 
              
+                >>> # -q -m 0 -s constructShortestPathFromNodeList -y no -z no -w GPipes -w LocalHeatingNetwork
                 >>> xmlFile=ms['GPipes']   
                 >>> from Xm import Xm
                 >>> xm=Xm(xmlFile=xmlFile,NoH5Read=True)       
@@ -936,6 +941,16 @@ class Xm():
                 3    ROHR  5114681686941855110       G3       1
                 4    ROHR  4979507900871287244       G4       1
                 5    VENT  5745097345184516675       GR       1
+                >>> ###
+                >>> f=lambda row: True if row.NAME_i != 'GKS' else False 
+                >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['GL','GKS','GKD','GR'],fmask=f)  
+                  OBJTYPE                OBJID nextNODE  compNr
+                0    VENT  5309992331398639768       G1       1
+                1    ROHR  5244313507655010738      GKS       1
+                2    ROHR  5114681686941855110       G3       2
+                3    ROHR  4979507900871287244       G4       2
+                4    VENT  5745097345184516675       GR       2
+                >>> ###
                 >>> xmlFile=ms['LocalHeatingNetwork']                   
                 >>> xm=Xm(xmlFile=xmlFile,NoH5Read=True)       
                 >>> xm.constructShortestPathFromNodeList(df=xm.getvVBELwithNodeAttributeAdded(),nl=['V-L','V-K07'])     
@@ -1028,12 +1043,11 @@ class Xm():
                 logger.debug("{:s}Knotenpaare zwischen denen Abschnittsweise ein Pfad gesucht wird: {:s}".format(logStr,str(pathPairs))) 
     
                 error=False
+                compNr=1
                 # Pfad suchen über Knotenpaar #######################################################
                 for source,target in pathPairs:
                     logger.debug("{:s}     Knotenpaar: source: {:s} target: {:s}".format(logStr,source,target)) 
-        
-                    compNr=1
-        
+                
                     # Pfad suchen
                     try:            
                         pathNodes=nx.shortest_path(G,source,target,weight=weight)
@@ -1068,23 +1082,37 @@ class Xm():
                                 dfList.append(df)
 
                     except ValueError as e:
-                        logger.debug("{:s}     Knotenpaar: source: {:s} target: {:s}: Fehler bei Pfadermittlung:".format(logStr,source,target)) 
+                        logger.debug("{:s}     Knotenpaar: source: {:s} target: {:s}: Fehler ValueError:".format(logStr,source,target)) 
+                        logStrTmp="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                        logger.debug(logStrTmp)  
+                        error=True
+                        break     
+
+                    except KeyError as e:
+                        logger.debug("{:s}     Knotenpaar: source: {:s} target: {:s}: Fehler KeyError: Ursache nicht ermittelt - z.B. Knoten (?1bei source wird lt. Doku nx.NodeNotFound generiert) nicht gefunden!".format(logStr,source,target)) 
                         logStrTmp="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
                         logger.debug(logStrTmp)  
                         error=True
                         break     
                                
                     except nx.NodeNotFound as e:
-                        logger.debug("{:s}     Knotenpaar: source: {:s} target: {:s}: Knoten nicht gefunden!".format(logStr,source,target)) 
+                        logger.debug("{:s}     Knotenpaar: source: {:s} target: {:s}: Fehler nx.NodeNotFound: Knoten (?!source - lt. Doku wird bei source nx.NodeNotFound generiert) nicht gefunden!".format(logStr,source,target)) 
+                        logStrTmp="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                        logger.debug(logStrTmp)  
                         error=True
                         break                                              
 
                     except nx.NetworkXNoPath as e:                        
-                        logger.debug("{:s}     Knotenpaar: source: {:s} target: {:s}: Kein Pfad!".format(logStr,source,target)) 
+                        logger.debug("{:s}     Knotenpaar: source: {:s} target: {:s}: Fehler nx.NetworkXNoPath:".format(logStr,source,target)) 
+                        logger.debug("{:s}     Knotenpaar: source: {:s} target: {:s}: Zwischen dem Knotenpaar konnte kein Pfad ermittelt werden. Weiter mit dem naechsten Paar ... . Aktuelle Komponentenanzahl ist: {:d}.".format(logStr,source,target,compNr)) 
                         compNr+=1
         
                 if not error:
-                    df=pd.concat(dfList).reset_index(drop=True)
+                    if len(dfList) > 0:
+                        df=pd.concat(dfList).reset_index(drop=True)
+                    else: 
+                        logger.debug("{:s}Zwischen keinem Knotenpaar konnte ein Pfad ermittelt werden!".format(logStr)) 
+                        df=pd.DataFrame()
                 else:
                     df=pd.DataFrame()
                                 
@@ -2316,13 +2344,16 @@ class Xm():
             return vAGSN
 
     def getvVBELwithNodeAttributeAdded(self,nodeAttribute='KVR',preserveMultiindex=False):
-        """Adds a nodeAttribute (not already in vVBEL) to vVBEL and returns the df.
+        """Adds two nodeAttribute-Cols (not already in vVBEL) to vVBEL and returns the df.
 
         Args:
             * nodeAttribute (default: 'KVR'): the Node Attribute which shall be added
             * preserveMultiindex (default: False): if True an existing Multiindex will be preserved; False: existing Index(Indices) will be col(s)
         Returns:
-            df (which might be incomplete, corrupt or empty if an error occurs; vVBEL is unchanged)
+            * df (which might be incomplete, corrupt or empty if an error occurs; vVBEL is unchanged):
+                * new Cols: 
+                    * nodeAttribute_i
+                    * nodeAttribute_k
 
         Raises:
             XmError  

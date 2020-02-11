@@ -2309,13 +2309,13 @@ class Rm():
                 defining the HPLINES (xy-curves) Identification:
 
                     the different HPs in pDf are identified by the two cols
-                    NAMECol: default: 'NAME'; set to None if NAMECol is not criteria ...
+                    NAMECol: default: 'NAME'; set to None if NAMECol is not criteria for Identification ...
                     and 
-                    LayerCol: default: 'Layer'; set to None if LayerCol is not criteria ...
+                    LayerCol: default: 'Layer'; set to None if LayerCol is not criteria for Identification ...
 
                     for each HP several lines (xy-curves) are plotted
 
-                    not criteria ...
+                    ... not criteria ...
                     if NAMECol is None only LayerCol is used
                     if LayerCol also is None, all rows are treated as "the" HPLINE
 
@@ -2324,13 +2324,16 @@ class Rm():
                     * xCol: col in pDf for x; example: 'x'
                     the col is the same for all HPs and all y
 
-                    * 'NAME'_'Layer' (i.e. Nord-Süd_1) is used as an Index in hpLineGeoms
+                    * edgeNodesColSequence: cols to be used for start-node, end-node, next-node; default: ['NAME_i','NAME_k','nextNODE']
+
+                    * 'NAME'_'Layer' (i.e. Nord-Süd_1)  NAMECol_LayerCol is used as an Index in hpLineGeoms
 
                     * hpLineGeoms - Example - = {
                     'V-Abzweig_1':{'masterHP':'AGFW Symposium DH_1','masterNode':'V-3107','matchType':'starts'}            
                     }
+                    - masterHP: Bezugs-Schnitt
                     - masterNode: muss es      in masterHP geben
-                    - masterNode: muss es auch in HP Key geben bei matchType='matches'; bei 'starts' wird der Anfang gemapped; bei 'ends' das Ende 
+                    - masterNode: muss es auch im Schnitt  geben bei matchType='matches'; bei 'starts' wird der Anfang gemapped; bei 'ends' das Ende                    
 
                 defining the HPLINES (xy-curves) y-Achsentypen (y-Axes):
 
@@ -2419,10 +2422,12 @@ class Rm():
                 >>> Rcuts=[
                 ...  {'NAME':'R-Abzweig','nl':['R-3107','R-3427']}
                 ... ,{'NAME':'R-EndsTest','nl':['R-HWSU','R-HKW3S']}
+                ... ,{'NAME':'R-MatchesTest','nl':['R-HKW1','R-2104']}
                 ... ]
                 >>> Vcuts=[
                 ...  {'NAME':'V-Abzweig','nl':['V-3107','V-3427']}
                 ... ,{'NAME':'V-EndsTest','nl':['V-HWSU','V-HKW3S']}
+                ... ,{'NAME':'V-MatchesTest','nl':['V-HKW1','V-2104']}
                 ... ]
                 >>> fV=lambda row: True if row.KVR_i=='1' and row.KVR_k=='1' else False
                 >>> fR=lambda row: True if row.KVR_i=='2' and row.KVR_k=='2' else False                
@@ -2443,27 +2448,33 @@ class Rm():
                 >>> gs = gridspec.GridSpec(3, 1)
                 >>> # --------------------------
                 >>> axNfd = fig.add_subplot(gs[0])       
-                >>> yAxes,yLines=Rm.Rm.pltHP(vAGSN[vAGSN['NAME'].isin(['R-Abzweig','V-Abzweig','AGFW Symposium DH','R-EndsTest','V-EndsTest'])],pAx=axNfd
+                >>> yAxes,yLines=Rm.Rm.pltHP(vAGSN[vAGSN['NAME'].isin(['R-Abzweig','V-Abzweig','AGFW Symposium DH','R-EndsTest','V-EndsTest','R-MatchesTest','V-MatchesTest'])],pAx=axNfd
                 ... ,hpLines=['bBzg','Q']
                 ... ,hpLineGeoms={
                 ...    'V-Abzweig_1':{'masterHP':'AGFW Symposium DH_1','masterNode':'V-3107','matchType':'starts'}
                 ...   ,'R-Abzweig_2':{'masterHP':'AGFW Symposium DH_2','masterNode':'R-3107','matchType':'starts'}
-                ...   ,'V-EndsTest_1':{'masterHP':'AGFW Symposium DH_1','masterNode':'V-HKW3S','matchType':'ends','matchAnchor':'max'}
+                ...   ,'V-EndsTest_1':{'masterHP':'AGFW Symposium DH_1','masterNode':'V-HKW3S','matchType':'ends'}
                 ...   ,'R-EndsTest_2':{'masterHP':'AGFW Symposium DH_2','masterNode':'R-HKW3S','matchType':'ends'}
+                ...   ,'V-MatchesTest_1':{'masterHP':'AGFW Symposium DH_1','masterNode':'V-1312','matchType':'matches','offset':-500}
+                ...   ,'R-MatchesTest_2':{'masterHP':'AGFW Symposium DH_2','masterNode':'R-1312','matchType':'matches'}
                 ... }
                 ... ,hpLineProps={
                 ...     'AGFW Symposium DH_1_bBzg':{'label':'VL','color':'red' ,'linestyle':'-','linewidth':3}
                 ...    ,'AGFW Symposium DH_2_bBzg':{'label':'RL','color':'blue','linestyle':'-','linewidth':3}        
-                ...    ,'AGFW Symposium DH_1_Q':None #{'label':'VL Q','color':'magenta' ,'linestyle':'--','linewidth':2}
-                ...    ,'AGFW Symposium DH_2_Q':None #{'label':'RL Q','color':'lightblue','linestyle':'--','linewidth':2}                           
-                ...    ,'V-Abzweig_1_bBzg':{'label':'VL','color':'red' ,'linestyle':'-','linewidth':3}
-                ...    ,'R-Abzweig_2_bBzg':{'label':'RL','color':'blue' ,'linestyle':'-','linewidth':3}
+                ...    ,'AGFW Symposium DH_1_Q':{'label':'VL Q','color':'magenta' ,'linestyle':'--','linewidth':2}
+                ...    ,'AGFW Symposium DH_2_Q':{'label':'RL Q','color':'lightblue','linestyle':'--','linewidth':2}                           
+                ...    ,'V-Abzweig_1_bBzg':{'label':'VL','color':'tomato' ,'linestyle':'-','linewidth':3}
+                ...    ,'R-Abzweig_2_bBzg':{'label':'RL','color':'plum' ,'linestyle':'-','linewidth':3}
                 ...    ,'V-Abzweig_1_Q':{'label':'VL Q','color':'magenta' ,'linestyle':'--','linewidth':2}         
                 ...    ,'R-Abzweig_2_Q':{'label':'VL Q','color':'lightblue' ,'linestyle':'--','linewidth':2}       
-                ...    ,'V-EndsTest_1_bBzg':{'label':'VL','color':'red' ,'linestyle':'-','linewidth':3}
-                ...    ,'R-EndsTest_2_bBzg':{'label':'RL','color':'blue' ,'linestyle':'-','linewidth':3}
+                ...    ,'V-EndsTest_1_bBzg':{'label':'VL','color':'lightcoral' ,'linestyle':'-','linewidth':3}
+                ...    ,'R-EndsTest_2_bBzg':{'label':'RL','color':'aquamarine' ,'linestyle':'-','linewidth':3}
                 ...    ,'V-EndsTest_1_Q':{'label':'VL Q','color':'magenta' ,'linestyle':'--','linewidth':2}         
-                ...    ,'R-EndsTest_2_Q':{'label':'VL Q','color':'lightblue' ,'linestyle':'--','linewidth':2}                       
+                ...    ,'R-EndsTest_2_Q':{'label':'VL Q','color':'lightblue' ,'linestyle':'--','linewidth':2}       
+                ...    ,'V-MatchesTest_1_bBzg':{'label':'VL','color':'orange' ,'linestyle':'-','linewidth':1}
+                ...    ,'R-MatchesTest_2_bBzg':{'label':'RL','color':'slateblue' ,'linestyle':'-','linewidth':1}
+                ...    ,'V-MatchesTest_1_Q':{'label':'VL Q','color':'magenta' ,'linestyle':'--','linewidth':2}         
+                ...    ,'R-MatchesTest_2_Q':{'label':'VL Q','color':'lightblue' ,'linestyle':'--','linewidth':2}                       
                 ... }
                 ... )                        
                 >>> txt=axNfd.set_title('HP')  
@@ -2492,8 +2503,11 @@ class Rm():
                     kwds['hpLines']=['P']
                 if 'hpLineProps' not in keys:
                     kwds['hpLineProps']={'NAME_1_P':{'label':'HP NAME Layer 1 P','color':'red','linestyle':'-','linewidth':3}}
+
                 if 'hpLineGeoms' not in keys:
                     kwds['hpLineGeoms']=None 
+                if 'edgeColSequence' not in keys:
+                    kwds['edgeColSequence']=['NAME_i','NAME_k','nextNODE']  
 
                 if 'yTwinedAxesPosDeltaHPStart' not in keys:
                      # (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche; default: -0.0125
@@ -2511,6 +2525,7 @@ class Rm():
                 logger.debug("{:s}hpLines:     {:s}.".format(logStr,str(kwds['hpLines'])))
                 logger.debug("{:s}hpLineProps: {:s}.".format(logStr,str(kwds['hpLineProps'])))
                 logger.debug("{:s}hpLineGeoms: {:s}.".format(logStr,str(kwds['hpLineGeoms'])))
+                logger.debug("{:s}edgeColSequence: {:s}.".format(logStr,str(kwds['edgeColSequence'])))
                 logger.debug("{:s}yTwinedAxesPosDeltaHPStart: {:s}.".format(logStr,str(kwds['yTwinedAxesPosDeltaHPStart'])))
                 logger.debug("{:s}yTwinedAxesPosDeltaHP: {:s}.".format(logStr,str(kwds['yTwinedAxesPosDeltaHP'])))
                 logger.debug("{:s}yAxesDetectionPattern: {:s}.".format(logStr,str(kwds['yAxesDetectionPattern'])))
@@ -2602,11 +2617,22 @@ class Rm():
                                                   ,row[kwds['LayerCol']] # Spaltenwert 2
                                                   )
 
+                    if hPpDf.empty:
+                        logger.info("{:s}Schnitt: {!s:s} Layer: {!s:s}: NICHT in pDf ?! ...".format(logStr,row[kwds['NAMECol']],row[kwds['LayerCol']])) 
+                        continue
+
                     xOffset=0
+                    xOffsetStatic=0
+                    xFactorStatic=1
                     if kwds['hpLineGeoms'] != None:
                         if keyBase.rstrip('_') in kwds['hpLineGeoms'].keys():
                             hpLineGeom=kwds['hpLineGeoms'][keyBase.rstrip('_')]
 
+                            if 'offset' in hpLineGeom.keys():
+                                    xOffsetStatic=hpLineGeom['offset']          
+                                    
+                            if 'factor' in hpLineGeom.keys():
+                                    xFactorStatic=hpLineGeom['factor']     
                                                             
                             if 'masterHP' in hpLineGeom.keys():
                                     masterHP=hpLineGeom['masterHP']
@@ -2631,99 +2657,86 @@ class Rm():
                                                     return True
                                             return False
 
-                                        hPpDfMatched=hPpDf[hPpDf.apply(fGetMatchingRows,axis=1,cols=['nextNODE','NAME_i','NAME_k'],matchNode=masterNode)]                                            
-                                        hPpDfMasterMatched=hPpDfMaster[hPpDfMaster.apply(fGetMatchingRows,axis=1,cols=['nextNODE','NAME_i','NAME_k'],matchNode=masterNode)]
-
-                                        if 'matchAnchor' in hpLineGeom.keys():
-                                            matchAnchor=hpLineGeom['matchAnchor']
-                                        else:
-                                            matchAnchor='min'
-
-                                        if 'matchAnchorChild' in hpLineGeom.keys():
-                                            matchAnchorChild=hpLineGeom['matchAnchorChild']
-                                        else:
-                                            matchAnchorChild='min'
-
-                                        if matchAnchor=='min':                                         
-                                            hPpDfMasterMatched=hPpDfMaster.loc[hPpDfMasterMatched[kwds['xCol']].idxmin(),:]
-                                        else: # matchAnchor=='max'                                          
-                                            hPpDfMasterMatched=hPpDfMaster.loc[hPpDfMasterMatched[kwds['xCol']].idxmax(),:]
-
-                                        if matchAnchorChild=='min':
-                                            hPpDfMatched=hPpDf.loc[hPpDfMatched[kwds['xCol']].idxmin(),:]                                           
-                                        else: # matchAnchorChild=='max'
-                                            hPpDfMatched=hPpDf.loc[hPpDfMatched[kwds['xCol']].idxmax(),:]                                          
-
-                                        if hPpDfMasterMatched.empty:
-                                            logger.info("{:s}Schnitt: {!s:s}_{!s:s} Master: {!s:s}_{!s:s} masterNode: {!s:s}: in Master NICHT gefunden.".format(logStr,row[kwds['NAMECol']],row[kwds['LayerCol']],name,layer,masterNode)) 
-                                            #xMasterMax=0
-                                            #xMasterMin=0
-                                            xMasterOffset=0                                                                                             
-                                        else:
-                                            ## max. x des Knotens
-                                            #xMasterMax=hPpDfMasterMatched[kwds['xCol']].max()
-                                            ## min. x des Knoten
-                                            #xMasterMin=hPpDfMasterMatched[kwds['xCol']].min()                                                         
-                                            xMasterOffset=hPpDfMasterMatched[kwds['xCol']]
-                                            #logger.debug("{:s}masterHP: {:s} ...".format(logStr,hPpDfMaster.to_string())) 
-                                            logger.debug("{:s}Schnitt: {!s:s}_{!s:s} Master: {!s:s}_{!s:s} masterNode: {!s:s} xMasterOffset={:9.3f} ...".format(logStr,row[kwds['NAMECol']],row[kwds['LayerCol']],name,layer,masterNode,xMasterOffset)) 
-                        
+                                        # Anker x suchen anhand der Spalten ...
+                                        if 'matchAnchorCols' in hpLineGeom.keys():
+                                            matchAnchorCols=hpLineGeom['matchAnchorCols']
+                                        else:                                            
+                                            matchAnchorCols=[kwds['edgeColSequence'][2]]
+                                       
+                                        # AnkerKnoten: Zeilen die in Frage kommen ....
+                                        hPpDfMatched=hPpDf[hPpDf.apply(fGetMatchingRows,axis=1,cols=matchAnchorCols,matchNode=masterNode)]                                            
+                                        hPpDfMasterMatched=hPpDfMaster[hPpDfMaster.apply(fGetMatchingRows,axis=1,cols=matchAnchorCols,matchNode=masterNode)]
+                                      
                                         if 'matchType' in hpLineGeom.keys():
                                             matchType=hpLineGeom['matchType']
                                         else:
                                             matchType='starts'
 
-                                        #if matchAnchor=='min':
-                                        #    xMasterOffset=xMasterMin
-                                        #else: # matchAnchor=='max'
-                                        #    xMasterOffset=xMasterMax
+                                        # Anker x suchen in Master -------------------------
+                                        if 'matchAnchor' in hpLineGeom.keys():
+                                            matchAnchor=hpLineGeom['matchAnchor']
+                                        else:
+                                            matchAnchor='max'
+                                       
+                                        if hPpDfMasterMatched.empty:
+                                            logger.info("{:s}Schnitt: {!s:s}_{!s:s} Master: {!s:s}_{!s:s} masterNode: {!s:s}: in Master in den cols {!s:s} NICHT gefunden.  Loesung: xMasterOffset=0.".format(logStr,row[kwds['NAMECol']],row[kwds['LayerCol']],name,layer,masterNode,matchAnchorCols)) 
+                                            xMasterOffset=0                                                                                             
+                                        else:  
+                                            if matchAnchor=='min':                                                  
+                                                hPpDfMasterMatched=hPpDfMaster.loc[hPpDfMasterMatched[kwds['xCol']].idxmin(),:]
+                                            else: # matchAnchor=='max'                                          
+                                                hPpDfMasterMatched=hPpDfMaster.loc[hPpDfMasterMatched.iloc[::-1][kwds['xCol']].idxmax(),:]     
+                                            xMasterOffset=hPpDfMasterMatched[kwds['xCol']]                                            
+                                            logger.debug("{:s}Schnitt: {!s:s}_{!s:s} Master: {!s:s}_{!s:s} masterNode: {!s:s} xMasterOffset={:9.3f} ...".format(logStr,row[kwds['NAMECol']],row[kwds['LayerCol']],name,layer,masterNode,xMasterOffset)) 
 
+                                        # Anker x suchen in HP selbst --------------------------
+                                        if 'matchAnchorChild' in hpLineGeom.keys():
+                                            matchAnchorChild=hpLineGeom['matchAnchorChild']
+                                        else:
+                                            matchAnchorChild='max'
+                                                                                               
+                                        if hPpDfMatched.empty:
+                                            logStr="{:s}Schnitt: {!s:s}_{!s:s} Master: {!s:s}_{!s:s} masterNode: {!s:s}: in Child in den cols {!s:s} NICHT gefunden.".format(logStr,row[kwds['NAMECol']],row[kwds['LayerCol']],name,layer,masterNode,matchAnchorCols)
+                                            if matchType=='matches':
+                                                logger.info(logStr+' Loesung: xChildOffset=0.') 
+                                            else:
+                                                logger.debug(logStr) 
+                                            xChildOffset=0
+                                        else:
+                                            if matchAnchorChild=='min':
+                                                hPpDfMatched=hPpDf.loc[hPpDfMatched[kwds['xCol']].idxmin(),:]                                           
+                                            else: # matchAnchorChild=='max'
+                                                hPpDfMatched=hPpDf.loc[hPpDfMatched.iloc[::-1][kwds['xCol']].idxmax(),:]                         
+                                            xChildOffset=hPpDfMatched[kwds['xCol']]
+                                            logger.debug("{:s}Schnitt: {!s:s}_{!s:s} Master: {!s:s}_{!s:s} masterNode: {!s:s} xChildOffset={:9.3f} ...".format(logStr,row[kwds['NAMECol']],row[kwds['LayerCol']],name,layer,masterNode,xChildOffset)) 
+                      
+                                        # xOffset errechnen
                                         if matchType=='starts':
                                             xOffset=xMasterOffset-hPpDf[kwds['xCol']].min() # der Beginn
                                             # matchNode ist Anfang
-                                            if hPpDf['nextNODE'].iloc[0] == hPpDf['NAME_k'].iloc[0]:
-                                                matchNode=hPpDf['NAME_i'].iloc[0]
+                                            if hPpDf[kwds['edgeColSequence'][2]].iloc[0] == hPpDf[kwds['edgeColSequence'][1]].iloc[0]:
+                                                matchNode=hPpDf[kwds['edgeColSequence'][0]].iloc[0]
                                             else:
-                                                matchNode=hPpDf['NAME_k'].iloc[0]
+                                                matchNode=hPpDf[kwds['edgeColSequence'][1]].iloc[0]
                                         elif matchType=='ends':
                                             xOffset=xMasterOffset-hPpDf[kwds['xCol']].max() # das Ende
                                             # matchNode ist Ende
-                                            if hPpDf['nextNODE'].iloc[-1] == hPpDf['NAME_k'].iloc[-1]:
-                                                matchNode=hPpDf['NAME_k'].iloc[-1]
+                                            if hPpDf[kwds['edgeColSequence'][2]].iloc[-1] == hPpDf[kwds['edgeColSequence'][1]].iloc[-1]:
+                                                matchNode=hPpDf[kwds['edgeColSequence'][1]].iloc[-1]
                                             else:
-                                                matchNode=hPpDf['NAME_i'].iloc[-1]
+                                                matchNode=hPpDf[kwds['edgeColSequence'][0]].iloc[-1]
                                         else: # 'matches'
                                             # per Knoten
                                             matchNode=masterNode
-                                        
-                                            if hPpDfMatched.empty:
-                                                logger.info("{:s}Schnitt: {!s:s}_{!s:s} Master: {!s:s}_{!s:s} masterNode: {!s:s}: in Child NICHT gefunden.".format(logStr,row[kwds['NAMECol']],row[kwds['LayerCol']],name,layer,masterNode)) 
-                                                #xMax=0
-                                                #xMin=0
-                                                xChildOffset=0
-                                            else:
-                                                ## max. x des Knotens
-                                                #xMax=hPpDfMatched[kwds['xCol']].max()
-                                                ## min. x des Knoten
-                                                #xMin=hPpDfMatched[kwds['xCol']].min()
-
-                                                xChildOffset=hPpDfMatched[kwds['xCol']]
-
-                                            #if matchAnchor=='min':
-                                            #    xChildOffset=xMin
-                                            #else:
-                                            #    xChildOffset=xMax
-
                                             xOffset=xMasterOffset-xChildOffset 
-                                        pass
+                                        
                                         # xOffset wurde berechnet
                                         # masterNode und matchNode sind bekannt
 
                                         logger.debug("{:s}hPpDfMatched: {:s} ...".format(logStr,hPpDfMatched[[kwds['NAMECol'],kwds['LayerCol'],'nextNODE',kwds['xCol'],'NAME_i','NAME_k','OBJTYPE','IptIdx']].to_string())) 
                                         logger.debug("{:s}hPpDfMasterMatched: {:s} ...".format(logStr,hPpDfMasterMatched[[kwds['NAMECol'],kwds['LayerCol'],'nextNODE',kwds['xCol'],'NAME_i','NAME_k','OBJTYPE','IptIdx']].to_string())) 
+                                                          
 
-                                        # Master(masterNode)
-                   
                     # über alle Spalten (d.h. darzustellenden y-Werten)
                     for idx,hpLine in enumerate(kwds['hpLines']):                       
                         key=keyBase+hpLine
@@ -2743,7 +2756,7 @@ class Rm():
 
                         hpLineType=hpLineTypesSequence[idx]
                         axHP=yAxes[hpLineType]
-                        lines=axHP.plot(hPpDf[kwds['xCol']]+xOffset,hPpDf[hpLine],label=label,color=color,linestyle=linestyle,linewidth=linewidth)
+                        lines=axHP.plot(hPpDf[kwds['xCol']]*xFactorStatic+xOffset+xOffsetStatic,hPpDf[hpLine],label=label,color=color,linestyle=linestyle,linewidth=linewidth)
                         yLines[label]=lines[0]
 
                         if key in kwds['hpLineProps']:
