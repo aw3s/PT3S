@@ -2479,7 +2479,7 @@ class Rm():
                 ...    ,'R-EndsTest_2_bBzg':{'label':'RL','color':'aquamarine' ,'linestyle':'-','linewidth':3}
                 ...    ,'V-EndsTest_1_Q':{'label':'VL Q','color':'magenta' ,'linestyle':'--','linewidth':2}         
                 ...    ,'R-EndsTest_2_Q':{'label':'VL Q','color':'lightblue' ,'linestyle':'--','linewidth':2}       
-                ...    ,'V-MatchesTest_1_bBzg':{'label':'VL','color':'orange' ,'linestyle':'-','linewidth':1}
+                ...    #,'V-MatchesTest_1_bBzg':{'label':'VL','color':'orange' ,'linestyle':'-','linewidth':1}
                 ...    ,'R-MatchesTest_2_bBzg':{'label':'RL','color':'slateblue' ,'linestyle':'-','linewidth':1}
                 ...    ,'V-MatchesTest_1_Q':{'label':'VL Q','color':'magenta' ,'linestyle':'--','linewidth':2}         
                 ...    ,'R-MatchesTest_2_Q':{'label':'VL Q','color':'lightblue' ,'linestyle':'--','linewidth':2}                       
@@ -2652,6 +2652,8 @@ class Rm():
                     if kwds['hpLineGeoms'] != None:
                         if keyBase.rstrip('_') in kwds['hpLineGeoms'].keys():
                             hpLineGeom=kwds['hpLineGeoms'][keyBase.rstrip('_')]
+                            
+                            logger.debug("{:s}Line: {:s}: hpLineGeom: {:s} ...".format(logStr,keyBase.rstrip('_'),str(hpLineGeom)))
 
                             if 'offset' in hpLineGeom.keys():
                                     xOffsetStatic=hpLineGeom['offset']          
@@ -2721,11 +2723,14 @@ class Rm():
                                             matchAnchorChild='max'
                                                                                                
                                         if hPpDfMatched.empty:
-                                            logStr="{:s}Schnitt: {!s:s}_{!s:s} Master: {!s:s}_{!s:s} masterNode: {!s:s}: in Child in den cols {!s:s} NICHT gefunden.".format(logStr,row[kwds['NAMECol']],row[kwds['LayerCol']],name,layer,masterNode,matchAnchorCols)
+                                            logStrTmp="{:s}Schnitt: {!s:s}_{!s:s} Master: {!s:s}_{!s:s} masterNode: {!s:s}: in Child in den cols {!s:s} NICHT gefunden.".format(logStr,row[kwds['NAMECol']],row[kwds['LayerCol']],name,layer,masterNode,matchAnchorCols)
                                             if matchType=='matches':
-                                                logger.info(logStr+' Loesung: xChildOffset=0.') 
+                                                logger.info(logStrTmp+' Loesung: xChildOffset=0.') 
                                             else:
-                                                logger.debug(logStr) 
+                                                if matchType=='ends':
+                                                    logger.debug(logStrTmp+' Child endet nicht   mit masterNode. xChildOffset=0') 
+                                                else:
+                                                    logger.debug(logStrTmp+' Child startet evtl. mit masterNode. xChildOffset=0') 
                                             xChildOffset=0
                                         else:
                                             if matchAnchorChild=='min':
@@ -2764,7 +2769,8 @@ class Rm():
 
                                         logger.debug("{:s}hPpDfMatched: {:s} ...".format(logStr,hPpDfMatched[[kwds['NAMECol'],kwds['LayerCol'],'nextNODE',kwds['xCol'],'NAME_i','NAME_k','OBJTYPE','IptIdx']].to_string())) 
                                         logger.debug("{:s}hPpDfMasterMatched: {:s} ...".format(logStr,hPpDfMasterMatched[[kwds['NAMECol'],kwds['LayerCol'],'nextNODE',kwds['xCol'],'NAME_i','NAME_k','OBJTYPE','IptIdx']].to_string())) 
-                                                          
+                        else:
+                            logger.debug("{:s}Line: {:s}: keine Geometrieeigenschaften definiert.".format(logStr,keyBase.rstrip('_')))
                     # xNodeInfs ermitteln                    
                     nodeList=hPpDf[kwds['edgeColSequence'][2]].copy()
                     if hPpDf[kwds['edgeColSequence'][2]].iloc[0] == hPpDf[kwds['edgeColSequence'][1]].iloc[0]:
@@ -2789,8 +2795,8 @@ class Rm():
                         xNodeInf[node]=nodeInf
                     xNodeInfs[keyBase.rstrip('_')]=xNodeInf
 
-                    # über alle Spalten (d.h. darzustellenden y-Werten)
-                    for idx,hpLine in enumerate(kwds['hpLines']):                       
+                    # über alle Spalten (d.h. darzustellenden y-Werten)                   
+                    for idx,hpLine in enumerate(kwds['hpLines']):                             
                         key=keyBase+hpLine
 
                         logger.debug("{:s}Line: {:s} ...".format(logStr,key))
@@ -2812,13 +2818,14 @@ class Rm():
                         yLines[label]=lines[0]
 
                         if key in kwds['hpLineProps']:
-                            hpLineProp=kwds['hpLineProps'][key]                                                                                   
-                            if hpLineProp == None:
-                                continue
-                            else:
-                                logger.debug("{:s}hpLineProp: {:s} ...".format(logStr,str(hpLineProp)))
-                                for prop,value in hpLineProp.items():
-                                    plt.setp(yLines[label],"{:s}".format(prop),value)
+                            hpLineProp=kwds['hpLineProps'][key]        
+                            logger.debug("{:s}Line: {:s}: hpLineProp: {:s}.".format(logStr,key,str(hpLineProp)))                            
+                            for prop,value in hpLineProp.items():
+                                plt.setp(yLines[label],"{:s}".format(prop),value)                                                        
+                        else:                            
+                            logger.debug("{:s}Line: {:s}: keine Eigenschaften definiert.".format(logStr,key))
+                            continue
+
                                                                                                                                                           
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))

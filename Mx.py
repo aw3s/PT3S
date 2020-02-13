@@ -2247,10 +2247,22 @@ class Mx():
                     logger.debug("{0:s}{1:s}: Writing DataFrame {2:10s} {3!s:20s} {4:10.2f} kB with h5Key={5:s}".format(logStr,h5File,'mx2Df',self.mx2Df.shape,self.mx2Df.memory_usage(index=True).sum()/1000,h5Key))                         
                     h5Store.put(h5Key,self.mx2Df)
 
-                if isinstance(self.df,pd.core.frame.DataFrame):    
-                    h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MXS'  
-                    logger.debug("{0:s}{1:s}: Writing DataFrame {2:10s} {3!s:20s} {4:10.2f} kB with h5Key={5:s}".format(logStr,h5File,'df',self.df.shape,self.df.memory_usage(index=True).sum()/1000,h5Key))                          
-                    h5Store.put(h5Key,self.df)
+                if isinstance(self.df,pd.core.frame.DataFrame):   
+                    try:
+                        h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'MXS'  
+                        logger.debug("{0:s}{1:s}: Writing DataFrame {2:10s} {3!s:20s} {4:10.2f} kB with h5Key={5:s}".format(logStr,h5File,'df',self.df.shape,self.df.memory_usage(index=True).sum()/1000,h5Key))                          
+                        h5Store.put(h5Key,self.df)                                            
+                    except ValueError as e: #class 'ValueError'>: Columns index has to be unique for fixed format
+                        # entfernt man aus Kanal-IDs den PK persistent, dann kann es zumindest im Sigmodell vorkommen, dass Kanal-IDs nicht mehr eindeutig sind
+                        logStrTmp="{:s}h5File: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,h5File,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                        logger.warning(logStrTmp) 
+                        self.df=self.df.loc[:,~self.df.columns.duplicated()]
+                        logger.debug("{0:s}{1:s}: Writing DataFrame {2:10s} {3!s:20s} {4:10.2f} kB with h5Key={5:s}".format(logStr,h5File,'df',self.df.shape,self.df.memory_usage(index=True).sum()/1000,h5Key))                          
+                        h5Store.put(h5Key,self.df)      
+                    except Exception as e:
+                        logStrFinal="{:s}h5File: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,h5File,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                        logger.error(logStrFinal) 
+                        raise MxError(logStrFinal)  
 
                 if isinstance(self.dfVecAggs,pd.core.frame.DataFrame):    
                     h5Key=relPath2Mx1FromCurDirH5BaseKey+h5KeySep+'VecAggs'  
@@ -2258,7 +2270,7 @@ class Mx():
                     try:                                
                         h5Store.put(h5Key,self.dfVecAggs)
                     except Exception as e:
-                        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e)) # z.B.  <class 'OverflowError'>: Python int too large to convert to C long # dfVecAggs  (2904, 60082)        1395842.85 Ok
                         logger.debug(logStrFinal) 
                         logger.warning("{0:s}{1:s}: Writing DataFrame {2:10s} {3!s:20s} {4:10.2f} kB with h5Key={5:s} failed?!".format(logStr,h5File,'dfVecAggs',self.dfVecAggs.shape,self.dfVecAggs.memory_usage(index=True).sum()/1000,h5Key))                                               
              

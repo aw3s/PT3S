@@ -7884,17 +7884,17 @@ class Xm():
                 * 'TIME','TMIN','TMAX' (source: MXS) or 'MIN','MAX', ... (source: mx.getVecAggs())
                 * if not None, timeReq und timeReq2nd define the timespan: 
                 * timeReq    is considered as TIMESTAMPL
-                * timeReq2nd is considered as TIMESTAMPR
+                * timeReq2nd is considered as TIMESTAMPR (ignored if aggReq = TIME)
                 * if List
                     * MX-Resultcolumns for several times/timespans are calculated 
                     * timeReq and timeReq2nd must also be Lists
-                    * if viewList is not None, in the views several MX-Resultcolumn-Sets are added: one per requested time/timespan
+                    * if viewList is not None, in the views in viewList several MX-Resultcolumn-Sets are added: one per requested time/timespan
                     * the 2nd Resultcol of the same type is named _1, the 3rd _2, ...                    
             * timeReq2nd (defining the MX-Resultcolumn-Set):
                 * TIMESTAMP 
                 * if None last TIME in Mx is used                    
 
-        Views with MX2-Result-Set added:            
+        viewList: Views with MX-Resultcolumn-Set to be added:            
             * in the Xm-Views below col mx2Idx must exist (i.e. MxSync mus have been called)
             * mx2Idx is considered to be the last of the Model-cols
             * right from mx2Idx all available Result-cols are added if not already existing
@@ -8263,6 +8263,13 @@ class Xm():
                 
                 for idx, (aggReq, timeReq, timeReq2nd) in enumerate(zip(aggReqL, timeReqL, timeReq2ndL)):
                     
+
+                    if aggReq == 'TIME':
+                            aTIME=True
+                            timeReq2nd=timeReq
+                    else:
+                            aTIME=False
+
                     reqAggFound=False
                     if mx.dfVecAggs.index.isin([aggReq],level=0).any(): # aggReq existiert 
                         if mx.dfVecAggs.loc[(aggReq,slice(None),slice(None),slice(None)),:].index.isin([timeReq],level=2).any(): # mit dieser ZeitL
@@ -8272,10 +8279,11 @@ class Xm():
 
                     if not reqAggFound:                         
                         logger.debug("{:s}aggReq: {!s} TimeL {!s:30s} TimeR {!s:30s} not in mx.dfVecAggs. mx.getVecAggs() called ...".format(logStr,aggReq,timeReq,timeReq2nd))   
-                        if aggReq == 'TIME':
-                            aTIME=True
-                        else:
-                            aTIME=False
+                        #if aggReq == 'TIME':
+                        #    aTIME=True
+                        #    timeReq2nd=timeReq
+                        #else:
+                        #    aTIME=False
                         df,tL,tR=mx.getVecAggs(time1st=timeReq,time2nd=timeReq2nd,aTIME=aTIME)
                         if df.empty:
                             logStrFinal="{:s}aggReq: {!s} TimeL {!s} TimeR {!s}: mx.getVecAggs kein Ergebnis!".format(logStr,aggReq,timeReq,timeReq2nd)                               
