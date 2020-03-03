@@ -2890,7 +2890,7 @@ class Rm():
                 yLines: dct with Line2Ds; key=Index from tcLines     
                 vLines: dct with Line2Ds; key=Index from vLines     
                             
-                >>> #  -q -m 0 -s pltHP -y no -z no -w DHNetwork
+                >>> #  -q -m 0 -s pltTC -y no -z no -w DHNetwork
                 >>> import pandas as pd
                 >>> import matplotlib
                 >>> import matplotlib.pyplot as plt
@@ -2913,6 +2913,8 @@ class Rm():
                 ... ,tcLines={ 
                 ...     'ALLG~~~LINEPACKRATE':{'label':'Linepackrate','color':'red' ,'linestyle':'-','linewidth':3,'drawstyle':'steps'}
                 ...    ,'ALLG~~~LINEPACKGEOM':{'label':'Linepackgeomatrie','color':'b' ,'linestyle':'-','linewidth':3}
+                ...    ,'RSLW~wNA~~XA':{'label':'RSLW~wNA~~XA','color':'lime','forceYType':'N'}
+                ...    ,'PUMP~R-A-SS~R-A-DS~N':{'label':'PUMP~R-A-SS~R-A-DS~N','color':'aquamarine','linestyle':'--'}
                 ... }
                 ... ,pAx=axTC  
                 ... ,vLines={
@@ -2924,9 +2926,11 @@ class Rm():
                 ... ,majLocator=mdates.MinuteLocator(byminute=[0,5,10,15,20,25,30,35,40,45,50,55])
                 ... ,majFormatter=mdates.DateFormatter('%d.%m.%y: %H:%M')
                 ... #,xTicksLabelsOff=True
-                ... )          
+                ... )       
+                >>> sorted(yAxes.keys())  
+                ['LINEPACKGEOM', 'LINEPACKRATE', 'N']
                 >>> sorted(yLines.keys())  
-                ['ALLG~~~LINEPACKGEOM', 'ALLG~~~LINEPACKRATE']
+                ['ALLG~~~LINEPACKGEOM', 'ALLG~~~LINEPACKRATE', 'PUMP~R-A-SS~R-A-DS~N', 'RSLW~wNA~~XA']
                 >>> sorted(vLines.keys())  
                 ['a vLine Label']
                 >>> gs.tight_layout(fig)
@@ -2973,12 +2977,15 @@ class Rm():
                 
                 # y-Achsen-Typen ermitteln
                 yTypesSequence=[]                
-                for key in tcLines.keys():
+                for key,props in tcLines.items():
                     try:
-                        mo=re.match(Mx.reSir3sIDoPKcompiled,key)                         
-                        if mo.group('ATTRTYPE') not in yTypesSequence:
-                            yTypesSequence.append(mo.group('ATTRTYPE'))
-                            logger.debug("{:s}neuer y-Achsentyp: {:s}.".format(logStr,mo.group('ATTRTYPE')))
+                        mo=re.match(Mx.reSir3sIDoPKcompiled,key)     
+                        yType=mo.group('ATTRTYPE')
+                        if 'forceYType' in props.keys():
+                            yType=props['forceYType']
+                        if yType not in yTypesSequence:
+                            yTypesSequence.append(yType)
+                            logger.debug("{:s}neuer y-Achsentyp: {:s}.".format(logStr,yType))
                     except:
                         logger.debug("{:s}kein Achsentyp ermittelt (z.B. kein reSir3sIDoPKcompiled-match) fuer: {:s}. tcLine(s) Schluessel kein SIR 3S Schluessel oPK?!".format(logStr,key))
                   
@@ -3016,9 +3023,13 @@ class Rm():
                         col=colFromTcKey[key]
 
                     mo=re.match(Mx.reSir3sIDoPKcompiled,key) 
-                    axTC=yAxes[mo.group('ATTRTYPE')]
+                    yType=mo.group('ATTRTYPE')
+                    if 'forceYType' in props.keys():
+                        yType=props['forceYType']
 
-                    logger.debug("{:s}Line: {:s} on Axes {:s} ...".format(logStr,key,mo.group('ATTRTYPE')))
+                    axTC=yAxes[yType]
+
+                    logger.debug("{:s}Line: {:s} on Axes {:s} ...".format(logStr,key,yType))
                          
                     label=key
                     color='black'
@@ -3028,8 +3039,9 @@ class Rm():
                     lines=axTC.plot(pDf.index.values,pDf[col],label=label,color=color,linestyle=linestyle,linewidth=linewidth)                   
                     yLines[key]=lines[0]
                            
-                    for prop,value in props.items():                        
-                        plt.setp(yLines[key],"{:s}".format(prop),value)             
+                    for prop,value in props.items():       
+                        if prop not in ['forceYType']:
+                            plt.setp(yLines[key],"{:s}".format(prop),value)             
                         
                 # x-Achse 
                 # ueber alle Axes
