@@ -2864,7 +2864,16 @@ class Rm():
                             * die Achsen werden erstellt in der Reihenfolge in der sie in tcLines auftreten                      
                             * yTwinedAxesPosDeltaHPStart: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche; default: -0.0125
                             * yTwinedAxesPosDeltaHP: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche; default: -0.05
-                                            
+                    
+                    vLines: dct
+
+                        defining the vLines - Example - = {
+                        'a vLine Label':{'time':pd.Timestamp(2017, 1, 1, 12)
+                                        ,'color':'dimgrey'
+                                        ,'linestyle':'--'
+                                        ,'linewidth':1.}
+                        }
+
                 AXES:
                     pAx: Axes to be plotted on; if not specified: gca() is used
 
@@ -2874,10 +2883,12 @@ class Rm():
                             mdates.MinuteLocator(byminute=[0,5,10,15,20,25,30,35,40,45,50,55])
                     majFormatter - Beispiele:
                             mdates.DateFormatter('%d.%m.%y: %H:%M')
+                    xTicksLabelsOff: wenn True, dann keine x-Achsen TickLabels
 
         Return:
                 yAxes: dct with AXES; key=y-Achsentypen
-                yLines: dct with Line2Ds; key=Index from tcLines            
+                yLines: dct with Line2Ds; key=Index from tcLines     
+                vLines: dct with Line2Ds; key=Index from vLines     
                             
                 >>> #  -q -m 0 -s pltHP -y no -z no -w DHNetwork
                 >>> import pandas as pd
@@ -2898,17 +2909,28 @@ class Rm():
                 >>> gs = gridspec.GridSpec(3, 1)
                 >>> # --------------------------
                 >>> axTC = fig.add_subplot(gs[0])       
-                >>> yAxes,yLines=Rm.Rm.pltTC(mx.df             
+                >>> yAxes,yLines,vLines=Rm.Rm.pltTC(mx.df             
                 ... ,tcLines={ 
-                ...     'ALLG~~~LINEPACKRATE':{'label':'Linepackrate','color':'red' ,'linestyle':'-','linewidth':3}
+                ...     'ALLG~~~LINEPACKRATE':{'label':'Linepackrate','color':'red' ,'linestyle':'-','linewidth':3,'drawstyle':'steps'}
                 ...    ,'ALLG~~~LINEPACKGEOM':{'label':'Linepackgeomatrie','color':'b' ,'linestyle':'-','linewidth':3}
                 ... }
                 ... ,pAx=axTC  
+                ... ,vLines={
+                ...   'a vLine Label':{'time': mx.df.index[0] + pd.Timedelta('10 Minutes')
+                ...                        ,'color':'dimgrey'
+                ...                        ,'linestyle':'--'
+                ...                        ,'linewidth':5.}
+                ... }
                 ... ,majLocator=mdates.MinuteLocator(byminute=[0,5,10,15,20,25,30,35,40,45,50,55])
                 ... ,majFormatter=mdates.DateFormatter('%d.%m.%y: %H:%M')
+                ... #,xTicksLabelsOff=True
                 ... )          
+                >>> sorted(yLines.keys())  
+                ['ALLG~~~LINEPACKGEOM', 'ALLG~~~LINEPACKRATE']
+                >>> sorted(vLines.keys())  
+                ['a vLine Label']
                 >>> gs.tight_layout(fig)
-                >>> plt.show()                      
+                >>> plt.show()                               
                 >>> 
         """
         logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
@@ -2932,7 +2954,6 @@ class Rm():
                 logger.debug("{:s}tcLines: {:s}.".format(logStr,str(tcLines)))
                 logger.debug("{:s}yTwinedAxesPosDeltaHPStart: {:s}.".format(logStr,str(kwds['yTwinedAxesPosDeltaHPStart'])))
                 logger.debug("{:s}yTwinedAxesPosDeltaHP: {:s}.".format(logStr,str(kwds['yTwinedAxesPosDeltaHP'])))
-
 
                 # fuer jede Spalte Schluessel ohne OBJTYPE_PK ermitteln = Schluessel tcLines                
                 colFromTcKey={}
@@ -3004,11 +3025,11 @@ class Rm():
                     linestyle='-'
                     linewidth=3
 
-                    lines=axTC.plot(pDf.index.values,pDf[col],label=label,color=color,linestyle=linestyle,linewidth=linewidth)
-                    yLines[label]=lines[0]
+                    lines=axTC.plot(pDf.index.values,pDf[col],label=label,color=color,linestyle=linestyle,linewidth=linewidth)                   
+                    yLines[key]=lines[0]
                            
-                    for prop,value in props.items():
-                        plt.setp(yLines[label],"{:s}".format(prop),value)             
+                    for prop,value in props.items():                        
+                        plt.setp(yLines[key],"{:s}".format(prop),value)             
                         
                 # x-Achse 
                 # ueber alle Axes
@@ -3020,6 +3041,29 @@ class Rm():
                         ax.xaxis.set_major_formatter(kwds['majFormatter'])                       
                     plt.setp(ax.xaxis.get_majorticklabels(),rotation='vertical',ha='center')
                     ax.xaxis.grid()
+
+                    # Beschriftung ausschalten
+                    if 'xTicksLabelsOff' in kwds.keys(): # xTicksOff
+                        if kwds['xTicksLabelsOff']:
+                            logger.debug("{:s}Achse: {:s}: x-Achse Labels aus.".format(logStr,key))
+                            #for tic in ax.xaxis.get_major_ticks():
+                            #    tic.tick1On = tic.tick2On = False
+                            ax.set_xticklabels([])
+
+                # vLines                                
+                # ueber alle definierten vLines
+                vLines={}
+                if 'vLines' in kwds.keys():
+                    for key,props in kwds['vLines'].items():       
+                        if 'time' in props.keys():
+                            logger.debug("{:s}vLine: {:s} ....".format(logStr,key))
+                            vLine=ax.axvline(x=props['time'], ymin=0, ymax=1, label=key)
+                            vLines[key]=vLine
+                            for prop,value in props.items():
+                                if prop not in ['time']:
+                                    plt.setp(vLine,"{:s}".format(prop),value)   
+                        else:
+                            logger.debug("{:s}vLine: {:s}: time nicht definiert.".format(logStr,key))
                                                                                                                                                           
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -3027,7 +3071,7 @@ class Rm():
             raise RmError(logStrFinal)                       
         finally:       
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))       
-            return yAxes,yLines
+            return yAxes,yLines,vLines
 
     def __init__(self,xm=None,mx=None): 
         """
