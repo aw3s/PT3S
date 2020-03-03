@@ -2835,6 +2835,200 @@ class Rm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))       
             return yAxes,yLines,xNodeInfs
 
+    @classmethod
+    def pltTC(cls,pDf,tcLines,**kwds):
+        """
+        Plots a Time Curve Diagram.
+        
+        Args:
+                DATA:
+                    pDf: dataFrame
+                            index:  times
+                            cols:   values (with mx.df colnames)
+
+                    tcLines: dct
+                          
+                        defining the Curves and their Layout:
+
+                        Key:
+                            OBJTYPE~NAME1~NAME2~ATTRTYPE is used as a key, d.h. OBJTYPE_PK ist nicht im Schluessel enthalten
+
+                        * tcLines - Example - = {
+                            'KNOT~NAME1~~PH':{'label':'VL','color':'red' ,'linestyle':'-','linewidth':3}                       
+                        }
+
+
+                        Definition der y-Achsentypen (y-Axes):
+                            * werden ermittelt aus den verschiedenen ATTRTYPEs in tcLines
+                            * ATTRTYPE - z.B. 'PH' - wird dabei als Bezeichner für den Achsentyp benutzt
+                            * die Achsen werden erstellt in der Reihenfolge in der sie in tcLines auftreten                      
+                            * yTwinedAxesPosDeltaHPStart: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche; default: -0.0125
+                            * yTwinedAxesPosDeltaHP: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche; default: -0.05
+                                            
+                AXES:
+                    pAx: Axes to be plotted on; if not specified: gca() is used
+
+                x-Achsen-Formatierung:                   
+                    majLocator - Beispiele:
+                            mdates.MinuteLocator(interval=5)
+                            mdates.MinuteLocator(byminute=[0,5,10,15,20,25,30,35,40,45,50,55])
+                    majFormatter - Beispiele:
+                            mdates.DateFormatter('%d.%m.%y: %H:%M')
+
+        Return:
+                yAxes: dct with AXES; key=y-Achsentypen
+                yLines: dct with Line2Ds; key=Index from tcLines            
+                            
+                >>> #  -q -m 0 -s pltHP -y no -z no -w DHNetwork
+                >>> import pandas as pd
+                >>> import matplotlib
+                >>> import matplotlib.pyplot as plt
+                >>> import matplotlib.gridspec as gridspec
+                >>> import matplotlib.dates as mdates
+                >>> import math
+                >>> try:
+                ...   import Rm
+                ... except ImportError:                   
+                ...   from PT3S import Rm
+                >>> # ---
+                >>> # xm=xms['DHNetwork']       
+                >>> mx=mxs['DHNetwork']                     
+                >>> plt.close()
+                >>> fig=plt.figure(figsize=Rm.DINA3q,dpi=Rm.dpiSize)         
+                >>> gs = gridspec.GridSpec(3, 1)
+                >>> # --------------------------
+                >>> axTC = fig.add_subplot(gs[0])       
+                >>> yAxes,yLines=Rm.Rm.pltTC(mx.df             
+                ... ,tcLines={ 
+                ...     'ALLG~~~LINEPACKRATE':{'label':'Linepackrate','color':'red' ,'linestyle':'-','linewidth':3}
+                ...    ,'ALLG~~~LINEPACKGEOM':{'label':'Linepackgeomatrie','color':'b' ,'linestyle':'-','linewidth':3}
+                ... }
+                ... ,pAx=axTC  
+                ... ,majLocator=mdates.MinuteLocator(byminute=[0,5,10,15,20,25,30,35,40,45,50,55])
+                ... ,majFormatter=mdates.DateFormatter('%d.%m.%y: %H:%M')
+                ... )          
+                >>> gs.tight_layout(fig)
+                >>> plt.show()                      
+                >>> 
+        """
+        logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try:
+                keys = sorted(kwds.keys())
+                
+                # AXES
+                if 'pAx' not in keys:
+                    kwds['pAx']=plt.gca()
+
+                if 'yTwinedAxesPosDeltaHPStart' not in keys:
+                     # (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche; default: -0.0125
+                    kwds['yTwinedAxesPosDeltaHPStart']=-0.0125
+
+                if 'yTwinedAxesPosDeltaHP' not in keys:
+                     # (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche; default: -0.05
+                    kwds['yTwinedAxesPosDeltaHP']=-0.05
+
+                logger.debug("{:s}tcLines: {:s}.".format(logStr,str(tcLines)))
+                logger.debug("{:s}yTwinedAxesPosDeltaHPStart: {:s}.".format(logStr,str(kwds['yTwinedAxesPosDeltaHPStart'])))
+                logger.debug("{:s}yTwinedAxesPosDeltaHP: {:s}.".format(logStr,str(kwds['yTwinedAxesPosDeltaHP'])))
+
+
+                # fuer jede Spalte Schluessel ohne OBJTYPE_PK ermitteln = Schluessel tcLines                
+                colFromTcKey={}
+                for col in pDf.columns.tolist():
+                    if pd.isna(col):
+                        continue
+                    try:
+                        mo=re.match(Mx.reSir3sIDcompiled,col) 
+                        colNew=mo.group('OBJTYPE')
+                        colNew=colNew+Mx.reSir3sIDSep+str(mo.group('NAME1'))
+                        colNew=colNew+Mx.reSir3sIDSep+mo.group('NAME2')
+                        #colNew=colNew+Mx.reSir3sIDSep+mo.group('OBJTYPE_PK') 
+                        colNew=colNew+Mx.reSir3sIDSep+mo.group('ATTRTYPE')
+                        colFromTcKey[colNew]=col # merken welche Originalspalte zu dem tcLines Schluessel gehoert                        
+                    except:
+                        logger.debug("{:s}keine Zuordnung gefunden (z.B. kein reSir3sIDcompiled-match) fuer Originalspalte: {:s}. Spaltenname(n) kein SIR 3S Schluessel?!".format(logStr,col))
+                
+                # y-Achsen-Typen ermitteln
+                yTypesSequence=[]                
+                for key in tcLines.keys():
+                    try:
+                        mo=re.match(Mx.reSir3sIDoPKcompiled,key)                         
+                        if mo.group('ATTRTYPE') not in yTypesSequence:
+                            yTypesSequence.append(mo.group('ATTRTYPE'))
+                            logger.debug("{:s}neuer y-Achsentyp: {:s}.".format(logStr,mo.group('ATTRTYPE')))
+                    except:
+                        logger.debug("{:s}kein Achsentyp ermittelt (z.B. kein reSir3sIDoPKcompiled-match) fuer: {:s}. tcLine(s) Schluessel kein SIR 3S Schluessel oPK?!".format(logStr,key))
+                  
+                # y-Achsen konstruieren
+                yAxes={}
+                colType1st=yTypesSequence[0]
+                axTC=kwds['pAx'] 
+                axTC.spines["left"].set_position(("axes",kwds['yTwinedAxesPosDeltaHPStart'] )) 
+
+                axTC.set_ylabel(colType1st)  
+                yAxes[colType1st]=axTC                  
+                logger.debug("{:s}colType: {:s}: is attached to 1st Axes.".format(logStr,colType1st))
+                for idx,colType in enumerate(yTypesSequence[1:]):    
+                    # weitere y-Achse
+                    yPos=kwds['yTwinedAxesPosDeltaHPStart']+kwds['yTwinedAxesPosDeltaHP']*len(yAxes)
+                    logger.debug("{:s}colType: {:s}: is attached to a new Axes: yPos: {:1.4f} ...".format(logStr,colType,yPos))
+                     
+                    axTC = axTC.twinx()
+                    axTC.spines["left"].set_position(("axes", yPos)) 
+                    pltMakePatchSpinesInvisible(axTC)
+                    axTC.spines['left'].set_visible(True)  
+                    axTC.yaxis.set_label_position('left')
+                    axTC.yaxis.set_ticks_position('left')
+                    axTC.set_ylabel(colType)  
+                    yAxes[colType]=axTC                     
+
+                # zeichnen
+                yLines={}                
+                # ueber alle definierten Kurven         
+                for key,props in tcLines.items():                    
+                    if key not in colFromTcKey.keys():                       
+                        logger.debug("{:s}Line: {:s}: es konnte keine Spalte in pDf ermittelt werden. Spaltenname(n) kein SIR 3S Schluessel?! Kein Plot.".format(logStr,key))
+                        continue      
+                    else:
+                        col=colFromTcKey[key]
+
+                    mo=re.match(Mx.reSir3sIDoPKcompiled,key) 
+                    axTC=yAxes[mo.group('ATTRTYPE')]
+
+                    logger.debug("{:s}Line: {:s} on Axes {:s} ...".format(logStr,key,mo.group('ATTRTYPE')))
+                         
+                    label=key
+                    color='black'
+                    linestyle='-'
+                    linewidth=3
+
+                    lines=axTC.plot(pDf.index.values,pDf[col],label=label,color=color,linestyle=linestyle,linewidth=linewidth)
+                    yLines[label]=lines[0]
+                           
+                    for prop,value in props.items():
+                        plt.setp(yLines[label],"{:s}".format(prop),value)             
+                        
+                # x-Achse 
+                # ueber alle Axes
+                for key,ax in yAxes.items():
+                    ax.set_xlim(pDf.index[0],pDf.index[-1])     
+                    if 'majLocator' in kwds.keys():
+                        ax.xaxis.set_major_locator(kwds['majLocator'])
+                    if 'majFormatter' in kwds.keys():
+                        ax.xaxis.set_major_formatter(kwds['majFormatter'])                       
+                    plt.setp(ax.xaxis.get_majorticklabels(),rotation='vertical',ha='center')
+                    ax.xaxis.grid()
+                                                                                                                                                          
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise RmError(logStrFinal)                       
+        finally:       
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))       
+            return yAxes,yLines
+
     def __init__(self,xm=None,mx=None): 
         """
         Args:

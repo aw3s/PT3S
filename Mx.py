@@ -475,6 +475,8 @@ import doctest
 reSir3sIDSep='~'
 reSir3sID='(?P<OBJTYPE>\S+)'+reSir3sIDSep+'(?P<NAME1>[\S ]*)'+reSir3sIDSep+'(?P<NAME2>\S*)'+reSir3sIDSep+'(?P<OBJTYPE_PK>\d+)'+reSir3sIDSep+'(?P<ATTRTYPE>\S+)'    
 reSir3sIDcompiled=re.compile(reSir3sID) 
+reSir3sIDoPK='(?P<OBJTYPE>\S+)'+reSir3sIDSep+'(?P<NAME1>[\S ]*)'+reSir3sIDSep+'(?P<NAME2>\S*)'+reSir3sIDSep+'(?P<ATTRTYPE>\S+)'    
+reSir3sIDoPKcompiled=re.compile(reSir3sIDoPK) 
 
 try:
     from PT3S import Xm
