@@ -2889,6 +2889,7 @@ class Rm():
                 yAxes: dct with AXES; key=y-Achsentypen
                 yLines: dct with Line2Ds; key=Index from tcLines     
                 vLines: dct with Line2Ds; key=Index from vLines     
+                yLinesLegendLabels: dct with Legendlabels; key=Index from tcLines     
                             
                 >>> #  -q -m 0 -s pltTC -y no -z no -w DHNetwork
                 >>> import pandas as pd
@@ -2903,18 +2904,23 @@ class Rm():
                 ...   from PT3S import Rm
                 >>> # ---
                 >>> # xm=xms['DHNetwork']       
-                >>> mx=mxs['DHNetwork']                     
+                >>> mx=mxs['DHNetwork'] 
+                >>> sir3sID=mx.getSir3sIDFromSir3sIDoPK('ALLG~~~LINEPACKGEOM') # 'ALLG~~~5151766074450398225~LINEPACKGEOM'
+                >>> # mx.df[sir3sID].describe()
+                >>> # mx.df[sir3sID].iloc[0]
                 >>> plt.close()
                 >>> fig=plt.figure(figsize=Rm.DINA3q,dpi=Rm.dpiSize)         
                 >>> gs = gridspec.GridSpec(3, 1)
                 >>> # --------------------------
                 >>> axTC = fig.add_subplot(gs[0])       
-                >>> yAxes,yLines,vLines=Rm.Rm.pltTC(mx.df             
+                >>> yAxes,yLines,vLines,yLinesLegendLabels=Rm.Rm.pltTC(mx.df             
                 ... ,tcLines={ 
-                ...     'ALLG~~~LINEPACKRATE':{'label':'Linepackrate','color':'red' ,'linestyle':'-','linewidth':3,'drawstyle':'steps'}
-                ...    ,'ALLG~~~LINEPACKGEOM':{'label':'Linepackgeomatrie','color':'b' ,'linestyle':'-','linewidth':3}
+                ...     'ALLG~~~LINEPACKRATE':{'label':'Linepackrate','color':'red' ,'linestyle':'-','linewidth':3,'drawstyle':'steps','factor':10}
+                ...    ,'ALLG~~~LINEPACKGEOM':{'label':'Linepackgeometrie','color':'b' ,'linestyle':'-','linewidth':3,'offset':-mx.df[sir3sID].iloc[0]
+                ...         ,'timeStart':mx.df.index[0]+pd.Timedelta('10 Minutes')
+                ...         ,'timeEnd':mx.df.index[-1]-pd.Timedelta('10 Minutes')}
                 ...    ,'RSLW~wNA~~XA':{'label':'RSLW~wNA~~XA','color':'lime','forceYType':'N'}
-                ...    ,'PUMP~R-A-SS~R-A-DS~N':{'label':'PUMP~R-A-SS~R-A-DS~N','color':'aquamarine','linestyle':'--'}
+                ...    ,'PUMP~R-A-SS~R-A-DS~N':{'label':'PUMP~R-A-SS~R-A-DS~N','color':'aquamarine','linestyle':'--','legendInfosFmt':'{:4.0f}'}
                 ... }
                 ... ,pAx=axTC  
                 ... ,vLines={
@@ -2959,21 +2965,27 @@ class Rm():
                 logger.debug("{:s}yTwinedAxesPosDeltaHPStart: {:s}.".format(logStr,str(kwds['yTwinedAxesPosDeltaHPStart'])))
                 logger.debug("{:s}yTwinedAxesPosDeltaHP: {:s}.".format(logStr,str(kwds['yTwinedAxesPosDeltaHP'])))
 
-                # fuer jede Spalte Schluessel ohne OBJTYPE_PK ermitteln = Schluessel tcLines                
+                if 'lLoc' not in keys:                    
+                    kwds['lLoc']='best'                
+                if 'lFramealpha' not in keys:                    
+                    kwds['lFramealpha']=matplotlib.rcParams["legend.framealpha"]
+                if 'lFacecolor' not in keys:                    
+                    kwds['lFacecolor']='white'
+                if 'lOff' not in keys:                    
+                    kwds['lOff']=False
+
+                yAxes=yLines=vLines=None
+
+                # fuer jede Spalte Schluessel ohne OBJTYPE_PK ermitteln == Schluessel in tcLines                
                 colFromTcKey={}
                 for col in pDf.columns.tolist():
                     if pd.isna(col):
                         continue
                     try:
-                        mo=re.match(Mx.reSir3sIDcompiled,col) 
-                        colNew=mo.group('OBJTYPE')
-                        colNew=colNew+Mx.reSir3sIDSep+str(mo.group('NAME1'))
-                        colNew=colNew+Mx.reSir3sIDSep+mo.group('NAME2')
-                        #colNew=colNew+Mx.reSir3sIDSep+mo.group('OBJTYPE_PK') 
-                        colNew=colNew+Mx.reSir3sIDSep+mo.group('ATTRTYPE')
+                        colNew=Mx.getSir3sIDoPKFromSir3sID(col)
                         colFromTcKey[colNew]=col # merken welche Originalspalte zu dem tcLines Schluessel gehoert                        
                     except:
-                        logger.debug("{:s}keine Zuordnung gefunden (z.B. kein reSir3sIDcompiled-match) fuer Originalspalte: {:s}. Spaltenname(n) kein SIR 3S Schluessel?!".format(logStr,col))
+                        logger.debug("{:s}keine Zuordnung gefunden (z.B. kein Mx.getSir3sIDoPKFromSir3sID-match) fuer Originalspalte: {:s}. Spaltenname(n) kein SIR 3S Schluessel?!".format(logStr,col))
                 
                 # y-Achsen-Typen ermitteln
                 yTypesSequence=[]                
@@ -2987,7 +2999,7 @@ class Rm():
                             yTypesSequence.append(yType)
                             logger.debug("{:s}neuer y-Achsentyp: {:s}.".format(logStr,yType))
                     except:
-                        logger.debug("{:s}kein Achsentyp ermittelt (z.B. kein reSir3sIDoPKcompiled-match) fuer: {:s}. tcLine(s) Schluessel kein SIR 3S Schluessel oPK?!".format(logStr,key))
+                        logger.debug("{:s}kein Achsentyp ermittelt (z.B. kein Mx.reSir3sIDoPKcompiled-match) fuer: {:s}. tcLine(s) Schluessel kein SIR 3S Schluessel oPK?!".format(logStr,key))
                   
                 # y-Achsen konstruieren
                 yAxes={}
@@ -3013,7 +3025,8 @@ class Rm():
                     yAxes[colType]=axTC                     
 
                 # zeichnen
-                yLines={}                
+                yLines={}       
+                yLinesLegendLabels={}
                 # ueber alle definierten Kurven         
                 for key,props in tcLines.items():                    
                     if key not in colFromTcKey.keys():                       
@@ -3035,12 +3048,49 @@ class Rm():
                     color='black'
                     linestyle='-'
                     linewidth=3
+                    
+                    if 'offset' in props:
+                        offset=props['offset']
+                    else:
+                        offset=0.
+                    if 'factor' in props:
+                        factor=props['factor']
+                    else:
+                        factor=1.
 
-                    lines=axTC.plot(pDf.index.values,pDf[col],label=label,color=color,linestyle=linestyle,linewidth=linewidth)                   
+                    if 'timeStart' in props:
+                        timeStart=props['timeStart']
+                    else:
+                        timeStart=pDf.index[0]
+
+                    if 'timeEnd' in props:
+                        timeEnd=props['timeEnd']
+                    else:
+                        timeEnd=pDf.index[-1]
+
+                    if 'legendInfosFmt' in props:
+                        legendInfosFmt=props['legendInfosFmt']
+                    else:
+                        legendInfosFmt='{:6.2f}'
+
+                    plotDf=pDf.loc[timeStart:timeEnd,:]
+                    lines=axTC.plot(plotDf.index.values,plotDf[col]*factor+offset,label=label,color=color,linestyle=linestyle,linewidth=linewidth)                   
                     yLines[key]=lines[0]
+
+                    if 'label' in props:
+                        label=props['label']
+                    else:
+                        label=label
+
+                    legendLabelFormat="Anf.: {:s} Ende: {:s} Min: {:s} Max: {:s}".format(*4*[legendInfosFmt])
+                    legendLabelFormat="{:s} "+legendLabelFormat
+                    legendInfos=[plotDf[col].iloc[0],plotDf[col].iloc[-1],plotDf[col].min(),plotDf[col].max()]                   
+                    legendInfos=[factor*legendInfo+offset for legendInfo in legendInfos]
+                    legendLabel=legendLabelFormat.format(label,*legendInfos)
+                    yLinesLegendLabels[key]=legendLabel
                            
                     for prop,value in props.items():       
-                        if prop not in ['forceYType']:
+                        if prop not in ['forceYType','offset','factor','timeStart','timeEnd','legendInfosFmt']:
                             plt.setp(yLines[key],"{:s}".format(prop),value)             
                         
                 # x-Achse 
@@ -3076,6 +3126,18 @@ class Rm():
                                     plt.setp(vLine,"{:s}".format(prop),value)   
                         else:
                             logger.debug("{:s}vLine: {:s}: time nicht definiert.".format(logStr,key))
+
+
+                # Legend
+                if not kwds['lOff']:
+                    l=kwds['pAx'].legend(
+                        tuple([yLines[yline] for yline in yLines])
+                       ,
+                        tuple([yLinesLegendLabels[yLine] for yLine in yLinesLegendLabels])
+                       ,loc=kwds['lLoc']
+                       ,framealpha=kwds['lFramealpha']
+                       ,facecolor=kwds['lFacecolor']               
+                    )                
                                                                                                                                                           
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -3083,7 +3145,7 @@ class Rm():
             raise RmError(logStrFinal)                       
         finally:       
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))       
-            return yAxes,yLines,vLines
+            return yAxes,yLines,vLines,yLinesLegendLabels
 
     def __init__(self,xm=None,mx=None): 
         """

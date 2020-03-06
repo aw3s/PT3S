@@ -8351,7 +8351,7 @@ class Xm():
                             dfDct[vView]=pd.concat(
                                 [
                                      dfDct[vView]
-                                    ,vViewDf[colList[sepColIdx+1:]]
+                                    ,vViewDf[colList[sepColIdx+1:]] # KeyError bei ungl. vAGSN?! Spalten nicht in Index ...
                                 ],axis=1
                                  )
                         

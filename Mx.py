@@ -484,6 +484,43 @@ except ImportError:
     logger.debug("{0:s}{1:s}".format('in MODULEFILE: ImportError: ','from PT3S import Xm - trying import Xm instead ... maybe pip install -e . is active ...')) 
     import Xm
 
+def getSir3sIDoPKFromSir3sID(sir3sID=''):
+    """Returns Sir3sIDoPK from Sir3sID.
+           
+    Raises:
+        MxError
+
+    Returns:
+        Sir3sIDoPK
+        None, if no such Sir3sID  
+        
+    # -q -m 0 -s getSir3sIDoPKFromSir3sID             
+    >>> import Mx
+    >>> sir3sID='ALLG~~~4639827058859487185~LINEPACKGEOM'       
+    >>> Mx.getSir3sIDoPKFromSir3sID(sir3sID)
+    'ALLG~~~LINEPACKGEOM'
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    sir3sIDoPK=None
+    try:      
+        mo=re.match(reSir3sIDcompiled,sir3sID) 
+        colNew=mo.group('OBJTYPE')
+        colNew=colNew+reSir3sIDSep+str(mo.group('NAME1'))
+        colNew=colNew+reSir3sIDSep+mo.group('NAME2')
+        #colNew=colNew+reSir3sIDSep+mo.group('OBJTYPE_PK') 
+        colNew=colNew+reSir3sIDSep+mo.group('ATTRTYPE')        
+        sir3sIDoPK=colNew
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.debug(logStrFinal)           
+    finally:
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
+        return sir3sIDoPK   
+
+
 # Q-Col Ends (Q-Cols: mx2Idx-referenced Channels for Flow) for Edges defined in Xm.vVBEL_edges:
 vVBEL_edgesQ=['QMAV','QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'QM'  ,'']
 #vVBEL_edges=['ROHR','VENT','FWVB','FWES','PUMP','KLAP','REGV','PREG','MREG','DPRG','PGRP']
@@ -3240,6 +3277,50 @@ class Mx():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
             return dfContentAsOneString
 
+    def getSir3sIDFromSir3sIDoPK(self,sir3sIDoPK=''):
+        """Returns Sir3sID from Sir3sIDoPK.
+           
+        Raises:
+            MxError
+
+        Returns:
+            Sir3sID in mx.df (a colname from mx.df)
+            the 1st match is returned
+            None, if no corresponding Sir3sID found 
+        
+        # -q -m 0 -s getSir3sIDFromSir3sIDoPK -t both -y yes -z no -w LocalHeatingNetwork         
+        >>> mx=mxs['LocalHeatingNetwork']   
+        >>> sir3sIDoPK='ALLG~~~LINEPACKGEOM'
+        >>> mx.getSir3sIDFromSir3sIDoPK(sir3sIDoPK)
+        'ALLG~~~4639827058859487185~LINEPACKGEOM'
+        >>> mx.getSir3sIDFromSir3sIDoPK('666')
+        """
+
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try:
+            sir3sID=None
+            for col in self.df.columns.tolist():
+                    if pd.isna(col):
+                        continue
+                    try:
+                        colNew=getSir3sIDoPKFromSir3sID(col)
+                        if colNew==sir3sIDoPK: #?
+                            sir3sID=col
+                            break #!
+                    except:
+                        pass                                                            
+        except MxError:
+            raise            
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise MxError(logStrFinal)            
+        finally:
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))     
+            return sir3sID
+
 if __name__ == "__main__":
     """
     Run Tests.
@@ -3453,8 +3534,8 @@ if __name__ == "__main__":
                                            ,'mxs':mxs}) 
             dTests.extend(dtFinder.find(getMicrosecondsFromRefTime))
             dTests.extend(dtFinder.find(getTimeFromMicroseconds))
-
-
+            dTests.extend(dtFinder.find(getSir3sIDoPKFromSir3sID))
+            
             # gefundene Tests mit geforderten Tests abgleichen
             testsToBeExecuted=[]
             for expr in args.singleTest:
