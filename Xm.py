@@ -7881,12 +7881,11 @@ class Xm():
             * mx, ForceNoH5ReadForMx, ForceNoH5Update : same Args as for MxSync; see description there
             * timeReq:
                 * TIMESTAMP (defining the MX-Resultcolumn-Set) 
-                * if None 1st TIME in Mx is used                     
+                * if None 1st TIME in Mx is used      
+                * if aggReq considered as TIMESTAMPL
             * aggReq (defining the MX-Resultcolumn-Set):               
                 * 'TIME','TMIN','TMAX' (source: MXS) or 'MIN','MAX', ... (source: mx.getVecAggs())
-                * if not None, timeReq und timeReq2nd define the timespan: 
-                * timeReq    is considered as TIMESTAMPL
-                * timeReq2nd is considered as TIMESTAMPR (ignored if aggReq = TIME)
+                * if not None, timeReq und timeReq2nd define the timespan
                 * if List
                     * MX-Resultcolumns for several times/timespans are calculated 
                     * timeReq and timeReq2nd must also be Lists
@@ -7894,7 +7893,8 @@ class Xm():
                     * the 2nd Resultcol of the same type is named _1, the 3rd _2, ...                    
             * timeReq2nd (defining the MX-Resultcolumn-Set):
                 * TIMESTAMP 
-                * if None last TIME in Mx is used                    
+                * if None last TIME in Mx is used    
+                * if aggReq considered as TIMESTAMPR (ignored if aggReq = TIME)
 
         viewList: Views with MX-Resultcolumn-Set to be added:            
             * in the Xm-Views below col mx2Idx must exist (i.e. MxSync mus have been called)
@@ -7938,14 +7938,21 @@ class Xm():
 
         Raises:
             XmError      
-            
-        >>> 
-
-        >>> # # vorbereiten: -q -m 0 -t before -u yes -y yes -z yes -w LocalHeatingNetwork -w GPipes
-        >>> # # testen:      -q -m 0 -s MxAdd         -y no  -z no  -w LocalHeatingNetwork -w GPipes       
+                                  
+        >>> # -q -m 0 -t before -s Xm.MxAdd -y yes -z yes -w LocalHeatingNetwork -w GPipes
         >>> xm=xms['LocalHeatingNetwork']
-        >>> mx=xm.MxAdd(ForceNoH5Update=True)           
-        >>> mx.dfVecAggs.shape
+        >>> (wDir,modelDir,modelName,mx1File)=xm.getWDirModelDirModelName()
+        >>> try:
+        ...     import Mx
+        ... except:
+        ...     from PT3S import Mx        
+        >>> mx=Mx.Mx(mx1File=mx1File)           
+        >>> mx.dfVecAggs.loc[(['TIME','TMIN','TMAX'],'KNOT~*~*~*~PH',slice(None),slice(None)),0:3].reset_index()  
+           TYPE        Sir3sID          TIMESTAMPL          TIMESTAMPR         0         1         2         3
+        0  TIME  KNOT~*~*~*~PH 2004-09-22 08:30:00 2004-09-22 08:30:00  2.302971  3.985846  4.083384  4.121495
+        1  TMIN  KNOT~*~*~*~PH 2004-09-22 08:30:00 2004-09-22 08:31:00  2.052100  2.183028  2.200011  2.206647
+        2  TMAX  KNOT~*~*~*~PH 2004-09-22 08:30:00 2004-09-22 08:31:00  2.302971  4.085822  4.183360  4.221471
+        >>> #mx.dfVecAggs.shape # Start
         (123, 32)
         >>> print(xm._getvXXXXAsOneString(vXXXX='vKNOT',filterColList=['BESCHREIBUNG','IDREFERENZ','NAME','KNOT~*~*~*~PH']))
                               BESCHREIBUNG IDREFERENZ         NAME  KNOT~*~*~*~PH
@@ -8062,22 +8069,22 @@ class Xm():
         29  4769996343148550485       4      E        73.419998         3.004937         983.700012             60.0        -6.385540             20.0
         30  4939422678063487923       6      S         0.000000         5.125884         965.700012             90.0         6.385541             20.0
         31  4939422678063487923       6      E        68.599998         5.121495         965.700012             90.0         6.385541             20.0
-        >>> mx.dfVecAggs.shape # unverändert
+        >>> mx.dfVecAggs.shape # unverändert a
         (123, 32)
         >>> xm.MxAdd(mx=mx,aggReq='TMAX',ForceNoH5Update=True)
-        >>> mx.dfVecAggs.shape # unverändert
+        >>> mx.dfVecAggs.shape # unverändert b
         (123, 32)
         >>> dfTMax=xm.dataFrames['vROHRVecResults'].copy()        
         >>> xm.MxAdd(mx=mx,aggReq='TMIN',ForceNoH5Update=True)        
-        >>> mx.dfVecAggs.shape # unverändert 
+        >>> mx.dfVecAggs.shape # unverändert c
         (123, 32)
         >>> dfTMin=xm.dataFrames['vROHRVecResults'].copy() 
         >>> xm.MxAdd(mx=mx,aggReq='MAX',ForceNoH5Update=True) # erzeugt MIN/MAX/DIF
-        >>> mx.dfVecAggs.shape
+        >>> mx.dfVecAggs.shape # doppelt a
         (246, 32)
         >>> dfMax=xm.dataFrames['vROHRVecResults'].copy()
         >>> xm.MxAdd(mx=mx,aggReq='MIN',ForceNoH5Update=True) # ueberfluessig
-        >>> mx.dfVecAggs.shape
+        >>> mx.dfVecAggs.shape # doppelt b
         (246, 32)
         >>> dfMin=xm.dataFrames['vROHRVecResults'].copy()
         >>> import pandas as pd
@@ -8102,7 +8109,7 @@ class Xm():
         >>> (rn,cn)==mx.dfVecAggs.shape
         True
         >>> mx=xm.MxAdd(ForceNoH5Update=True)           
-        >>> mx.dfVecAggs.shape # h5-Inhalt unver#ndert
+        >>> mx.dfVecAggs.shape # h5-Inhalt unver#ndert 1
         (123, 32)
         >>> # --- mehrere Zeiten/Aggs
         >>> wDir,modelDir,modelName,mx1Filename = xm.getWDirModelDirModelName()
@@ -8110,8 +8117,9 @@ class Xm():
         ...     import Mx
         ... except:
         ...     from PT3S import Mx
-        >>> mx=Mx.Mx(mx1File=mx1Filename)   
-        >>> mx.dfVecAggs.shape # h5-Inhalt unver#ndert
+        >>> mx = None
+        >>> mx=Mx.Mx(mx1File=mx1Filename)           
+        >>> mx.dfVecAggs.shape # h5-Inhalt unver#ndert 2
         (123, 32)
         >>> xm.MxAdd(mx=mx,aggReq=['TIME','TMIN','TMAX'],timeReq=[mx.df.index[0],mx.df.index[0],mx.df.index[0]],timeReq2nd=[mx.df.index[0],mx.df.index[-1],mx.df.index[-1]],ForceNoH5Update=True)
         >>> mx.dfVecAggs.shape 
@@ -8178,6 +8186,74 @@ class Xm():
         >>> mx.dfVecAggs.shape 
         (369, 32)
         >>> #mx.dfVecAggs.loc[(slice(None),['KNOT~*~*~*~P','ROHR~*~*~*~QMI','ROHR~*~*~*~PVECMIN_INST'],slice(None),slice(None)),[0,1,2,31]].round(2)      
+        >>> xm.MxAdd(mx=mx
+        ... ,aggReq=['TIME']
+        ... ,timeReq=1*[mx.df.index[0]]
+        ... ,timeReq2nd=[None]
+        ... ,viewList=['vAGSN']
+        ... ,ForceNoH5Update=True)  
+        >>> xm.MxAdd(mx=mx
+        ... ,aggReq=['TIME']
+        ... ,timeReq=1*[mx.df.index[0]]
+        ... ,timeReq2nd=[None]
+        ... ,viewList=['vKNOT']
+        ... ,ForceNoH5Update=True)      
+        >>> xm.MxAdd(mx=mx
+        ... ,aggReq=['TIME']
+        ... ,timeReq=1*[mx.df.index[0]]
+        ... ,timeReq2nd=[None]
+        ... ,viewList=['vROHR']   
+        ... ,ForceNoH5Update=True)          
+        >>> xm.MxAdd(mx=mx
+        ... ,aggReq=['TIME']
+        ... ,timeReq=1*[mx.df.index[0]]
+        ... ,timeReq2nd=[None]
+        ... ,viewList=['vFWVB']
+        ... ,ForceNoH5Update=True)          
+        >>> xm.MxAdd(mx=mx
+        ... ,aggReq=['TIME']
+        ... ,timeReq=1*[mx.df.index[0]]
+        ... ,timeReq2nd=[None]
+        ... ,viewList=['vVBEL']
+        ... ,ForceNoH5Update=True)
+        >>> ###
+        >>> aggReqLst=['TIME','TMIN','TMAX','TIME']
+        >>> timeReqLst=3*[mx.df.index[0]]+[mx.df.index[-1]]
+        >>> timeReq2ndLst=4*[mx.df.index[-1]]
+        >>> viewLst=['vAGSN','vKNOT','vROHR','vFWVB','vVBEL']
+        >>> xm.MxAdd(mx=mx
+        ... ,aggReq=aggReqLst
+        ... ,timeReq=timeReqLst
+        ... ,timeReq2nd=timeReq2ndLst
+        ... ,viewList=viewLst
+        ... ,ForceNoH5Update=True)    
+        >>> vKNOT=xm.dataFrames['vKNOT']
+        >>> xm.dataFrames['vKNOTTmp']=vKNOT.round(2)
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vKNOTTmp',filterColList=['KNOT~*~*~*~PH','KNOT~*~*~*~PH_1','KNOT~*~*~*~PH_2','KNOT~*~*~*~PH_3'])) 
+            KNOT~*~*~*~PH  KNOT~*~*~*~PH_1  KNOT~*~*~*~PH_2  KNOT~*~*~*~PH_3
+        0            2.30             2.05             2.30             2.30
+        1            3.99             2.18             4.09             4.09
+        2            4.08             2.20             4.18             4.18
+        3            4.12             2.21             4.22             4.22
+        4            2.04             2.01             2.04             2.04
+        5            2.28             2.05             2.28             2.28
+        6            2.00             2.00             2.00             2.00
+        7            2.31             2.05             2.31             2.31
+        8            2.00             2.00             2.00             2.00
+        9            2.14             2.03             2.14             2.14
+        10           3.83             2.16             3.93             3.93
+        11           3.82             2.16             3.92             3.92
+        12           2.31             2.05             2.31             2.31
+        13           3.82             2.16             3.92             3.92
+        14           2.31             2.05             2.31             2.31
+        15           3.85             2.16             3.95             3.95
+        16           4.13             2.21             4.23             4.23
+        17           3.81             2.15             3.91             3.91
+        18           4.31             2.25             4.41             4.41
+        19           4.13             2.21             4.23             4.23
+        20           4.29             2.23             4.39             4.39
+        21           2.00             2.00             2.00             2.00
+        22           2.00             2.00             2.00             2.00
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -8327,15 +8403,22 @@ class Xm():
                     self._MxAddvROHRVecResults(dfSource=dfUnpacked)
                     self._MxAddvAGSN()
 
-                    if idx == 0: # nach dem ersten Durchlauf: 
+                    logger.debug("{:s}Processing viewList: {!s:s} ...".format(logStr,viewList))   
+
+                    if idx == 0: # nach dem ersten Durchlauf:                                      
                         sepColIdxDct={}   
+                        colListDct={}
                         dfDct={}
                         for vView in viewList: #['vAGSN']:
-                            vViewDf = self.dataFrames[vView]
+                                
+                            vViewDf = self.dataFrames[vView]    # view
+                            colList=vViewDf.columns.tolist()    # liste der Spalten des Views
+                            sepColIdx=colList.index('mx2Idx')   # Trennspalte ermitteln
+                            sepColIdxDct[vView]=sepColIdx       # Trennspalte merken      
+                            colListDct[vView]=colList           # Spalten nach einfachem Durchlauf merken
+                                                                # Spalten nach Trennspalte sind dann die Ergebnisspalten pro Durchlauf
 
-                            colList=vViewDf.columns.tolist()
-                            sepColIdx=colList.index('mx2Idx')
-                            sepColIdxDct[vView]=sepColIdx
+                            logger.debug("{:s}nach dem 1. Durchlauf von mehreren ({:d}) Zeiten: View: {:s} sepColIdx: {:d}".format(logStr,len(aggReqL),vView,sepColIdx))   
 
                             dfDct[vView]=pd.concat(
                                 [
@@ -8346,17 +8429,24 @@ class Xm():
 
                     if idx >= 1: # ab nach dem zweiten Durchlauf                        
                         for vView in viewList: #['vAGSN']:
-                            vViewDf = self.dataFrames[vView]                            
-                            sepColIdx=sepColIdxDct[vView]                           
+                            vViewDf = self.dataFrames[vView]  # view                          
+                            sepColIdx=sepColIdxDct[vView]     # Trennspalte
+                            colList=colListDct[vView]         # Spalten nach einfachem Durchlauf
+                            
+                            logger.debug("{:s}ab einschl. dem 2. Durchlauf von mehreren ({:d}) Zeiten: View: {:s} sepColIdx: {:d}: weitere Ergebnisspalten mit selbem Namen dranhaengen".format(logStr,len(aggReqL),vView,sepColIdx))   
+
                             dfDct[vView]=pd.concat(
                                 [
                                      dfDct[vView]
-                                    ,vViewDf[colList[sepColIdx+1:]] # KeyError bei ungl. vAGSN?! Spalten nicht in Index ...
+                                    ,vViewDf[colList[sepColIdx+1:]] # Spalten nach Trennspalte dranhaengen (mit selbem Namen) 
                                 ],axis=1
                                  )
                         
                     if idx == len(aggReqL)-1 and len(aggReqL) > 1:
                         for vView in viewList: # ['vAGSN']:
+
+                             logger.debug("{:s}letzter Durchlauf von mehreren ({:d}) Zeiten: View: {:s}: entstandene Mehrfachspalten umbenennen".format(logStr,len(aggReqL),vView))   
+                             
                              colCount={col:0 for col in dfDct[vView].columns.tolist() }
                              cols=[]
                              for col in dfDct[vView].columns:

@@ -1448,8 +1448,7 @@ class Mx():
         >>> # -q -m 0 -s _readMxsFile -t both -w LocalHeatingNetwork 
         >>> mx=mxs['LocalHeatingNetwork']   
         >>> mx.delFiles()
-        >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading
-        5
+        >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading       
         >>> mx.dfVecAggs.loc[(['TIME','TMIN','TMAX'],'KNOT~*~*~*~PH',slice(None),slice(None)),0:22]  
                                                                            0         1         2         3         4         5         6         7         8         9        10        11        12        13   14        15        16        17        18   19        20        21        22
         TYPE Sir3sID       TIMESTAMPL          TIMESTAMPR                                                                                                                                                                                                                                     
@@ -1739,7 +1738,7 @@ class Mx():
                                         h5DumpLog="{:s}     Written DataFrame {:s} (Nr. {:6d}) with h5Key=/{!s:>20s}".format('H5Dump:','dfVecs',timesWrittenToMxsVecs,h5Key) 
                                         keysInH5Store.append('/'+str(h5Key))
                                  else: # kein h5Dump: also keine "normale" Zeit                                        
-                                        if cSNAPSHOTTYPE in ['TIME','TMIN','TMAX']:       
+                                        if cSNAPSHOTTYPE in ['TMIN','TMAX'] or (cSNAPSHOTTYPE=='TIME' and time == firstTime):       
                                             try:
                                                 h5DumpLogOld=h5DumpLog
                                                 h5DumpLog="{:s} trying to process to dfVecAggs with TIMESTAMPL: {!s:s}...".format(h5DumpLog,time_read_finally)         
