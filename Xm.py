@@ -7875,7 +7875,7 @@ class Xm():
               ,aggReq=None
               ,timeReq2nd=None
               ,viewList=[]):
-        """Add MX-Resultcolumn-Set to some Xm-Views.  NEW 1st Call: vROHRVecResults, vAGSN.
+        """Add MX-Resultcolumn-Set to some Xm-Views. A Result-Set from previous Calls is deleted. NEW 1st Call: vROHRVecResults, vAGSN.
 
         Args:               
             * mx, ForceNoH5ReadForMx, ForceNoH5Update : same Args as for MxSync; see description there
@@ -8254,6 +8254,34 @@ class Xm():
         20           4.29             2.23             4.39             4.39
         21           2.00             2.00             2.00             2.00
         22           2.00             2.00             2.00             2.00
+        >>> xm.MxAdd(mx=mx)
+        >>> vKNOT=xm.dataFrames['vKNOT']
+        >>> xm.dataFrames['vKNOTTmp']=vKNOT.round(2)        
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vKNOTTmp',filterColList=['KNOT~*~*~*~PH','KNOT~*~*~*~PH_1','KNOT~*~*~*~PH_2','KNOT~*~*~*~PH_3'])) 
+            KNOT~*~*~*~PH
+        0            2.30
+        1            3.99
+        2            4.08
+        3            4.12
+        4            2.04
+        5            2.28
+        6            2.00
+        7            2.31
+        8            2.00
+        9            2.14
+        10           3.83
+        11           3.82
+        12           2.31
+        13           3.82
+        14           2.31
+        15           3.85
+        16           4.13
+        17           3.81
+        18           4.31
+        19           4.13
+        20           4.29
+        21           2.00
+        22           2.00
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -8274,6 +8302,24 @@ class Xm():
 
             if timeReq==None:
                 timeReq=mx.df.index[0]
+
+
+            # ZielDfs kürzen auf Sachdaten inkl. mx2Idx
+            for view in ['vKNOT','vROHR','vFWVB','vVBEL']:
+                viewDf=self.dataFrames[view]       
+
+                cols=viewDf.columns.to_list()        
+                if 'mx2Idx' in cols:
+                    mx2Idx=cols.index('mx2Idx') # mx2Idx
+
+                    viewModelCols=cols[:mx2Idx+1]
+                    viewDf=viewDf.filter(items=viewModelCols,axis=1)
+
+                    self.dataFrames[view]=viewDf
+
+
+
+
 
             aggReqListmode=False
 
@@ -8587,6 +8633,9 @@ class Xm():
             # merge again for correct alignment
             df=pd.merge(vVBEL.loc[:,vbelModelCols],df.filter(items=['tk','pk_i','pk_k']+knotResultColsi+knotResultColsk),on=['tk','pk_i','pk_k']).filter(items=vbelModelCols+knotResultColsi+knotResultColsk)
             dfResultColsOnly=df.filter(knotResultColsi+knotResultColsk)
+
+            logger.debug("{:s}Spalten Knoten             : {!s:s}".format(logStr,vKNOT.columns.to_list()))      
+            logger.debug("{:s}Ergebnisspalten konstruiert: {!s:s}".format(logStr,dfResultColsOnly.columns.to_list()))      
 
             if dfResultColsOnly.columns.isin(vVBELCols).all():
                 pass
@@ -9214,8 +9263,11 @@ class Xm():
             colsInTargetNet=list(set(colsInTarget)-set(colsToBeAdded))
             colsInTargetNet=[col for col in colsInTarget if col in colsInTargetNet] # preserve the original col-Sequence
 
+            logger.debug("{:s}Quellspalten: {!s:s}".format(logStr,dfSource.columns.to_list())) 
+            logger.debug("{:s}Zielspalten: {!s:s}".format(logStr,dfTarget.columns.to_list())) 
+
             if dfSource.columns.isin(colsInTarget).all():
-                pass
+                logger.debug("{:s}Alle Quellspalten (bereits) in Target: {!s:s}".format(logStr,dfSource.columns.to_list()))                 
             else:
                 if not dfSource.columns.isin(colsInTarget).any():
                     # no col to be added exista
@@ -9277,7 +9329,9 @@ class Xm():
             logger.error(logStrFinal) 
                      
         finally:
+            #logger.debug("{:s}Zielspalten Ergebnis: {!s:s}".format(logStr,dfTarget.columns.to_list())) 
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+
             return dfTarget
 
 def setUpFct(dto):

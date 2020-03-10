@@ -1449,6 +1449,7 @@ class Mx():
         >>> mx=mxs['LocalHeatingNetwork']   
         >>> mx.delFiles()
         >>> mx.setResultsToMxsFile() # reads 5 TIMESTAMPS and constructs .vec.h5 while reading       
+        5
         >>> mx.dfVecAggs.loc[(['TIME','TMIN','TMAX'],'KNOT~*~*~*~PH',slice(None),slice(None)),0:22]  
                                                                            0         1         2         3         4         5         6         7         8         9        10        11        12        13   14        15        16        17        18   19        20        21        22
         TYPE Sir3sID       TIMESTAMPL          TIMESTAMPR                                                                                                                                                                                                                                     
