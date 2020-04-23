@@ -870,7 +870,7 @@ class Xm():
                 return df   
 
     @classmethod            
-    def constructShortestPathFromNodeList(cls,df=None,sourceCol='NAME_i',targetCol='NAME_k',nl=None,weight=None,query=None,fmask=None):    
+    def constructShortestPathFromNodeList(cls,df=None,sourceCol='NAME_i',targetCol='NAME_k',nl=None,weight=None,query=None,fmask=None,filterNonQ0Rows=True):    
             """Returns a DataFrame with Edges (one per row) implementing the shortest Path over NodeList.
     
                 Args:
@@ -878,10 +878,11 @@ class Xm():
                         * adjusting/filtering/constructing (if the corresponding cols are existing) _before using df
                             * L: converted to float before usage here
                             * Q:
-                                * non Null Q-rows filtered 
+                                * non Null Q-rows are filtered (d.h. nur Kanten mit "Wert" bei Q werden berücksichtigt bei der Pfadermittlung)
+                                * non Q=0-rows are filtered if filterNonQ0Rows (d.h. nur durchflossene Kanten werden berücksichtigt bei der Pfadermittlung)
                                 * constructed:
                                     * QAbs
-                                    * QAbsInv
+                                    * QAbsInv (if filterNonQ0Rows)
                     * nl: NodeList
                     * weight: columnName of the weight attribute
             
@@ -1020,9 +1021,11 @@ class Xm():
                 if 'Q' in df.columns.tolist():
                     # nur durchflossene Kanten
                     df=df[pd.isnull(df['Q']) == False]
-                    df=df[df['Q'] != 0]
+                    if filterNonQ0Rows:
+                        df=df[df['Q'] != 0]
                     df.loc[:,'QAbs']=df['Q'].apply(lambda x: math.fabs(x))
-                    df.loc[:,'QAbsInv']=df['QAbs'].apply(lambda x: 1/x)
+                    if filterNonQ0Rows:
+                        df.loc[:,'QAbsInv']=df['QAbs'].apply(lambda x: 1/x)
 
                 df.loc[:,'SOURCE_i']=df[sourceCol].values
                 df.loc[:,'SOURCE_k']=df[targetCol].values
@@ -2439,7 +2442,7 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
             return df
         
-    def vAGSN_Add(self,nl=None,weight=None,Layer=0,AKTIV=None,NAME='NEU',query=None,fmask=None):
+    def vAGSN_Add(self,nl=None,weight=None,Layer=0,AKTIV=None,NAME='NEU',query=None,fmask=None,filterNonQ0Rows=True):
         """Adds a new User-defined Cut to the Model-defined Cuts. 
 
         Arguments:
@@ -2541,7 +2544,7 @@ class Xm():
                 
            else:                                
                 df=self.getvVBELwithNodeAttributeAdded()
-                df=Xm.constructShortestPathFromNodeList(df=df,nl=nl,weight=weight,query=query,fmask=fmask)  
+                df=Xm.constructShortestPathFromNodeList(df=df,nl=nl,weight=weight,query=query,fmask=fmask,filterNonQ0Rows=filterNonQ0Rows)  
 
                 if not df.empty:                                
                         df['Layer']=Layer
