@@ -3809,12 +3809,14 @@ class Xm():
         Raises:
             XmError
 
+        >>> # -q -m 0 -s vRSTN  -w DHNetwork  -y yes -z no
         >>> import pandas as pd             
         >>> # ---
         >>> xm=xms['DHNetwork']
         >>> # ---              
         >>> vRSTN=xm.dataFrames['vRSTN']        
         >>> vRSTN['RART_TYP']=vRSTN['RART_TYP'].str[:10]+'...' # zu lange Ausgabezeile vermeiden
+        >>> pd.set_option('display.width', None)
         >>> vRSTN[[
         ...  'CONT'
         ... ,'CONT_PARENT'
@@ -3997,7 +3999,11 @@ class Xm():
             vRSTN=vRSTN.loc[~(vRSTN['ITYP_OBJTYPE'].isin(lookUpObjtypes)) | ( (vRSTN['ITYP_OBJTYPE'].isin(lookUpObjtypes)) & (vRSTN['ITYP_OBJTYPE']==vRSTN['OBJTYPE'])) ,:]
           
             # TABL ---
-            lookUpTables=['LFKT','PHI1','PUMD','PVAR','QVAR','SWVT','TEVT','WEVT']  #['LFKT','TEVT']   
+            #lookUpTables=['LFKT','PHI1','PUMD','PVAR','QVAR','SWVT','TEVT','WEVT']  
+            lookUpTables=[]
+            for table in ['LFKT','PHI1','PUMD','PVAR','QVAR','SWVT','TEVT','WEVT']:                
+                if table in self.dataFrames:
+                    lookUpTables.append(table)
             lookUpPosts=['_'+lookUpTable for lookUpTable in lookUpTables]
             lookUpTableKeys=['fk'+lookUpTable for lookUpTable in lookUpTables]
             lookUpColsGen=['NAME']+['NAME'+lookUpPost for lookUpTable,lookUpPost in zip(lookUpTables[1:],lookUpPosts[1:])]
@@ -4007,11 +4013,12 @@ class Xm():
             # Information auf unDef zurücksetzen, wenn OBJTYPE nicht passt                              
             vRSTN.loc[~(vRSTN['ITYP_OBJTYPE'].isin(lookUpTables)) & ~(vRSTN['TABL_Chk'].isnull()),'TABL_Chk']=None 
             for lookUpTable,lookUpTableKey,lookUpPost,lookUpColGen in zip(lookUpTables,lookUpTableKeys,lookUpPosts,lookUpColsGen):
-                 df=self.dataFrames[lookUpTable][['pk','NAME']]                 
-                 vRSTN=pd.merge(vRSTN,df,left_on=lookUpTableKey,right_on='pk',suffixes=('',lookUpPost),how='left')
+                 
+                df=self.dataFrames[lookUpTable][['pk','NAME']]                 
+                vRSTN=pd.merge(vRSTN,df,left_on=lookUpTableKey,right_on='pk',suffixes=('',lookUpPost),how='left')
 
-                 # belegte Spalte auf unDef zurücksetzen, wenn OBJTYPE nicht passt                              
-                 vRSTN.loc[~(vRSTN['ITYP_OBJTYPE'].isin([lookUpTable])) &  ~(vRSTN[lookUpColGen].isnull()),lookUpColGen]=None # Referenz vorhanden und gültig - aber irrelevant       
+                # belegte Spalte auf unDef zurücksetzen, wenn OBJTYPE nicht passt                              
+                vRSTN.loc[~(vRSTN['ITYP_OBJTYPE'].isin([lookUpTable])) &  ~(vRSTN[lookUpColGen].isnull()),lookUpColGen]=None # Referenz vorhanden und gültig - aber irrelevant       
 
             
             # neue Spalte TABL bestücken     
