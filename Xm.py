@@ -4082,50 +4082,51 @@ class Xm():
 
 
             # RCPL ---
-            RCPL=self.dataFrames['RCPL']
-            RCPL_ROWT=self.dataFrames['RCPL_ROWT']
-            df=pd.merge(RCPL,RCPL_ROWT,left_on='pk',right_on='fk',suffixes=('','_ROWT'))
-            vKNOT=self.dataFrames['vKNOT']
-            df=pd.merge(df,vKNOT,left_on='fkKREF1',right_on='pk',suffixes=('','_KNOT1'))
-            df=pd.merge(df,vKNOT,left_on='fkKREF2',right_on='pk',suffixes=('','_KNOT2'))
-            df=df[[
-                'NAME'
-                ,'TYP'
-                ,'AKTIV_ROWT'
-                ,'W'
-                ,'NAME_KNOT1'
-                ,'NAME_KNOT2'
-                ,'pk'
-                ,'pk_ROWT'
-            ]]
+            if 'RCPL' in self.dataFrames:
+                RCPL=self.dataFrames['RCPL']
+                RCPL_ROWT=self.dataFrames['RCPL_ROWT']
+                df=pd.merge(RCPL,RCPL_ROWT,left_on='pk',right_on='fk',suffixes=('','_ROWT'))
+                vKNOT=self.dataFrames['vKNOT']
+                df=pd.merge(df,vKNOT,left_on='fkKREF1',right_on='pk',suffixes=('','_KNOT1'))
+                df=pd.merge(df,vKNOT,left_on='fkKREF2',right_on='pk',suffixes=('','_KNOT2'))
+                df=df[[
+                    'NAME'
+                    ,'TYP'
+                    ,'AKTIV_ROWT'
+                    ,'W'
+                    ,'NAME_KNOT1'
+                    ,'NAME_KNOT2'
+                    ,'pk'
+                    ,'pk_ROWT'
+                ]]
             
-            #510=RCPL_ROWT_AKT | 1511=RCPL_ROWT_SW
+                #510=RCPL_ROWT_AKT | 1511=RCPL_ROWT_SW
 
-            vRSTN=pd.merge(vRSTN,df,left_on=['fkRCPL','fkRCPL_ROWT'],right_on=['pk','pk_ROWT'],suffixes=('','_RCPL_ROWT'),how='left')  # nur 1 Treffer moeglich ...
-            vRSTN.rename(columns={'NAME':'RCPL'},inplace=True)
-            vRSTN.rename(columns={'NAME_KNOT1':'RCPL_KNOT1'},inplace=True)
-            vRSTN.rename(columns={'NAME_KNOT2':'RCPL_KNOT2'},inplace=True)
+                vRSTN=pd.merge(vRSTN,df,left_on=['fkRCPL','fkRCPL_ROWT'],right_on=['pk','pk_ROWT'],suffixes=('','_RCPL_ROWT'),how='left')  # nur 1 Treffer moeglich ...
+                vRSTN.rename(columns={'NAME':'RCPL'},inplace=True)
+                vRSTN.rename(columns={'NAME_KNOT1':'RCPL_KNOT1'},inplace=True)
+                vRSTN.rename(columns={'NAME_KNOT2':'RCPL_KNOT2'},inplace=True)
             
-            # belegte Spalte auf unDef zurücksetzen, wenn Stellglied nicht passt     
+                # belegte Spalte auf unDef zurücksetzen, wenn Stellglied nicht passt     
              
-            # >>> 'RCPL_ROWT_SW'.split(sep='_')
-            # ['RCPL', 'ROWT', 'SW']
+                # >>> 'RCPL_ROWT_SW'.split(sep='_')
+                # ['RCPL', 'ROWT', 'SW']
                                         
-            vRSTN.loc[
-                ~(
-                vRSTN['ITYP_OBJTYPE'].isin(['RCPL']) 
-                &
-                vRSTN['ITYP_OBJATTR'].isin(['ROWT']) 
-                )
-                & 
-                ~(
-                vRSTN['RCPL'].isnull()
-                )
-                ,
-                ['RCPL','RCPL_KNOT1','RCPL_KNOT2']]=None 
+                vRSTN.loc[
+                    ~(
+                    vRSTN['ITYP_OBJTYPE'].isin(['RCPL']) 
+                    &
+                    vRSTN['ITYP_OBJATTR'].isin(['ROWT']) 
+                    )
+                    & 
+                    ~(
+                    vRSTN['RCPL'].isnull()
+                    )
+                    ,
+                    ['RCPL','RCPL_KNOT1','RCPL_KNOT2']]=None 
 
 
-            # PUMP PGRP ------
+            # PUMP PGRP --------------------------------------------------------------------------------------------------
             vRSTN=pd.merge(vRSTN,lookUpVbel,left_on='fkPUMPPG',right_on='OBJID',suffixes=('','_PUMP'),how='left')  
             # belegte Spalte auf unDef zurücksetzen, wenn Stellglied nicht passt                           
             vRSTN.loc[
@@ -4144,7 +4145,21 @@ class Xm():
                 ,
                 ['NAME_i_PUMP','NAME_k_PUMP']]=None 
 
-            # pruefen, ob für jeden RSTN genau 1 Stellobjekt ermittelt wurde
+
+
+            # ggf. nicht generierbare Spalten generieren ------------------------------------
+            missingCols=['RCPL' # befuellt wenn RCPL Stellglied
+                   ,'RCPL_KNOT1'
+                   ,'RCPL_KNOT2'
+                    #704=PGRP_PUAKT | 705=PGRP_PUDEA 
+                   , 'NAME_i_PUMP'
+                   , 'NAME_k_PUMP'  ]
+            for col in missingCols:
+                if col not in vRSTN:
+                    vRSTN[col]=None
+
+
+            # pruefen, ob für jeden RSTN genau 1 Stellobjekt ermittelt wurde ------------------------------------------------
                 # Ergebnisse
             cols=[      
                  'CONT_i'   # stellvertretend für die Ergebnisspalten von VBEL Stellobjekten       
@@ -4160,7 +4175,6 @@ class Xm():
                 # 0:  kein Stellobjekt
                 # 1:  Ok: genau 1 Stellobjekt
                 # >1: Ergebnisspalten dieses Views sind nicht konsistent befüllt
-
 
             vRSTN = vRSTN[[
 
