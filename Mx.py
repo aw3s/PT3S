@@ -1853,8 +1853,12 @@ class Mx():
 
         Args:
             * fullCheck (bool)
-                * False (default): only 1st and last h5Keys are read
+                * False (default): only 1st and last h5Keys are read               
                 * True: all h5Keys are read
+
+        Returns: 
+              * (firstTime,lastTime,NOfTimes)
+              * if self.h5FileVecs does not exist None,None,[] is returned
 
         Raises:
             MxError
@@ -1868,35 +1872,38 @@ class Mx():
             lastTime=None
             keysH5=[]
 
-            with pd.HDFStore(self.h5FileVecs) as mxsVecsH5Store: 
+            if os.path.exists(self.h5FileVecs):
+                with pd.HDFStore(self.h5FileVecs) as mxsVecsH5Store: 
                                                                                                                                                
-                keys=sorted([int(key.replace('/','')) for key in mxsVecsH5Store.keys()])
-                keysH5=['/'+str(key) for key in keys]
-                if fullCheck:
-                    for idx,key in enumerate(keysH5):                
-                        dfVecs=mxsVecsH5Store[key]  
-                        time=dfVecs.index[0]
-                        if idx==0:
-                            firstTime=time
-                        msForTime=getMicrosecondsFromRefTime(firstTime,time)
-                        if msForTime != keys[idx]:
-                            logger.debug("{:s}TimeNr. {:>6d} with key {!s:>20s} and TIMESTAMP {!s:s}: ms (>key) NOT ms {!s:>20s} for TIMESTAMP.".format(logStr,idx+1,key,time,msForTime))  
-                        if idx>0:
-                            if time <= lastTime:
-                                 logger.debug("{:s}TimeNr. {:>6d} with key {!s:>20s} and TIMESTAMP {!s:s}: NOT > lastTimeRead {!s:s}.".format(logStr,idx+1,key,time,lastTime))  
+                    keys=sorted([int(key.replace('/','')) for key in mxsVecsH5Store.keys()])
+                    keysH5=['/'+str(key) for key in keys]
+                    if fullCheck:
+                        for idx,key in enumerate(keysH5):                
+                            dfVecs=mxsVecsH5Store[key]  
+                            time=dfVecs.index[0]
+                            if idx==0:
+                                firstTime=time
+                            msForTime=getMicrosecondsFromRefTime(firstTime,time)
+                            if msForTime != keys[idx]:
+                                logger.debug("{:s}TimeNr. {:>6d} with key {!s:>20s} and TIMESTAMP {!s:s}: ms (>key) NOT ms {!s:>20s} for TIMESTAMP.".format(logStr,idx+1,key,time,msForTime))  
+                            if idx>0:
+                                if time <= lastTime:
+                                     logger.debug("{:s}TimeNr. {:>6d} with key {!s:>20s} and TIMESTAMP {!s:s}: NOT > lastTimeRead {!s:s}.".format(logStr,idx+1,key,time,lastTime))  
 
 
-                        logger.debug("{:s}TimeNr. {:>6d} with key {!s:>20s} and TIMESTAMP {!s:s}.".format(logStr,idx+1,key,time))         
-                        lastTime=time
-                else:
-                    #1st Time
-                    key=keysH5[0]
-                    dfVecs=mxsVecsH5Store[key] 
-                    firstTime=dfVecs.index[0]
-                    #last Time
-                    key=keysH5[-1]
-                    dfVecs=mxsVecsH5Store[key] 
-                    lastTime=dfVecs.index[0]
+                            logger.debug("{:s}TimeNr. {:>6d} with key {!s:>20s} and TIMESTAMP {!s:s}.".format(logStr,idx+1,key,time))         
+                            lastTime=time
+                    else:
+                        #1st Time
+                        key=keysH5[0]
+                        dfVecs=mxsVecsH5Store[key] 
+                        firstTime=dfVecs.index[0]
+                        #last Time
+                        key=keysH5[-1]
+                        dfVecs=mxsVecsH5Store[key] 
+                        lastTime=dfVecs.index[0]
+            else:
+                    pass
                                                                                                                 
         except MxError:
             raise
