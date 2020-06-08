@@ -4816,31 +4816,50 @@ class Xm():
             * vKNOT added with Resultcolumn ESQUELLSP
 
         Arguments:
-            * AColIdx: Idx (starting with 0) of the EG which represents qsA (and defines qsNotA)
+            * AColIdx: Idx (LFDNR-1) of the EG which represents qsA (and defines qsNotA)
 
         new Cols:
             * qsStr: ESQUELLSP of the node as plain text
-            * qs_LFDNR_NAME: share of EBES Nr. LFDNR in the supply of the node
+
+            * qs_LFDNR_NAME: share of EBES Nr. LFDNR in the supply of the node - i.e.:
+                * qs_1_Drei Linden
+                * qs_4_Biogas Wette
+                * ...
             * the columns are derived from column ESQUELLSP
             * the column ESQUELLSP is unchanged
+
+            * qsigStr                 
+
+            * qs100: Index beginnend mit 1 der EG die den jeweiligen Knoten zu 100% versorgt - 0 sonst (d.h. dieser Knoten wird von keiner EG zu 100% versorgt)                  
+            * qsSUM: Summe aller EGs - 100, wenn der Knoten zu 100% von den EGs versorgt wird               
+            * qsA                   
+            * qsNotA                  
+            
             * qsAnzKnoten
+            * qsAnzFwvb
+
+            * qsKNOT~*~*~*~QM'
+            * qsFWVB~*~*~*~W
+            * qsFWVB~*~*~*~QM
+
+            * qsigKNOT~*~*~*~QM'
+            * qsigFWVB~*~*~*~W
+            * qsigFWVB~*~*~*~QM
+            
+            
             * qsRank: NrOfGroup: order is perc. desc. in EBES LFDNR order (the ESQUELLSP with max. share of 1st EBES is No. 1)
             * qsRankAnzKnoten: NrOfGroup: order is Anzahl Knoten (the ESQUELLSP with max. NOfNodes is No. 1)
+            * qsRank: die mit der größten neg. Abnahme ist die 1.
+
             * qsRankAnzFwvb
             * qsRankFWVB~*~*~*~W
-            * die qsRanks... könnten Indices einer diskreten Farbskala sein
 
-            * AnzFwvb, FWVB~*~*~*~W, FWVB~*~*~*~QM - aggregierte Größen per FWVB
-            * qsAnzFwvb, qsFWVB~*~*~*~W, qsFWVB~*~*~*~QM - aggregierte Größen per QS
-
-            * qs100: Index beginnend mit 1 der EG die den jeweiligen Knoten zu 100% versorgt - 0 sonst (d.h. dieser Knoten wird von keiner EG zu 100% versorgt)
-            * qsSUM: Summe aller EGs - 100, wenn der Knoten zu 100% von den EGs versorgt wird
-
-            * qSA
-            * qsNotA
-
-            * dito Signatur aus Spektrum
-            * qs[ig]... 
+            * qsigRank: lexikalisch absteigend (d.h. die alles 1-Signatur ist die 1. und die alle 0-Signatur ist die letzte)
+            * qsigRankAnzKnoten: die mit den wenigsten Knoten ist die 1.
+            * qsigRank: die mit der größten neg. Abnahme ist die 1.
+    
+            * qsigRankAnzFwvb
+            * qsigRankFWVB~*~*~*~W
             * qsigqsRankFWVB~*~*~*~W: lfd. Nr. QS nach W-Größe sig, qs absteigend (d.h. No. 1 ist W-größte QSPK in der W-größten QSIG) 
         
         Returns:
@@ -5110,32 +5129,41 @@ class Xm():
                 EBES = self.dataFrames['EBES']
                 EBES_BZ = self.dataFrames['EBES_BZ']
                 vEBES=pd.merge(EBES,EBES_BZ,left_on='pk',right_on='fk',suffixes=('','_BZ')).sort_values(by=['LFDNR','AKTIVQS']).reset_index() # der alte Index bleibt als Index erhalten
-                vEBES=vEBES[vEBES['AKTIVQS']=='101'] # nur die berechneten Ebes
+                ### vEBES=vEBES[vEBES['AKTIVQS']=='101'] # nur die berechneten Ebes
                 Names=vEBES['NAME'].tolist()
                 Lfdnrs=vEBES['LFDNR'].tolist()
                 expColNames=['qs' + '_' + str(Lfdnr) + '_' + Name for Lfdnr,Name in zip(Lfdnrs,Names)]
 
+            if not vEBES.shape == vEBES[vEBES['AKTIVQS']=='101'].shape:
+                logger.info("{:s}: Es gibt inaktive Einspeisergruppen!".format(logStr))               
+
             # vKnot
-            vKNOTexp=self.dataFrames['vKNOT']           
+            vKNOTexp=self.dataFrames['vKNOT']       
+            vKNOTexp['KVR'].fillna('0',inplace=True) # vermeiden, dass spaetere Aggregierungen mit KVR Null-Ergebnisse produzieren für KVR-Nulls
 
             if 'KNOT~*~*~*~ESQUELLSP' in vKNOTexp.columns.tolist():
                 vKNOTexp['qsStr']=vKNOTexp['KNOT~*~*~*~ESQUELLSP'].str.decode('utf-8')
                 vKNOTexp['qsStr']=vKNOTexp['qsStr'].str.rstrip()
 
-                # die Anzahl der Spalten ist die Anzahl der berechneten Ebes
+                # die Anzahl der Spalten ist die Anzahl der definierten ### berechneten Ebes
                 expDf=vKNOTexp['qsStr'].str.split('\t', expand = True)
 
                 # die Spalten dranhängen (heißen 1,2,...)
                 vKNOTexp=pd.merge(vKNOTexp,expDf,left_index=True,right_index=True,suffixes=('','_expDf'))
 
+
+
+
                 # die Spalten umbenennen
-                if len(expDf.columns.tolist()) != len(expColNames):
-                    logStrFinal="{:s}: Anzahl der expandierten qs-Komponenten: {:d} != Anzahl der als zu berechnen definierten Einspeisergruppen: {:d} ?!".format(logStr,len(expDf.columns.tolist()),len(expColNames))
-                    logger.error(logStrFinal) 
-                    raise XmError(logStrFinal)                    
-                else:
-                    # neue Spaltennamen:
-                    vKNOTexp=vKNOTexp.rename(columns={idx:colName for idx,colName in zip(expDf.columns.tolist(),expColNames)})
+
+                ### if len(expDf.columns.tolist()) != len(expColNames):
+                ###    logStrFinal="{:s}: Anzahl der expandierten qs-Komponenten: {:d} != Anzahl der als zu berechnen definierten Einspeisergruppen: {:d} ?!".format(logStr,len(expDf.columns.tolist()),len(expColNames))
+                ###    logger.error(logStrFinal) 
+                ###    raise XmError(logStrFinal)                    
+                ### else:
+
+                # neue Spaltennamen:
+                vKNOTexp=vKNOTexp.rename(columns={idx:colName for idx,colName in zip(expDf.columns.tolist(),expColNames)})
 
                 #vKNOTexp[expColNames]=vKNOTexp[expColNames].astype('int')
                 
@@ -5164,7 +5192,7 @@ class Xm():
                 NotACols=[col for col in expColNames if col != ACol]
                 vKNOTexp['qsNotA']=vKNOTexp[NotACols].astype(int).sum(axis=1)
 
-            # bis hier: ... ,'qsStr', 'qs_1_A', 'qs_2_B', 'qs_3_C', 'qsigStr', 'qs100', 'qsSUM', 'qsA', 'qsNotA' ...
+                # bis hier: ... ,'qsStr', 'qs_1_A', 'qs_2_B', 'qs_3_C', 'qsigStr', 'qs100', 'qsSUM', 'qsA', 'qsNotA' ...
 
                 colsARank=['KVR','qsA']
                 colsARankOrder=[True,False]
@@ -5224,10 +5252,17 @@ class Xm():
                 vKNOTexp['qsRank'] = vKNOTexp.sort_values(cols,ascending=[True] + len(expColNames)*[False]).groupby(cols,sort=False).ngroup() + 1
                 colsSort=['KVR']+['qsAnzKnoten']+expColNames
                 vKNOTexp['qsRankAnzKnoten'] = vKNOTexp.sort_values(colsSort,ascending=[True]+[False]+ len(expColNames)*[False]).groupby(cols,sort=False).ngroup() + 1
-                colsSort=['KVR']+['qsAnzFwvb']+expColNames
-                vKNOTexp['qsRankAnzFwvb'] = vKNOTexp.sort_values(colsSort,ascending=[True]+[False]+ len(expColNames)*[False]).groupby(cols,sort=False).ngroup() + 1
-                colsSort=['KVR']+['qsFWVB~*~*~*~W']+expColNames
-                vKNOTexp['qsRankFWVB~*~*~*~W'] = vKNOTexp.sort_values(colsSort,ascending=[True]+[False]+ len(expColNames)*[False]).groupby(cols,sort=False).ngroup() + 1
+
+                if 'qsKNOT~*~*~*~QM' in vKNOTexp.columns:
+                    colsSort=['KVR']+['qsKNOT~*~*~*~QM']+expColNames
+                    vKNOTexp['qsRankQM'] = vKNOTexp.sort_values(colsSort,ascending=[True]+[True]+ len(expColNames)*[False]).groupby(cols,sort=False).ngroup() + 1
+
+                if 'AnzFwvb' in vKNOTexp.columns:
+
+                    colsSort=['KVR']+['qsAnzFwvb']+expColNames
+                    vKNOTexp['qsRankAnzFwvb'] = vKNOTexp.sort_values(colsSort,ascending=[True]+[False]+ len(expColNames)*[False]).groupby(cols,sort=False).ngroup() + 1
+                    colsSort=['KVR']+['qsFWVB~*~*~*~W']+expColNames
+                    vKNOTexp['qsRankFWVB~*~*~*~W'] = vKNOTexp.sort_values(colsSort,ascending=[True]+[False]+ len(expColNames)*[False]).groupby(cols,sort=False).ngroup() + 1
 
                 # QuellSignatur #########################################################
                 grpObj=vKNOTexp.groupby(by=grpKatLst+['qsigStr'], as_index=False) 
@@ -5256,19 +5291,29 @@ class Xm():
                 vKNOTexp=vKNOTexp.filter(items=cols)   
 
                 # Quellsignatur numerieren
-                cols=['KVR']+['qsigStr']       
+                cols=['KVR']+['qsigStr']                 
                 vKNOTexp['qsigRank'] = vKNOTexp.sort_values(cols,ascending=[True] + [False]).groupby(cols,sort=False).ngroup() + 1
-                colsSort=['KVR']+['qsigAnzKnoten']+['qsigStr']   
+
+                colsSort=['KVR']+['qsigAnzKnoten']+['qsigStr']                   
                 vKNOTexp['qsigRankAnzKnoten'] = vKNOTexp.sort_values(colsSort,ascending=[True]+[False]+[False]).groupby(cols,sort=False).ngroup() + 1
-                colsSort=['KVR']+['qsigAnzFwvb']+['qsigStr']   
-                vKNOTexp['qsigRankAnzFwvb'] = vKNOTexp.sort_values(colsSort,ascending=[True]+[False]+[False]).groupby(cols,sort=False).ngroup() + 1
-                colsSort=['KVR']+['qsigFWVB~*~*~*~W']+['qsigStr']   
-                vKNOTexp['qsigRankFWVB~*~*~*~W'] = vKNOTexp.sort_values(colsSort,ascending=[True]+[False]+ [False]).groupby(cols,sort=False).ngroup() + 1
+
+                if 'qsigKNOT~*~*~*~QM' in vKNOTexp.columns:
+                    colsSort=['KVR']+['qsigKNOT~*~*~*~QM']+['qsigStr']                   
+                    vKNOTexp['qsigRankQM'] = vKNOTexp.sort_values(colsSort,ascending=[True]+[True]+[False]).groupby(cols,sort=False).ngroup() + 1
 
 
-                # qsigqsRankFWVB~*~*~*~W
-                cols=['qsigRankFWVB~*~*~*~W','qsRankFWVB~*~*~*~W']
-                vKNOTexp['qsigqsRankFWVB~*~*~*~W'] = vKNOTexp.sort_values(cols,ascending=[True]+[True]).groupby(cols,sort=False).ngroup() + 1
+                if 'AnzFwvb' in vKNOTexp.columns:
+
+                    colsSort=['KVR']+['qsigAnzFwvb']+['qsigStr']   
+                    vKNOTexp['qsigRankAnzFwvb'] = vKNOTexp.sort_values(colsSort,ascending=[True]+[False]+[False]).groupby(cols,sort=False).ngroup() + 1
+
+                    colsSort=['KVR']+['qsigFWVB~*~*~*~W']+['qsigStr']   
+                    vKNOTexp['qsigRankFWVB~*~*~*~W'] = vKNOTexp.sort_values(colsSort,ascending=[True]+[False]+ [False]).groupby(cols,sort=False).ngroup() + 1
+
+
+                    # qsigqsRankFWVB~*~*~*~W
+                    cols=['qsigRankFWVB~*~*~*~W','qsRankFWVB~*~*~*~W']
+                    vKNOTexp['qsigqsRankFWVB~*~*~*~W'] = vKNOTexp.sort_values(cols,ascending=[True]+[True]).groupby(cols,sort=False).ngroup() + 1
 
                 #vKNOTexp.sort_values(['KVR','qsigRankFWVB~*~*~*~W','qsRank'],ascending=True).groupby(['KVR','qsigRankFWVB~*~*~*~W'],sort=False).ngroup() + 1
 
@@ -5439,10 +5484,9 @@ class Xm():
                        ,'qsigRankFWVB~*~*~*~W'
                        #---
                        ,'qsigqsRankFWVB~*~*~*~W']
-            for qsRankCol in qsRankCols:  
-                pass                
-                vROHRexp[qsRankCol]=vROHRexp[qsRankCol].rank(method='dense').astype('int')
-
+            for qsRankCol in qsRankCols:                                  
+                if qsRankCol in vROHRexp.columns.tolist():
+                    vROHRexp[qsRankCol]=vROHRexp[qsRankCol].rank(method='dense').astype('int')
 
             vROHRexp['L']=vROHRexp['L'].astype('float')
 
