@@ -341,7 +341,7 @@ if __name__ == "__main__":
                     #loeschen
                     for file in [h5FileXm,h5File,h5FileVecs,h5FileMx1FmtString]:                    
                         if os.path.exists(file):      
-                            logger.debug("{:s}Tests Vorbereitung {:s} Delete {:s} ...".format(logStr,testModel,file)) 
+                            logger.debug("{:s}Tests Nachbereitung {:s} Delete {:s} ...".format(logStr,testModel,file)) 
                             os.remove(file)
 
         if args.mockUpAtTheEnd in ['yes']:                

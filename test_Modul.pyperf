@@ -5,7 +5,8 @@
       <Id>Global|PythonCore|3.7</Id>
     </PythonInterpreter>
     <WorkingDirectory>C:\Users\wolters.3S\source\repos\PT3S</WorkingDirectory>
-    <Script>C:\Users\wolters.3S\source\repos\PT3S\Xm.py</Script>
-    <Arguments> -q -m 0 -s vKNOTexpEBES -y yes -z yes -w DHNetwork </Arguments>
+    <Script>C:\Users\wolters.3S\source\repos\PT3S\test.py</Script>
+    <Arguments>-v -m 1 -t both -w OneLPipe -w LocalHeatingNetwork -w GPipe -w GPipes -w TinyWDN</Arguments>
   </StandaloneTarget>
+  <UseVTune>false</UseVTune>
 </ProfilingTarget>
