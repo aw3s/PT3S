@@ -6,11 +6,17 @@
     </PythonInterpreter>
     <WorkingDirectory>C:\Users\wolters.3S\source\repos\PT3S</WorkingDirectory>
     <Script>C:\Users\wolters.3S\source\repos\PT3S\Xm.py</Script>
-    <Arguments> -q -m 0 -s vKNOTexpEBES -y yes -z yes -w DHNetwork </Arguments>
+    <Arguments> -q -m 0 -s vROHRexpEBES -y no -z no -w DHNetwork </Arguments>
   </StandaloneTarget>
   <Reports>
     <Report>
-      <Filename>C:\Users\wolters.3S\AppData\Local\Temp\Xm_vKNOTexpEBES_20200611(1).vsp</Filename>
+      <Filename>C:\Users\wolters.3S\AppData\Local\Temp\Xm_vROHRexpEBES_H5_20200611.vsp</Filename>
+    </Report>
+    <Report>
+      <Filename>C:\Users\wolters.3S\AppData\Local\Temp\Xm_vROHRexpEBES_H5_20200611(1).vsp</Filename>
+    </Report>
+    <Report>
+      <Filename>C:\Users\wolters.3S\AppData\Local\Temp\Xm_vROHRexpEBES_H5_20200611(1).vsp</Filename>
     </Report>
   </Reports>
   <UseVTune>false</UseVTune>
