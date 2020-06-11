@@ -1,0 +1,25 @@
+{
+  "version": "0.2.1",
+  "tasks": [
+    {
+      "taskLabel": "Task-PT3S 1",
+      "appliesTo": "/",
+      "type": "launch"
+    },
+    {
+      "taskLabel": "Task-PT3S",
+      "appliesTo": "/",
+      "type": "launch"
+    },
+    {
+      "taskLabel": "Task-PT3S",
+      "appliesTo": "/",
+      "type": "launch"
+    },
+    {
+      "taskLabel": "Task-PT3S",
+      "appliesTo": "/",
+      "type": "launch"
+    }
+  ]
+}

@@ -49,7 +49,6 @@
 /.ipynb_checkpoints/PNR 17.265 MVV FW (n-1) Berechnungen-checkpoint.ipynb
 /PNR 17.265 MVV FW (n-1) Berechnungen.ipynb
 /PT3S.log
-/test.py
 /PNR 17.265 MVV FW (n-1) Berechnungen - Kopie.ipynb
 /PT3S_files
 /testdata/WDLocalHeatingNetwork/Maps
@@ -112,3 +111,6 @@
 /~$out.xlsx
 /NDD_MWW.py
 /NDD_MVV.py
+/.vs/PT3S/v16/TestStore/0/000.testlog
+/.vs/PT3S/v16/TestStore/0/testlog.manifest
+*.vsps

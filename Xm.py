@@ -861,6 +861,7 @@ class Xm():
                 index = pd.MultiIndex.from_tuples(tuples,names=mIdxNames)
                 df.drop(mColNames,axis=1,inplace=True)   
                 df=pd.DataFrame(df.values,index=index,columns=df.columns)
+                df = df.sort_index() # PerformanceWarning: indexing past lexsort depth may impact performance.
             except Exception as e:
                 logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
                 logger.debug(logStrFinal)    
@@ -1461,7 +1462,7 @@ class Xm():
                 isinstance(self.dataFrames['KNOT_BZ']['TE'],pd.core.series.Series)
             except:
                 logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['KNOT_BZ']['TE']",'TE only in Heatingmodels?!')) 
-                self.dataFrames['KNOT_BZ']['TE']=pd.Series()     
+                self.dataFrames['KNOT_BZ']['TE']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.     
 
             # FWVB LFK
             if 'FWVB' in self.dataFrames:
@@ -1469,37 +1470,37 @@ class Xm():
                     isinstance(self.dataFrames['FWVB']['LFK'],pd.core.series.Series)
                 except:
                     logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['FWVB']['LFK']",'LFK not set?!')) 
-                    self.dataFrames['FWVB']['LFK']=pd.Series()
+                    self.dataFrames['FWVB']['LFK']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
                 self.dataFrames['FWVB']['LFK'].fillna(value=1,inplace=True)
 
             # Models with only one Standard LTGR ...
             try:
                 isinstance(self.dataFrames['LTGR']['BESCHREIBUNG'],pd.core.series.Series)
             except:
-                self.dataFrames['LTGR']['BESCHREIBUNG']=pd.Series()    
+                self.dataFrames['LTGR']['BESCHREIBUNG']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.    
 
             # Models with old DTRO_ROWD                 
             for attrib in ['AUSFALLZEIT','PN','REHABILITATION','REPARATUR','WSTEIG','WTIEFE']:
                  try:
                     isinstance(self.dataFrames['DTRO_ROWD'][attrib],pd.core.series.Series)
                  except:
-                    self.dataFrames['DTRO_ROWD'][attrib]=pd.Series()   
+                    self.dataFrames['DTRO_ROWD'][attrib]=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.   
 
             # Models with no CONTs ...
             try:
                 isinstance(self.dataFrames['CONT']['LFDNR'],pd.core.series.Series)
             except:
-                self.dataFrames['CONT']['LFDNR']=pd.Series()    
+                self.dataFrames['CONT']['LFDNR']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.    
             try:
                 isinstance(self.dataFrames['CONT']['GRAF'],pd.core.series.Series)
             except:
-                self.dataFrames['CONT']['GRAF']=pd.Series()       
+                self.dataFrames['CONT']['GRAF']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.       
 
             # Models with no PZONs ...
             if not 'PZON' in self.dataFrames: 
                 self.dataFrames['PZON']=pd.DataFrame()       
-                self.dataFrames['PZON']['NAME']=pd.Series()  
-                self.dataFrames['PZON']['pk']=pd.Series()  
+                self.dataFrames['PZON']['NAME']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.  
+                self.dataFrames['PZON']['pk']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.  
 
             # Models with no STOFs ...
             if not 'STOF' in self.dataFrames: 
@@ -1524,7 +1525,7 @@ class Xm():
                     isinstance(self.dataFrames['RLVG']['BESCHREIBUNG'],pd.core.series.Series)
                 except:
                     logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RLVG']['BESCHREIBUNG']",'BESCHREIBUNG nicht in RLVG?...')) 
-                    self.dataFrames['RLVG']['BESCHREIBUNG']=pd.Series()     
+                    self.dataFrames['RLVG']['BESCHREIBUNG']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.     
 
             # BESCHREIBUNG nicht in RADD?...
             if 'RADD' in self.dataFrames:         
@@ -1532,7 +1533,7 @@ class Xm():
                     isinstance(self.dataFrames['RADD']['BESCHREIBUNG'],pd.core.series.Series)
                 except:
                     logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RADD']['BESCHREIBUNG']",'BESCHREIBUNG nicht in RADD?...')) 
-                    self.dataFrames['RADD']['BESCHREIBUNG']=pd.Series()     
+                    self.dataFrames['RADD']['BESCHREIBUNG']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.  
 
             # RSLW: WMIN/WMAX nicht immer vorhanden? ...
             if 'RSLW' in self.dataFrames:               
@@ -1540,12 +1541,12 @@ class Xm():
                     isinstance(self.dataFrames['RSLW']['WMIN'],pd.core.series.Series)
                 except:
                     logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RSLW']['WMIN']",'WMIN nicht vorhanden?!')) 
-                    self.dataFrames['RSLW']['WMIN']=pd.Series()               
+                    self.dataFrames['RSLW']['WMIN']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.           
                 try:
                     isinstance(self.dataFrames['RSLW']['WMAX'],pd.core.series.Series)
                 except:
                     logger.debug("{:s}Error: {:s}: {:s}.".format(logStr,"self.dataFrames['RSLW']['WMAX']",'WMAX nicht vorhanden?!')) 
-                    self.dataFrames['RSLW']['WMAX']=pd.Series()   
+                    self.dataFrames['RSLW']['WMAX']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.   
                  
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -1573,7 +1574,7 @@ class Xm():
         try: 
             df=pd.DataFrame()       
             for col in cols:
-                df[col]=pd.Series()  
+                df[col]=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
              
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -2003,13 +2004,13 @@ class Xm():
             else:
                 logger.debug(logStrFinal) 
                 vWBLZ=pd.DataFrame()   
-                vWBLZ['AKTIV']=pd.Series()  
-                vWBLZ['BESCHREIBUNG']=pd.Series()  
-                vWBLZ['IDIM']=pd.Series()  
-                vWBLZ['NAME']=pd.Series()  
-                vWBLZ['OBJID']=pd.Series()  
-                vWBLZ['OBJTYPE']=pd.Series()  
-                vWBLZ['pk']=pd.Series()     
+                vWBLZ['AKTIV']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.  
+                vWBLZ['BESCHREIBUNG']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.  
+                vWBLZ['IDIM']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.  
+                vWBLZ['NAME']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.  
+                vWBLZ['OBJID']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.  
+                vWBLZ['OBJTYPE']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.  
+                vWBLZ['pk']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.     
                                                                
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
@@ -4412,10 +4413,10 @@ class Xm():
             else:
                 logger.debug(logStrFinal) 
                 vVKNO=pd.DataFrame()       
-                vVKNO['NAME']=pd.Series()     
-                vVKNO['CONT']=pd.Series()     
-                vVKNO['fkKNOT']=pd.Series()     
-                vVKNO['fkCONT']=pd.Series()                
+                vVKNO['NAME']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.     
+                vVKNO['CONT']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.     
+                vVKNO['fkKNOT']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.     
+                vVKNO['fkCONT']=pd.Series(dtype='object')  # The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.                
         finally:
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vVKNO
@@ -4878,6 +4879,11 @@ class Xm():
         >>> r2,c2=vKNOTexp.shape
         >>> r==r2
         True
+        >>> a=sorted(vKNOTexp['qsigStr'].unique()) # sortierte Liste der voneinander verschiedenen Quellsignaturen
+        >>> a
+        ['000', '001', '010', '011', '100', '110']
+        >>> len(a)
+        6
         >>> vKNOTexp['qsRank'].max() # Anzahl verschiedener Quellspektren unter Berücksichtigung von KVR / Numerierung EBES
         26
         >>> # KVR:
@@ -4941,34 +4947,34 @@ class Xm():
         322    1      0     93      7            1      22               24
         1110   1      0     44     56            1      24               25
         6      2      0      0      0          735      26               26
-        >>> vKNOTexp[['KVR','qs_1_A','qs_2_B','qs_3_C', 'qsAnzFwvb','qsRankFWVB~*~*~*~W','qsFWVB~*~*~*~W', 'qsFWVB~*~*~*~QM']].drop_duplicates(keep='first').sort_values(by=['qsRankFWVB~*~*~*~W'])      
+        >>> vKNOTexp[['KVR','qs_1_A','qs_2_B','qs_3_C', 'qsAnzFwvb','qsRankFWVB~*~*~*~W','qsFWVB~*~*~*~W', 'qsFWVB~*~*~*~QM']].drop_duplicates(keep='first').sort_values(by=['qsRankFWVB~*~*~*~W']).round(1)      
              KVR qs_1_A qs_2_B qs_3_C  qsAnzFwvb  qsRankFWVB~*~*~*~W  qsFWVB~*~*~*~W  qsFWVB~*~*~*~QM
-        1      1    100      0      0      485.0                   1   182017.147639      2106.976531
-        5      1      0    100      0      338.0                   2    92498.916278      1088.146990
-        8      1     97      3      0      157.0                   3    40112.036030       468.847027
-        0      1     74     26      0      150.0                   4    34469.624479       411.023185
-        11     1     24     76      0       92.0                   5    27410.509460       324.328514
-        10     1      0      0    100       74.0                   6    25189.329831       294.964749
-        43     1     96      4      0       58.0                   7    20506.029732       238.974208
-        383    1     11     89      0        3.0                   8    18772.489380       216.615822
-        34     1     82     18      0       38.0                   9    10886.900488       129.437941
-        333    1     95      5      0        1.0                  10     6507.509277        77.149101
-        127    1     99      1      0       17.0                  11     4651.433868        56.313527
-        342    1     58     42      0       12.0                  12     4138.581213        48.626767
-        3      1     10     90      0       19.0                  13     3783.349514        47.161214
-        109    1     36     64      0        9.0                  14     2628.717995        30.941591
-        368    1     39     61      0        4.0                  15     2460.813202        28.510636
-        2      1     35     65      0        9.0                  16     2257.381485        26.494704
-        194    1     61     39      0        7.0                  17     2089.909878        25.176146
-        554    1     67     33      0        8.0                  18     1941.464069        22.748242
-        960    1      0     66     34        5.0                  19     1272.674335        15.133418
-        1170   1      6     94      0        3.0                  20      867.218651         9.966222
-        1242   1     98      2      0        7.0                  21      617.933056         7.463472
-        1110   1      0     44     56        2.0                  22      547.750671         6.925746
-        1035   1     48     52      0        2.0                  23      414.377853         4.757580
-        322    1      0     93      7        3.0                  24      373.688845         4.787845
-        948    1     76     24      0        2.0                  25      299.994873         3.564876
-        6      2      0      0      0        0.0                  26        0.000000         0.000000
+        1      1    100      0      0      485.0                   1        182017.1           2107.0
+        5      1      0    100      0      338.0                   2         92498.9           1088.1
+        8      1     97      3      0      157.0                   3         40112.0            468.8
+        0      1     74     26      0      150.0                   4         34469.6            411.0
+        11     1     24     76      0       92.0                   5         27410.5            324.3
+        10     1      0      0    100       74.0                   6         25189.3            295.0
+        43     1     96      4      0       58.0                   7         20506.0            239.0
+        383    1     11     89      0        3.0                   8         18772.5            216.6
+        34     1     82     18      0       38.0                   9         10886.9            129.4
+        333    1     95      5      0        1.0                  10          6507.5             77.1
+        127    1     99      1      0       17.0                  11          4651.4             56.3
+        342    1     58     42      0       12.0                  12          4138.6             48.6
+        3      1     10     90      0       19.0                  13          3783.3             47.2
+        109    1     36     64      0        9.0                  14          2628.7             30.9
+        368    1     39     61      0        4.0                  15          2460.8             28.5
+        2      1     35     65      0        9.0                  16          2257.4             26.5
+        194    1     61     39      0        7.0                  17          2089.9             25.2
+        554    1     67     33      0        8.0                  18          1941.5             22.7
+        960    1      0     66     34        5.0                  19          1272.7             15.1
+        1170   1      6     94      0        3.0                  20           867.2             10.0
+        1242   1     98      2      0        7.0                  21           617.9              7.5
+        1110   1      0     44     56        2.0                  22           547.8              6.9
+        1035   1     48     52      0        2.0                  23           414.4              4.8
+        322    1      0     93      7        3.0                  24           373.7              4.8
+        948    1     76     24      0        2.0                  25           300.0              3.6
+        6      2      0      0      0        0.0                  26             0.0              0.0
         >>> # --- AnzFwvb in Knot
         >>> vFWVB=xm.dataFrames['vFWVB']
         >>> r,c=vFWVB.shape    
@@ -4982,89 +4988,91 @@ class Xm():
         >>> # in vKNOTexp sind die FWVB in Summe Anz und Summe W korrekt
         >>> # --------------------------------------
         >>> grpObj=vKNOTexp[['KVR','KNOT~*~*~*~ESQUELLSP','FWVB~*~*~*~W','qsFWVB~*~*~*~W']].groupby(by=['KVR','KNOT~*~*~*~ESQUELLSP'],as_index=False)
-        >>> df=grpObj['FWVB~*~*~*~W'].sum() 
+        >>> df=grpObj['FWVB~*~*~*~W'].sum().round(1) 
         >>> df[['KVR','FWVB~*~*~*~W']]
-           KVR   FWVB~*~*~*~W
-        0    1   25189.329831
-        1    1     547.750671
-        2    1    1272.674335
-        3    1     373.688845
-        4    1   92498.916278
-        5    1     867.218651
-        6    1    3783.349514
-        7    1   18772.489380
-        8    1   27410.509460
-        9    1    2257.381485
-        10   1    2628.717995
-        11   1    2460.813202
-        12   1     414.377853
-        13   1    4138.581213
-        14   1    2089.909878
-        15   1    1941.464069
-        16   1   34469.624479
-        17   1     299.994873
-        18   1   10886.900488
-        19   1    6507.509277
-        20   1   20506.029732
-        21   1   40112.036030
-        22   1     617.933056
-        23   1    4651.433868
-        24   1  182017.147639
-        25   2       0.000000
-        >>> WSumme==round(df['FWVB~*~*~*~W'].sum(),2)
+           KVR  FWVB~*~*~*~W
+        0    1       25189.3
+        1    1         547.8
+        2    1        1272.7
+        3    1         373.7
+        4    1       92498.9
+        5    1         867.2
+        6    1        3783.3
+        7    1       18772.5
+        8    1       27410.5
+        9    1        2257.4
+        10   1        2628.7
+        11   1        2460.8
+        12   1         414.4
+        13   1        4138.6
+        14   1        2089.9
+        15   1        1941.5
+        16   1       34469.6
+        17   1         300.0
+        18   1       10886.9
+        19   1        6507.5
+        20   1       20506.0
+        21   1       40112.0
+        22   1         617.9
+        23   1        4651.4
+        24   1      182017.1
+        25   2           0.0
+        >>> round(WSumme,0)==round(df['FWVB~*~*~*~W'].sum(),0)
         True
-        >>> WSumme
-        486715.78
+        >>> round(WSumme,0)
+        486716.0
         >>> df=grpObj['qsFWVB~*~*~*~W'].first() 
-        >>> dfFirst=df[['KVR','qsFWVB~*~*~*~W']]
+        >>> dfFirst=df[['KVR','qsFWVB~*~*~*~W']].round(1)
         >>> df=grpObj['qsFWVB~*~*~*~W'].last() 
-        >>> dfLast=df[['KVR','qsFWVB~*~*~*~W']]
+        >>> dfLast=df[['KVR','qsFWVB~*~*~*~W']].round(1)
+        >>> # dfFirst
+        >>> # dfLast
         >>> dfFirst.equals(dfLast)
         True
         >>> df=grpObj['qsFWVB~*~*~*~W'].mean() 
-        >>> dfMean=df[['KVR','qsFWVB~*~*~*~W']]
+        >>> dfMean=df[['KVR','qsFWVB~*~*~*~W']].round(1)
         >>> dfFirst.equals(dfMean)
         True
-        >>> dfFirst.sort_values(by=['qsFWVB~*~*~*~W'],ascending=False)              
+        >>> dfFirst.sort_values(by=['qsFWVB~*~*~*~W'],ascending=False).round(1)              
            KVR  qsFWVB~*~*~*~W
-        24   1   182017.147639
-        4    1    92498.916278
-        21   1    40112.036030
-        16   1    34469.624479
-        8    1    27410.509460
-        0    1    25189.329831
-        20   1    20506.029732
-        7    1    18772.489380
-        18   1    10886.900488
-        19   1     6507.509277
-        23   1     4651.433868
-        13   1     4138.581213
-        6    1     3783.349514
-        10   1     2628.717995
-        11   1     2460.813202
-        9    1     2257.381485
-        14   1     2089.909878
-        15   1     1941.464069
-        2    1     1272.674335
-        5    1      867.218651
-        22   1      617.933056
-        1    1      547.750671
-        12   1      414.377853
-        3    1      373.688845
-        17   1      299.994873
-        25   2        0.000000
-        >>> round(dfFirst['qsFWVB~*~*~*~W'].sum(),2)
-        486715.78
-        >>> df=vKNOTexp[['KVR','qsigStr', 'qsigAnzFwvb','qsigRankFWVB~*~*~*~W','qsigFWVB~*~*~*~W', 'qsigFWVB~*~*~*~QM']].drop_duplicates(keep='first').sort_values(by=['qsigRankFWVB~*~*~*~W'])      
+        24   1        182017.1
+        4    1         92498.9
+        21   1         40112.0
+        16   1         34469.6
+        8    1         27410.5
+        0    1         25189.3
+        20   1         20506.0
+        7    1         18772.5
+        18   1         10886.9
+        19   1          6507.5
+        23   1          4651.4
+        13   1          4138.6
+        6    1          3783.3
+        10   1          2628.7
+        11   1          2460.8
+        9    1          2257.4
+        14   1          2089.9
+        15   1          1941.5
+        2    1          1272.7
+        5    1           867.2
+        22   1           617.9
+        1    1           547.8
+        12   1           414.4
+        3    1           373.7
+        17   1           300.0
+        25   2             0.0
+        >>> round(dfFirst['qsFWVB~*~*~*~W'].sum(),0)
+        486716.0
+        >>> df=vKNOTexp[['KVR','qsigStr', 'qsigAnzFwvb','qsigRankFWVB~*~*~*~W','qsigFWVB~*~*~*~W', 'qsigFWVB~*~*~*~QM']].drop_duplicates(keep='first').sort_values(by=['qsigRankFWVB~*~*~*~W']).round(1)      
         >>> df
             KVR qsigStr  qsigAnzFwvb  qsigRankFWVB~*~*~*~W  qsigFWVB~*~*~*~W  qsigFWVB~*~*~*~QM
-        0     1     110        598.0                     1     184816.274504        2178.100773
-        1     1     100        485.0                     2     182017.147639        2106.976531
-        5     1     010        338.0                     3      92498.916278        1088.146990
-        10    1     001         74.0                     4      25189.329831         294.964749
-        322   1     011         10.0                     5       2194.113852          26.847008
-        6     2     000          0.0                     6          0.000000           0.000000
-        >>> WSumme==round(df['qsigFWVB~*~*~*~W'].sum(),2)
+        0     1     110        598.0                     1          184816.3             2178.1
+        1     1     100        485.0                     2          182017.1             2107.0
+        5     1     010        338.0                     3           92498.9             1088.1
+        10    1     001         74.0                     4           25189.3              295.0
+        322   1     011         10.0                     5            2194.1               26.8
+        6     2     000          0.0                     6               0.0                0.0
+        >>> round(WSumme,0)==round(df['qsigFWVB~*~*~*~W'].sum(),0)
         True
         >>> grpObj=vKNOTexp.groupby(by=['qsigRankFWVB~*~*~*~W','qsRankFWVB~*~*~*~W'],as_index=False)        
         >>> d={col:'min' for col in ['qsigStr','qs_1_A','qs_2_B','qs_3_C','qsigqsRankFWVB~*~*~*~W']}       
@@ -5077,35 +5085,35 @@ class Xm():
         >>> d.update({'qsAnzFwvb':'first'})
         >>> df=grpObj.agg(d).sort_values(by=['qsigRankFWVB~*~*~*~W','qsRankFWVB~*~*~*~W'],ascending=True)       
         >>> df.rename(columns={'pk':'AnzKnoten','NAME':'1 NAME'},inplace=True)
-        >>> xm.dataFrames['df']=df
+        >>> xm.dataFrames['df']=df.round(1)
         >>> print(xm._getvXXXXAsOneString(vXXXX='df'))
             qsigRankFWVB~*~*~*~W  qsRankFWVB~*~*~*~W qsigStr qs_1_A qs_2_B qs_3_C  qsigqsRankFWVB~*~*~*~W  qsigFWVB~*~*~*~W  qsFWVB~*~*~*~W  AnzKnoten  1 NAME  qsigAnzFwvb  qsAnzFwvb
-        0                      1                   3     110     97      3      0                       1     184816.274504    40112.036030         55  V-1852        598.0      157.0
-        1                      1                   4     110     74     26      0                       2     184816.274504    34469.624479         79  V-3611        598.0      150.0
-        2                      1                   5     110     24     76      0                       3     184816.274504    27410.509460         46  V-1630        598.0       92.0
-        3                      1                   7     110     96      4      0                       4     184816.274504    20506.029732         28  V-1773        598.0       58.0
-        4                      1                   8     110     11     89      0                       5     184816.274504    18772.489380          1  V-3109        598.0        3.0
-        5                      1                   9     110     82     18      0                       6     184816.274504    10886.900488         18  V-1712        598.0       38.0
-        6                      1                  10     110     95      5      0                       7     184816.274504     6507.509277          2  V-1132        598.0        1.0
-        7                      1                  11     110     99      1      0                       8     184816.274504     4651.433868          9  V-1335        598.0       17.0
-        8                      1                  12     110     58     42      0                       9     184816.274504     4138.581213          4  V-1751        598.0       12.0
-        9                      1                  13     110     10     90      0                      10     184816.274504     3783.349514         12  V-3426        598.0       19.0
-        10                     1                  14     110     36     64      0                      11     184816.274504     2628.717995          5  V-1755        598.0        9.0
-        11                     1                  15     110     39     61      0                      12     184816.274504     2460.813202          2  V-1372        598.0        4.0
-        12                     1                  16     110     35     65      0                      13     184816.274504     2257.381485          3  V-1744        598.0        9.0
-        13                     1                  17     110     61     39      0                      14     184816.274504     2089.909878          3  V-1742        598.0        7.0
-        14                     1                  18     110     67     33      0                      15     184816.274504     1941.464069          4  V-1607        598.0        8.0
-        15                     1                  20     110      6     94      0                      16     184816.274504      867.218651          1  V-1374        598.0        3.0
-        16                     1                  21     110     98      2      0                      17     184816.274504      617.933056          2  V-1803        598.0        7.0
-        17                     1                  23     110     48     52      0                      18     184816.274504      414.377853          2  V-1308        598.0        2.0
-        18                     1                  25     110     76     24      0                      19     184816.274504      299.994873          1  V-1743        598.0        2.0
-        19                     2                   1     100    100      0      0                      20     182017.147639   182017.147639        210  V-1208        485.0      485.0
-        20                     3                   2     010      0    100      0                      21      92498.916278    92498.916278        195  V-3202        338.0      338.0
-        21                     4                   6     001      0      0    100                      22      25189.329831    25189.329831         40  V-2400         74.0       74.0
-        22                     5                  19     011      0     66     34                      23       2194.113852     1272.674335          3  V-2351         10.0        5.0
-        23                     5                  22     011      0     44     56                      24       2194.113852      547.750671          1  V-2352         10.0        2.0
-        24                     5                  24     011      0     93      7                      25       2194.113852      373.688845          1  V-2140         10.0        3.0
-        25                     6                  26     000      0      0      0                      26          0.000000        0.000000        735  R-3709          0.0        0.0
+        0                      1                   3     110     97      3      0                       1          184816.3         40112.0         55  V-1852        598.0      157.0
+        1                      1                   4     110     74     26      0                       2          184816.3         34469.6         79  V-3611        598.0      150.0
+        2                      1                   5     110     24     76      0                       3          184816.3         27410.5         46  V-1630        598.0       92.0
+        3                      1                   7     110     96      4      0                       4          184816.3         20506.0         28  V-1773        598.0       58.0
+        4                      1                   8     110     11     89      0                       5          184816.3         18772.5          1  V-3109        598.0        3.0
+        5                      1                   9     110     82     18      0                       6          184816.3         10886.9         18  V-1712        598.0       38.0
+        6                      1                  10     110     95      5      0                       7          184816.3          6507.5          2  V-1132        598.0        1.0
+        7                      1                  11     110     99      1      0                       8          184816.3          4651.4          9  V-1335        598.0       17.0
+        8                      1                  12     110     58     42      0                       9          184816.3          4138.6          4  V-1751        598.0       12.0
+        9                      1                  13     110     10     90      0                      10          184816.3          3783.3         12  V-3426        598.0       19.0
+        10                     1                  14     110     36     64      0                      11          184816.3          2628.7          5  V-1755        598.0        9.0
+        11                     1                  15     110     39     61      0                      12          184816.3          2460.8          2  V-1372        598.0        4.0
+        12                     1                  16     110     35     65      0                      13          184816.3          2257.4          3  V-1744        598.0        9.0
+        13                     1                  17     110     61     39      0                      14          184816.3          2089.9          3  V-1742        598.0        7.0
+        14                     1                  18     110     67     33      0                      15          184816.3          1941.5          4  V-1607        598.0        8.0
+        15                     1                  20     110      6     94      0                      16          184816.3           867.2          1  V-1374        598.0        3.0
+        16                     1                  21     110     98      2      0                      17          184816.3           617.9          2  V-1803        598.0        7.0
+        17                     1                  23     110     48     52      0                      18          184816.3           414.4          2  V-1308        598.0        2.0
+        18                     1                  25     110     76     24      0                      19          184816.3           300.0          1  V-1743        598.0        2.0
+        19                     2                   1     100    100      0      0                      20          182017.1        182017.1        210  V-1208        485.0      485.0
+        20                     3                   2     010      0    100      0                      21           92498.9         92498.9        195  V-3202        338.0      338.0
+        21                     4                   6     001      0      0    100                      22           25189.3         25189.3         40  V-2400         74.0       74.0
+        22                     5                  19     011      0     66     34                      23            2194.1          1272.7          3  V-2351         10.0        5.0
+        23                     5                  22     011      0     44     56                      24            2194.1           547.8          1  V-2352         10.0        2.0
+        24                     5                  24     011      0     93      7                      25            2194.1           373.7          1  V-2140         10.0        3.0
+        25                     6                  26     000      0      0      0                      26               0.0             0.0        735  R-3709          0.0        0.0
         >>> import re
         >>> qsColsEgr=[col for col in vKNOTexp.columns.tolist() if re.search('^qs_',col) != None]
         >>> qsColsEgr
@@ -5124,7 +5132,7 @@ class Xm():
         try:
             vKNOTexp=None
 
-            # Ebes
+            # EBES
             if 'EBES' in self.dataFrames.keys():
                 EBES = self.dataFrames['EBES']
                 EBES_BZ = self.dataFrames['EBES_BZ']
@@ -9480,7 +9488,7 @@ if __name__ == "__main__":
                             ,action="append"
                             ,default=[])           
 
-        parser.add_argument("-l","--logExternDefined", help="Logging (File etc.) ist extern defined", action="store_true",default=False)      
+        parser.add_argument("-l","--logExternDefined", help="Logging (File etc.) is extern defined", action="store_true",default=False)      
 
 
         args = parser.parse_args()
@@ -9607,7 +9615,7 @@ if __name__ == "__main__":
                 xmlFile=os.path.join(os.path.join('.',args.testDir),testModel+'.XML')  
                 ms[testModel]=xmlFile
                 if args.mockUpDetail1 in ['yes']: 
-                    xm=Xm(xmlFile=xmlFile,NoH5Read=True) # avoid doing anything than just plain Init     
+                    xm=Xm(xmlFile=xmlFile,NoH5Read=True) 
                 else:
                     xm=Xm(xmlFile=xmlFile)      
                 logger.debug("{:s}singleTests Vorbereitung {:s} xm instanziert.".format(logStr,testModel)) 
@@ -9615,7 +9623,7 @@ if __name__ == "__main__":
                 #Mx
                 mx1File=os.path.join('.',os.path.join(args.testDir,'WD'+testModel+'\B1\V0\BZ1\M-1-0-1'+args.dotResolution+'.MX1'))     
                 if args.mockUpDetail1 in ['yes']:   
-                    mx=Mx.Mx(mx1File=mx1File,NoH5Read=True) # avoid doing anything than just plain Init        
+                    mx=Mx.Mx(mx1File=mx1File,NoH5Read=True)   
                 else:
                     mx=Mx.Mx(mx1File=mx1File) 
                 logger.debug("{:s}singleTests Vorbereitung {:s} mx instanziert.".format(logStr,testModel)) 
