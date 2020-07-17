@@ -493,32 +493,44 @@ def getSir3sIDoPKFromSir3sID(sir3sID=''):
     Returns:
         Sir3sIDoPK
         None, if no such Sir3sID  
+        sir3sID is returned, if sir3sID is already a valid Sir3sIDoPK
         
     # -q -m 0 -s getSir3sIDoPKFromSir3sID             
     >>> import Mx
     >>> sir3sID='ALLG~~~4639827058859487185~LINEPACKGEOM'       
-    >>> Mx.getSir3sIDoPKFromSir3sID(sir3sID)
+    >>> sir3sIDoPK=Mx.getSir3sIDoPKFromSir3sID(sir3sID)
+    >>> sir3sIDoPK
+    'ALLG~~~LINEPACKGEOM'
+    >>> Mx.getSir3sIDoPKFromSir3sID(sir3sIDoPK)
     'ALLG~~~LINEPACKGEOM'
     """
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
-    sir3sIDoPK=None
-    try:      
-        mo=re.match(reSir3sIDcompiled,sir3sID) 
-        colNew=mo.group('OBJTYPE')
-        colNew=colNew+reSir3sIDSep+str(mo.group('NAME1'))
-        colNew=colNew+reSir3sIDSep+mo.group('NAME2')
-        #colNew=colNew+reSir3sIDSep+mo.group('OBJTYPE_PK') 
-        colNew=colNew+reSir3sIDSep+mo.group('ATTRTYPE')        
-        sir3sIDoPK=colNew
+    sir3sIDRet=None
+    try:     
+        try:
+            mo=re.match(reSir3sIDcompiled,sir3sID) 
+            colNew=mo.group('OBJTYPE')
+            colNew=colNew+reSir3sIDSep+str(mo.group('NAME1'))
+            colNew=colNew+reSir3sIDSep+mo.group('NAME2')
+            #colNew=colNew+reSir3sIDSep+mo.group('OBJTYPE_PK') 
+            colNew=colNew+reSir3sIDSep+mo.group('ATTRTYPE')        
+            sir3sIDRet=colNew
+        except:
+            mo=re.match(reSir3sIDoPKcompiled,sir3sID) 
+            colNew=mo.group('OBJTYPE')
+            colNew=colNew+reSir3sIDSep+str(mo.group('NAME1'))
+            colNew=colNew+reSir3sIDSep+mo.group('NAME2')            
+            colNew=colNew+reSir3sIDSep+mo.group('ATTRTYPE') 
+            sir3sIDRet=colNew
     except Exception as e:
         logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
         logger.debug(logStrFinal)           
     finally:
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
-        return sir3sIDoPK   
+        return sir3sIDRet   
 
 
 # Q-Col Ends (Q-Cols: mx2Idx-referenced Channels for Flow) for Edges defined in Xm.vVBEL_edges:

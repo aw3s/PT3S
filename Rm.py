@@ -1468,6 +1468,26 @@ def pltNetTextblock(text='',**kwds):
 
 class Rm():
 
+    @classmethod
+    def readModelAndResult(**kwds):
+        """
+        """
+        logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try:
+                pass
+              
+
+        except RmError:
+            raise
+                                                                    
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise RmError(logStrFinal)                       
+        finally:       
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))            
 
     @classmethod
     def pltNetPipes(cls,pDf,**kwds):
@@ -2864,16 +2884,24 @@ class Rm():
                             * die Achsen werden erstellt in der Reihenfolge in der sie in tcLines auftreten                      
                             * yTwinedAxesPosDeltaHPStart: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche; default: -0.0125
                             * yTwinedAxesPosDeltaHP: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche; default: -0.05
-                    
-                    vLines: dct
 
-                        defining the vLines - Example - = {
-                        'a vLine Label':{'time':pd.Timestamp(2017, 1, 1, 12)
-                                        ,'color':'dimgrey'
-                                        ,'linestyle':'--'
-                                        ,'linewidth':1.}
-                        }
 
+                        Attribute:
+                            * alle gültigen
+                     
+                            * +
+                            
+                            * forceYType
+                            
+                            * offset
+                            * factor
+                            
+                            * timeStart
+                            * timeEnd
+                            
+                            * legendInfosFmt
+                            * label
+                     
                 AXES:
                     pAx: Axes to be plotted on; if not specified: gca() is used
 
@@ -2891,7 +2919,7 @@ class Rm():
                 vLines: dct with Line2Ds; key=Index from vLines     
                 yLinesLegendLabels: dct with Legendlabels; key=Index from tcLines     
                             
-                >>> #  -q -m 0 -s pltTC -y no -z no -w DHNetwork
+                >>> #  -q -m 0 -s pltTC -y no -z no -w DHNetwork                
                 >>> import pandas as pd
                 >>> import matplotlib
                 >>> import matplotlib.pyplot as plt
@@ -2983,9 +3011,10 @@ class Rm():
                         continue
                     try:
                         colNew=Mx.getSir3sIDoPKFromSir3sID(col)
-                        colFromTcKey[colNew]=col # merken welche Originalspalte zu dem tcLines Schluessel gehoert                        
+                        colFromTcKey[colNew]=col # merken welche Originalspalte zu dem tcLines Schluessel gehoert  
+                        logger.debug("{:s}Zu Spalte ohne Schlüssel: {:s} gehört Spalte: {:s} in pDf.".format(logStr,colNew,col))
                     except:
-                        logger.debug("{:s}keine Zuordnung gefunden (z.B. kein Mx.getSir3sIDoPKFromSir3sID-match) fuer Originalspalte: {:s}. Spaltenname(n) kein SIR 3S Schluessel?!".format(logStr,col))
+                        logger.debug("{:s}keine Zuordnung gefunden (z.B. kein Mx.getSir3sIDoPKFromSir3sID-match) fuer pDf-Spalte: {:s}. Spaltenname(n) keine vollständigen SIR 3S Schluessel (mehr)?!".format(logStr,col))
                 
                 # y-Achsen-Typen ermitteln
                 yTypesSequence=[]                
@@ -3023,6 +3052,52 @@ class Rm():
                     axTC.yaxis.set_ticks_position('left')
                     axTC.set_ylabel(colType)  
                     yAxes[colType]=axTC                     
+
+
+                # ueber alle definierten Kurven         
+                # max. Länge label vor Infos ermitteln
+                labels=[]
+                infos=[]
+                for key,props in tcLines.items(): 
+                        label=key
+                        if 'label' in props:
+                            label=props['label']
+                        labels.append(label)
+
+                        if 'legendInfosFmt' in props:
+                            legendInfosFmt=props['legendInfosFmt']
+                        else:
+                            legendInfosFmt='{:6.2f}'
+
+
+                        if key not in colFromTcKey.keys():                       
+                            logger.debug("{:s}Line: {:s}: es konnte keine Spalte in pDf ermittelt werden. Spaltenname(n) kein SIR 3S Schluessel?! Kein Plot.".format(logStr,key))
+                            continue      
+                        else:
+                            col=colFromTcKey[key]
+                            logger.debug("{:s}Line: {:s}: Spalte in pDf: {:s}.".format(logStr,key,col))
+
+
+                            if 'timeStart' in props:
+                                timeStart=props['timeStart']
+                            else:
+                                timeStart=pDf.index[0]
+
+                            if 'timeEnd' in props:
+                                timeEnd=props['timeEnd']
+                            else:
+                                timeEnd=pDf.index[-1]
+
+                            plotDf=pDf.loc[timeStart:timeEnd,:]
+                            infos.append(legendInfosFmt.format(plotDf[col].min()))
+                            infos.append(legendInfosFmt.format(plotDf[col].max()))
+
+
+                labelsLength=[len(label) for label in labels]
+                labelsLengthMax=max(labelsLength)
+
+                infosLength=[len(info) for info in infos]
+                infosLengthMax=max(infosLength)
 
                 # zeichnen
                 yLines={}       
@@ -3082,12 +3157,15 @@ class Rm():
                     else:
                         label=label
 
-                    legendLabelFormat="Anf.: {:s} Ende: {:s} Min: {:s} Max: {:s}".format(*4*[legendInfosFmt])
+                    legendLabelFormat="Anf.: {:s} Ende: {:s} Min: {:s} Max: {:s}"#.format(*4*[legendInfosFmt])
                     legendLabelFormat="{:s} "+legendLabelFormat
                     legendInfos=[plotDf[col].iloc[0],plotDf[col].iloc[-1],plotDf[col].min(),plotDf[col].max()]                   
                     legendInfos=[factor*legendInfo+offset for legendInfo in legendInfos]
-                    legendLabel=legendLabelFormat.format(label,*legendInfos)
+                    legendLabel=legendLabelFormat.format(label.ljust(labelsLengthMax,' '),
+                                                         *["{:s}".format(legendInfosFmt).format(legendInfo).rjust(infosLengthMax,' ') for legendInfo in legendInfos]
+                                                         )
                     yLinesLegendLabels[key]=legendLabel
+                    logger.debug("{:s}legendLabel: {:s}.".format(logStr,legendLabel))
                            
                     for prop,value in props.items():       
                         if prop not in ['forceYType','offset','factor','timeStart','timeEnd','legendInfosFmt']:
@@ -3129,6 +3207,13 @@ class Rm():
 
 
                 # Legend
+                import matplotlib.font_manager as font_manager
+                font = font_manager.FontProperties(family='monospace'
+                                   #weight='bold',
+                                   #style='normal', 
+                                   #size=16
+                                   )
+
                 if not kwds['lOff']:
                     l=kwds['pAx'].legend(
                         tuple([yLines[yline] for yline in yLines])
@@ -3136,7 +3221,8 @@ class Rm():
                         tuple([yLinesLegendLabels[yLine] for yLine in yLinesLegendLabels])
                        ,loc=kwds['lLoc']
                        ,framealpha=kwds['lFramealpha']
-                       ,facecolor=kwds['lFacecolor']               
+                       ,facecolor=kwds['lFacecolor']  
+                       ,prop=font
                     )                
                                                                                                                                                           
         except Exception as e:

@@ -8,5 +8,10 @@
     <Script>C:\Users\wolters.3S\source\repos\PT3S\test.py</Script>
     <Arguments>-q -m 0 -t before -u yes -y yes -z yes -w DHNetwork -w LocalHeatingNetwork -w GPipes </Arguments>
   </StandaloneTarget>
+  <Reports>
+    <Report>
+      <Filename>C:\Users\wolters.3S\AppData\Local\Temp\test_reinerMockUpLauf_20200701.vsp</Filename>
+    </Report>
+  </Reports>
   <UseVTune>false</UseVTune>
 </ProfilingTarget>
