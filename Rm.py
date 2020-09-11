@@ -76,13 +76,13 @@
 >>> # Check pFWVB Return
 >>> # ---
 >>> f=lambda x: "{0:8.5f}".format(x) 
->>> print(pFWVB[['Measure','MCategory','GCategory','VIC']].to_string(formatters={'Measure':f}))
+>>> print(pFWVB[['Measure','MCategory','GCategory','VIC']].round(2).to_string(formatters={'Measure':f}))
    Measure MCategory  GCategory   VIC
-0  0.80971       Top  BLNZ1u5u7   NaN
-1  0.66692    Middle              NaN
-2  0.66043    Middle  BLNZ1u5u7   NaN
-3  0.65551    Bottom  BLNZ1u5u7  VIC1
-4  0.68548    Middle              NaN
+0  0.81000       Top  BLNZ1u5u7   NaN
+1  0.67000    Middle              NaN
+2  0.66000    Middle  BLNZ1u5u7   NaN
+3  0.66000    Bottom  BLNZ1u5u7  VIC1
+4  0.69000    Middle              NaN
 >>> # ---
 >>> # Print 
 >>> # ---

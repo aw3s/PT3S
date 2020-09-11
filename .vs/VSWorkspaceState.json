@@ -1,7 +1,8 @@
 {
   "ExpandedNodes": [
     "",
-    "\\.pytest_cache"
+    "\\testdata",
+    "\\testdata11"
   ],
   "SelectedNode": "\\Xm.py",
   "PreviewInSolutionExplorer": false
