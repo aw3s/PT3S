@@ -113,7 +113,7 @@ True
 ...    os.remove(plotFileName)
 """
 
-__version__='90.12.0.2.dev1'
+__version__='90.12.0.3.dev1'
 
 import warnings # 3.6
 #...\Anaconda3\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
@@ -1471,27 +1471,6 @@ def pltNetTextblock(text='',**kwds):
 class Rm():
 
     @classmethod
-    def readModelAndResult(**kwds):
-        """
-        """
-        logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-        try:
-                pass
-              
-
-        except RmError:
-            raise
-                                                                    
-        except Exception as e:
-            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-            logger.error(logStrFinal) 
-            raise RmError(logStrFinal)                       
-        finally:       
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))            
-
-    @classmethod
     def pltNetPipes(cls,pDf,**kwds):
         """
         Plots colored PIPES.
@@ -2524,8 +2503,8 @@ class Rm():
                 True
                 >>> nodeInfE['x']=round(nodeInfE['x'],3)
                 >>> nodeInfE['xPlot']=round(nodeInfE['xPlot'],3)
-                >>> nodeInfE            
-                {'x': 3285.0, 'pDfIdx': 663, 'xPlot': 20312.428}
+                >>> {key:value for key,value in nodeInfE.items() if key not in ['pDfIdx']}          
+                {'x': 3285.0, 'xPlot': 20312.428}
                 >>> 
         """
         logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
