@@ -746,6 +746,8 @@ OBJTYPE  mx2Idx       L      D  NAME_i  NAME_k  Druck_i     Q
 >>> xm=Xm(xmlFile=xmlFile)
 """
 
+__version__='90.12.0.2.dev1'
+
 import warnings # 3.6
 #...\Anaconda3\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
 #  from ._conv import register_converters as _register_converters
@@ -1844,7 +1846,7 @@ class Xm():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return vStr
 
-    def _getvXXXXAsOneString(self,vXXXX=None,start=0,end=-1,dropColList=None,filterColList=None,mapFunc={},sortList=None,ascending=True,fmtFunc={},index=True,header=True):
+    def _getvXXXXAsOneString(self,vXXXX=None,start=0,end=-1,dropColList=None,filterColList=None,mapFunc={},sortList=None,ascending=True,roundDct=None,fmtFunc={},index=True,header=True):
         """Returns vXXXX-Content as one String (for Doctest-Purposes).
 
         Args:
@@ -1856,6 +1858,7 @@ class Xm():
             * mapFunc: col:func: df[col].map(func)
             * sortList
             * ascending
+            * roundDct
             * fmtFunc: col:func: passed to df.to_string(formatters=fmtFunc, ...)
             * index
             * header
@@ -1900,6 +1903,10 @@ class Xm():
         # sort 
         if isinstance(sortList,list):
             df=df.sort_values(sortList,ascending=ascending)    
+
+        # round 
+        if isinstance(roundDct,dict):
+            df=df.round(roundDct)    
 
         try:                 
             dfContentAsOneString=df.to_string(formatters=fmtFunc,index=index,header=header,justify='right')                                                                            
@@ -2968,9 +2975,6 @@ class Xm():
         0  5252525269080005909         1          1          0             0          1             5
         1  5252525269080005909         8          1        255      16711680          5             5
         2  5252525269080005909         3          1   16711935           128          5             5
-        3  5252525269080005909         5          1        255      16711680          1             1
-        4  5252525269080005909         6          1        255      16711680          2             2
-        5  5252525269080005909        12          1      25600       4227327          4             4
         >>> dctDfsLAYOUT=xm._LAYOUT_XML('SPLZ')        
         >>> sorted(dctDfsLAYOUT.keys())
         ['DIAGRAM', 'LINE', 'Y_AXIS']
@@ -5622,32 +5626,32 @@ class Xm():
         >>> d.update({'qsRank_L':'first'}) 
         >>> df=grpObj.agg(d).sort_values(by=['qsigRankFWVB~*~*~*~W','qsRankFWVB~*~*~*~W'],ascending=True)       
         >>> df.rename(columns={'NAME_k':'AnzKnoten','NAME_i':'1 NAME','pk':'AnzRohre'},inplace=True)
-        >>> xm.dataFrames['df']=df.round(1)
+        >>> xm.dataFrames['df']=df[['qsigRankFWVB~*~*~*~W','qsRankFWVB~*~*~*~W','qsigStr','qs_1_A','qs_2_B','qs_3_C','qsigqsRankFWVB~*~*~*~W','qsigFWVB~*~*~*~W','qsFWVB~*~*~*~W','1 NAME','qsigAnzFwvb','qsAnzFwvb','AnzRohre','qsigRank_sumL']].round({'qsigRankFWVB~*~*~*~W':-2,'qsRankFWVB~*~*~*~W':-2,'qsigqsRankFWVB~*~*~*~W':-2,'qsigFWVB~*~*~*~W':-2,'qsFWVB~*~*~*~W':-2,'qsigRank_sumL':-2})
         >>> print(xm._getvXXXXAsOneString(vXXXX='df'))
-            qsigRankFWVB~*~*~*~W  qsRankFWVB~*~*~*~W qsigStr qs_1_A qs_2_B qs_3_C  qsigqsRankFWVB~*~*~*~W  qsigFWVB~*~*~*~W  qsFWVB~*~*~*~W  1 NAME  qsigAnzFwvb  qsAnzFwvb  AnzRohre  qsigRank_sumL  qsRank_sumL  qsigRank_L  qsRank_L
-        0                      1                   3     110     97      3      0                       1          184816.3         40112.0  V-1802        598.0      157.0        71        51151.5       9689.2           1         5
-        1                      1                   4     110     74     26      0                       2          184816.3         34469.6  V-3505        598.0      150.0        89        51151.5      16187.3           1         3
-        2                      1                   5     110     24     76      0                       3          184816.3         27410.5  V-1633        598.0       92.0        53        51151.5       9748.5           1         4
-        3                      1                   7     110     96      4      0                       4          184816.3         20506.0  V-1114        598.0       58.0        33        51151.5       4525.0           1         7
-        4                      1                   8     110     82     18      0                       5          184816.3         10886.9  V-1760        598.0       38.0        20        51151.5       2890.0           1         8
-        5                      1                   9     110     95      5      0                       6          184816.3          6507.5  V-1132        598.0        1.0         1        51151.5        150.0           1        21
-        6                      1                  10     110     99      1      0                       7          184816.3          4651.4  V-1336        598.0       17.0         8        51151.5       1425.3           1        10
-        7                      1                  11     110     58     42      0                       8          184816.3          4138.6  V-1750        598.0       12.0         4        51151.5        400.0           1        16
-        8                      1                  12     110     10     90      0                       9          184816.3          3783.3  V-3420        598.0       19.0        11        51151.5       2150.0           1         9
-        9                      1                  13     110     36     64      0                      10          184816.3          2628.7  V-1755        598.0        9.0         5        51151.5        555.0           1        13
-        10                     1                  14     110     39     61      0                      11          184816.3          2460.8  V-1373        598.0        4.0         2        51151.5        290.0           1        19
-        11                     1                  15     110     35     65      0                      12          184816.3          2257.4  V-1743        598.0        9.0         5        51151.5        795.0           1        11
-        12                     1                  16     110     61     39      0                      13          184816.3          2089.9  V-1740        598.0        7.0         3        51151.5        340.0           1        18
-        13                     1                  17     110     67     33      0                      14          184816.3          1941.5  V-1605        598.0        8.0         4        51151.5        550.0           1        14
-        14                     1                  19     110      6     94      0                      15          184816.3           867.2  V-1374        598.0        3.0         1        51151.5        360.0           1        17
-        15                     1                  20     110     98      2      0                      16          184816.3           617.9  V-1802        598.0        7.0         3        51151.5        450.0           1        15
-        16                     1                  21     110     48     52      0                      17          184816.3           414.4  V-1308        598.0        2.0         3        51151.5        556.0           1        12
-        17                     1                  22     110     76     24      0                      18          184816.3           300.0  V-1742        598.0        2.0         1        51151.5         90.0           1        22
-        18                     2                   1     100    100      0      0                      19          182017.1        182017.1  V-1591        485.0      485.0       262        36841.2      36841.2           3         2
-        19                     3                   2     010      0    100      0                      20           92498.9         92498.9  V-3204        338.0      338.0       214        37422.9      37422.9           2         1
-        20                     4                   6     001      0      0    100                      21           25189.3         25189.3  V-2602         74.0       74.0        43         7278.6       7278.6           4         6
-        21                     5                  18     011      0     66     34                      22            2194.1          1272.7  V-2113         10.0        5.0         3          259.8        259.8           5        20
-        22                     6                  23     000      0      0      0                      23               0.0             0.0  R-1226          0.0        0.0       839       133013.8     133013.8           6        23
+            qsigRankFWVB~*~*~*~W  qsRankFWVB~*~*~*~W qsigStr qs_1_A qs_2_B qs_3_C  qsigqsRankFWVB~*~*~*~W  qsigFWVB~*~*~*~W  qsFWVB~*~*~*~W  1 NAME  qsigAnzFwvb  qsAnzFwvb  AnzRohre  qsigRank_sumL
+        0                      0                   0     110     97      3      0                       0          184800.0         40100.0  V-1802        598.0      157.0        72        51200.0
+        1                      0                   0     110     74     26      0                       0          184800.0         34500.0  V-3505        598.0      150.0        89        51200.0
+        2                      0                   0     110     24     76      0                       0          184800.0         27400.0  V-1633        598.0       92.0        53        51200.0
+        3                      0                   0     110     96      4      0                       0          184800.0         20500.0  V-1114        598.0       58.0        33        51200.0
+        4                      0                   0     110     82     18      0                       0          184800.0         10900.0  V-1711        598.0       38.0        20        51200.0
+        5                      0                   0     110     95      5      0                       0          184800.0          6500.0  V-1132        598.0        1.0         1        51200.0
+        6                      0                   0     110     99      1      0                       0          184800.0          4700.0  V-1336        598.0       17.0         8        51200.0
+        7                      0                   0     110     58     42      0                       0          184800.0          4100.0  V-1750        598.0       12.0         4        51200.0
+        8                      0                   0     110     10     90      0                       0          184800.0          3800.0  V-3420        598.0       19.0        11        51200.0
+        9                      0                   0     110     36     64      0                       0          184800.0          2600.0  V-1755        598.0        9.0         5        51200.0
+        10                     0                   0     110     39     61      0                       0          184800.0          2500.0  V-1373        598.0        4.0         2        51200.0
+        11                     0                   0     110     35     65      0                       0          184800.0          2300.0  V-1743        598.0        9.0         5        51200.0
+        12                     0                   0     110     61     39      0                       0          184800.0          2100.0  V-1740        598.0        7.0         3        51200.0
+        13                     0                   0     110     67     33      0                       0          184800.0          1900.0  V-1605        598.0        8.0         4        51200.0
+        14                     0                   0     110      6     94      0                       0          184800.0           900.0  V-1374        598.0        3.0         1        51200.0
+        15                     0                   0     110     98      2      0                       0          184800.0           600.0  V-1802        598.0        7.0         3        51200.0
+        16                     0                   0     110     48     52      0                       0          184800.0           400.0  V-1308        598.0        2.0         3        51200.0
+        17                     0                   0     110     76     24      0                       0          184800.0           300.0  V-1742        598.0        2.0         1        51200.0
+        18                     0                   0     100    100      0      0                       0          182000.0        182000.0  V-1591        485.0      485.0       261        36800.0
+        19                     0                   0     010      0    100      0                       0           92500.0         92500.0  V-3204        338.0      338.0       214        37400.0
+        20                     0                   0     001      0      0    100                       0           25200.0         25200.0  V-2602         74.0       74.0        43         7300.0
+        21                     0                   0     011      0     67     33                       0            2200.0          1300.0  V-2113         10.0        5.0         3          300.0
+        22                     0                   0     000      0      0      0                       0               0.0             0.0  R-1226          0.0        0.0       839       133000.0
         >>> grpObj=vROHRexp.groupby(by=['qsigRank_L','qsRank_L'],as_index=False)        
         >>> d={col:'min' for col in ['qsigStr','qs_1_A','qs_2_B','qs_3_C','qsigqsRank_L']}       
         >>> d.update({'qsigFWVB~*~*~*~W':'min'})
@@ -5665,32 +5669,32 @@ class Xm():
         >>> #d.update({'qsRank_L':'first'}) 
         >>> df=grpObj.agg(d).sort_values(by=['qsigRank_L','qsRank_L'],ascending=True)       
         >>> df.rename(columns={'NAME_k':'AnzKnoten','NAME_i':'1 NAME','pk':'AnzRohre'},inplace=True)
-        >>> xm.dataFrames['df']=df.round(1)
+        >>> xm.dataFrames['df']=df.round({'qsigFWVB~*~*~*~W':-2,'qsFWVB~*~*~*~W':-2,'qsigRank_sumL':-2,'qsRank_sumL':-2})      
         >>> print(xm._getvXXXXAsOneString(vXXXX='df'))
             qsigRank_L  qsRank_L qsigStr qs_1_A qs_2_B qs_3_C  qsigqsRank_L  qsigFWVB~*~*~*~W  qsFWVB~*~*~*~W  1 NAME  qsigAnzFwvb  qsAnzFwvb  AnzRohre  qsigRank_sumL  qsRank_sumL
-        0            1         3     110     74     26      0             1          184816.3         34469.6  V-3505        598.0      150.0        89        51151.5      16187.3
-        1            1         4     110     24     76      0             2          184816.3         27410.5  V-1633        598.0       92.0        53        51151.5       9748.5
-        2            1         5     110     97      3      0             3          184816.3         40112.0  V-1802        598.0      157.0        71        51151.5       9689.2
-        3            1         7     110     96      4      0             4          184816.3         20506.0  V-1114        598.0       58.0        33        51151.5       4525.0
-        4            1         8     110     82     18      0             5          184816.3         10886.9  V-1760        598.0       38.0        20        51151.5       2890.0
-        5            1         9     110     10     90      0             6          184816.3          3783.3  V-3420        598.0       19.0        11        51151.5       2150.0
-        6            1        10     110     99      1      0             7          184816.3          4651.4  V-1336        598.0       17.0         8        51151.5       1425.3
-        7            1        11     110     35     65      0             8          184816.3          2257.4  V-1743        598.0        9.0         5        51151.5        795.0
-        8            1        12     110     48     52      0             9          184816.3           414.4  V-1308        598.0        2.0         3        51151.5        556.0
-        9            1        13     110     36     64      0            10          184816.3          2628.7  V-1755        598.0        9.0         5        51151.5        555.0
-        10           1        14     110     67     33      0            11          184816.3          1941.5  V-1605        598.0        8.0         4        51151.5        550.0
-        11           1        15     110     98      2      0            12          184816.3           617.9  V-1802        598.0        7.0         3        51151.5        450.0
-        12           1        16     110     58     42      0            13          184816.3          4138.6  V-1750        598.0       12.0         4        51151.5        400.0
-        13           1        17     110      6     94      0            14          184816.3           867.2  V-1374        598.0        3.0         1        51151.5        360.0
-        14           1        18     110     61     39      0            15          184816.3          2089.9  V-1740        598.0        7.0         3        51151.5        340.0
-        15           1        19     110     39     61      0            16          184816.3          2460.8  V-1373        598.0        4.0         2        51151.5        290.0
-        16           1        21     110     95      5      0            17          184816.3          6507.5  V-1132        598.0        1.0         1        51151.5        150.0
-        17           1        22     110     76     24      0            18          184816.3           300.0  V-1742        598.0        2.0         1        51151.5         90.0
-        18           2         1     010      0    100      0            19           92498.9         92498.9  V-3204        338.0      338.0       214        37422.9      37422.9
-        19           3         2     100    100      0      0            20          182017.1        182017.1  V-1591        485.0      485.0       262        36841.2      36841.2
-        20           4         6     001      0      0    100            21           25189.3         25189.3  V-2602         74.0       74.0        43         7278.6       7278.6
-        21           5        20     011      0     66     34            22            2194.1          1272.7  V-2113         10.0        5.0         3          259.8        259.8
-        22           6        23     000      0      0      0            23               0.0             0.0  R-1226          0.0        0.0       839       133013.8     133013.8
+        0            1         3     110     74     26      0             1          184800.0         34500.0  V-3505        598.0      150.0        89        51200.0      16200.0
+        1            1         4     110     97      3      0             2          184800.0         40100.0  V-1802        598.0      157.0        72        51200.0       9800.0
+        2            1         5     110     24     76      0             3          184800.0         27400.0  V-1633        598.0       92.0        53        51200.0       9700.0
+        3            1         7     110     96      4      0             4          184800.0         20500.0  V-1114        598.0       58.0        33        51200.0       4500.0
+        4            1         8     110     82     18      0             5          184800.0         10900.0  V-1711        598.0       38.0        20        51200.0       2900.0
+        5            1         9     110     10     90      0             6          184800.0          3800.0  V-3420        598.0       19.0        11        51200.0       2200.0
+        6            1        10     110     99      1      0             7          184800.0          4700.0  V-1336        598.0       17.0         8        51200.0       1400.0
+        7            1        11     110     35     65      0             8          184800.0          2300.0  V-1743        598.0        9.0         5        51200.0        800.0
+        8            1        12     110     48     52      0             9          184800.0           400.0  V-1308        598.0        2.0         3        51200.0        600.0
+        9            1        13     110     36     64      0            10          184800.0          2600.0  V-1755        598.0        9.0         5        51200.0        600.0
+        10           1        14     110     67     33      0            11          184800.0          1900.0  V-1605        598.0        8.0         4        51200.0        600.0
+        11           1        15     110     98      2      0            12          184800.0           600.0  V-1802        598.0        7.0         3        51200.0        400.0
+        12           1        16     110     58     42      0            13          184800.0          4100.0  V-1750        598.0       12.0         4        51200.0        400.0
+        13           1        17     110      6     94      0            14          184800.0           900.0  V-1374        598.0        3.0         1        51200.0        400.0
+        14           1        18     110     61     39      0            15          184800.0          2100.0  V-1740        598.0        7.0         3        51200.0        300.0
+        15           1        19     110     39     61      0            16          184800.0          2500.0  V-1373        598.0        4.0         2        51200.0        300.0
+        16           1        21     110     95      5      0            17          184800.0          6500.0  V-1132        598.0        1.0         1        51200.0        200.0
+        17           1        22     110     76     24      0            18          184800.0           300.0  V-1742        598.0        2.0         1        51200.0        100.0
+        18           2         1     010      0    100      0            19           92500.0         92500.0  V-3204        338.0      338.0       214        37400.0      37400.0
+        19           3         2     100    100      0      0            20          182000.0        182000.0  V-1591        485.0      485.0       261        36800.0      36800.0
+        20           4         6     001      0      0    100            21           25200.0         25200.0  V-2602         74.0       74.0        43         7300.0       7300.0
+        21           5        20     011      0     67     33            22            2200.0          1300.0  V-2113         10.0        5.0         3          300.0        300.0
+        22           6        23     000      0      0      0            23               0.0             0.0  R-1226          0.0        0.0       839       133000.0     133000.0
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -7720,16 +7724,19 @@ class Xm():
         ...     import Mx
         ... except:
         ...     from PT3S import Mx
-        >>> mx=Mx.Mx(mx1File=mx1File)             
-        >>> mx.mx1Df.loc[mx.mx1Df['Sir3sID']=='FWVB~V-K003~R-K003~5695730293103267172~INDUV','NAME1']='Sir3sIDUpdTest'
-        >>> mx.mx1Df.loc[mx.mx1Df['Sir3sID']=='FWVB~V-K003~R-K003~5695730293103267172~INDUV','Sir3sID']='FWVB~Sir3sIDUpdTest~R-K003~5695730293103267172~INDUV'     
-        >>> mx.mx1Df.loc[mx.mx1Df['NAME1']=='Sir3sIDUpdTest',['Sir3sID']]
-                                                         Sir3sID
-        40  FWVB~Sir3sIDUpdTest~R-K003~5695730293103267172~INDUV
+        >>> mx=Mx.Mx(mx1File=mx1File)      
+        >>> # mx.mx1Df
+        >>> Sir3sIDStr='FWVB~V-K003~R-K003~5695730293103267172~INDUV'
+        >>> Sir3sIDStr='FWVB~~~5695730293103267172~INDUV'
+        >>> mx.mx1Df.loc[mx.mx1Df['Sir3sID']==Sir3sIDStr,'NAME1']='Sir3sIDUpdTest'
+        >>> mx.mx1Df.loc[mx.mx1Df['Sir3sID']==Sir3sIDStr,'Sir3sID']='FWVB~Sir3sIDUpdTest~R-K003~5695730293103267172~INDUV'     
+        >>> print(mx.mx1Df.loc[mx.mx1Df['NAME1']=='Sir3sIDUpdTest',['Sir3sID']].to_string(index=False))
+                                                      Sir3sID
+         FWVB~Sir3sIDUpdTest~R-K003~5695730293103267172~INDUV
         >>> xm._Xm__Mx1_Sir3sIDUpd(mx) 
-        >>> mx.mx1Df.loc[mx.mx1Df['Sir3sID']=='FWVB~V-K003~R-K003~5695730293103267172~INDUV',['NAME1']]
-             NAME1
-        40  V-K003
+        >>> print(mx.mx1Df.loc[mx.mx1Df['Sir3sID']=='FWVB~V-K003~R-K003~5695730293103267172~INDUV',['NAME1']].to_string(index=False))
+          NAME1
+         V-K003
         >>> # -------
         >>> # doppelte Spaltennamen behandeln
         >>> # -------        
@@ -7737,15 +7744,15 @@ class Xm():
         >>> mx.df.rename(columns={'PUMP~R-1~R2~5481331875203087055~DP':'Sir3sIDUpdTest'},inplace=True)
         >>> list(mx.df.columns[mx.df.columns.duplicated()])
         ['Sir3sIDUpdTest']
-        >>> mx.df.filter(regex='^Sir3sIDUpdTest').head(2)
+        >>> mx.df.filter(regex='^Sir3sIDUpdTest').round(1).head(2)
                                    Sir3sIDUpdTest  Sir3sIDUpdTest
-        2004-09-22 08:30:00+00:00        0.625636        2.311307
-        2004-09-22 08:30:15+00:00        0.705517        1.331398
+        2004-09-22 08:30:00+00:00             0.6             2.3
+        2004-09-22 08:30:15+00:00             0.7             1.3
         >>> xm._Xm__Mx1_Sir3sIDUpd(mx) 
-        >>> mx.df.filter(regex='^Sir3sIDUpdTest').head(2)
+        >>> mx.df.filter(regex='^Sir3sIDUpdTest').round(1).head(2)
                                    Sir3sIDUpdTest  Sir3sIDUpdTest_1
-        2004-09-22 08:30:00+00:00        0.625636          2.311307
-        2004-09-22 08:30:15+00:00        0.705517          1.331398
+        2004-09-22 08:30:00+00:00             0.6               2.3
+        2004-09-22 08:30:15+00:00             0.7               1.3
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -8265,6 +8272,11 @@ class Xm():
             XmError      
                                   
         >>> # -q -m 0 -t before -s Xm.MxAdd -y yes -z yes -w LocalHeatingNetwork -w GPipes
+        >>> import pandas as pd
+        >>> pd.set_option('display.max_columns',None)
+        >>> pd.set_option('display.max_rows',None)
+        >>> pd.set_option('display.max_colwidth',666666)   
+        >>> pd.set_option('display.width',666666666)
         >>> xm=xms['LocalHeatingNetwork']
         >>> (wDir,modelDir,modelName,mx1File)=xm.getWDirModelDirModelName()
         >>> try:
@@ -8272,56 +8284,54 @@ class Xm():
         ... except:
         ...     from PT3S import Mx        
         >>> mx=Mx.Mx(mx1File=mx1File)           
-        >>> mx.dfVecAggs.loc[(['TIME','TMIN','TMAX'],'KNOT~*~*~*~PH',slice(None),slice(None)),0:3].reset_index()  
-           TYPE        Sir3sID          TIMESTAMPL          TIMESTAMPR         0         1         2         3
-        0  TIME  KNOT~*~*~*~PH 2004-09-22 08:30:00 2004-09-22 08:30:00  2.302971  3.985846  4.083384  4.121495
-        1  TMIN  KNOT~*~*~*~PH 2004-09-22 08:30:00 2004-09-22 08:31:00  2.052100  2.183028  2.200011  2.206647
-        2  TMAX  KNOT~*~*~*~PH 2004-09-22 08:30:00 2004-09-22 08:31:00  2.302971  4.085822  4.183360  4.221471
-        >>> #mx.dfVecAggs.shape # Start
-        (123, 32)
-        >>> print(xm._getvXXXXAsOneString(vXXXX='vKNOT',filterColList=['BESCHREIBUNG','IDREFERENZ','NAME','KNOT~*~*~*~PH']))
+        >>> mx.dfVecAggs.loc[(['TIME','TMIN','TMAX'],'KNOT~*~*~*~PH',slice(None),slice(None)),0:3].round(1).reset_index()  
+           TYPE        Sir3sID          TIMESTAMPL          TIMESTAMPR    0    1    2    3
+        0  TIME  KNOT~*~*~*~PH 2004-09-22 08:30:00 2004-09-22 08:30:00  2.3  4.0  4.1  4.1
+        1  TMIN  KNOT~*~*~*~PH 2004-09-22 08:30:00 2004-09-22 08:31:00  2.1  2.2  2.2  2.2
+        2  TMAX  KNOT~*~*~*~PH 2004-09-22 08:30:00 2004-09-22 08:31:00  2.3  4.0  4.1  4.1
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vKNOT',filterColList=['BESCHREIBUNG','IDREFERENZ','NAME','KNOT~*~*~*~PH'],roundDct={'KNOT~*~*~*~PH':1}))
                               BESCHREIBUNG IDREFERENZ         NAME  KNOT~*~*~*~PH
-        0                             None         -1       R-K004       2.302971
-        1                             None         -1       V-K002       3.985846
-        2                             None         -1       V-K001       4.083384
-        3                             None         -1       V-K000       4.121495
-        4                             None         -1       R-K001       2.043288
-        5                             None         -1       R-K003       2.283565
-        6                             None         -1       R-K000       2.004937
-        7                             None         -1       R-K005       2.309655
-        8                             None         -1          R-L       2.000133
-        9                             None         -1       R-K002       2.141440
-        10                            None         -1       V-K004       3.825970
-        11                            None         -1       V-K005       3.819467
-        12                            None         -1       R-K007       2.314658
-        13                            None         -1       V-K006       3.816599
-        14                            None         -1       R-K006       2.312659
-        15                            None         -1       V-K003       3.845104
-        16                            None         -1          V-L       4.125885
-        17                            None         -1       V-K007       3.814690
-        18                            None         -1           R2       4.311307
-        19                            None         -1          V-1       4.126019
-        20                            None         -1           R3       4.291591
-        21  Druckhaltung - 2 bar Ruhedruck         -1  PKON-Knoten       2.000000
-        22          Anbindung Druckhaltung         -1          R-1       2.000000
-        >>> print(xm._getvXXXXAsOneString(vXXXX='vROHR',filterColList=['BESCHREIBUNG','IDREFERENZ','NAME_i','NAME_k','ROHR~*~*~*~QMAV']))
+        0                             None         -1       R-K004            2.3
+        1                             None         -1       V-K002            4.0
+        2                             None         -1       V-K001            4.1
+        3                             None         -1       V-K000            4.1
+        4                             None         -1       R-K001            2.0
+        5                             None         -1       R-K003            2.3
+        6                             None         -1       R-K000            2.0
+        7                             None         -1       R-K005            2.3
+        8                             None         -1          R-L            2.0
+        9                             None         -1       R-K002            2.1
+        10                            None         -1       V-K004            3.8
+        11                            None         -1       V-K005            3.8
+        12                            None         -1       R-K007            2.3
+        13                            None         -1       V-K006            3.8
+        14                            None         -1       R-K006            2.3
+        15                            None         -1       V-K003            3.8
+        16                            None         -1          V-L            4.1
+        17                            None         -1       V-K007            3.8
+        18                            None         -1           R2            4.3
+        19                            None         -1          V-1            4.1
+        20                            None         -1           R3            4.3
+        21  Druckhaltung - 2 bar Ruhedruck         -1  PKON-Knoten            2.0
+        22          Anbindung Druckhaltung         -1          R-1            2.0
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vROHR',filterColList=['BESCHREIBUNG','IDREFERENZ','NAME_i','NAME_k','ROHR~*~*~*~QMAV'],roundDct={'ROHR~*~*~*~QMAV':1}))
            BESCHREIBUNG IDREFERENZ  NAME_i  NAME_k  ROHR~*~*~*~QMAV
-        0          None         -1  R-K004  R-K005        -8.509475
-        1          None         -1  V-K002  V-K003        19.059780
-        2          None         -1  R-K003  R-K004       -15.378901
-        3          None         -1  V-K004  V-K005         8.509476
-        4          None         -1  V-K001  V-K002        22.987946
-        5          None         -1  R-K006  R-K007        -3.928166
-        6          None         -1  V-K000  V-K001        22.987947
-        7          None         -1  V-K003  V-K004        15.378901
-        8          None         -1  V-K005  V-K006         3.928167
-        9          None         -1  R-K001  R-K002       -22.987946
-        10         None         -1  R-K002  R-K003       -19.059778
-        11         None         -1  R-K005  R-K006        -3.928166
-        12         None         -1  V-K006  V-K007         3.928167
-        13         None         -1  R-K000  R-K001       -22.987946
-        14         None         -1     R-L  R-K000       -22.987946
-        15         None         -1     V-L  V-K000        22.987947
+        0          None         -1  R-K004  R-K005             -8.5
+        1          None         -1  V-K002  V-K003             19.1
+        2          None         -1  R-K003  R-K004            -15.4
+        3          None         -1  V-K004  V-K005              8.5
+        4          None         -1  V-K001  V-K002             23.0
+        5          None         -1  R-K006  R-K007             -3.9
+        6          None         -1  V-K000  V-K001             23.0
+        7          None         -1  V-K003  V-K004             15.4
+        8          None         -1  V-K005  V-K006              3.9
+        9          None         -1  R-K001  R-K002            -23.0
+        10         None         -1  R-K002  R-K003            -19.1
+        11         None         -1  R-K005  R-K006             -3.9
+        12         None         -1  V-K006  V-K007              3.9
+        13         None         -1  R-K000  R-K001            -23.0
+        14         None         -1     R-L  R-K000            -23.0
+        15         None         -1     V-L  V-K000             23.0
         >>> print(xm._getvXXXXAsOneString(vXXXX='vFWVB'))
           BESCHREIBUNG IDREFERENZ   W0  LFK  W0LFK  TVL0  TRS0  LFKT      W  W_min  W_max  INDTR  TRSK  VTYP  DPHAUS  IMBG  IRFV                   pk                   tk  NAME_i KVR_i TM_i   XKOR_i   YKOR_i ZKOR_i  pXCor_i  pYCor_i  NAME_k KVR_k TM_k   XKOR_k   YKOR_k ZKOR_k  pXCor_k  pYCor_k                                      CONT CONT_ID CONT_LFDNR                         WBLZ  mx2Idx  FWVB~*~*~*~W  FWVB~*~*~*~QM  FWVB~*~*~*~IAKTIV
         0            1         -1  200  0.8  160.0    90    50  LFKT  160.0  160.0  160.0      1    55    14     0.7     0   0.0  4643800032883366034  4643800032883366034  V-K002     1   90  2541059  5706265     20    319.0     56.0  R-K002     2   60  2541059  5706265     20    319.0     56.0  Nahwärmenetz mit 1000 kW Anschlussleistu    1001         -1  [BLNZ1, BLNZ1u5, BLNZ1u5u7]       0         160.0       3.928166                0.0
@@ -8360,40 +8370,43 @@ class Xm():
         VENT    4678923650983295610                           None         -1          V-1     V-L      22.9879
                 4897018421024717974                           None         -1          R-L     R-1      22.9879
                 5525310316015533093                           None         -1  PKON-Knoten     R-1  2.19997e-06
-        >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults')) 
-                             pk  mx2Idx IptIdx  ROHR~*~*~*~SVEC  ROHR~*~*~*~PVEC  ROHR~*~*~*~RHOVEC  ROHR~*~*~*~TVEC  ROHR~*~*~*~MVEC  ROHR~*~*~*~ZVEC
-        0   4613782368750024999       0      S         0.000000         3.302971         983.700012             60.0        -2.363743             20.0
-        1   4613782368750024999       0      E        88.019997         3.309655         983.700012             60.0        -2.363743             20.0
-        2   4614949065966596185       1      S         0.000000         4.985845         965.700012             90.0         5.294384             20.0
-        3   4614949065966596185       1      E       405.959991         4.845104         965.700012             90.0         5.294384             20.0
-        4   4637102239750163477       2      S         0.000000         3.283566         983.700012             60.0        -4.271917             20.0
-        5   4637102239750163477       2      E        83.550003         3.302971         983.700012             60.0        -4.271917             20.0
-        6   4713733238627697042       3      S         0.000000         4.825970         965.700012             90.0         2.363743             20.0
-        7   4713733238627697042       3      E        88.019997         4.819468         965.700012             90.0         2.363743             20.0
-        8   4789218195240364437       5      S         0.000000         5.083383         965.700012             90.0         6.385540             20.0
-        9   4789218195240364437       5      E       195.529999         4.985845         965.700012             90.0         6.385540             20.0
-        10  4945727430885351042       7      S         0.000000         3.312659         983.700012             60.0        -1.091157             20.0
-        11  4945727430885351042       7      E       109.769997         3.314658         983.700012             60.0        -1.091157             20.0
-        12  4984202422877610920       8      S         0.000000         5.121495         965.700012             90.0         6.385540             20.0
-        13  4984202422877610920       8      E        76.400002         5.083383         965.700012             90.0         6.385540             20.0
-        14  5037777106796980248       9      S         0.000000         4.845104         965.700012             90.0         4.271917             20.0
-        15  5037777106796980248       9      E        83.550003         4.825970         965.700012             90.0         4.271917             20.0
-        16  5123819811204259837      10      S         0.000000         4.819468         965.700012             90.0         1.091157             20.0
-        17  5123819811204259837      10      E       164.910004         4.816599         965.700012             90.0         1.091157             20.0
-        18  5266224553324203132      11      S         0.000000         3.043288         983.700012             60.0        -6.385540             20.0
-        19  5266224553324203132      11      E       195.529999         3.141441         983.700012             60.0        -6.385540             20.0
-        20  5379365049009065623      12      S         0.000000         3.141441         983.700012             60.0        -5.294383             20.0
-        21  5379365049009065623      12      E       405.959991         3.283566         983.700012             60.0        -5.294383             20.0
-        22  5611703699850694889      13      S         0.000000         3.309655         983.700012             60.0        -1.091157             20.0
-        23  5611703699850694889      13      E       164.910004         3.312659         983.700012             60.0        -1.091157             20.0
-        24  5620197984230756681      14      S         0.000000         4.816599         965.700012             90.0         1.091157             20.0
-        25  5620197984230756681      14      E       109.769997         4.814690         965.700012             90.0         1.091157             20.0
-        26  5647213228462830353      15      S         0.000000         3.004937         983.700012             60.0        -6.385540             20.0
-        27  5647213228462830353      15      E        76.400002         3.043288         983.700012             60.0        -6.385540             20.0
-        28  4769996343148550485       4      S         0.000000         3.000133         983.700012             60.0        -6.385540             20.0
-        29  4769996343148550485       4      E        73.419998         3.004937         983.700012             60.0        -6.385540             20.0
-        30  4939422678063487923       6      S         0.000000         5.125884         965.700012             90.0         6.385541             20.0
-        31  4939422678063487923       6      E        68.599998         5.121495         965.700012             90.0         6.385541             20.0
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults'
+        ...     ,filterColList=['pk','mx2Idx','IptIdx','ROHR~*~*~*~RHOVEC','ROHR~*~*~*~TVEC','ROHR~*~*~*~MVEC','ROHR~*~*~*~SVEC','ROHR~*~*~*~PVEC','ROHR~*~*~*~ZVEC']
+        ...     ,roundDct={'ROHR~*~*~*~RHOVEC':2,'ROHR~*~*~*~TVEC':1,'ROHR~*~*~*~MVEC':1,'ROHR~*~*~*~SVEC':2,'ROHR~*~*~*~PVEC':1,'ROHR~*~*~*~ZVEC':1}
+        ...     ))
+                             pk  mx2Idx IptIdx  ROHR~*~*~*~RHOVEC  ROHR~*~*~*~TVEC  ROHR~*~*~*~MVEC  ROHR~*~*~*~SVEC  ROHR~*~*~*~PVEC  ROHR~*~*~*~ZVEC
+        0   4613782368750024999       0      S              983.7             60.0             -2.4             0.00              3.3             20.0
+        1   4613782368750024999       0      E              983.7             60.0             -2.4            88.02              3.3             20.0
+        2   4614949065966596185       1      S              965.7             90.0              5.3             0.00              5.0             20.0
+        3   4614949065966596185       1      E              965.7             90.0              5.3           405.96              4.8             20.0
+        4   4637102239750163477       2      S              983.7             60.0             -4.3             0.00              3.3             20.0
+        5   4637102239750163477       2      E              983.7             60.0             -4.3            83.55              3.3             20.0
+        6   4713733238627697042       3      S              965.7             90.0              2.4             0.00              4.8             20.0
+        7   4713733238627697042       3      E              965.7             90.0              2.4            88.02              4.8             20.0
+        8   4789218195240364437       5      S              965.7             90.0              6.4             0.00              5.1             20.0
+        9   4789218195240364437       5      E              965.7             90.0              6.4           195.53              5.0             20.0
+        10  4945727430885351042       7      S              983.7             60.0             -1.1             0.00              3.3             20.0
+        11  4945727430885351042       7      E              983.7             60.0             -1.1           109.77              3.3             20.0
+        12  4984202422877610920       8      S              965.7             90.0              6.4             0.00              5.1             20.0
+        13  4984202422877610920       8      E              965.7             90.0              6.4            76.40              5.1             20.0
+        14  5037777106796980248       9      S              965.7             90.0              4.3             0.00              4.8             20.0
+        15  5037777106796980248       9      E              965.7             90.0              4.3            83.55              4.8             20.0
+        16  5123819811204259837      10      S              965.7             90.0              1.1             0.00              4.8             20.0
+        17  5123819811204259837      10      E              965.7             90.0              1.1           164.91              4.8             20.0
+        18  5266224553324203132      11      S              983.7             60.0             -6.4             0.00              3.0             20.0
+        19  5266224553324203132      11      E              983.7             60.0             -6.4           195.53              3.1             20.0
+        20  5379365049009065623      12      S              983.7             60.0             -5.3             0.00              3.1             20.0
+        21  5379365049009065623      12      E              983.7             60.0             -5.3           405.96              3.3             20.0
+        22  5611703699850694889      13      S              983.7             60.0             -1.1             0.00              3.3             20.0
+        23  5611703699850694889      13      E              983.7             60.0             -1.1           164.91              3.3             20.0
+        24  5620197984230756681      14      S              965.7             90.0              1.1             0.00              4.8             20.0
+        25  5620197984230756681      14      E              965.7             90.0              1.1           109.77              4.8             20.0
+        26  5647213228462830353      15      S              983.7             60.0             -6.4             0.00              3.0             20.0
+        27  5647213228462830353      15      E              983.7             60.0             -6.4            76.40              3.0             20.0
+        28  4769996343148550485       4      S              983.7             60.0             -6.4             0.00              3.0             20.0
+        29  4769996343148550485       4      E              983.7             60.0             -6.4            73.42              3.0             20.0
+        30  4939422678063487923       6      S              965.7             90.0              6.4             0.00              5.1             20.0
+        31  4939422678063487923       6      E              965.7             90.0              6.4            68.60              5.1             20.0
         >>> mx.dfVecAggs.shape # unverändert a
         (123, 32)
         >>> xm.MxAdd(mx=mx,aggReq='TMAX',ForceNoH5Update=True)
@@ -8468,40 +8481,40 @@ class Xm():
         (32, 111)
         >>> # vAGSN.filter(regex='([\w ]+)(_)(\d+)$').columns  
         >>> xm.dataFrames['vAGSNTmp']=vAGSN.round(2)
-        >>> print(xm._getvXXXXAsOneString(vXXXX='vAGSNTmp',filterColList=['P','P_1','P_2'])) 
-               P   P_1   P_2
-        0   5.13  3.21  5.23
-        1   5.12  3.21  5.22
-        2   5.12  3.21  5.22
-        3   5.08  3.20  5.18
-        4   5.08  3.20  5.18
-        5   4.99  3.18  5.09
-        6   4.99  3.18  5.09
-        7   4.85  3.16  4.95
-        8   4.85  3.16  4.95
-        9   4.83  3.16  4.93
-        10  4.83  3.16  4.93
-        11  4.82  3.16  4.92
-        12  4.82  3.16  4.92
-        13  4.82  3.16  4.92
-        14  4.82  3.16  4.92
-        15  4.81  3.15  4.91
-        16  3.00  3.00  3.00
-        17  3.00  3.00  3.00
-        18  3.00  3.00  3.00
-        19  3.04  3.01  3.04
-        20  3.04  3.01  3.04
-        21  3.14  3.03  3.14
-        22  3.14  3.03  3.14
-        23  3.28  3.05  3.28
-        24  3.28  3.05  3.28
-        25  3.30  3.05  3.30
-        26  3.30  3.05  3.30
-        27  3.31  3.05  3.31
-        28  3.31  3.05  3.31
-        29  3.31  3.05  3.31
-        30  3.31  3.05  3.31
-        31  3.31  3.05  3.31
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vAGSNTmp',filterColList=['P','P_1','P_2'],roundDct={'P':1,'P_1':1,'P_2':1})) 
+              P  P_1  P_2
+        0   5.1  3.2  5.1
+        1   5.1  3.2  5.1
+        2   5.1  3.2  5.1
+        3   5.1  3.2  5.1
+        4   5.1  3.2  5.1
+        5   5.0  3.2  5.0
+        6   5.0  3.2  5.0
+        7   4.8  3.2  4.8
+        8   4.8  3.2  4.8
+        9   4.8  3.2  4.8
+        10  4.8  3.2  4.8
+        11  4.8  3.2  4.8
+        12  4.8  3.2  4.8
+        13  4.8  3.2  4.8
+        14  4.8  3.2  4.8
+        15  4.8  3.2  4.8
+        16  3.0  3.0  3.0
+        17  3.0  3.0  3.0
+        18  3.0  3.0  3.0
+        19  3.0  3.0  3.0
+        20  3.0  3.0  3.0
+        21  3.1  3.0  3.1
+        22  3.1  3.0  3.1
+        23  3.3  3.0  3.3
+        24  3.3  3.0  3.3
+        25  3.3  3.0  3.3
+        26  3.3  3.0  3.3
+        27  3.3  3.0  3.3
+        28  3.3  3.0  3.3
+        29  3.3  3.0  3.3
+        30  3.3  3.0  3.3
+        31  3.3  3.0  3.3
         >>> mx.dfVecAggs.shape 
         (123, 32)
         >>> xm.MxAdd(mx=mx,aggReq=['MIN'],timeReq=1*[mx.df.index[1]],timeReq2nd=1*[mx.df.index[-2]],viewList=['vAGSN'],ForceNoH5Update=True)
@@ -8554,31 +8567,31 @@ class Xm():
         ... ,ForceNoH5Update=True)    
         >>> vKNOT=xm.dataFrames['vKNOT']
         >>> xm.dataFrames['vKNOTTmp']=vKNOT.round(2)
-        >>> print(xm._getvXXXXAsOneString(vXXXX='vKNOTTmp',filterColList=['KNOT~*~*~*~PH','KNOT~*~*~*~PH_1','KNOT~*~*~*~PH_2','KNOT~*~*~*~PH_3'])) 
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vKNOTTmp',filterColList=['KNOT~*~*~*~PH','KNOT~*~*~*~PH_1','KNOT~*~*~*~PH_2','KNOT~*~*~*~PH_3'],roundDct={'KNOT~*~*~*~PH':1,'KNOT~*~*~*~PH_1':1,'KNOT~*~*~*~PH_2':1,'KNOT~*~*~*~PH_3':1})) 
             KNOT~*~*~*~PH  KNOT~*~*~*~PH_1  KNOT~*~*~*~PH_2  KNOT~*~*~*~PH_3
-        0            2.30             2.05             2.30             2.30
-        1            3.99             2.18             4.09             4.09
-        2            4.08             2.20             4.18             4.18
-        3            4.12             2.21             4.22             4.22
-        4            2.04             2.01             2.04             2.04
-        5            2.28             2.05             2.28             2.28
-        6            2.00             2.00             2.00             2.00
-        7            2.31             2.05             2.31             2.31
-        8            2.00             2.00             2.00             2.00
-        9            2.14             2.03             2.14             2.14
-        10           3.83             2.16             3.93             3.93
-        11           3.82             2.16             3.92             3.92
-        12           2.31             2.05             2.31             2.31
-        13           3.82             2.16             3.92             3.92
-        14           2.31             2.05             2.31             2.31
-        15           3.85             2.16             3.95             3.95
-        16           4.13             2.21             4.23             4.23
-        17           3.81             2.15             3.91             3.91
-        18           4.31             2.25             4.41             4.41
-        19           4.13             2.21             4.23             4.23
-        20           4.29             2.23             4.39             4.39
-        21           2.00             2.00             2.00             2.00
-        22           2.00             2.00             2.00             2.00
+        0             2.3              2.0              2.3              2.3
+        1             4.0              2.2              4.0              4.0
+        2             4.1              2.2              4.1              4.1
+        3             4.1              2.2              4.1              4.1
+        4             2.0              2.0              2.0              2.0
+        5             2.3              2.0              2.3              2.3
+        6             2.0              2.0              2.0              2.0
+        7             2.3              2.0              2.3              2.3
+        8             2.0              2.0              2.0              2.0
+        9             2.1              2.0              2.1              2.1
+        10            3.8              2.2              3.8              3.8
+        11            3.8              2.2              3.8              3.8
+        12            2.3              2.0              2.3              2.3
+        13            3.8              2.2              3.8              3.8
+        14            2.3              2.0              2.3              2.3
+        15            3.8              2.2              3.8              3.8
+        16            4.1              2.2              4.1              4.1
+        17            3.8              2.2              3.8              3.8
+        18            4.3              2.2              4.3              4.3
+        19            4.1              2.2              4.1              4.1
+        20            4.3              2.2              4.3              4.3
+        21            2.0              2.0              2.0              2.0
+        22            2.0              2.0              2.0              2.0
         >>> xm.MxAdd(mx=mx)
         >>> vKNOT=xm.dataFrames['vKNOT']
         >>> xm.dataFrames['vKNOTTmp']=vKNOT.round(2)        
@@ -8900,28 +8913,32 @@ class Xm():
                 5508684139418025293   []           0  800       2
                 5745097345184516675   []           0  800       1
 
-        >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',filterColList=['KNOT~*~*~*~RHON_i','KNOT~*~*~*~H_i','KNOT~*~*~*~LFAKTAKT_i','KNOT~*~*~*~P_i','KNOT~*~*~*~PH_i','KNOT~*~*~*~PH_EIN_i','KNOT~*~*~*~QM_i','KNOT~*~*~*~RHO_i','KNOT~*~*~*~T_i','KNOT~*~*~*~EH_i']))         
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',filterColList=['KNOT~*~*~*~RHON_i','KNOT~*~*~*~H_i','KNOT~*~*~*~LFAKTAKT_i','KNOT~*~*~*~P_i','KNOT~*~*~*~PH_i','KNOT~*~*~*~PH_EIN_i','KNOT~*~*~*~QM_i','KNOT~*~*~*~RHO_i','KNOT~*~*~*~T_i','KNOT~*~*~*~EH_i']
+        ...         ,roundDct={'KNOT~*~*~*~H_i':1,'KNOT~*~*~*~P_i':1,'KNOT~*~*~*~PH_i':1,'KNOT~*~*~*~PH_EIN_i':1,'KNOT~*~*~*~QM_i':1,'KNOT~*~*~*~RHO_i':1,'KNOT~*~*~*~T_i':1,'KNOT~*~*~*~EH_i':1}
+        ...         ))         
                                      KNOT~*~*~*~RHON_i  KNOT~*~*~*~H_i  KNOT~*~*~*~LFAKTAKT_i  KNOT~*~*~*~P_i  KNOT~*~*~*~PH_i  KNOT~*~*~*~PH_EIN_i  KNOT~*~*~*~QM_i  KNOT~*~*~*~RHO_i  KNOT~*~*~*~T_i  KNOT~*~*~*~EH_i
         OBJTYPE OBJID                                                                                                                                                                                                  
-        ROHR    4979507900871287244               0.83    10106.165039                    1.0       11.106165        10.106165            10.106165          0.00000          7.888546       49.020111     13046.647461
-                5114681686941855110               0.83    16375.773438                    1.0       17.375772        16.375772            16.375772          0.00000         12.826390       40.874298     13008.437500
-                5244313507655010738               0.83    39973.992188                    1.0       40.973991        39.973991            39.973991          0.00000         31.891241       39.985443     12777.368164
-                5694016449043789006               0.83    10106.165039                    1.0       11.106165        10.106165            10.106165          0.00000          7.888546       49.020111     13046.647461
-        VENT    5116489323526156845               0.83    16440.441406                    1.0       17.440441        16.440441            16.440441          0.00000         12.874356       40.910797     13111.193359
-                5309992331398639768               0.83    40000.000000                    1.0       41.000000        40.000000            40.000000     118257.53125         31.911810       40.000000     12777.444336
-                5508684139418025293               0.83    16440.441406                    1.0       17.440441        16.440441            16.440441          0.00000         12.874356       40.910797     13111.193359
-                5745097345184516675               0.83    10000.000000                    1.0       11.000000        10.000000            10.000000    -118257.53125          7.812713       48.967743     13034.717773
-        >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',filterColList=['KNOT~*~*~*~HMAX_INST_i','KNOT~*~*~*~HMIN_INST_i','KNOT~*~*~*~PMAX_INST_i','KNOT~*~*~*~PMIN_INST_i','KNOT~*~*~*~IAKTIV_i','KNOT~*~*~*~PDAMPF_i']))
+        ROHR    4979507900871287244               0.83         10106.2                    1.0            11.1             10.1                 10.1              0.0               7.9            49.0          13046.7
+                5114681686941855110               0.83         16375.8                    1.0            17.4             16.4                 16.4              0.0              12.8            40.9          13008.5
+                5244313507655010738               0.83         39974.0                    1.0            41.0             40.0                 40.0              0.0              31.9            40.0          12777.4
+                5694016449043789006               0.83         10106.2                    1.0            11.1             10.1                 10.1              0.0               7.9            49.0          13046.7
+        VENT    5116489323526156845               0.83         16440.5                    1.0            17.4             16.4                 16.4              0.0              12.9            40.9          13111.2
+                5309992331398639768               0.83         40000.0                    1.0            41.0             40.0                 40.0         118257.5              31.9            40.0          12777.4
+                5508684139418025293               0.83         16440.5                    1.0            17.4             16.4                 16.4              0.0              12.9            40.9          13111.2
+                5745097345184516675               0.83         10000.0                    1.0            11.0             10.0                 10.0        -118257.5               7.8            49.0          13034.1
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vVBEL',filterColList=['KNOT~*~*~*~HMAX_INST_i','KNOT~*~*~*~HMIN_INST_i','KNOT~*~*~*~PMAX_INST_i','KNOT~*~*~*~PMIN_INST_i','KNOT~*~*~*~IAKTIV_i','KNOT~*~*~*~PDAMPF_i']
+        ...         ,roundDct={'KNOT~*~*~*~HMAX_INST_i':1,'KNOT~*~*~*~HMIN_INST_i':1,'KNOT~*~*~*~PMAX_INST_i':1,'KNOT~*~*~*~PMIN_INST_i':1}
+        ...         ))
                                      KNOT~*~*~*~HMAX_INST_i  KNOT~*~*~*~HMIN_INST_i  KNOT~*~*~*~PMAX_INST_i  KNOT~*~*~*~PMIN_INST_i  KNOT~*~*~*~IAKTIV_i  KNOT~*~*~*~PDAMPF_i
         OBJTYPE OBJID                                                                                                                                                        
-        ROHR    4979507900871287244            10106.165039            10106.165039               11.106165               11.106165                  0.0                  0.0
-                5114681686941855110            16375.773438            16375.773438               17.375772               17.375772                  0.0                  0.0
-                5244313507655010738            39973.992188            39973.992188               40.973991               40.973991                  0.0                  0.0
-                5694016449043789006            10106.165039            10106.165039               11.106165               11.106165                  0.0                  0.0
-        VENT    5116489323526156845            16440.441406            16440.441406               17.440441               17.440441                  0.0                  0.0
-                5309992331398639768            40000.000000            40000.000000               41.000000               41.000000                  0.0                  0.0
-                5508684139418025293            16440.441406            16440.441406               17.440441               17.440441                  0.0                  0.0
-                5745097345184516675            10000.000000            10000.000000               11.000000               11.000000                  0.0                  0.0
+        ROHR    4979507900871287244                 10106.2                 10106.2                    11.1                    11.1                  0.0                  0.0
+                5114681686941855110                 16375.8                 16375.8                    17.4                    17.4                  0.0                  0.0
+                5244313507655010738                 39974.0                 39974.0                    41.0                    41.0                  0.0                  0.0
+                5694016449043789006                 10106.2                 10106.2                    11.1                    11.1                  0.0                  0.0
+        VENT    5116489323526156845                 16440.5                 16440.5                    17.4                    17.4                  0.0                  0.0
+                5309992331398639768                 40000.0                 40000.0                    41.0                    41.0                  0.0                  0.0
+                5508684139418025293                 16440.5                 16440.5                    17.4                    17.4                  0.0                  0.0
+                5745097345184516675                 10000.0                 10000.0                    11.0                    11.0                  0.0                  0.0
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -9055,92 +9072,92 @@ class Xm():
         >>> # construct MultiIndex End ... ---
         >>> dfUnpacked=mx.unPackMxsVecsFileDataDf(mxVecsFileData,mIndex,returnMultiIndex=False)
         >>> xm._MxAddvROHRVecResults(dfSource=dfUnpacked)   
-        >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults',sortList=['ROHR~*~*~*~PHVEC','ROHR~*~*~*~SVEC'],ascending=False))
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults',sortList=['ROHR~*~*~*~PHVEC','ROHR~*~*~*~SVEC'],ascending=False,roundDct={'ROHR~*~*~*~SVEC':1,'ROHR~*~*~*~TVEC':1,'ROHR~*~*~*~ZVEC':1,'ROHR~*~*~*~PVEC':1,'ROHR~*~*~*~MVEC':1,'ROHR~*~*~*~RHOVEC':1,'ROHR~*~*~*~PHVEC':1,'ROHR~*~*~*~QMVEC':1}))
                              pk  mx2Idx IptIdx  ROHR~*~*~*~SVEC  ROHR~*~*~*~TVEC  ROHR~*~*~*~ZVEC  ROHR~*~*~*~PVEC  ROHR~*~*~*~MVEC  ROHR~*~*~*~RHOVEC  ROHR~*~*~*~PHVEC  ROHR~*~*~*~QMVEC
-        8   5244313507655010738       0      S         0.000000        39.985443            0.000        40.973988        27.264917          31.891241         39.973988       3077.763672
-        9   5244313507655010738       0      0      5000.000000        40.407806            3.125        40.453373        27.264917          31.443642         39.453373       3121.575439
-        10  5244313507655010738       0      1     10000.000000        40.397430            6.250        39.925545        27.264917          30.999212         38.925545       3166.328857
-        11  5244313507655010738       0      2     15000.000000        40.387299            9.375        39.390327        27.264917          30.549555         38.390327       3212.934082
-        12  5244313507655010738       0      3     20000.000000        40.377533           12.500        38.847401        27.264917          30.094410         37.847401       3261.526123
-        13  5244313507655010738       0      4     25000.000000        40.368195           15.625        38.296429        27.264917          29.633537         37.296429       3312.250732
-        14  5244313507655010738       0      5     30000.000000        40.359253           18.750        37.737045        27.264917          29.166674         36.737045       3365.269043
-        15  5244313507655010738       0      6     35000.000000        40.350830           21.875        37.168861        27.264917          28.693537         36.168861       3420.760010
-        16  5244313507655010738       0      7     40000.000000        40.342926           25.000        36.591457        27.264917          28.213825         35.591457       3478.922119
-        17  5244313507655010738       0      8     45000.000000        40.335602           28.125        36.004372        27.264917          27.727211         35.004372       3539.977539
-        18  5244313507655010738       0      9     50000.000000        40.328918           31.250        35.407112        27.264917          27.233337         34.407112       3604.174561
-        19  5244313507655010738       0     10     55000.000000        40.322968           34.375        34.799137        27.264917          26.731815         33.799137       3671.793457
-        20  5244313507655010738       0     11     60000.000000        40.317780           37.500        34.179863        27.264917          26.222223         33.179863       3743.149414
-        21  5244313507655010738       0     12     65000.000000        40.313477           40.625        33.548645        27.264917          25.704098         32.548645       3818.601318
-        22  5244313507655010738       0     13     70000.000000        40.310181           43.750        32.904778        27.264917          25.176931         31.904778       3898.557129
-        23  5244313507655010738       0     14     75000.000000        40.308014           46.875        32.247482        27.264917          24.640163         31.247482       3983.484131
-        24  5244313507655010738       0     15     80000.000000        40.307098           50.000        31.575897        27.264917          24.093176         30.575897       4073.921387
-        25  5244313507655010738       0     16     85000.000000        40.307587           53.125        30.889069        27.264917          23.535278         29.889069       4170.492676
-        26  5244313507655010738       0     17     90000.000000        40.309753           56.250        30.185926        27.264917          22.965700         29.185926       4273.925781
-        27  5244313507655010738       0     18     95000.000000        40.313782           59.375        29.465275        27.264917          22.383583         28.465275       4385.075684
-        28  5244313507655010738       0     19    100000.000000        40.320038           62.500        28.725761        27.264917          21.787949         27.725761       4504.953613
-        29  5244313507655010738       0     20    105000.000000        40.328827           65.625        27.965855        27.264917          21.177694         26.965855       4634.768066
-        30  5244313507655010738       0     21    110000.000000        40.340607           68.750        27.183802        27.264917          20.551556         26.183802       4775.974121
-        31  5244313507655010738       0     22    115000.000000        40.355988           71.875        26.377584        27.264917          19.908077         25.377584       4930.345703
-        32  5244313507655010738       0     23    120000.000000        40.375671           75.000        25.544865        27.264917          19.245565         24.544865       5100.068359
-        33  5244313507655010738       0     24    125000.000000        40.400543           78.125        24.682890        27.264917          18.562040         23.682890       5287.872559
-        34  5244313507655010738       0     25    130000.000000        40.431854           81.250        23.788412        27.264917          17.855148         22.788412       5497.221191
-        35  5244313507655010738       0     26    135000.000000        40.471252           84.375        22.857525        27.264917          17.122063         21.857525       5732.586426
-        36  5244313507655010738       0     27    140000.000000        40.520874           87.500        21.885471        27.264917          16.359346         20.885471       5999.854980
-        37  5244313507655010738       0     28    145000.000000        40.583862           90.625        20.866375        27.264917          15.562735         19.866375       6306.970215
-        38  5244313507655010738       0     29    150000.000000        40.664673           93.750        19.792791        27.264917          14.726833         18.792791       6664.956543
-        39  5244313507655010738       0     30    155000.000000        40.770111           96.875        18.655102        27.264917          13.844651         17.655102       7089.647949
-        40  5244313507655010738       0      E    160000.000000        40.910797          100.000        17.440462        27.264917          12.906846         16.440462       7604.778320
-        5   5114681686941855110       1      S         0.000000        40.874298            0.000        17.375792        27.264917          12.826405         16.375792       7652.472168
-        6   5114681686941855110       1      0      5000.000000        43.653412            0.000        16.058306        27.264917          11.750417         15.058306       8353.209961
-        7   5114681686941855110       1      E     10000.000000        43.972473            0.000        14.612197        27.264917          10.651937         13.612197       9214.634766
-        4   4979507900871287244       2      E     10000.000000        43.972504            0.000        14.612185       -27.264917          10.620180         13.612185      -9242.188477
-        3   4979507900871287244       2      0      5000.000000        48.149719            0.000        12.987305       -27.264917           9.317566         11.987305     -10534.264648
-        2   4979507900871287244       2      S         0.000000        49.020142            0.000        11.106176       -27.264917           7.919193         10.106176     -12394.407227
-        0   5694016449043789006       3      S         0.000000        10.000000            0.000        11.106160         0.000000           6.933107         10.106160          0.000000
-        1   5694016449043789006       3      E       100.498688        10.000000            0.000         1.000000         0.000000           0.791800          0.000000          0.000000
-        >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults'))
+        8   5244313507655010738       0      S              0.0             40.0              0.0             41.0             27.3               31.9              40.0            3077.8
+        9   5244313507655010738       0      0           5000.0             40.4              3.1             40.5             27.3               31.4              39.5            3121.6
+        10  5244313507655010738       0      1          10000.0             40.4              6.2             39.9             27.3               31.0              38.9            3166.3
+        11  5244313507655010738       0      2          15000.0             40.4              9.4             39.4             27.3               30.5              38.4            3212.9
+        12  5244313507655010738       0      3          20000.0             40.4             12.5             38.8             27.3               30.1              37.8            3261.5
+        13  5244313507655010738       0      4          25000.0             40.4             15.6             38.3             27.3               29.6              37.3            3312.3
+        14  5244313507655010738       0      5          30000.0             40.4             18.8             37.7             27.3               29.2              36.7            3365.3
+        15  5244313507655010738       0      6          35000.0             40.4             21.9             37.2             27.3               28.7              36.2            3420.8
+        16  5244313507655010738       0      7          40000.0             40.3             25.0             36.6             27.3               28.2              35.6            3478.9
+        17  5244313507655010738       0      8          45000.0             40.3             28.1             36.0             27.3               27.7              35.0            3540.0
+        18  5244313507655010738       0      9          50000.0             40.3             31.2             35.4             27.3               27.2              34.4            3604.2
+        19  5244313507655010738       0     10          55000.0             40.3             34.4             34.8             27.3               26.7              33.8            3671.8
+        20  5244313507655010738       0     11          60000.0             40.3             37.5             34.2             27.3               26.2              33.2            3743.2
+        21  5244313507655010738       0     12          65000.0             40.3             40.6             33.5             27.3               25.7              32.5            3818.6
+        22  5244313507655010738       0     13          70000.0             40.3             43.8             32.9             27.3               25.2              31.9            3898.6
+        23  5244313507655010738       0     14          75000.0             40.3             46.9             32.2             27.3               24.6              31.2            3983.5
+        24  5244313507655010738       0     15          80000.0             40.3             50.0             31.6             27.3               24.1              30.6            4073.9
+        25  5244313507655010738       0     16          85000.0             40.3             53.1             30.9             27.3               23.5              29.9            4170.5
+        26  5244313507655010738       0     17          90000.0             40.3             56.2             30.2             27.3               23.0              29.2            4273.9
+        27  5244313507655010738       0     18          95000.0             40.3             59.4             29.5             27.3               22.4              28.5            4385.1
+        28  5244313507655010738       0     19         100000.0             40.3             62.5             28.7             27.3               21.8              27.7            4505.0
+        29  5244313507655010738       0     20         105000.0             40.3             65.6             28.0             27.3               21.2              27.0            4634.8
+        30  5244313507655010738       0     21         110000.0             40.3             68.8             27.2             27.3               20.6              26.2            4776.0
+        31  5244313507655010738       0     22         115000.0             40.4             71.9             26.4             27.3               19.9              25.4            4930.3
+        32  5244313507655010738       0     23         120000.0             40.4             75.0             25.5             27.3               19.2              24.5            5100.1
+        33  5244313507655010738       0     24         125000.0             40.4             78.1             24.7             27.3               18.6              23.7            5287.9
+        34  5244313507655010738       0     25         130000.0             40.4             81.2             23.8             27.3               17.9              22.8            5497.2
+        35  5244313507655010738       0     26         135000.0             40.5             84.4             22.9             27.3               17.1              21.9            5732.6
+        36  5244313507655010738       0     27         140000.0             40.5             87.5             21.9             27.3               16.4              20.9            5999.9
+        37  5244313507655010738       0     28         145000.0             40.6             90.6             20.9             27.3               15.6              19.9            6307.0
+        38  5244313507655010738       0     29         150000.0             40.7             93.8             19.8             27.3               14.7              18.8            6665.0
+        39  5244313507655010738       0     30         155000.0             40.8             96.9             18.7             27.3               13.8              17.7            7089.7
+        40  5244313507655010738       0      E         160000.0             40.9            100.0             17.4             27.3               12.9              16.4            7604.8
+        5   5114681686941855110       1      S              0.0             40.9              0.0             17.4             27.3               12.8              16.4            7652.5
+        6   5114681686941855110       1      0           5000.0             43.7              0.0             16.1             27.3               11.8              15.1            8353.3
+        4   4979507900871287244       2      E          10000.0             44.0              0.0             14.6            -27.3               10.6              13.6           -9242.2
+        7   5114681686941855110       1      E          10000.0             44.0              0.0             14.6             27.3               10.7              13.6            9214.7
+        3   4979507900871287244       2      0           5000.0             48.2              0.0             13.0            -27.3                9.3              12.0          -10534.3
+        0   5694016449043789006       3      S              0.0             10.0              0.0             11.1              0.0                6.9              10.1               0.0
+        2   4979507900871287244       2      S              0.0             49.0              0.0             11.1            -27.3                7.9              10.1          -12394.5
+        1   5694016449043789006       3      E            100.5             10.0              0.0              1.0              0.0                0.6               0.0               0.0
+        >>> print(xm._getvXXXXAsOneString(vXXXX='vROHRVecResults',roundDct={'ROHR~*~*~*~SVEC':1,'ROHR~*~*~*~TVEC':1,'ROHR~*~*~*~ZVEC':1,'ROHR~*~*~*~PVEC':1,'ROHR~*~*~*~MVEC':1,'ROHR~*~*~*~RHOVEC':1,'ROHR~*~*~*~PHVEC':1,'ROHR~*~*~*~QMVEC':1}))
                              pk  mx2Idx IptIdx  ROHR~*~*~*~SVEC  ROHR~*~*~*~TVEC  ROHR~*~*~*~ZVEC  ROHR~*~*~*~PVEC  ROHR~*~*~*~MVEC  ROHR~*~*~*~RHOVEC  ROHR~*~*~*~PHVEC  ROHR~*~*~*~QMVEC
-        0   5694016449043789006       3      S         0.000000        10.000000            0.000        11.106160         0.000000           6.933107         10.106160          0.000000
-        1   5694016449043789006       3      E       100.498688        10.000000            0.000         1.000000         0.000000           0.791800          0.000000          0.000000
-        2   4979507900871287244       2      S         0.000000        49.020142            0.000        11.106176       -27.264917           7.919193         10.106176     -12394.407227
-        3   4979507900871287244       2      0      5000.000000        48.149719            0.000        12.987305       -27.264917           9.317566         11.987305     -10534.264648
-        4   4979507900871287244       2      E     10000.000000        43.972504            0.000        14.612185       -27.264917          10.620180         13.612185      -9242.188477
-        5   5114681686941855110       1      S         0.000000        40.874298            0.000        17.375792        27.264917          12.826405         16.375792       7652.472168
-        6   5114681686941855110       1      0      5000.000000        43.653412            0.000        16.058306        27.264917          11.750417         15.058306       8353.209961
-        7   5114681686941855110       1      E     10000.000000        43.972473            0.000        14.612197        27.264917          10.651937         13.612197       9214.634766
-        8   5244313507655010738       0      S         0.000000        39.985443            0.000        40.973988        27.264917          31.891241         39.973988       3077.763672
-        9   5244313507655010738       0      0      5000.000000        40.407806            3.125        40.453373        27.264917          31.443642         39.453373       3121.575439
-        10  5244313507655010738       0      1     10000.000000        40.397430            6.250        39.925545        27.264917          30.999212         38.925545       3166.328857
-        11  5244313507655010738       0      2     15000.000000        40.387299            9.375        39.390327        27.264917          30.549555         38.390327       3212.934082
-        12  5244313507655010738       0      3     20000.000000        40.377533           12.500        38.847401        27.264917          30.094410         37.847401       3261.526123
-        13  5244313507655010738       0      4     25000.000000        40.368195           15.625        38.296429        27.264917          29.633537         37.296429       3312.250732
-        14  5244313507655010738       0      5     30000.000000        40.359253           18.750        37.737045        27.264917          29.166674         36.737045       3365.269043
-        15  5244313507655010738       0      6     35000.000000        40.350830           21.875        37.168861        27.264917          28.693537         36.168861       3420.760010
-        16  5244313507655010738       0      7     40000.000000        40.342926           25.000        36.591457        27.264917          28.213825         35.591457       3478.922119
-        17  5244313507655010738       0      8     45000.000000        40.335602           28.125        36.004372        27.264917          27.727211         35.004372       3539.977539
-        18  5244313507655010738       0      9     50000.000000        40.328918           31.250        35.407112        27.264917          27.233337         34.407112       3604.174561
-        19  5244313507655010738       0     10     55000.000000        40.322968           34.375        34.799137        27.264917          26.731815         33.799137       3671.793457
-        20  5244313507655010738       0     11     60000.000000        40.317780           37.500        34.179863        27.264917          26.222223         33.179863       3743.149414
-        21  5244313507655010738       0     12     65000.000000        40.313477           40.625        33.548645        27.264917          25.704098         32.548645       3818.601318
-        22  5244313507655010738       0     13     70000.000000        40.310181           43.750        32.904778        27.264917          25.176931         31.904778       3898.557129
-        23  5244313507655010738       0     14     75000.000000        40.308014           46.875        32.247482        27.264917          24.640163         31.247482       3983.484131
-        24  5244313507655010738       0     15     80000.000000        40.307098           50.000        31.575897        27.264917          24.093176         30.575897       4073.921387
-        25  5244313507655010738       0     16     85000.000000        40.307587           53.125        30.889069        27.264917          23.535278         29.889069       4170.492676
-        26  5244313507655010738       0     17     90000.000000        40.309753           56.250        30.185926        27.264917          22.965700         29.185926       4273.925781
-        27  5244313507655010738       0     18     95000.000000        40.313782           59.375        29.465275        27.264917          22.383583         28.465275       4385.075684
-        28  5244313507655010738       0     19    100000.000000        40.320038           62.500        28.725761        27.264917          21.787949         27.725761       4504.953613
-        29  5244313507655010738       0     20    105000.000000        40.328827           65.625        27.965855        27.264917          21.177694         26.965855       4634.768066
-        30  5244313507655010738       0     21    110000.000000        40.340607           68.750        27.183802        27.264917          20.551556         26.183802       4775.974121
-        31  5244313507655010738       0     22    115000.000000        40.355988           71.875        26.377584        27.264917          19.908077         25.377584       4930.345703
-        32  5244313507655010738       0     23    120000.000000        40.375671           75.000        25.544865        27.264917          19.245565         24.544865       5100.068359
-        33  5244313507655010738       0     24    125000.000000        40.400543           78.125        24.682890        27.264917          18.562040         23.682890       5287.872559
-        34  5244313507655010738       0     25    130000.000000        40.431854           81.250        23.788412        27.264917          17.855148         22.788412       5497.221191
-        35  5244313507655010738       0     26    135000.000000        40.471252           84.375        22.857525        27.264917          17.122063         21.857525       5732.586426
-        36  5244313507655010738       0     27    140000.000000        40.520874           87.500        21.885471        27.264917          16.359346         20.885471       5999.854980
-        37  5244313507655010738       0     28    145000.000000        40.583862           90.625        20.866375        27.264917          15.562735         19.866375       6306.970215
-        38  5244313507655010738       0     29    150000.000000        40.664673           93.750        19.792791        27.264917          14.726833         18.792791       6664.956543
-        39  5244313507655010738       0     30    155000.000000        40.770111           96.875        18.655102        27.264917          13.844651         17.655102       7089.647949
-        40  5244313507655010738       0      E    160000.000000        40.910797          100.000        17.440462        27.264917          12.906846         16.440462       7604.778320
+        0   5694016449043789006       3      S              0.0             10.0              0.0             11.1              0.0                6.9              10.1               0.0
+        1   5694016449043789006       3      E            100.5             10.0              0.0              1.0              0.0                0.6               0.0               0.0
+        2   4979507900871287244       2      S              0.0             49.0              0.0             11.1            -27.3                7.9              10.1          -12394.5
+        3   4979507900871287244       2      0           5000.0             48.2              0.0             13.0            -27.3                9.3              12.0          -10534.3
+        4   4979507900871287244       2      E          10000.0             44.0              0.0             14.6            -27.3               10.6              13.6           -9242.2
+        5   5114681686941855110       1      S              0.0             40.9              0.0             17.4             27.3               12.8              16.4            7652.5
+        6   5114681686941855110       1      0           5000.0             43.7              0.0             16.1             27.3               11.8              15.1            8353.3
+        7   5114681686941855110       1      E          10000.0             44.0              0.0             14.6             27.3               10.7              13.6            9214.7
+        8   5244313507655010738       0      S              0.0             40.0              0.0             41.0             27.3               31.9              40.0            3077.8
+        9   5244313507655010738       0      0           5000.0             40.4              3.1             40.5             27.3               31.4              39.5            3121.6
+        10  5244313507655010738       0      1          10000.0             40.4              6.2             39.9             27.3               31.0              38.9            3166.3
+        11  5244313507655010738       0      2          15000.0             40.4              9.4             39.4             27.3               30.5              38.4            3212.9
+        12  5244313507655010738       0      3          20000.0             40.4             12.5             38.8             27.3               30.1              37.8            3261.5
+        13  5244313507655010738       0      4          25000.0             40.4             15.6             38.3             27.3               29.6              37.3            3312.3
+        14  5244313507655010738       0      5          30000.0             40.4             18.8             37.7             27.3               29.2              36.7            3365.3
+        15  5244313507655010738       0      6          35000.0             40.4             21.9             37.2             27.3               28.7              36.2            3420.8
+        16  5244313507655010738       0      7          40000.0             40.3             25.0             36.6             27.3               28.2              35.6            3478.9
+        17  5244313507655010738       0      8          45000.0             40.3             28.1             36.0             27.3               27.7              35.0            3540.0
+        18  5244313507655010738       0      9          50000.0             40.3             31.2             35.4             27.3               27.2              34.4            3604.2
+        19  5244313507655010738       0     10          55000.0             40.3             34.4             34.8             27.3               26.7              33.8            3671.8
+        20  5244313507655010738       0     11          60000.0             40.3             37.5             34.2             27.3               26.2              33.2            3743.2
+        21  5244313507655010738       0     12          65000.0             40.3             40.6             33.5             27.3               25.7              32.5            3818.6
+        22  5244313507655010738       0     13          70000.0             40.3             43.8             32.9             27.3               25.2              31.9            3898.6
+        23  5244313507655010738       0     14          75000.0             40.3             46.9             32.2             27.3               24.6              31.2            3983.5
+        24  5244313507655010738       0     15          80000.0             40.3             50.0             31.6             27.3               24.1              30.6            4073.9
+        25  5244313507655010738       0     16          85000.0             40.3             53.1             30.9             27.3               23.5              29.9            4170.5
+        26  5244313507655010738       0     17          90000.0             40.3             56.2             30.2             27.3               23.0              29.2            4273.9
+        27  5244313507655010738       0     18          95000.0             40.3             59.4             29.5             27.3               22.4              28.5            4385.1
+        28  5244313507655010738       0     19         100000.0             40.3             62.5             28.7             27.3               21.8              27.7            4505.0
+        29  5244313507655010738       0     20         105000.0             40.3             65.6             28.0             27.3               21.2              27.0            4634.8
+        30  5244313507655010738       0     21         110000.0             40.3             68.8             27.2             27.3               20.6              26.2            4776.0
+        31  5244313507655010738       0     22         115000.0             40.4             71.9             26.4             27.3               19.9              25.4            4930.3
+        32  5244313507655010738       0     23         120000.0             40.4             75.0             25.5             27.3               19.2              24.5            5100.1
+        33  5244313507655010738       0     24         125000.0             40.4             78.1             24.7             27.3               18.6              23.7            5287.9
+        34  5244313507655010738       0     25         130000.0             40.4             81.2             23.8             27.3               17.9              22.8            5497.2
+        35  5244313507655010738       0     26         135000.0             40.5             84.4             22.9             27.3               17.1              21.9            5732.6
+        36  5244313507655010738       0     27         140000.0             40.5             87.5             21.9             27.3               16.4              20.9            5999.9
+        37  5244313507655010738       0     28         145000.0             40.6             90.6             20.9             27.3               15.6              19.9            6307.0
+        38  5244313507655010738       0     29         150000.0             40.7             93.8             19.8             27.3               14.7              18.8            6665.0
+        39  5244313507655010738       0     30         155000.0             40.8             96.9             18.7             27.3               13.8              17.7            7089.7
+        40  5244313507655010738       0      E         160000.0             40.9            100.0             17.4             27.3               12.9              16.4            7604.8
         >>> xm=xms['LocalHeatingNetwork']
         >>> mx=xm.MxSync()
         >>> xm.MxAdd(mx=mx)          
@@ -9267,54 +9284,57 @@ class Xm():
         >>> xm.MxAdd(mx=mx)       
         >>> vAGSN=xm.dataFrames['vAGSN']
         >>> schnitt=vAGSN[vAGSN['NAME']=='LR']
-        >>> xm.dataFrames['schnitt']=schnitt
-        >>> print(xm._getvXXXXAsOneString(vXXXX='schnitt',filterColList=['OBJTYPE','NAME_i','NAME_k','IptIdx','nextNODE','x','PH','Q'],index=True))
-            OBJTYPE NAME_i NAME_k IptIdx nextNODE         x       PH        Q
-        79     VENT     GL     G1      S       G1       0.0       40   118258
-        80     VENT     GL     G1      E       G1       0.0   39.974   118258
-        81     ROHR     G1    GKS      S      GKS       0.0   39.974  3077.76
-        82     ROHR     G1    GKS      0      GKS    5000.0  39.4534  3121.58
-        83     ROHR     G1    GKS      1      GKS   10000.0  38.9255  3166.33
-        84     ROHR     G1    GKS      2      GKS   15000.0  38.3903  3212.93
-        85     ROHR     G1    GKS      3      GKS   20000.0  37.8474  3261.53
-        86     ROHR     G1    GKS      4      GKS   25000.0  37.2964  3312.25
-        87     ROHR     G1    GKS      5      GKS   30000.0   36.737  3365.27
-        88     ROHR     G1    GKS      6      GKS   35000.0  36.1689  3420.76
-        89     ROHR     G1    GKS      7      GKS   40000.0  35.5915  3478.92
-        90     ROHR     G1    GKS      8      GKS   45000.0  35.0044  3539.98
-        91     ROHR     G1    GKS      9      GKS   50000.0  34.4071  3604.17
-        92     ROHR     G1    GKS     10      GKS   55000.0  33.7991  3671.79
-        93     ROHR     G1    GKS     11      GKS   60000.0  33.1799  3743.15
-        94     ROHR     G1    GKS     12      GKS   65000.0  32.5486   3818.6
-        95     ROHR     G1    GKS     13      GKS   70000.0  31.9048  3898.56
-        96     ROHR     G1    GKS     14      GKS   75000.0  31.2475  3983.48
-        97     ROHR     G1    GKS     15      GKS   80000.0  30.5759  4073.92
-        98     ROHR     G1    GKS     16      GKS   85000.0  29.8891  4170.49
-        99     ROHR     G1    GKS     17      GKS   90000.0  29.1859  4273.93
-        100    ROHR     G1    GKS     18      GKS   95000.0  28.4653  4385.08
-        101    ROHR     G1    GKS     19      GKS  100000.0  27.7258  4504.95
-        102    ROHR     G1    GKS     20      GKS  105000.0  26.9659  4634.77
-        103    ROHR     G1    GKS     21      GKS  110000.0  26.1838  4775.97
-        104    ROHR     G1    GKS     22      GKS  115000.0  25.3776  4930.35
-        105    ROHR     G1    GKS     23      GKS  120000.0  24.5449  5100.07
-        106    ROHR     G1    GKS     24      GKS  125000.0  23.6829  5287.87
-        107    ROHR     G1    GKS     25      GKS  130000.0  22.7884  5497.22
-        108    ROHR     G1    GKS     26      GKS  135000.0  21.8575  5732.59
-        109    ROHR     G1    GKS     27      GKS  140000.0  20.8855  5999.85
-        110    ROHR     G1    GKS     28      GKS  145000.0  19.8664  6306.97
-        111    ROHR     G1    GKS     29      GKS  150000.0  18.7928  6664.96
-        112    ROHR     G1    GKS     30      GKS  155000.0  17.6551  7089.65
-        113    ROHR     G1    GKS      E      GKS  160000.0  16.4405  7604.78
-        114    VENT    GKS    GKD      S      GKD  160000.0  16.4404   118258
-        115    VENT    GKS    GKD      E      GKD  160000.0  16.3758   118258
-        116    ROHR    GKD     G3      S       G3  160000.0  16.3758  7652.47
-        117    ROHR    GKD     G3      0       G3  165000.0  15.0583  8353.21
-        118    ROHR    GKD     G3      E       G3  170000.0  13.6122  9214.63
-        119    ROHR     G4     G3      S       G4  170000.0  13.6122  9242.19
-        120    ROHR     G4     G3      0       G4  175000.0  11.9873  10534.3
-        121    ROHR     G4     G3      E       G4  180000.0  10.1062  12394.4
-        122    VENT     GR     G4      S       GR  180000.0  10.1062   118258
-        123    VENT     GR     G4      E       GR  180000.0       10   118258
+        >>> schnitt=schnitt.copy()       
+        >>> schnitt.loc[:,'PH'] = schnitt['PH'].astype(float).values
+        >>> schnitt.loc[:,'Q'] = schnitt['Q'].astype(float).values
+        >>> xm.dataFrames['schnitt']=schnitt       
+        >>> print(xm._getvXXXXAsOneString(vXXXX='schnitt',filterColList=['OBJTYPE','NAME_i','NAME_k','IptIdx','nextNODE','x','PH','Q'],roundDct={'PH':1,'Q':1},index=True))
+            OBJTYPE NAME_i NAME_k IptIdx nextNODE         x    PH         Q
+        79     VENT     GL     G1      S       G1       0.0  40.0  118257.5
+        80     VENT     GL     G1      E       G1       0.0  40.0  118257.5
+        81     ROHR     G1    GKS      S      GKS       0.0  40.0    3077.8
+        82     ROHR     G1    GKS      0      GKS    5000.0  39.5    3121.6
+        83     ROHR     G1    GKS      1      GKS   10000.0  38.9    3166.3
+        84     ROHR     G1    GKS      2      GKS   15000.0  38.4    3212.9
+        85     ROHR     G1    GKS      3      GKS   20000.0  37.8    3261.5
+        86     ROHR     G1    GKS      4      GKS   25000.0  37.3    3312.3
+        87     ROHR     G1    GKS      5      GKS   30000.0  36.7    3365.3
+        88     ROHR     G1    GKS      6      GKS   35000.0  36.2    3420.8
+        89     ROHR     G1    GKS      7      GKS   40000.0  35.6    3478.9
+        90     ROHR     G1    GKS      8      GKS   45000.0  35.0    3540.0
+        91     ROHR     G1    GKS      9      GKS   50000.0  34.4    3604.2
+        92     ROHR     G1    GKS     10      GKS   55000.0  33.8    3671.8
+        93     ROHR     G1    GKS     11      GKS   60000.0  33.2    3743.2
+        94     ROHR     G1    GKS     12      GKS   65000.0  32.5    3818.6
+        95     ROHR     G1    GKS     13      GKS   70000.0  31.9    3898.6
+        96     ROHR     G1    GKS     14      GKS   75000.0  31.2    3983.5
+        97     ROHR     G1    GKS     15      GKS   80000.0  30.6    4073.9
+        98     ROHR     G1    GKS     16      GKS   85000.0  29.9    4170.5
+        99     ROHR     G1    GKS     17      GKS   90000.0  29.2    4273.9
+        100    ROHR     G1    GKS     18      GKS   95000.0  28.5    4385.1
+        101    ROHR     G1    GKS     19      GKS  100000.0  27.7    4505.0
+        102    ROHR     G1    GKS     20      GKS  105000.0  27.0    4634.8
+        103    ROHR     G1    GKS     21      GKS  110000.0  26.2    4776.0
+        104    ROHR     G1    GKS     22      GKS  115000.0  25.4    4930.3
+        105    ROHR     G1    GKS     23      GKS  120000.0  24.5    5100.1
+        106    ROHR     G1    GKS     24      GKS  125000.0  23.7    5287.9
+        107    ROHR     G1    GKS     25      GKS  130000.0  22.8    5497.2
+        108    ROHR     G1    GKS     26      GKS  135000.0  21.9    5732.6
+        109    ROHR     G1    GKS     27      GKS  140000.0  20.9    5999.9
+        110    ROHR     G1    GKS     28      GKS  145000.0  19.9    6307.0
+        111    ROHR     G1    GKS     29      GKS  150000.0  18.8    6665.0
+        112    ROHR     G1    GKS     30      GKS  155000.0  17.7    7089.7
+        113    ROHR     G1    GKS      E      GKS  160000.0  16.4    7604.8
+        114    VENT    GKS    GKD      S      GKD  160000.0  16.4  118257.5
+        115    VENT    GKS    GKD      E      GKD  160000.0  16.4  118257.5
+        116    ROHR    GKD     G3      S       G3  160000.0  16.4    7652.5
+        117    ROHR    GKD     G3      0       G3  165000.0  15.1    8353.3
+        118    ROHR    GKD     G3      E       G3  170000.0  13.6    9214.7
+        119    ROHR     G4     G3      S       G4  170000.0  13.6    9242.2
+        120    ROHR     G4     G3      0       G4  175000.0  12.0   10534.3
+        121    ROHR     G4     G3      E       G4  180000.0  10.1   12394.5
+        122    VENT     GR     G4      S       GR  180000.0  10.1  118257.5
+        123    VENT     GR     G4      E       GR  180000.0  10.0  118257.5
         """
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)

@@ -8,6 +8,8 @@ import pandas as pd
 
 import re
 
+__version__='90.12.0.2.dev1'
+
 try:              
     
     # -------------------------------------- 
