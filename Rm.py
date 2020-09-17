@@ -1,4 +1,6 @@
 """
+"""
+"""
 >>> # ---
 >>> # SETUP
 >>> # ---
@@ -113,7 +115,7 @@ True
 ...    os.remove(plotFileName)
 """
 
-__version__='90.12.0.3.dev1'
+__version__='90.12.0.4.dev1'
 
 import warnings # 3.6
 #...\Anaconda3\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
@@ -882,6 +884,8 @@ def pltNetPipes(pDf,**kwds):
                 * pAttribute: column in pDf (default: 'Attribute')                                                       
                 * pAttributeLs (default: '-')
                 * pAttributeSizeFactor: plot linewidth in pts = pAttributeSizeFactor (default: 1.0) * Attribute       
+                * pAttributeSizeMin (default: None): if set: use pAttributeSizeMin-Value as Attribute for LineSize if Attribute < pAttributeSizeMin
+
                 * pAttributeColorMap (default: plt.cm.binary)    
                 * pAttributeColorMapUsageStart (default: 1./3; Wertebereich: [0,1])   
                      
@@ -892,7 +896,9 @@ def pltNetPipes(pDf,**kwds):
             PIPE-Marker:
                 * pMeasure: column in pDf  (default: 'Measure')                                  
                 * pMeasureMarker (default: '.')
-                * pMeasureSizeFactor: plot markersize in pts = pMeasureSizeFactor (default: 1.0) * Measure       
+                * pMeasureSizeFactor: plot markersize in pts = pMeasureSizeFactor (default: 1.0) * Measure     
+                * pMeasureSizeMin (default: None): if set: use pMeasureSizeMin-Value as Measure for MarkerSize if Measure < pMeasureSizeMin
+
                 * pMeasureColorMap (default: plt.cm.cool) 
                 * pMeasureColorMapUsageStart (default: 0.; Wertebereich: [0,1])        
 
@@ -915,7 +921,11 @@ def pltNetPipes(pDf,**kwds):
             if 'pAttribute' not in keys:
                 kwds['pAttribute']='Attribute'
             if 'pAttributeSizeFactor' not in keys:
-                kwds['pAttributeSizeFactor']=1.           
+                kwds['pAttributeSizeFactor']=1.      
+                
+            if 'pAttributeSizeMin' not in keys:
+                kwds['pAttributeSizeMin']=None     
+
             if 'pAttributeLs' not in keys:
                 kwds['pAttributeLs']='-'           
             if 'pAttributeColorMap' not in keys:
@@ -928,6 +938,10 @@ def pltNetPipes(pDf,**kwds):
                 kwds['pMeasure']='Measure'
             if 'pMeasureSizeFactor' not in keys:
                 kwds['pMeasureSizeFactor']=1.
+
+            if 'pMeasureSizeMin' not in keys:
+                kwds['pMeasureSizeMin']=None  
+
             if 'pMeasureMarker' not in keys:
                 kwds['pMeasureMarker']='.'
             if 'pMeasureColorMap' not in keys:
@@ -979,16 +993,26 @@ def pltNetPipes(pDf,**kwds):
             else:
                 colorMarker=usageMarkerColor
 
+            linewidth=kwds['pAttributeSizeFactor']*vLine 
+            if kwds['pAttributeSizeMin'] != None:
+               if vLine <  kwds['pAttributeSizeMin']:
+                    linewidth=kwds['pAttributeSizeFactor']*kwds['pAttributeSizeMin']     
+                    
+            mSize=kwds['pMeasureSizeFactor']*vMarker
+            if kwds['pMeasureSizeMin'] != None:
+               if vMarker <  kwds['pMeasureSizeMin']:
+                    mSize=kwds['pMeasureSizeFactor']*kwds['pMeasureSizeMin']  
+
             pcLines=ax.plot(xs,ys
                             ,color=colorLine
-                            ,linewidth=kwds['pAttributeSizeFactor']*vLine 
+                            ,linewidth=linewidth
                             ,ls=kwds['pAttributeLs']
                             ,marker=kwds['pMeasureMarker']
                             ,mfc=colorMarker 
                             ,mec=colorMarker  
                             ,mfcalt=colorMarker  
                             ,mew=0
-                            ,ms=kwds['pMeasureSizeFactor']*vMarker                                                    
+                            ,ms=mSize #kwds['pMeasureSizeFactor']*vMarker                                                    
                             ,markevery=[0,len(xs)-1]
                             ,aa=True
                             ,clip_on=kwds['pClip']
@@ -1185,7 +1209,7 @@ def pltNetLegendColorbar3Classes(pDf,**kwds):
                 * CBLe3cMidVPad (default: .5)                                                                         
                 * CBLe3cBotVPad (default: 0-1*1/4)
                 
-                    * 1 is the height of the Colorbar                                                                   
+                    * "1" is the height of the Colorbar                                                                   
                     * the VPads (the vertical Sy-Positions) are defined in cax.transAxes Coordinates    
                     * cax is the Colorbar Axes               
 
@@ -3260,7 +3284,7 @@ class Rm():
                         * W0LFK>0:
                             * um zu vermeiden, dass versucht wird, FWVB mit der Soll-Leistung 0 zu zeichnen (pFWVBAttribute default is 'W0LFK')              
 
-            FWVB Attribute (Size, z-Order)
+            FWVB Attribute (Size, z-Order) - from vFWVB
                 * pFWVBAttribute: columnName (default: 'W0LFK') 
 
                     * the column must be able to be converted to a float
@@ -3283,7 +3307,7 @@ class Rm():
                * default: all FWVB are plotted 
                * note that Attribute >0 is a precondition 
 
-            FWVB Measure (Color)
+            FWVB Measure (Color) - from mx
                 * pFWVBMeasure (default: 'FWVB~*~*~*~W') 
 
                     * float() must be possible                
@@ -3344,7 +3368,7 @@ class Rm():
                 * CBLe3cMidVPad (default: .5)                                                                         
                 * CBLe3cBotVPad (default: 0-1*1/4)
                 
-                    * 1 is the height of the Colorbar                                                                   
+                    * "1" is the height of the Colorbar                                                                   
                     * the VPads (the vertical Sy-Positions) are defined in cax.transAxes Coordinates    
                     * cax is the Colorbar Axes               
 
@@ -3353,7 +3377,7 @@ class Rm():
 
             ROHR
                * pROHRFilterFunction: Filterfunction to be applied to PIPEs to determine the PIPEs to be plotted
-                    * default: lambda df: (df.KVR.astype(int).isin([2])) & (df.CONT_ID.astype(int).isin([1001])) & (df.DI>0)
+                    * default: lambda df: (df.KVR.astype(int).isin([2])) & (df.CONT_ID.astype(int).isin([1001])) & (df.DI.astype(float)>0)
                         * KVRisIn: [2]
                             * 1: supply-line
                             * 2: return-line                                       
@@ -3362,7 +3386,7 @@ class Rm():
                         * DI>0:
                             * um zu vermeiden, dass versucht wird, Rohre mit dem Innendurchmesser 0 zu zeichnen (pROHRAttribute default is 'DI')              
 
-            ROHR (PIPE-Line: Size and Color, z-Order)   
+            ROHR (PIPE-Line: Size and Color, z-Order) - from vROHR  
                 * pROHRAttribute: columnName (default: 'DI')
                     * the column must be able to be converted to a float
                     * the conversion is done before FilterFunction 
@@ -3376,7 +3400,8 @@ class Rm():
                 * pROHRAttributeAsc: z-Order (default: False d.h. "kleine auf grosse")                                               
 
                 * pROHRAttributeLs (default: '-')
-                * pROHRAttributeRefSize: plot linewidth in pts for RefSizeValue (default: 1.0)      
+                * pROHRAttributeRefSize: plot linewidth in pts for RefSizeValue (default: 1.0)    
+                * pROHRAttributeSizeMin (default: None): if set: use pROHRAttributeSizeMin-Value as Attribute for LineSize if Attribute < pROHRAttributeSizeMin
 
                     * corresponding RefSizeValue is Attribute.std() or Attribute.mean() if Attribute.std() is < 1
 
@@ -3393,12 +3418,14 @@ class Rm():
                * default: only the largest 25% are plotted 
                * note that Attribute >0 is a precondition 
 
-            ROHR (PIPE-Marker: Size and Color)
+            ROHR (PIPE-Marker: Size and Color) - from mx
                 * pROHRMeasure columnName (default: 'ROHR~*~*~*~QMAV') 
                 * pROHRMeasureApplyFunction: Function to be applied to column pROHRMeasure (default: lambda x: math.fabs(x))  
                 
                 * pROHRMeasureMarker (default: '.')
                 * pROHRMeasureRefSize: plot markersize for RefSizeValue in pts (default: 1.0)
+
+                * pROHRMeasureSizeMin (default: None): if set: use pROHRMeasureSizeMin-Value as Measure for MarkerSize if Measure < pROHRMeasureSizeMin
                     
                         * corresponding RefSizeValue is Measure.std() or Measure.mean() if Measure.std() is < 1                        
                         * if pROHRMeasureRefSize is None: plot markersize will be plot linewidth
@@ -3529,10 +3556,10 @@ class Rm():
                          ,'pROHRFilterFunction'                        
                          ,'pROHRAttribute'
                          ,'pROHRAttributeApplyFunction','pROHRAttributeApplyFunctionNaNValue'
-                         ,'pROHRAttributeAsc', 'pROHRAttributeColorMap', 'pROHRAttributeColorMapUsageStart', 'pROHRAttributeLs', 'pROHRAttributeRefSize'
+                         ,'pROHRAttributeAsc', 'pROHRAttributeColorMap', 'pROHRAttributeColorMapUsageStart', 'pROHRAttributeLs', 'pROHRAttributeRefSize','pROHRAttributeSizeMin'
                          
                          ,'pROHRMeasure','pROHRMeasureApplyFunction'
-                         ,'pROHRMeasureColorMap', 'pROHRMeasureColorMapUsageStart', 'pROHRMeasureMarker', 'pROHRMeasureRefSize'
+                         ,'pROHRMeasureColorMap', 'pROHRMeasureColorMapUsageStart', 'pROHRMeasureMarker', 'pROHRMeasureRefSize','pROHRMeasureSizeMin'
 
                          ,'pVICsDf','pVICsPercFmt','pVICsFmt','pVICsXStart', 'pVICsYStart'
                          ,'pltTitle'
@@ -3668,7 +3695,7 @@ class Rm():
 
             # ROHR             
             if 'pROHRFilterFunction' not in keys:
-                kwds['pROHRFilterFunction']=lambda df: (df.KVR.astype(int).isin([2])) & (df.CONT_ID.astype(int).isin([1001])) & (df.DI>0)
+                kwds['pROHRFilterFunction']=lambda df: (df.KVR.astype(int).isin([2])) & (df.CONT_ID.astype(int).isin([1001])) & (df.DI.astype(float)>0)
 
             # pROHR (PIPE-Line: Size and Color)
             if 'pROHRAttribute' not in keys:
@@ -3685,6 +3712,10 @@ class Rm():
                 kwds['pROHRAttributeLs']='-'
             if 'pROHRAttributeRefSize' not in keys:
                 kwds['pROHRAttributeRefSize']=1.
+            
+            if 'pROHRAttributeSizeMin' not in keys:
+                kwds['pROHRAttributeSizeMin']=None
+
             if 'pROHRAttributeColorMap' not in keys:
                 kwds['pROHRAttributeColorMap']=plt.cm.binary
             if 'pROHRAttributeColorMapUsageStart' not in keys:
@@ -3705,6 +3736,10 @@ class Rm():
                 kwds['pROHRMeasureMarker']='.'
             if 'pROHRMeasureRefSize' not in keys:
                 kwds['pROHRMeasureRefSize']=1.0
+
+            if 'pROHRMeasureSizeMin' not in keys:
+                kwds['pROHRMeasureSizeMin']=None
+
             if 'pROHRMeasureColorMap' not in keys:
                 kwds['pROHRMeasureColorMap']=plt.cm.cool
             if 'pROHRMeasureColorMapUsageStart' not in keys:
@@ -4039,11 +4074,13 @@ class Rm():
 
                ,pAttributeColorMap=kwds['pROHRAttributeColorMap'] 
                ,pAttributeColorMapUsageStart=kwds['pROHRAttributeColorMapUsageStart'] 
-               ,pAttributeSizeFactor=pROHRAttributeSizeFactor            
+               ,pAttributeSizeFactor=pROHRAttributeSizeFactor   
+               ,pAttributeSizeMin=kwds['pROHRAttributeSizeMin'] 
 
                ,pMeasureColorMap=kwds['pROHRMeasureColorMap'] 
                ,pMeasureColorMapUsageStart=kwds['pROHRMeasureColorMapUsageStart']             
                ,pMeasureSizeFactor=pROHRMeasureSizeFactor     
+               ,pMeasureSizeMin=kwds['pROHRMeasureSizeMin'] 
             )
 
             # ============================================================
@@ -4110,7 +4147,7 @@ class Rm():
             Result="E: {:s}".format(mx1File)   
             Times="TRef: {!s:s} T: {!s:s}".format(kwds['timeDeltaToRef'],kwds['timeDeltaToT']).replace('days','Tage')       
             pltNetLegendTitleblock(
-               text=Projekt+'\n'+Planer+'\n'+Inst+'\n'+Model+'\n'+Result+'\n'+Times 
+               text=str(Projekt)+'\n'+str(Planer)+'\n'+str(Inst)+'\n'+str(Model)+'\n'+str(Result)+'\n'+str(Times) 
               ,anchorVertical=TBAV                    
             )
                    
