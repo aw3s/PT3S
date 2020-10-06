@@ -167,6 +167,7 @@ True
 >>> logger.debug("{0:s}: 1st Read MXS Zip with overlapping Timestamps (for testing ensuring uniqueness)".format('DOCTEST')) 
 >>> mx.setResultsToMxsZipFile() # looks for M-1-0-1.ZIP in same Dir 
 4
+>>> logger.debug("{0:s}: Marker 170".format('DOCTEST')) 
 >>> newShape=mx.df.shape
 >>> newShape==oldShape
 True
