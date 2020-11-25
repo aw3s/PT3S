@@ -21,6 +21,7 @@ import re
 import struct
 import collections
 import zipfile
+import py7zr
 import pandas as pd
 import h5py
 
@@ -87,12 +88,18 @@ class AppLog():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
 
 
-    def addAZipFile(self,zipFile=None):
+    def addAZip7File(self,zip7File=None,tmpDir=None):
         """
-        add zipFile (add all logFiles in zipFile)
+        add zip7File (add all logFiles from zip7File)
 
         Args:
-            zipFile: zipFile which logFiles to be added
+            zip7File: zip7File which logFiles to be added
+            tmpDir: 
+                dir in which the logFiles are temporarily extracted
+                default: os.path.dirname(zipFile)
+                Verz. und Dateien die nicht existierten werden wieder geloescht
+                Verz. die existierten werden benutzt und am Ende nicht geloescht
+                Dateien die existierten werden ueberschrieben und am Ende nicht geloescht
         """ 
 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -100,35 +107,79 @@ class AppLog():
 
         try: 
           
-            # Zip existence ... 
-            logger.debug("{0:s}Zip: {1:s} ...".format(logStr,zipFile))                               
-            with open(zipFile,'rb') as f:   
-                pass     
+            # Zip7 existence ...                                     
+            with py7zr.SevenZipFile(zip7File, 'r') as zip7FileObj:
+                pass
+                
+            if tmpDir == None:                
+                tmpDir=os.path.dirname(zip7File)
 
-            # Zip opening ...
-            logger.debug("{0:s}Zip: {1:s} opening ...".format(logStr,zipFile)) 
-            try:
-                z = zipfile.ZipFile(zipFile,'r')
-            except:
-                logStrFinal="{0:s}{1:s}: opening the Zip failed. Error.".format(logStr,zipFile)
-                logger.error(logStrFinal) 
-                raise LxError(logStrFinal)   
-          
-            # Zip reading ...                         
-            for zipFileName in sorted(z.namelist()):  
-                # reading ...                        
-                with z.open(zipFileName,'r') as f: 
-                    logger.debug("{0:s}Zip: {1:s}: {2:s} reading ...".format(logStr,zipFile,zipFileName))       
+            with py7zr.SevenZipFile(zip7File, 'r') as zip7FileObj:                
+                allLogFiles = zip7FileObj.getnames()
+
+                logger.debug("{0:s}Zip: {1:s} NumOf7Zip's getnames(): {2:d} ...".format(logStr,zip7File,len(allLogFiles)))  
+
+                extDirLstTBDeleted=[]
+                extDirLstExistingLogged=[]
+
+                for idx,logFileNameInZip in enumerate(allLogFiles):
+
+                    # die Datei die 7Zip bei extract erzeugen wird
+                    logFile=os.path.join(tmpDir,logFileNameInZip)
+                    (logFileHead, logFileTail)=os.path.split(logFile)
+
+                    # das Extract-Verzeichnis dieser Datei
+                    extDir=os.path.dirname(logFile)
+                    (extDirHead, extDirTail)=os.path.split(extDir)
+                    if os.path.exists(extDir) and extDir not in extDirLstExistingLogged:
+                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert bereits.".format(logStr,idx,extDirTail))  
+                        extDirLstExistingLogged.append(extDir)
+                    elif not os.path.exists(extDir):
+                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert noch nicht.".format(logStr,idx,extDirTail))                      
+                        extDirLstTBDeleted.append(extDir)
                    
- 
+                    if os.path.exists(logFile):
+                        isFile = os.path.isfile(logFile)
+                        if isFile:
+                            logger.debug("{0:s}idx: {1:d} Log: {2:s} existiert bereits. Wird ueberschrieben werden.".format(logStr,idx,logFileTail))  
+                            logFileTBDeleted=False
+                        else:
+                            logFileTBDeleted=False
+                    else:
+                        logger.debug("{0:s}idx: {1:d} Log: {2:s} existiert noch nicht.".format(logStr,idx,logFileTail))                      
+                        logFileTBDeleted=True
+                  
+                    zip7FileObj.extract(path=tmpDir,targets=logFileNameInZip)
+                    
+                    if os.path.exists(logFile):
+                        pass                       
+                    else:
+                        logger.warning("{0:s}idx: {1:d} Log: {2:s} NOT extracted?! Continue with next Name in 7Zip.".format(logStr,idx,logFileTail))  
+                        continue
 
-               
+                    # ...
+                    if os.path.isfile(logFile):
+                        pass
+                        self.addALogFile(logFile=logFile)
+                    # ...
+
+                    if os.path.exists(logFile) and logFileTBDeleted:
+                        if os.path.isfile(logFile):
+                            os.remove(logFile)
+                            logger.debug("{0:s}idx: {1:d} Log: {2:s} wieder geloescht.".format(logStr,idx,logFileTail))                                
+
+            for dirName in extDirLstTBDeleted:
+                if os.path.exists(dirName):
+                    #os.rmdir(dirName)
+                    pass
+                    #logger.debug("{0:s}Zip: {1:s}: Log: {2:s} extDir: {3:s} existierte nicht und wurde wieder geloescht.".format(logStr,zip7File,logFile,extDir))     
+                                                                                                
         except LxError:
             raise
         except Exception as e:
-            logStrFinal="{:s}zipFile: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,zipFile,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logStrFinal="{:s}zip7File: {:s}: Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,zip7File,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise MxError(logStrFinal)                                  
+            raise LxError(logStrFinal)                                  
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                  
 
@@ -208,6 +259,77 @@ class AppLog():
             return df
 
 
+    def ToH5(self,h5File=None):
+        """
+        write h5File
+
+        Args:
+            h5File: h5File to be written; existing h5File will be deleted
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:                         
+             if h5File==None:
+                 h5File="Log von {0:s} bis {1:s}.h5".format(str(self.df['ScenTime'].min())
+                            ,str(self.df['ScenTime'].max())
+                            ).replace(':',' ').replace('-',' ')
+
+             if os.path.exists(h5File):                        
+                logger.debug("{0:s}Delete {1:s} ...".format(logStr,h5File))     
+                os.remove(h5File)
+
+             with pd.HDFStore(h5File) as h5Store:                 
+                try:
+                    h5Store.put('df',self.df)
+                except Exception as e:
+                    logger.error("{0:s}: Writing DataFrame df with h5Key=df to {1:s} FAILED!".format(logStr,h5File))    
+                    raise e
+             logger.debug("{0:s}: Writing DataFrame df with h5Key=df to {1:s} done.".format(logStr,h5File))    
+                   
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+
+    def FromH5(self,h5File=None):
+        """
+        read h5File
+
+        Args:
+            h5File: h5File to be read; existing df will be replaced 
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:                         
+             if h5File==None:
+                 h5File="Log von {0:s} bis {1:s}.h5".format(str(self.df['ScenTime'].min())
+                            ,str(self.df['ScenTime'].max())
+                            ).replace(':',' ').replace('-',' ')
+
+             if not os.path.exists(h5File):                        
+                logger.warning("{0:s}File {1:s} not existing.".format(logStr,h5File))     
+             else:
+                 with pd.HDFStore(h5File) as h5Store:   
+                    try:                                        
+                        df=h5Store['df']                                                    
+                        self.df=df
+                    except Exception as e:
+                        logger.error("{0:s}: Reading DataFrame df with h5Key=df from {1:s} FAILED!".format(logStr,h5File))    
+                        raise e
+                 logger.debug("{0:s}: Reading DataFrame df with h5Key=df from {1:s} done.".format(logStr,h5File))    
+                   
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
 
     
     #def __convertColumnData(self):
