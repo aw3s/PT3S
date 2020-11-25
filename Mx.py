@@ -832,6 +832,7 @@ class Mx():
             #Determine corresponding .h5 Filename(s)
             self.h5File=wD+os.path.sep+base+'.'+'h5'    # mx1Df, mx2Df, df (non Vectordata only)
             self.h5FileVecs=wD+os.path.sep+base+dotResolution+'.'+'vec'+'.'+'h5' # (Vectordata)     
+            #self.h5FileVecs=self.h5FileVecs.replace('ö','oe')
             self.h5FileMx1FmtString=self.h5File+'.metadata'
                         
             #Determine corresponding .MXS Filename
