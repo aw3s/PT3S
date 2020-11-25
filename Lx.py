@@ -124,45 +124,55 @@ class AppLog():
 
                 for idx,logFileNameInZip in enumerate(allLogFiles):
 
+                    logger.debug("{0:s}idx: {1:d} item: {2:s} ...".format(logStr,idx,logFileNameInZip))   
+
                     # die Datei die 7Zip bei extract erzeugen wird
                     logFile=os.path.join(tmpDir,logFileNameInZip)
                     (logFileHead, logFileTail)=os.path.split(logFile)
 
-                    # das Extract-Verzeichnis dieser Datei
-                    extDir=os.path.dirname(logFile)
-                    (extDirHead, extDirTail)=os.path.split(extDir)
-                    if os.path.exists(extDir) and extDir not in extDirLstExistingLogged:
-                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert bereits.".format(logStr,idx,extDirTail))  
-                        extDirLstExistingLogged.append(extDir)
-                    elif not os.path.exists(extDir):
-                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert noch nicht.".format(logStr,idx,extDirTail))                      
-                        extDirLstTBDeleted.append(extDir)
-                   
+                    # evtl. bezeichnet logFileNameInZip keine Datei sondern ein Verzeichnis
+                    (name, ext)=os.path.splitext(logFileNameInZip)
+                    if ext == '':
+                        # Verzeichnis!                        
+                        extDir=os.path.join(tmpDir,logFileNameInZip)                       
+                        (extDirHead, extDirTail)=os.path.split(extDir)
+                        if os.path.exists(extDir) and extDir not in extDirLstExistingLogged:
+                            logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert bereits.".format(logStr,idx,extDirTail))  
+                            extDirLstExistingLogged.append(extDir)
+                        elif not os.path.exists(extDir):
+                            logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert noch nicht.".format(logStr,idx,extDirTail))                      
+                            extDirLstTBDeleted.append(extDir)
+                        # kein Logfile zu prozessieren ...
+                        continue
+
+                    # logFileNameInZip bezeichnet eine Datei       
                     if os.path.exists(logFile):
                         isFile = os.path.isfile(logFile)
                         if isFile:
-                            logger.debug("{0:s}idx: {1:d} Log: {2:s} existiert bereits. Wird ueberschrieben werden.".format(logStr,idx,logFileTail))  
+                            logger.debug("{0:s}idx: {1:d} Log: {2:s} existiert bereits. Wird durch Extrakt ueberschrieben werden.".format(logStr,idx,logFileTail))  
                             logFileTBDeleted=False
                         else:
                             logFileTBDeleted=False
                     else:
-                        logger.debug("{0:s}idx: {1:d} Log: {2:s} existiert noch nicht.".format(logStr,idx,logFileTail))                      
+                        logger.debug("{0:s}idx: {1:d} Log: {2:s} existiert nicht. Wird extrahiert, dann prozessiert und dann wieder geloescht.".format(logStr,idx,logFileTail))                      
                         logFileTBDeleted=True
                   
+                    # extrahieren 
                     zip7FileObj.extract(path=tmpDir,targets=logFileNameInZip)
                     
                     if os.path.exists(logFile):
                         pass                       
                     else:
                         logger.warning("{0:s}idx: {1:d} Log: {2:s} NOT extracted?! Continue with next Name in 7Zip.".format(logStr,idx,logFileTail))  
+                        # nichts zu prozessieren ...
                         continue
 
                     # ...
-                    if os.path.isfile(logFile):
-                        pass
+                    if os.path.isfile(logFile):                        
                         self.addALogFile(logFile=logFile)
                     # ...
 
+                    # gleich wieder loeschen
                     if os.path.exists(logFile) and logFileTBDeleted:
                         if os.path.isfile(logFile):
                             os.remove(logFile)
@@ -170,9 +180,11 @@ class AppLog():
 
             for dirName in extDirLstTBDeleted:
                 if os.path.exists(dirName):
-                    #os.rmdir(dirName)
-                    pass
-                    #logger.debug("{0:s}Zip: {1:s}: Log: {2:s} extDir: {3:s} existierte nicht und wurde wieder geloescht.".format(logStr,zip7File,logFile,extDir))     
+                    if os.path.isdir(dirName):
+                        if not os.path.getsize(dirName):
+                            os.rmdir(dirName)    
+                            (dirNameHead, dirNameTail)=os.path.split(dirName)
+                            logger.debug("{0:s}dirName: {1:s} existierte nicht und wurde wieder geloescht.".format(logStr,dirNameTail))      
                                                                                                 
         except LxError:
             raise
