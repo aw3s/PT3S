@@ -38,27 +38,113 @@ class LxError(Exception):
 class AppLog():
     """
     SIR 3S App Log (SQC Log)
+
+    Maintains a H5-File with dfs.   
+    1 df per Logfile.
+
+    H5-File: 
+    "Log ab ... .h5".
+    Path: Path of Initialization-File.
+    Existing H5-File will be deleted.
+
+    H5-Keys are the Logfilenames without extension.
+    1 Key per Logfile.
+    
+    1 Key named "init" for Initialization-Logfile. 
+    The 'init'-Key Logfile is intended to represent the 1st Logfile after App Start. 
+
+    The 'Logfile'-Keys are intended represent all Logdata.
+    Therefore the 1st Logfile after App Start can and should be also available as 'Logfile'-Key.
+
+    Attributes:
+    * h5File
+
     """
-    def __init__(self,logFile=None):
+    def __init__(self,logFile=None,zip7File=None):
         """
-        (re-)initialize with logFile 
+        (re-)initialize with logFile or zip7File
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
-        try:            
-             self.df = self.__processALogFile(logFile=logFile)     
-             logger.debug("{0:s}{1:s} initialized.".format(logStr,logFile))     
-        except LxError:
-            raise            
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
+        try:        
+                 
+             if  logFile != None:
+                 pass
+                 self.__initLogFile(logFile)
+           
+
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise LxError(logStrFinal)               
-        finally:
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+             
+    def __initLogFile(self,logFile):
+        """
+        (re-)initialize with logFile
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:        
+                         
+             df = self.__processALogFile(logFile=logFile)    
+             (h5FileHead,logFileTail)=os.path.split(logFile)
+             
+             # H5-File
+             h5FileTail="Log ab {0:s}.h5".format(str(df['ScenTime'].min())).replace(':',' ').replace('-',' ')           
+             self.h5File=os.path.join(h5FileHead,h5FileTail)
+
+             # wenn H5 existiert wird es geloescht
+             if os.path.exists(self.h5File):                                         
+                os.remove(self.h5File)
+                logger.debug("{0:s}Existing H5-File {1:s} deleted.".format(logStr,h5FileTail))    
+
+             # init-Logfile schreiben
+             self.__toH5('init',df) 
+             logger.debug("{0:s}{1:s}: 'init'-Key Logfile done.".format(logStr,logFileTail))    
+
          
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+
+         
+
+    def __toH5(self,key,df):
+        """
+        write df with key to H5-File
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:   
+            
+             (h5FileHead,h5FileTail)=os.path.split(self.h5File)
+
+             with pd.HDFStore(self.h5File) as h5Store:                 
+                try:
+                    h5Store.put(key,df)
+                except Exception as e:
+                    logger.error("{0:s}Writing df with h5Key={1:s} to {2:s} FAILED!".format(logStr,key,h5FileTail))    
+                    raise e
+             logger.debug("{0:s}Writing df with h5Key={1:s} to {2:s} done.".format(logStr,key,h5FileTail))    
+                   
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+
     def addALogFile(self,logFile=None):
         """
         add logFile
@@ -121,6 +207,7 @@ class AppLog():
 
                 extDirLstTBDeleted=[]
                 extDirLstExistingLogged=[]
+                dfLst=[]
 
                 for idx,logFileNameInZip in enumerate(allLogFiles):
 
@@ -169,7 +256,15 @@ class AppLog():
 
                     # ...
                     if os.path.isfile(logFile):                        
-                        self.addALogFile(logFile=logFile)
+                        # self.addALogFile(logFile=logFile)
+
+                        df = self.__processALogFile(logFile=logFile) 
+                        if df is None:      
+                             logger.info("{0:s}LogFile {1:s} not added.".format(logStr,logFile))       
+                        else:
+                             #self.df=pd.concat([self.df,df])      
+                             dfLst.append(df)
+                             logger.debug("{0:s}LogFile {1:s} added in List.".format(logStr,logFile)) 
                     # ...
 
                     # gleich wieder loeschen
@@ -184,7 +279,9 @@ class AppLog():
                         if not os.path.getsize(dirName):
                             os.rmdir(dirName)    
                             (dirNameHead, dirNameTail)=os.path.split(dirName)
-                            logger.debug("{0:s}dirName: {1:s} existierte nicht und wurde wieder geloescht.".format(logStr,dirNameTail))      
+                            logger.debug("{0:s}dirName: {1:s} existierte nicht und wurde wieder geloescht.".format(logStr,dirNameTail))     
+                            
+            self.df=pd.concat([self.df]+[dfLst])      
                                                                                                 
         except LxError:
             raise
@@ -193,7 +290,8 @@ class AppLog():
             logger.error(logStrFinal) 
             raise LxError(logStrFinal)                                  
         finally:           
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                  
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                
+            
 
 
     def __processALogFile(self,logFile=None,delimiter='\t',restkey='+'):
@@ -211,8 +309,7 @@ class AppLog():
                     * Value         to float64
 
                 *  new:
-                    * ScenTime      ProcessTime der jeweils vorangegangenen LogZeile mit SubSystem=='LDS MCL'; Anfang: 1. LogZeile mit SubSystem=='LDS MCL' - 1000 ms
-                    * Logfile
+                    * ScenTime      ProcessTime der jeweils vorangegangenen LogZeile mit SubSystem=='LDS MCL'; Anfang: 1. LogZeile mit SubSystem=='LDS MCL' - 1000 ms                    
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -222,6 +319,8 @@ class AppLog():
         try: 
              with open(logFile,'r') as f: 
                 pass
+
+             (logFileHead,logFileTail)=os.path.split(logFile)
 
              with open(logFile,"r") as csvFile: # 1. Zeile enthaelt die Ueberschrift 
                 reader = csv.DictReader(csvFile,delimiter=delimiter,restkey=restkey) # erf. wenn eine Spalte selbst delimiter enthalten kann
@@ -254,11 +353,9 @@ class AppLog():
              df['ScenTime']=df['ScenTime'].fillna(method='ffill')
              firstScenTimeLoggedWithLdsMcl=df['ScenTime'].loc[~df['ScenTime'].isnull()].iloc[0]
              df['ScenTime']=df['ScenTime'].fillna(value=firstScenTimeLoggedWithLdsMcl-pd.Timedelta('1000 ms'))
+           
 
-             #Logfile
-             df['Logfile']=logFile
-
-             logger.debug("{0:s}{1:s} processed.".format(logStr,logFile))     
+             logger.debug("{0:s}{1:s} processed.".format(logStr,logFileTail))     
                           
         except LxError:
             raise            
