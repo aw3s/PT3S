@@ -62,7 +62,6 @@
 /make.bat
 /Makefile
 /testdata/TW-Netz.mdb
-*.log
 /testdata/WDTinyWDN/B1/V0/BZ1/M-1-0-1.vec.h5
 /UpgradeLog.htm
 /testdata/OneLPipe.mdb
@@ -116,3 +115,5 @@
 /testdata11/WDDHNetwork/B1/V0/BZ1/M-1-0-1.1.MXS
 /testDf
 /Lx.7z
+/testdata/WDDHNetwork/B1/V0/BZ1/M-1-0-1.log
+/Lx.log
