@@ -71,7 +71,7 @@ class AppLog():
         * Timeend
     * h5File
         * init
-        * df
+        * lookUpDf
         * Log...
     """
     def __init__(self,logFile=None,zip7File=None,h5File=None,delimiter='\t',parseRestvalues=False):
@@ -180,6 +180,7 @@ class AppLog():
     def __initWithH5File(self,h5File):
         """
         self.h5File=h5File
+        self.lookUpDf from H5-File
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -189,6 +190,8 @@ class AppLog():
              # H5 existiert 
              if os.path.exists(h5File):
                 self.h5File=h5File
+                with pd.HDFStore(self.h5File) as h5Store:
+                    self.lookUpDf=h5Store['lookUpDf']
              else:                                
                 logger.error("{0:s}H5-File {1:s} existiert nicht.".format(logStr,h5File))                
                     
@@ -402,6 +405,7 @@ class AppLog():
                         (name, ext)=os.path.splitext(logFileTail)
                         key='Log'+name
                         self.__toH5(key,df,updLookUpDf=True,logFile=logFileTail)
+                        self.__toH5('lookUpDf',self.lookUpDf)
                                 
                 for dirName in extDirLstTBDeleted:
                     if os.path.exists(dirName):
@@ -479,10 +483,7 @@ class AppLog():
                 *  converted:
                     * #LogTime      to datetime
                     * ProcessTime   to datetime
-                    * Value         to float64
-
-                *  new:
-                    * ScenTime      ProcessTime der jeweils vorangegangenen LogZeile mit SubSystem=='LDS MCL'; Anfang: 1. LogZeile mit SubSystem=='LDS MCL' - 1000 ms                    
+                    * Value         to float64              
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -558,59 +559,59 @@ class AppLog():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
             return df
 
-    def genExtDfs(self):
-        """
-        calculates slices and stores the result in H5
+    #def genExtDfs(self):
+    #    """
+    #    calculates slices and stores the result in H5
 
-        slices:
-        SubSystem:
-        * extDfMCL
-        * extDfOPC
-        * extDfLDS
-        """ 
+    #    slices:
+    #    SubSystem:
+    #    * extDfMCL
+    #    * extDfOPC
+    #    * extDfLDS
+    #    """ 
  
-        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    #    logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+    #    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
                 
-        try:               
-            extDfMCL=self.getDfByFilterFct(filter_fct=lambda row: True if re.search('MCL$',row['SubSystem']) != None else False)
-            extDfOPC=self.getDfByFilterFct(filter_fct=lambda row: True if re.search('^OPC',row['SubSystem']) != None else False)
-            extDfLDS=self.getDfByFilterFct(filter_fct=lambda row: True if row['SubSystem']=='LDS' else False)
+    #    try:               
+    #        extDfMCL=self.getDfByFilterFct(filter_fct=lambda row: True if re.search('MCL$',row['SubSystem']) != None else False)
+    #        extDfOPC=self.getDfByFilterFct(filter_fct=lambda row: True if re.search('^OPC',row['SubSystem']) != None else False)
+    #        extDfLDS=self.getDfByFilterFct(filter_fct=lambda row: True if row['SubSystem']=='LDS' else False)
 
-            self.__toH5('extDfMCL',extDfMCL)
-            self.__toH5('extDfOPC',extDfOPC)
-            self.__toH5('extDfLDS',extDfLDS)
+    #        self.__toH5('extDfMCL',extDfMCL)
+    #        self.__toH5('extDfOPC',extDfOPC)
+    #        self.__toH5('extDfLDS',extDfLDS)
             
-        except Exception as e:
-            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-            logger.error(logStrFinal) 
-            raise LxError(logStrFinal)                       
-        finally:           
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+    #    except Exception as e:
+    #        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+    #        logger.error(logStrFinal) 
+    #        raise LxError(logStrFinal)                       
+    #    finally:           
+    #        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
             
-    def getExtDfs(self,extDf):
-        """
-        returns a slice previously stored by genExtDfs in H5
+    #def getExtDfs(self,extDf):
+    #    """
+    #    returns a slice previously stored by genExtDfs in H5
 
-        slices:
-        see genExtDfs
-        """ 
+    #    slices:
+    #    see genExtDfs
+    #    """ 
  
-        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    #    logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+    #    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
                 
-        try:                           
-            with pd.HDFStore(self.h5File) as h5Store:                             
-                logger.debug("{0:s}Get h5Key: {1:s} ...".format(logStr,'/'+extDf)) 
-                df=h5Store['/'+extDf]
+    #    try:                           
+    #        with pd.HDFStore(self.h5File) as h5Store:                             
+    #            logger.debug("{0:s}Get h5Key: {1:s} ...".format(logStr,'/'+extDf)) 
+    #            df=h5Store['/'+extDf]
             
-        except Exception as e:
-            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-            logger.error(logStrFinal) 
-            raise LxError(logStrFinal)                       
-        finally:           
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
-            return df
+    #    except Exception as e:
+    #        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+    #        logger.error(logStrFinal) 
+    #        raise LxError(logStrFinal)                       
+    #    finally:           
+    #        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+    #        return df
 
     def get(self,filter_fct=None,filterAfter=True):
         """
