@@ -177,7 +177,7 @@ class AppLog():
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
 
-    def __initWithH5File(self,h5File):
+    def __initWithH5File(self,h5File,useRawHdfAPI=False):
         """
         self.h5File=h5File
         self.lookUpDf from H5-File
@@ -190,8 +190,11 @@ class AppLog():
              # H5 existiert 
              if os.path.exists(h5File):
                 self.h5File=h5File
-                with pd.HDFStore(self.h5File) as h5Store:
-                    self.lookUpDf=h5Store['lookUpDf']
+                if useRawHdfAPI:
+                    with pd.HDFStore(self.h5File) as h5Store:
+                        self.lookUpDf=h5Store['lookUpDf']
+                else:
+                    self.lookUpDf=pd.read_hdf(self.h5File, key='lookUpDf')                    
              else:                                
                 logger.error("{0:s}H5-File {1:s} existiert nicht.".format(logStr,h5File))                
                     
@@ -405,6 +408,7 @@ class AppLog():
                         (name, ext)=os.path.splitext(logFileTail)
                         key='Log'+name
                         self.__toH5(key,df,updLookUpDf=True,logFile=logFileTail)
+                        # danach gleich schreiben ...
                         self.__toH5('lookUpDf',self.lookUpDf)
                                 
                 for dirName in extDirLstTBDeleted:
@@ -422,7 +426,7 @@ class AppLog():
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
 
-    def __toH5(self,key,df,updLookUpDf=False,logFile=''):
+    def __toH5(self,key,df,useRawHdfAPI=False,updLookUpDf=False,logFile=''):
         """
         write df with key to H5-File
         """ 
@@ -434,12 +438,15 @@ class AppLog():
             
              (h5FileHead,h5FileTail)=os.path.split(self.h5File)
 
-             with pd.HDFStore(self.h5File) as h5Store:                 
-                try:
-                    h5Store.put(key,df)
-                except Exception as e:
-                    logger.error("{0:s}Writing df with h5Key={1:s} to {2:s} FAILED!".format(logStr,key,h5FileTail))    
-                    raise e
+             if useRawHdfAPI:
+                 with pd.HDFStore(self.h5File) as h5Store:                 
+                    try:
+                        h5Store.put(key,df)
+                    except Exception as e:
+                        logger.error("{0:s}Writing df with h5Key={1:s} to {2:s} FAILED!".format(logStr,key,h5FileTail))    
+                        raise e
+             else:
+                 df.to_hdf(self.h5File, key=key)
              logger.debug("{0:s}Writing df with h5Key={1:s} to {2:s} done.".format(logStr,key,h5FileTail))    
 
              if updLookUpDf:
@@ -613,7 +620,7 @@ class AppLog():
     #        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
     #        return df
 
-    def get(self,filter_fct=None,filterAfter=True):
+    def get(self,filter_fct=None,filterAfter=True,useRawHdfAPI=False):
         """
         returns df with filter_fct applied; filter_fct Example: lambda row: True if row['SubSystem']=='LDS MCL' else False        
         """ 
@@ -627,19 +634,32 @@ class AppLog():
         try:   
             dfLst=[]
             with pd.HDFStore(self.h5File) as h5Store:
-                h5Keys=sorted(h5Store.keys())                
-                h5Keys=[item for item in h5Keys if re.search('^Log', item.replace(h5KeySep,'')) != None]
-                logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
-                for h5Key in h5Keys:
-                    logger.debug("{0:s}Get df with h5Key: {1:s} ...".format(logStr,h5Key)) 
-                    df=h5Store[h5Key]
-                    if not filterAfter and filter_fct != None:
-                        logger.debug("{0:s}Apply Filter ...".format(logStr)) 
-                        df=pd.DataFrame(df[df.apply(filter_fct,axis=1)].values,columns=df.columns)                              
-                    #df['Logfile']=h5Key.replace('/','')
-                    #df['Logfile']=df['Logfile'].astype(str)
-                    #logger.debug("{0:s}Append h5Key: {1:s} ...".format(logStr,h5Key)) 
-                    dfLst.append(df)
+                    h5Keys=sorted(h5Store.keys())                
+                    h5Keys=[item for item in h5Keys if re.search('^Log', item.replace(h5KeySep,'')) != None]
+                    logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
+            if useRawHdfAPI:
+                with pd.HDFStore(self.h5File) as h5Store:
+                    h5Keys=sorted(h5Store.keys())                
+                    h5Keys=[item for item in h5Keys if re.search('^Log', item.replace(h5KeySep,'')) != None]
+                    logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
+                    for h5Key in h5Keys:
+                        logger.debug("{0:s}Get df with h5Key: {1:s} ...".format(logStr,h5Key)) 
+                        df=h5Store[h5Key]
+                        if not filterAfter and filter_fct != None:
+                            logger.debug("{0:s}Apply Filter ...".format(logStr)) 
+                            df=pd.DataFrame(df[df.apply(filter_fct,axis=1)].values,columns=df.columns)                              
+                        #df['Logfile']=h5Key.replace('/','')
+                        #df['Logfile']=df['Logfile'].astype(str)
+                        #logger.debug("{0:s}Append h5Key: {1:s} ...".format(logStr,h5Key)) 
+                        dfLst.append(df)
+            else:
+                    for h5Key in h5Keys:
+                        logger.debug("{0:s}Get df with h5Key: {1:s} ...".format(logStr,h5Key)) 
+                        df=pd.read_hdf(self.h5File, key=h5Key)
+                        if not filterAfter and filter_fct != None:
+                            logger.debug("{0:s}Apply Filter ...".format(logStr)) 
+                            df=pd.DataFrame(df[df.apply(filter_fct,axis=1)].values,columns=df.columns)    
+                        dfLst.append(df)                    
             logger.debug("{0:s}{1:s}".format(logStr,'Extraction finished. Concat ...')) 
             dfRet=pd.concat(dfLst)
             if filterAfter and filter_fct != None:
