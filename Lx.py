@@ -545,25 +545,35 @@ class AppLog():
              df.Value=df.Value.str.replace(',', '.')
              df.Value=pd.to_numeric(df.Value,errors='coerce') # NaN 
 
-             ##ScenTime
-             #df['ScenTime']=df.apply(lambda row: row['ProcessTime'] if row['SubSystem']=='LDS MCL' else None,axis=1)
-             #df['ScenTime']=df['ScenTime'].fillna(method='ffill')
-             #firstScenTimeLoggedWithLdsMcl=df['ScenTime'].loc[~df['ScenTime'].isnull()].iloc[0]
-             #df['ScenTime']=df['ScenTime'].fillna(value=firstScenTimeLoggedWithLdsMcl-pd.Timedelta('1000 ms'))
-
-             for col in ['LogLevel','SubSystem','Direction','ID','State','Remark']:
+             #Strings
+             #df['LogLevel'] = df.LogLevel.astype('category')
+             #df['SubSystem'] = df.SubSystem.astype('category')
+             #df['Direction'] = df.Direction.astype('category')
+             #df['ID'] = df.ID.astype('category')
+             for col in ['ID','Direction','SubSystem','LogLevel','State','Remark']: #['State','Remark']:
                 df[col]=df[col].astype(str)
-           
+
+             ##ScenTime             
+             p=re.compile('(^Starting cycle for )(?P<Time>[0-9,\-,\ ,\:,\.]+)') # Starting cycle for 2020-11-13 15:20:52.000        
+             f1=lambda row: p.search(row['Remark'])
+             df['ScenTimeTmp']=df.apply(f1,axis=1)
+             f2=lambda row: pd.to_datetime(row['ScenTimeTmp'].group('Time'),format='%Y-%m-%d %H:%M:%S.%f') if row['ScenTimeTmp'] != None else None             
+             df['ScenTime']=df.apply(f2,axis=1)
+             firstScenTimeLoggedWithLdsMcl=df['ScenTime'].loc[df['ScenTime'].notnull()].iloc[0]
+             #lastScenTimeLoggedWithLdsMcl=df['ScenTime'].loc[df['ScenTime'].notnull()].iloc[-1]            
+             df['ScenTime']=df['ScenTime'].fillna(method='ffill')
+             df['ScenTime']=df['ScenTime'].fillna(value=firstScenTimeLoggedWithLdsMcl-pd.Timedelta('1000 ms'))
+
+             df=df[['#LogTime','LogLevel','SubSystem','Direction','ProcessTime','ID','Value','ScenTime','State','Remark']]
+                        
              logger.debug("{0:s}{1:s} processed.".format(logStr,logFileTail))     
                           
-        except LxError:
-            raise            
-        except:
-            logStrFinal="{0:s}Error.".format(logStr)
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
-            raise LxError(logStrFinal)               
-        finally:            
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                    
             return df
 
     #def genExtDfs(self):
