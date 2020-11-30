@@ -35,6 +35,15 @@ class LxError(Exception):
     def __str__(self):
         return repr(self.value)
 
+
+
+# folgende IDs werden von folgender RE _nicht erfasst:
+#'IMDI.App.CALC'
+# 'Objects.3S_STEUERUNG.3S_APP_LDS.In.LIFE'
+# 'IMDI. ... .Linepackrate'
+
+pID=re.compile('(?P<Prae>IMDI\.)?(?P<A>[a-z,A-Z,0-9,_]+)\.(?P<B>[a-z,A-Z,0-9,_]+)\.(?P<C1>[a-z,A-Z,0-9]+)_(?P<C2>[a-z,A-Z,0-9]+)_(?P<C3>[a-z,A-Z,0-9]+)_(?P<C4>[a-z,A-Z,0-9]+)_(?P<C5>[a-z,A-Z,0-9]+)(?P<C6>_[a-z,A-Z,0-9]+)?(?P<C7>_[a-z,A-Z,0-9]+)?\.(?P<D>[a-z,A-Z,0-9,_]+)\.(?P<E>[a-z,A-Z,0-9,_]+)(?P<F>\.[a-z,A-Z,0-9,_]+)?') # 
+
 class AppLog():
     """
     SIR 3S App Log (SQC Log)
@@ -66,7 +75,8 @@ class AppLog():
     * delimiter
     * parseRestvalues
     * lookUpDf
-        * Logfile
+        * Name
+            i.e. 20201113_0000004.log for LogFiles	
         * Timestart
         * Timeend
     * h5File
@@ -683,6 +693,59 @@ class AppLog():
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
             return dfRet
+
+
+    def getTcsFromDf(self,df):
+        """
+        returns several Time curve dfs from df
+        
+        Time curve dfs: cols:
+            * Time
+            * ID
+            * Value
+
+        Time curve dfs:
+            * dfOPC
+            * dfLDSIn
+            * dfLDSRet
+            * dfSirCalc
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+       
+        try:               
+            dfOPC=df[(df['SubSystem'].str.contains('^OPC')) & ~(df['Value'].isnull())]
+            dfOPC=dfOPC[['ProcessTime','ID','Value']]
+            #dfOPC.rename(columns={"ProcessTime": "Time"},inplace=True)
+            dfOPCPvt=dfOPC.pivot(index='ProcessTime', columns='ID', values='Value')
+            for col in dfOPCPvt.columns:    
+                dfOPCPvt[col]=dfOPCPvt[col].fillna(method='ffill')
+                dfOPCPvt[col]=dfOPCPvt[col].fillna(method='bfill')
+
+            dfSirCalc=df[(df['SubSystem'].str.contains('^SirCalc')) & ~(df['Value'].isnull())]
+            #dfSirCalc.rename(columns={"ScenTime": "Time"},inplace=True)
+            dfSirCalcPvt=dfSirCalc.pivot(index='ScenTime', columns='ID', values='Value')
+
+            dfLDS=df[(df['SubSystem'].str.contains('^LDS')) & ~(df['Value'].isnull())]
+
+            dfLDSRes=dfLDS[(dfLDS['Direction'].str.contains('^->'))]
+            dfLDSRes=dfLDSRes[['ScenTime','ID','Value']]
+            #dfLDSRes.rename(columns={"ScenTime": "Time"},inplace=True)
+            dfLDSResPvt=dfLDSRes.pivot_table(index='ScenTime', columns='ID', values='Value')
+
+            dfLDSIn=dfLDS[(dfLDS['Direction'].str.contains('^<-'))]
+            dfLDSIn=dfLDSIn[['ScenTime','ID','Value']]
+            #dfLDSIn.rename(columns={"ScenTime": "Time"},inplace=True)
+            dfLDSInPvt=dfLDSIn.pivot_table(index='ScenTime', columns='ID', values='Value')
+                                           
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+            return dfOPCPvt,dfLDSInPvt,dfLDSResPvt,dfSirCalcPvt
 
 
 if __name__ == "__main__":
