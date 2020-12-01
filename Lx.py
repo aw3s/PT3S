@@ -29,6 +29,8 @@ import subprocess
 
 import csv
 
+import glob
+
 class LxError(Exception):
     def __init__(self, value):
         self.value = value
@@ -41,76 +43,36 @@ class LxError(Exception):
 #'IMDI.App.CALC'
 # 'Objects.3S_STEUERUNG.3S_APP_LDS.In.LIFE'
 # 'IMDI. ... .Linepackrate'
-
 pID=re.compile('(?P<Prae>IMDI\.)?(?P<A>[a-z,A-Z,0-9,_]+)\.(?P<B>[a-z,A-Z,0-9,_]+)\.(?P<C1>[a-z,A-Z,0-9]+)_(?P<C2>[a-z,A-Z,0-9]+)_(?P<C3>[a-z,A-Z,0-9]+)_(?P<C4>[a-z,A-Z,0-9]+)_(?P<C5>[a-z,A-Z,0-9]+)(?P<C6>_[a-z,A-Z,0-9]+)?(?P<C7>_[a-z,A-Z,0-9]+)?\.(?P<D>[a-z,A-Z,0-9,_]+)\.(?P<E>[a-z,A-Z,0-9,_]+)(?P<F>\.[a-z,A-Z,0-9,_]+)?') # 
+
+h5KeySep='/'
 
 class AppLog():
     """
     SIR 3S App Log (SQC Log)
 
-    Maintains a H5-File with dfs.   
-    1 df per Logfile.
-    1 Key per Logfile.
+    Maintains a H5-File.   
+    Existing H5-File will be deleted (if not initialized with h5File=...).
 
-    H5-File: 
-    "Log ab ... .h5".
-    Path: Path of Initialization-File.
-    Existing H5-File will be deleted.
-
-    H5-Keys are the Logfilenames praefixed by Log without extension.
-    
-    1 Key named "init" for Initialization-Logfile. 
-    The 'init'-Key Logfile is intended to represent the 1st Logfile after App Start. 
-
-    The 'Logfile'-Keys are intended represent all Logdata.
-    Therefore the 'init'-Key Logfile can and should be also available as 'Logfile'-Key Logfile.
-
-    Usage:
-    # init with 1st Log in Zip:
-    lx=Lx.AppLog(zip7File=zip7File)
-    # add whole Zip:
-    lx.addZip7File(zip7File)
-
-    Attributes:    
-    * #delimiter
-    * #readWithDictReader
-    * #nRows
+    H5-Keys are:
+    * init
     * lookUpDf
-        * zipName
-            i.e. 20201113_151238a.7z
-        * Name
-            i.e. 20201113_0000004.log 
-        * Timestart
-        * Timeend
+    * lookUpDfZips (if initialized with zip7Files=...)
+    * Logfilenames praefixed by Log without extension 
+    
+    Attributes:  
     * h5File
-        * init
-        * lookUpDf
-        * Log...
+    * lookUpDf
+    * lookUpDfZips
     """
     def __init__(self,logFile=None,zip7File=None,zip7Files=None,h5File=None,readWithDictReader=False,nRows=None):
         """
-        (re-)initialize with logFile XOR zip7File XOR h5File
-
-        Args:
-            * logFile: 'init'-Key Logfile
-            * zip7File: 1st Logfile is considered as 'init'-Key Logfile; - nothing außer 'init'-Key Logfile is processed to H5
-            * zip7Files: 1st Logfile in 1st zip7File is considered as 'init'-Key Logfile; the whole zip7Files are processed only to build lookUpDfZips - nothing außer 'init'-Key Logfile is processed to H5
-            * h5File: H5-File to initialize from 
-
-            * delimiter: CSV-Log Col-Seperator
-            * readWithDictReader: 
-                * if False (default), read_csv(...,...,error_bad_lines=False,warn_bad_lines=True) is used
-                * if True csv.DictReader with postprocessing is used and restValues are added with delimiter as seperator to last col
-            * nRows: read only nRows (if readWithDictReader is True, the last row is also read)
+        (re-)initialize
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
-        #self.delimiter=delimiter
-        #self.readWithDictReader=readWithDictReader
-        #self.nRows=nRows
-
         self.lookUpDf=pd.DataFrame() 
 
         try:     
@@ -202,7 +164,8 @@ class AppLog():
     def __initWithH5File(self,h5File,useRawHdfAPI=False):
         """
         self.h5File=h5File
-        self.lookUpDf from H5-File
+        self.lookUpDf     from H5-File
+        self.lookUpDfZips from H5-File
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -212,11 +175,26 @@ class AppLog():
              # H5 existiert 
              if os.path.exists(h5File):
                 self.h5File=h5File
+
+                # Keys available
+                with pd.HDFStore(self.h5File) as h5Store:
+                     h5Keys=sorted(h5Store.keys())                                     
+                     logger.debug("{0:s}h5Keys available: {1:s}".format(logStr,str(h5Keys))) 
+                     
+                h5KeysStripped=[item.replace(h5KeySep,'') for item in h5Keys]
+
                 if useRawHdfAPI:
                     with pd.HDFStore(self.h5File) as h5Store:
-                        self.lookUpDf=h5Store['lookUpDf']
+                        if 'lookUpDf' in h5KeysStripped:
+                            self.lookUpDf=h5Store['lookUpDf']
+                        if 'lookUpDfZips' in h5KeysStripped:
+                            self.lookUpDfZips=h5Store['lookUpDfZips']
                 else:
-                    self.lookUpDf=pd.read_hdf(self.h5File, key='lookUpDf')                    
+                    if 'lookUpDf' in h5KeysStripped:
+                        self.lookUpDf=pd.read_hdf(self.h5File, key='lookUpDf')         
+                    if 'lookUpDfZips' in h5KeysStripped:
+                        self.lookUpDfZips=pd.read_hdf(self.h5File, key='lookUpDfZips')                          
+
              else:                                
                 logger.error("{0:s}H5-File {1:s} existiert nicht.".format(logStr,h5File))                
                     
@@ -366,6 +344,7 @@ class AppLog():
                    (zip7FileHead, zip7FileTail)=os.path.split(zip7File)
                 
                 tmpDir=os.path.dirname(zip7File)
+                tmpDirContent=glob.glob(tmpDir)
               
                 with py7zr.SevenZipFile(zip7File, 'r') as zip7FileObj:                
                     allLogFiles = zip7FileObj.getnames()
@@ -394,12 +373,15 @@ class AppLog():
                             # Verzeichnis!                        
                             extDir=os.path.join(tmpDir,logFileNameInZip)                       
                             (extDirHead, extDirTail)=os.path.split(extDir)
-                            if os.path.exists(extDir) and extDir not in extDirLstExistingLogged:
-                                logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert bereits.".format(logStr,idx,extDirTail))  
-                                extDirLstExistingLogged.append(extDir)
-                            elif not os.path.exists(extDir):
-                                logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert noch nicht.".format(logStr,idx,extDirTail))                      
-                                extDirLstTBDeleted.append(extDir)
+                            if os.path.exists(extDir) and extDir in tmpDirContent:
+                                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert(e) bereits.".format(logStr,idx,extDirTail))  
+                                        extDirLstExistingLogged.append(extDir)
+                            elif os.path.exists(extDir) and extDir not in tmpDirContent:
+                                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert(e) noch nicht.".format(logStr,idx,extDirTail))                      
+                                        extDirLstTBDeleted.append(extDir)
+                            elif not os.path.exists(extDir) and extDir not in tmpDirContent:
+                                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert(e) noch nicht.".format(logStr,idx,extDirTail))                      
+                                        extDirLstTBDeleted.append(extDir)
                             # kein Logfile zu prozessieren ...
                             continue
 
@@ -465,14 +447,7 @@ class AppLog():
 
     def __initzip7Files(self,zip7Files):
         """
-        build self.lookUpDfZips
-
-        Attributes:
-            * self.lookUpDfZips
-
-        Args:
-            * zip7Files: zip7Files which LogFiles shall be processed 
-        
+        (re-)initialize with zip7Files
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -503,8 +478,7 @@ class AppLog():
                 lookUpDfZips=lookUpDfZips[['FirstTime','LastTime','TimespanPerLog','NumOfFiles','minFileNr','maxFileNr']]
 
                 self.lookUpDfZips=lookUpDfZips
-
-                
+                self.__toH5('lookUpDfZips',self.lookUpDfZips)
                                                              
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -692,24 +666,11 @@ class AppLog():
     def get(self,timeStart=None,timeEnd=None,filter_fct=None,filterAfter=True,useRawHdfAPI=False):
         """
         returns df with filter_fct applied
-        
-        Args:
-        timeStart: time to start (default: Logs from the Beginning)
-        timeEnd: time to end (default: Logs to the End)
-
-        filter_fct: filter to apply (default: None); Example: lambda row: True if row['SubSystem']=='LDS MCL' else False    
-        filterAfter: when to filter (default: True); True: Filtering is done after concattening all Logs - faster than filter every single Log before concattening
-        useRawHdfAPI: default: False; False: pd.read_hdf is used; True: h5Store[...] is used
-
-        Returns:
-        df with filter_fct applied
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-        h5KeySep='/'
-        
+                
         dfRet=None
         try:   
             dfLst=[]
@@ -719,16 +680,11 @@ class AppLog():
                 dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['LastTime']>=timeStart] # endet nach dem Anfang oder EndeFile ist Anfang
             if timeEnd!=None:
                 dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
-            dfLookUpTimesIdx=dfLookUpTimes.set_index('Name')
+            dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
             dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
             h5Keys=['Log'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
             logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
                          
-            #with pd.HDFStore(self.h5File) as h5Store:
-            #        h5Keys=sorted(h5Store.keys())                
-            #        h5Keys=[item for item in h5Keys if re.search('^Log', item.replace(h5KeySep,'')) != None]
-            #        logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
-
             if useRawHdfAPI:
                 with pd.HDFStore(self.h5File) as h5Store:                   
                     for h5Key in h5Keys:
@@ -761,33 +717,14 @@ class AppLog():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
             return dfRet
 
-
     def getFromZips(self,timeStart=None,timeEnd=None,filter_fct=None,filterAfter=True):
         """
         returns df with filter_fct applied
-
-        Description:
-            * source are the zips in self.lookUpDfZips
-            * self.lookUpDfZips is generated by a _previous call to self.addZip7Files
-            * LogFiles are extracted from the 7Zips as needed and deleted after parsing
-            * _no H5-Storage
-                   
-        Args:
-            * timeStart: time to start (default: None: no 7Zip-Filtering by timeStart)
-            * timeEnd: time to end (default: None: no 7Zip-Filtering by timeEnd)
-
-            * filter_fct: filter to apply (default: None); Example: lambda row: True if row['SubSystem']=='LDS MCL' else False    
-            * filterAfter: when to filter (default: True); True: Filtering is done after concattening all Logs - faster (but more memory is needed) than filter every single Log before concattening       
-
-        Returns:
-            * df 
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-        #h5KeySep='/'
-        
+                
         dfRet=None
         try:   
             dfLst=[]
@@ -827,6 +764,7 @@ class AppLog():
                            raise LxError(logStrFinal)    
                 
                         tmpDir=os.path.dirname(zip7File)
+                        tmpDirContent=glob.glob(tmpDir)
               
                         with py7zr.SevenZipFile(zip7File, 'r') as zip7FileObj:                
                             allLogFiles = zip7FileObj.getnames()
@@ -854,11 +792,14 @@ class AppLog():
                                     # Verzeichnis!                        
                                     extDir=os.path.join(tmpDir,logFileNameInZip)                       
                                     (extDirHead, extDirTail)=os.path.split(extDir)
-                                    if os.path.exists(extDir) and extDir not in extDirLstExistingLogged:
-                                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert bereits.".format(logStr,idx,extDirTail))  
+                                    if os.path.exists(extDir) and extDir in tmpDirContent:
+                                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert(e) bereits.".format(logStr,idx,extDirTail))  
                                         extDirLstExistingLogged.append(extDir)
-                                    elif not os.path.exists(extDir):
-                                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert noch nicht.".format(logStr,idx,extDirTail))                      
+                                    elif os.path.exists(extDir) and extDir not in tmpDirContent:
+                                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert(e) noch nicht.".format(logStr,idx,extDirTail))                      
+                                        extDirLstTBDeleted.append(extDir)
+                                    elif not os.path.exists(extDir) and extDir not in tmpDirContent:
+                                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert(e) noch nicht.".format(logStr,idx,extDirTail))                      
                                         extDirLstTBDeleted.append(extDir)
                                     # kein Logfile zu prozessieren ...
                                     idxEff+=1
