@@ -2,15 +2,14 @@
   "ExpandedNodes": [
     "",
     "\\testdata",
-    "\\testdata\\WDDHNetwork",
-    "\\testdata\\WDOneLPipe",
+    "\\testdata\\Lx",
+    "\\testdata\\Lx\\20201113_151238a",
     "\\testdata\\WDOneLPipe\\B1",
     "\\testdata\\WDOneLPipe\\B1\\V0",
-    "\\testdata\\WDTinyWDN",
     "\\testdata\\WDTinyWDN\\B1",
     "\\testdata\\WDTinyWDN\\B1\\V0",
     "\\testdata\\WDTinyWDN\\B1\\V0\\BZ1"
   ],
-  "SelectedNode": "\\testdata\\GPipe.XML",
+  "SelectedNode": "\\Lx.py",
   "PreviewInSolutionExplorer": false
 }
