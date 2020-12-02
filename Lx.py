@@ -38,12 +38,89 @@ class LxError(Exception):
         return repr(self.value)
 
 
+# nicht alle IDs werden von RE pID erfasst
+# diese werden mit pID2, getDfFromODIHelper und in getDfFromODI "nachbehandelt"
 
-# folgende IDs werden von folgender RE _nicht erfasst:
-#'IMDI.App.CALC'
-# 'Objects.3S_STEUERUNG.3S_APP_LDS.In.LIFE'
-# 'IMDI. ... .Linepackrate'
-pID=re.compile('(?P<Prae>IMDI\.)?(?P<A>[a-z,A-Z,0-9,_]+)\.(?P<B>[a-z,A-Z,0-9,_]+)\.(?P<C1>[a-z,A-Z,0-9]+)_(?P<C2>[a-z,A-Z,0-9]+)_(?P<C3>[a-z,A-Z,0-9]+)_(?P<C4>[a-z,A-Z,0-9]+)_(?P<C5>[a-z,A-Z,0-9]+)(?P<C6>_[a-z,A-Z,0-9]+)?(?P<C7>_[a-z,A-Z,0-9]+)?\.(?P<D>[a-z,A-Z,0-9,_]+)\.(?P<E>[a-z,A-Z,0-9,_]+)(?P<F>\.[a-z,A-Z,0-9,_]+)?') # 
+pID=re.compile('(?P<Prae>IMDI\.)?(?P<A>[a-z,A-Z,0-9,_]+)\.(?P<B>[a-z,A-Z,0-9,_]+)\.(?P<C1>[a-z,A-Z,0-9]+)_(?P<C2>[a-z,A-Z,0-9]+)_(?P<C3>[a-z,A-Z,0-9]+)_(?P<C4>[a-z,A-Z,0-9]+)_(?P<C5>[a-z,A-Z,0-9]+)(?P<C6>_[a-z,A-Z,0-9]+)?(?P<C7>_[a-z,A-Z,0-9]+)?\.(?P<D>[a-z,A-Z,0-9,_]+)\.(?P<E>[a-z,A-Z,0-9,_]+)(?P<Post>\.[a-z,A-Z,0-9,_]+)?') 
+pID2='(?P<Prae>IMDI\.)?(?P<A>[a-z,A-Z,0-9,_]+)(?P<Post>\.[a-z,A-Z,0-9,_]+)?'
+def getDfFromODIHelper(row,col,colCheck,pID2=pID2):
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    try:
+        if not pd.isnull(row[colCheck]):            
+            res= row[col]
+            resStr='ColCheckOk'
+        elif pd.isnull(row[col]):            
+            res=re.search(pID2,row['ID']).group(col)  
+            if res != None:
+                resStr='ColNowOk'
+            else:
+                resStr='ColStillNotOk'
+        else:
+            res = row[col]        
+            resStr='ColWasOk'
+    except:        
+        res = row[col]
+        resStr='ERROR'
+    finally:
+        if resStr not in ['ColCheckOk','ColNowOk']:
+            logger.debug("{:s}col: {:s} resStr: {:s} row['ID']: {:s} res: {:s}".format(logStr,col, resStr,row['ID'],str(res)))
+        #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+        return res
+
+def getDfFromODI(ODIFile,pID=pID):
+    """
+    returns a defined df from ODIFile
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    dfID=None
+
+    try:          
+        df=pd.read_csv(ODIFile,delimiter=';')
+        s = pd.Series(df['ID'].unique()) 
+        dfID=s.str.extract(pID.pattern,expand=True)
+
+        dfID['ID']=s
+
+        dfC=dfID['C1']+'_'+dfID['C2']+'_'+dfID['C3']+'_'+dfID['C4']+'_'+dfID['C5']+'_'+dfID['C6']+'_'+dfID['C7']
+        dfID.loc[:,'C']=dfC.values
+
+        dfID=dfID[['ID','Prae','A','B','C','C1','C2','C3','C4','C5','C6','C7','D','E','Post']]
+
+        for col in ['Prae','Post','A']:    
+            dfID[col]=dfID.apply(lambda row: getDfFromODIHelper(row,col,'A'),axis=1)
+
+        dfID.sort_values(by=['ID'], axis=0,ignore_index=True,inplace=True)
+        dfID.set_index('ID',verify_integrity=True,inplace=True)
+
+        dfID.loc['Objects.3S_FBG_PUMPE.3S_FBG_GSI_01.Out.EIN','Post']='.EIN'
+        dfID.loc['Objects.3S_FBG_PUMPE.3S_FBG_GSI_01.Out.EIN','A']='Objects'
+        dfID.loc['Objects.3S_FBG_PUMPE.3S_FBG_GSI_01.Out.EIN','B']='3S_FBG_PUMPE'
+        dfID.loc['Objects.3S_FBG_PUMPE.3S_FBG_GSI_01.Out.EIN','C']='3S_FBG_GSI_01'
+        dfID.loc['Objects.3S_FBG_PUMPE.3S_FBG_GSI_01.Out.EIN','D']='Out'
+        #dfID.loc['Objects.3S_FBG_PUMPE.3S_FBG_GSI_01.Out.EIN',:]
+
+
+        dfID.loc['Objects.3S_FBG_RSCHIEBER.3S_FBG_PCV_01.Out.SOLLW','Post']='.SOLLW'
+        dfID.loc['Objects.3S_FBG_RSCHIEBER.3S_FBG_PCV_01.Out.SOLLW','A']='Objects'
+        dfID.loc['Objects.3S_FBG_RSCHIEBER.3S_FBG_PCV_01.Out.SOLLW','B']='3S_FBG_RSCHIEBER'
+        dfID.loc['Objects.3S_FBG_RSCHIEBER.3S_FBG_PCV_01.Out.SOLLW','C']='3S_FBG_PCV_01'
+        dfID.loc['Objects.3S_FBG_RSCHIEBER.3S_FBG_PCV_01.Out.SOLLW','D']='Out'
+        #dfID.loc['Objects.3S_FBG_RSCHIEBER.3S_FBG_PCV_01.Out.SOLLW',:]
+
+
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise LxError(logStrFinal)                       
+    finally:           
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+        return dfID
 
 h5KeySep='/'
 
@@ -65,7 +142,7 @@ class AppLog():
     * lookUpDf
     * lookUpDfZips
     """
-    def __init__(self,logFile=None,zip7File=None,zip7Files=None,h5File=None,readWithDictReader=False,nRows=None):
+    def __init__(self,logFile=None,zip7File=None,zip7Files=None,h5File=None,h5FileName=None,readWithDictReader=False,nRows=None):
         """
         (re-)initialize
         """ 
@@ -85,11 +162,11 @@ class AppLog():
              elif h5File != None and zip7File != None:
                 logger.debug("{0:s}{1:s}".format(logStr,'2 Files (h5File and zip7File) specified.')) 
              elif  logFile != None:                 
-                 self.__initlogFile(logFile)
+                 self.__initlogFile(logFile,h5FileName=h5FileName)
              elif zip7File != None:
-                 self.__initzip7File(zip7File)
+                 self.__initzip7File(zip7File,h5FileName=h5FileName)
              elif zip7Files != None:
-                 self.__initzip7Files(zip7Files)
+                 self.__initzip7Files(zip7Files,h5FileName=h5FileName)
              elif h5File != None:
                  self.__initWithH5File(h5File)
              else:                 
@@ -102,7 +179,7 @@ class AppLog():
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
              
-    def __initlogFile(self,logFile):
+    def __initlogFile(self,logFile,h5FileName=None):
         """
         (re-)initialize with logFile
         """ 
@@ -116,7 +193,7 @@ class AppLog():
                 logger.debug("{0:s}logFile {1:s} not existing.".format(logStr,logFile))    
              else:
                 df = self.__processALogFile(logFile=logFile)    
-                self.__initH5File(logFile,df)
+                self.__initH5File(logFile,df,h5FileName=h5FileName)
          
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -126,12 +203,14 @@ class AppLog():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
 
 
-    def __initH5File(self,h5File,df):
+    def __initH5File(self,h5File,df,h5FileName=None):
         """
         creates self.h5File and writes 'init'-Key Logfile df to it
 
         Args:
-        * h5File: name of logFile or zip7File; from the name the H5-Filename is derived 
+        * h5File: name of logFile or zip7File; the Dir is the Dir of the H5-File
+        * df
+        * h5FileName: the H5-FileName without Dir and Extension; if None (default), "Log ab ..." is used
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -141,7 +220,10 @@ class AppLog():
              (h5FileHead,h5FileTail)=os.path.split(h5File)
              
              # H5-File
-             h5FileTail="Log ab {0:s}.h5".format(str(df['#LogTime'].min())).replace(':',' ').replace('-',' ')           
+             if h5FileName==None:
+                h5FileTail="Log ab {0:s}.h5".format(str(df['#LogTime'].min())).replace(':',' ').replace('-',' ')           
+             else:
+                h5FileTail=h5FileName+'.h5'
              self.h5File=os.path.join(h5FileHead,h5FileTail)
 
              # wenn H5 existiert wird es geloescht
@@ -205,7 +287,7 @@ class AppLog():
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
 
-    def __initzip7File(self,zip7File,nRows=None,readWithDictReader=False):
+    def __initzip7File(self,zip7File,h5FileName=None,nRows=None,readWithDictReader=False):
         """
         (re-)initialize with zip7File
         """ 
@@ -308,7 +390,7 @@ class AppLog():
                                 logger.debug("{0:s}dirName: {1:s} existierte nicht und wurde wieder geloescht.".format(logStr,dirNameTail))     
                             
                 
-                self.__initH5File(zip7File,df)
+                self.__initH5File(zip7File,df,h5FileName=h5FileName)
          
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -445,7 +527,7 @@ class AppLog():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
 
 
-    def __initzip7Files(self,zip7Files):
+    def __initzip7Files(self,zip7Files,h5FileName=None):
         """
         (re-)initialize with zip7Files
         """ 
@@ -454,7 +536,7 @@ class AppLog():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try:                                                             
-                self.__initzip7File(zip7File=zip7Files[0],nRows=1,readWithDictReader=True)
+                self.__initzip7File(zip7File=zip7Files[0],h5FileName=h5FileName,nRows=1,readWithDictReader=True)
             
                 for zip7File in zip7Files:
                     self.addZip7File(zip7File,firstsAndLastsLogsOnly=True,nRows=1,readWithDictReader=True)
