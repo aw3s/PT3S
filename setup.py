@@ -83,7 +83,7 @@ setup(
            ,'PT3S.html'
            ,'PT3S.pdf'  
            ,'Lx.ipynb'           
-           ,'testdata\Lx\20201113_151238a - 6 Logs.7z'
+           #,'testdata\Lx\20201113_151238a - 6 Logs.7z'
            ,'testdata\OneLPipe.XML'
            #,'testdata\OneLPipe.mdb'
            ,'testdata\WDOneLPipe\B1\V0\BZ1\M-1-0-1.1.MX1'
