@@ -384,10 +384,12 @@ class AppLog():
                 for dirName in extDirLstTBDeleted:
                     if os.path.exists(dirName):
                         if os.path.isdir(dirName):
-                            if not os.path.getsize(dirName):
-                                os.rmdir(dirName)    
-                                (dirNameHead, dirNameTail)=os.path.split(dirName)
+                            (dirNameHead, dirNameTail)=os.path.split(dirName)
+                            if len(os.listdir(dirName)) == 0:
+                                os.rmdir(dirName)                                    
                                 logger.debug("{0:s}dirName: {1:s} existierte nicht und wurde wieder geloescht.".format(logStr,dirNameTail))     
+                            else:
+                                logger.info("{0:s}dirName: {1:s} existiert mit nicht leerem Inhalt?!".format(logStr,dirNameTail))    
                             
                 
                 self.__initH5File(zip7File,df,h5FileName=h5FileName)
@@ -514,10 +516,12 @@ class AppLog():
                 for dirName in extDirLstTBDeleted:
                     if os.path.exists(dirName):
                         if os.path.isdir(dirName):
-                            if not os.path.getsize(dirName):
-                                os.rmdir(dirName)    
-                                (dirNameHead, dirNameTail)=os.path.split(dirName)
-                                logger.debug("{0:s}dirName: {1:s} existierte nicht und wurde wieder geloescht.".format(logStr,dirNameTail))                                                                 
+                            (dirNameHead, dirNameTail)=os.path.split(dirName)
+                            if len(os.listdir(dirName)) == 0:
+                                os.rmdir(dirName)                                    
+                                logger.debug("{0:s}dirName: {1:s} existierte nicht und wurde wieder geloescht.".format(logStr,dirNameTail))     
+                            else:
+                                logger.info("{0:s}dirName: {1:s} existiert mit nicht leerem Inhalt?!".format(logStr,dirNameTail))                                                                    
          
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -1108,10 +1112,12 @@ class AppLog():
                         for dirName in extDirLstTBDeleted:
                             if os.path.exists(dirName):
                                 if os.path.isdir(dirName):
-                                    if not os.path.getsize(dirName):
-                                        os.rmdir(dirName)    
-                                        (dirNameHead, dirNameTail)=os.path.split(dirName)
-                                        logger.debug("{0:s}dirName: {1:s} existierte nicht und wurde wieder geloescht.".format(logStr,dirNameTail))                                                                 
+                                    (dirNameHead, dirNameTail)=os.path.split(dirName)
+                                    if len(os.listdir(dirName)) == 0:
+                                        os.rmdir(dirName)                                            
+                                        logger.debug("{0:s}dirName: {1:s} existierte nicht und wurde wieder geloescht.".format(logStr,dirNameTail))     
+                                    else:
+                                        logger.info("{0:s}dirName: {1:s} existiert mit nicht leerem Inhalt?!".format(logStr,dirNameTail))                                                                   
          
                 except Exception as e:
                     logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
