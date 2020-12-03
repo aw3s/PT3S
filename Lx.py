@@ -787,6 +787,7 @@ class AppLog():
                         
             logger.debug("{0:s}{1:s}".format(logStr,'Extraction finished. Concat ...')) 
             dfRet=pd.concat(dfLst)
+            del dfLst
             if filterAfter and filter_fct != None:
                 logger.debug("{0:s}Apply Filter ...".format(logStr)) 
                 dfRet=pd.DataFrame(dfRet[dfRet.apply(filter_fct,axis=1)].values,columns=dfRet.columns)   
@@ -800,9 +801,9 @@ class AppLog():
             return dfRet
 
 
-    def getTCs(self,timeStart=None,timeEnd=None,TCsdfOPCFill=True,persistent=False,overwrite=True):
+    def getTCs(self,dfID=pd.DataFrame(),timeStart=None,timeEnd=None,TCsdfOPCFill=True,persistent=False,overwrite=True):
         """
-        returns TC-dfs
+        returns TCs-dfs
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -810,9 +811,7 @@ class AppLog():
                         
         try:   
 
-            TCKeys=['TCsdfOPC','TCsdfLDSIn','TCsdfLDSRes','TCsdfSirCalc']
-
-
+            TCKeys=['TCsdfOPC','TCsdfSirCalc','TCsdfLDSIn','TCsdfLDSRes1','TCsdfLDSRes2a','TCsdfLDSRes2b','TCsdfLDSRes2c']
 
             if persistent:        
                  with pd.HDFStore(self.h5File) as h5Store:
@@ -825,12 +824,15 @@ class AppLog():
                         logger.debug("{0:s}persistent: TCKeys {1:s} existieren alle bereits - return aus H5-File ...".format(logStr,str(TCKeys))) 
 
                         TCsdfOPC=pd.read_hdf(self.h5File,key='TCsdfOPC')
-                        TCsdfLDSIn=pd.read_hdf(self.h5File,key='TCsdfLDSIn')
-                        TCsdfLDSRes=pd.read_hdf(self.h5File,key='TCsdfLDSRes')
                         TCsdfSirCalc=pd.read_hdf(self.h5File,key='TCsdfSirCalc')
-
+                        TCsdfLDSIn=pd.read_hdf(self.h5File,key='TCsdfLDSIn')
+                        TCsdfLDSRes1=pd.read_hdf(self.h5File,key='TCsdfLDSRes1')
+                        TCsdfLDSRes2a=pd.read_hdf(self.h5File,key='TCsdfLDSRes2a')
+                        TCsdfLDSRes2b=pd.read_hdf(self.h5File,key='TCsdfLDSRes2b')
+                        TCsdfLDSRes2c=pd.read_hdf(self.h5File,key='TCsdfLDSRes2c')
+                       
                         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-                        return TCsdfOPC,TCsdfLDSIn,TCsdfLDSRes,TCsdfSirCalc
+                        return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2a,TCsdfLDSRes2b,TCsdfLDSRes2c
                     else:
                         logger.debug("{0:s}persistent: TCKeys {1:s} existieren alle bereits - sollen aber ueberschrieben werden ...".format(logStr,str(TCKeys))) 
                         
@@ -846,96 +848,129 @@ class AppLog():
             dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
             h5Keys=['Log'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
             logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
-                   
+
             dfLst=[]
             for h5Key in h5Keys:
                 logger.debug("{0:s}Get (read_hdf) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
                 dfSingle=pd.read_hdf(self.h5File, key=h5Key)
-
-                dfSingle=dfSingle[dfSingle['SubSystem'].isin(['OPC UA'])]#,'LDS','SirCalc'])]
-                dfSingle=dfSingle[['ID','ProcessTime','Value']]#,'Direction']]
+                   
+                dfSingle=dfSingle[['ID','ProcessTime','ScenTime','SubSystem','Value','Direction']]
                 dfSingle=dfSingle[~(dfSingle['Value'].isnull())]
 
                 dfLst.append(dfSingle) 
                                               
             logger.debug("{0:s}{1:s}".format(logStr,'Extraction finished. Concat ...')) 
             df=pd.concat(dfLst)
-            logger.debug("{0:s}{1:s}".format(logStr,'Concat finished. Filter & Pivot ...'))            
-            TCsdfOPC=df.pivot(index='ProcessTime', columns='ID', values='Value')
+            del dfLst
+
+            logger.debug("{0:s}{1:s}".format(logStr,'Concat finished. Filter & Pivot ...'))      
+
+            if not dfID.empty:
+                df=df.merge(dfID,how='left',left_on='ID',right_index=True,suffixes=('','_r'))                            
+
+            TCsdfOPC=df[(df['SubSystem'].str.contains('^OPC'))][['ProcessTime','ID','Value']].pivot(index='ProcessTime', columns='ID', values='Value')
             if TCsdfOPCFill:
                 for col in TCsdfOPC.columns:    
                     TCsdfOPC[col]=TCsdfOPC[col].fillna(method='ffill')
                     TCsdfOPC[col]=TCsdfOPC[col].fillna(method='bfill')
+                      
+            TCsdfSirCalc=df[(df['SubSystem'].str.contains('^SirCalc'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')           
+            TCsdfLDSIn=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^<-'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')
+            if not dfID.empty:
+                C4Lst=['01',
+                    '02',
+                    '03',
+                    '04',
+                    '05',
+                    '07',
+                    '08',
+                    '09',
+                    '10',
+                    '12',
+                    '20']
+                TCsdfLDSRes1=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->')) & (df['B'].str.contains('^3S_FBG_SEG_INFO'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')  
+                TCsdfLDSRes2a=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->')) & (df['B'].str.contains('^3S_FBG_DRUCK')) & (df['C2'].isin(['6'])) & (df['C4'].isin(C4Lst))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')      
+                TCsdfLDSRes2b=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->')) & (df['B'].str.contains('^3S_FBG_DRUCK')) & (df['C2'].isin(['6'])) & ~(df['C4'].isin(C4Lst))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')                             
+                TCsdfLDSRes2c=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->')) & (df['B'].str.contains('^3S_FBG_DRUCK')) & ~(df['C2'].isin(['6']))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')                                                 
 
-            dfLst=[]
-            for h5Key in h5Keys:
-                logger.debug("{0:s}Get (read_hdf) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
-                dfSingle=pd.read_hdf(self.h5File, key=h5Key)
+            else:
+                TCsdfLDSRes1=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')         
+                TCsdfLDSRes2a=pd.DataFrame()
+                TCsdfLDSRes2b=pd.DataFrame()
+                TCsdfLDSRes2c=pd.DataFrame()
 
-                dfSingle=dfSingle[dfSingle['SubSystem'].isin(['SirCalc'])]
-                dfSingle=dfSingle[['ID','ScenTime','Value']]#,'Direction']]
-                dfSingle=dfSingle[~(dfSingle['Value'].isnull())]
-
-                dfLst.append(dfSingle) 
-                                              
-            logger.debug("{0:s}{1:s}".format(logStr,'Extraction finished. Concat ...')) 
-            df=pd.concat(dfLst)
-            logger.debug("{0:s}{1:s}".format(logStr,'Concat finished. Filter & Pivot ...'))             
-            TCsdfSirCalc=df.pivot_table(index='ScenTime', columns='ID', values='Value')
-
-            dfLst=[]
-            for h5Key in h5Keys:
-                logger.debug("{0:s}Get (read_hdf) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
-                dfSingle=pd.read_hdf(self.h5File, key=h5Key)
-
-                dfSingle=dfSingle[dfSingle['SubSystem'].isin(['LDS'])]
-                dfSingle=dfSingle[['ID','ScenTime','Value','Direction']]
-                dfSingle=dfSingle[(dfSingle['Direction'].str.contains('^<-'))]
-                dfSingle=dfSingle[~(dfSingle['Value'].isnull())]
-                dfSingle=dfSingle[['ScenTime','ID','Value']]            
-
-                dfLst.append(dfSingle) 
-                                              
-            logger.debug("{0:s}{1:s}".format(logStr,'Extraction finished. Concat ...')) 
-            df=pd.concat(dfLst)
-            logger.debug("{0:s}{1:s}".format(logStr,'Concat finished. Filter & Pivot ...'))        
-           
-            TCsdfLDSIn=df.pivot_table(index='ScenTime', columns='ID', values='Value')
-
-            dfLst=[]
-            for h5Key in h5Keys:
-                logger.debug("{0:s}Get (read_hdf) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
-                dfSingle=pd.read_hdf(self.h5File, key=h5Key)
-
-                dfSingle=dfSingle[dfSingle['SubSystem'].isin(['LDS'])]
-                dfSingle=dfSingle[['ID','ScenTime','Value','Direction']]
-                dfSingle=dfSingle[(dfSingle['Direction'].str.contains('^->'))]
-                dfSingle=dfSingle[~(dfSingle['Value'].isnull())]
-                dfSingle=dfSingle[['ScenTime','ID','Value']]            
-
-                dfLst.append(dfSingle) 
-                                              
-            logger.debug("{0:s}{1:s}".format(logStr,'Extraction finished. Concat ...')) 
-            df=pd.concat(dfLst)
-            logger.debug("{0:s}{1:s}".format(logStr,'Concat finished. Filter & Pivot ...'))        
-           
-            TCsdfLDSRes=df.pivot_table(index='ScenTime', columns='ID', values='Value')
-
-
+               
             if persistent:                 
                     logger.debug("{0:s}peristent: TCKeys {1:s} nach H5-File ...".format(logStr,str(TCKeys))) 
                     TCsdfOPC.to_hdf(self.h5File,key='TCsdfOPC')
-                    TCsdfLDSIn.to_hdf(self.h5File,key='TCsdfLDSIn')
-                    TCsdfLDSRes.to_hdf(self.h5File,key='TCsdfLDSRes')
                     TCsdfSirCalc.to_hdf(self.h5File,key='TCsdfSirCalc')
+                    TCsdfLDSIn.to_hdf(self.h5File,key='TCsdfLDSIn')
+                    TCsdfLDSRes1.to_hdf(self.h5File,key='TCsdfLDSRes1')
+                    TCsdfLDSRes2a.to_hdf(self.h5File,key='TCsdfLDSRes2a')
+                    TCsdfLDSRes2b.to_hdf(self.h5File,key='TCsdfLDSRes2b')
+                    TCsdfLDSRes2c.to_hdf(self.h5File,key='TCsdfLDSRes2c')
+                    
                                           
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
             raise LxError(logStrFinal)                       
         finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            if not dfID.empty:
+                return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2a,TCsdfLDSRes2b,TCsdfLDSRes2c
+            else:                
+                return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1
+
+
+    def getTCsSpecified(self,dfID=pd.DataFrame(),timeStart=None,timeEnd=None,f=lambda row: True if row['E'] == 'AL_S' else False):
+        """
+        returns specified TCs as df
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+                        
+        try:   
+                                   
+            dfLookUpTimes=self.lookUpDf
+            if timeStart!=None:
+                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['LastTime']>=timeStart] # endet nach dem Anfang oder EndeFile ist Anfang
+            if timeEnd!=None:
+                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
+            dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
+            dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
+            h5Keys=['Log'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
+
+          
+            dfLst=[]
+            for h5Key in h5Keys:
+                logger.debug("{0:s}Get (read_hdf) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
+                dfSingle=pd.read_hdf(self.h5File, key=h5Key)
+                   
+                dfSingle=dfSingle[['ID','ScenTime','Value']]
+                dfSingle=dfSingle[~(dfSingle['Value'].isnull())]
+
+                if not dfID.empty:
+                    dfSingle=dfSingle.merge(dfID,how='left',left_on='ID',right_index=True,suffixes=('','_r'))       
+                    dfSingle=dfSingle[dfSingle.apply(f,axis=1)]
+
+                dfLst.append(dfSingle[['ID','ScenTime','Value']]) 
+                del dfSingle
+                                              
+            logger.debug("{0:s}{1:s}".format(logStr,'Extraction finished. Concat ...')) 
+            df=pd.concat(dfLst)
+            del dfLst
+            df=df.pivot_table(index='ScenTime', columns='ID', values='Value')  
+                                                       
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-            return TCsdfOPC,TCsdfLDSIn,TCsdfLDSRes,TCsdfSirCalc
+            return df
 
 
     def getFromZips(self,timeStart=None,timeEnd=None,filter_fct=None,filterAfter=True):
@@ -1085,6 +1120,7 @@ class AppLog():
 
             logger.debug("{0:s}{1:s}".format(logStr,'Extraction finished. Concat ...')) 
             dfRet=pd.concat(dfLst)
+            del dfLst
 
             if filterAfter and filter_fct != None:
                 logger.debug("{0:s}Apply Filter ...".format(logStr)) 
@@ -1108,45 +1144,31 @@ class AppLog():
             * TCsdfOPCFill: if True (default): fill NaNs
         
         Time curve dfs: cols:
-            * Time
+            * Time (TCsdfOPC: ProcessTime, other: ScenTime)
             * ID
             * Value
 
         Time curve dfs:
             * TCsdfOPC
+            * TCsSirCalc
             * TCsLDSIn
             * TCsLDSRes
-            * TCsSirCalc
+            
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
        
-        try:               
-            dfOPC=df[(df['SubSystem'].str.contains('^OPC')) & ~(df['Value'].isnull())]
-            dfOPC=dfOPC[['ProcessTime','ID','Value']]
-            #dfOPC.rename(columns={"ProcessTime": "Time"},inplace=True)
-            TCsdfOPC=dfOPC.pivot(index='ProcessTime', columns='ID', values='Value')
+        try:                          
+            TCsdfOPC=df[(df['SubSystem'].str.contains('^OPC')) & ~(df['Value'].isnull())][['ProcessTime','ID','Value']].pivot(index='ProcessTime', columns='ID', values='Value')
             if TCsdfOPCFill:
                 for col in TCsdfOPC.columns:    
                     TCsdfOPC[col]=TCsdfOPC[col].fillna(method='ffill')
                     TCsdfOPC[col]=TCsdfOPC[col].fillna(method='bfill')
 
-            dfSirCalc=df[(df['SubSystem'].str.contains('^SirCalc')) & ~(df['Value'].isnull())]
-            #dfSirCalc.rename(columns={"ScenTime": "Time"},inplace=True)
-            TCsdfSirCalc=dfSirCalc.pivot_table(index='ScenTime', columns='ID', values='Value')
-
-            dfLDS=df[(df['SubSystem'].str.contains('^LDS')) & ~(df['Value'].isnull())]
-
-            dfLDSRes=dfLDS[(dfLDS['Direction'].str.contains('^->'))]
-            dfLDSRes=dfLDSRes[['ScenTime','ID','Value']]
-            #dfLDSRes.rename(columns={"ScenTime": "Time"},inplace=True)
-            TCsdfLDSRes=dfLDSRes.pivot_table(index='ScenTime', columns='ID', values='Value')
-
-            dfLDSIn=dfLDS[(dfLDS['Direction'].str.contains('^<-'))]
-            dfLDSIn=dfLDSIn[['ScenTime','ID','Value']]
-            #dfLDSIn.rename(columns={"ScenTime": "Time"},inplace=True)
-            TCsdfLDSIn=dfLDSIn.pivot_table(index='ScenTime', columns='ID', values='Value')
+            TCsdfSirCalc=df[(df['SubSystem'].str.contains('^SirCalc')) & ~(df['Value'].isnull())][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')                     
+            TCsdfLDSIn=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^<-'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')
+            TCsdfLDSRes=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')
                                            
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -1154,7 +1176,7 @@ class AppLog():
             raise LxError(logStrFinal)                       
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-            return TCsdfOPC,TCsdfLDSIn,TCsdfLDSRes,TCsdfSirCalc
+            return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes
 
 
 if __name__ == "__main__":
@@ -1191,7 +1213,7 @@ if __name__ == "__main__":
         UsageExample#1: (without parameter): -v --x ./testdata/20171103__000001.log   
         '''                                 
         )
-        parser.add_argument('--x','--logFile',type=str, help='.log File (default: ./testdata/20171103__000001.log)',default='./testdata/20171103__000001.log')  
+        parser.add_argument('--x','--logFile',type=str, help='.log File (default: ./testdata/Lx/20201113_0000003.log)',default='./testdata/Lx/20201113_0000003.log')  
 
         group = parser.add_mutually_exclusive_group()                                
         group.add_argument("-v","--verbose", help="Debug Messages On", action="store_true",default=True)      
@@ -1205,7 +1227,7 @@ if __name__ == "__main__":
                       
         logger.debug("{0:s}{1:s}{2:s}".format(logStr,'Start. Argumente:',str(sys.argv))) 
 
-        lx=AppLog(args.x)
+        lx=AppLog(logFile=args.x)
 
     except SystemExit:
         pass                                              

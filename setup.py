@@ -24,7 +24,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='90.12.0.6.dev1',
+    version='90.12.0.7.dev1',
 
     description='Python Tools 3S',
     long_description=long_description,
@@ -82,7 +82,7 @@ setup(
             'PT3S.ipynb'          
            ,'PT3S.html'
            ,'PT3S.pdf'  
-           ,'Lx.ipynb'           
+           #,'Lx.ipynb'           
            #,'testdata\Lx\20201113_151238a - 6 Logs.7z'
            ,'testdata\OneLPipe.XML'
            #,'testdata\OneLPipe.mdb'
