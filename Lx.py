@@ -31,6 +31,18 @@ import csv
 
 import glob
 
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib import colors
+from matplotlib.colorbar import make_axes
+
+
+import matplotlib as mpl
+import matplotlib.gridspec as gridspec
+import matplotlib.dates as mdates
+
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 class LxError(Exception):
     def __init__(self, value):
         self.value = value
@@ -113,6 +125,10 @@ def getDfFromODI(ODIFile,pID=pID):
         dfID.loc['Objects.3S_FBG_RSCHIEBER.3S_FBG_PCV_01.Out.SOLLW','D']='Out'
         #dfID.loc['Objects.3S_FBG_RSCHIEBER.3S_FBG_PCV_01.Out.SOLLW',:]
 
+        dfID['yUnit']=dfID.apply(lambda row: getDfFromODIHelperyUnit(row),axis=1)
+        dfID['yDesc']=dfID.apply(lambda row: getDfFromODIHelperyDesc(row),axis=1)
+
+        dfID=dfID[['yUnit','yDesc','Prae','A','B','C','C1','C2','C3','C4','C5','C6','C7','D','E','Post']]
 
     except Exception as e:
         logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -121,6 +137,99 @@ def getDfFromODI(ODIFile,pID=pID):
     finally:           
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
         return dfID
+
+def getDfFromODIHelperyUnit(row):
+    """
+    returns Unit
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    unit=None
+    try:
+        if row['E'] in ['AL_S','SB_S']:       
+            unit='[-]'
+        elif row['E'] in ['LR_AV','LP_AV','QD_AV','SD_AV','AM_AV','FZ_AV','MZ_AV','NG_AV']:
+            unit='[Nm³/h]'
+        elif row['E'] in ['AC_AV','LR_AV']:
+            unit='[mm/s²]'
+        else:
+            unit='TBD in Lx'                  
+    except:        
+        unit='ERROR'
+    finally:
+        #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+        return unit
+
+def getDfFromODIHelperyDesc(row):
+    """
+    returns Desc
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    desc=None
+    try:
+        if row['E'] in ['AL_S','SB_S']:       
+            desc='Status'
+        elif row['E'] in ['LR_AV','LP_AV','QD_AV','SD_AV','AM_AV','FZ_AV','MZ_AV','NG_AV']:
+            desc='Fluss'
+        elif row['E'] in ['AC_AV','LR_AV']:
+            desc='Beschleunigung'
+        else:
+            desc='TBD in Lx'                  
+    except:        
+        desc='ERROR'
+    finally:
+        #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+        return desc
+
+def getDfIDUniqueCols(dfID):
+    """
+    returns df with uniques  
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    dfIDUniqueCols=pd.DataFrame()
+    try:
+        # Spalte mit der groessten Anzahl von Auspraegungen feststellen
+        lenMax=0
+        colMax=''
+        # ueber alle Spalten
+        for idx,col in enumerate(dfID):           
+            s=pd.Series(dfID[col].unique())
+            if len(s) > lenMax:
+                lenMax=len(s)
+                colMax=col
+
+        s=pd.Series(dfID[colMax].unique(),name=colMax)
+        s.sort_values(inplace=True)
+        s=pd.Series(s.values,name=colMax)
+        dfIDUniqueCols=pd.DataFrame(s)
+               
+        # ueber alle weiteren Spalten
+        for idx,col in enumerate([col for col in dfID.columns if col != colMax]):
+            # s unique erzeugen
+            s=pd.Series(dfID[col].unique(),name=col)
+            # s sortieren
+            s.sort_values(inplace=True)
+            s=pd.Series(s.values,name=col)
+            dfIDUniqueCols=pd.concat([dfIDUniqueCols,s],axis=1)
+        
+        dfIDUniqueCols=dfIDUniqueCols[dfID.columns]
+
+
+    except:        
+        logger.error("{0:s}".format(logStr))  
+        
+    finally:
+
+        #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+        return dfIDUniqueCols
 
 h5KeySep='/'
 
@@ -142,9 +251,452 @@ class AppLog():
     * lookUpDf
     * lookUpDfZips
     """
+
+    @classmethod
+    def pltTC(cls,pDf,colInfDf,tcLines,**kwds):
+        """
+        Plots a Time Curve Diagram.
+        
+        Args:
+                DATA:
+                    pDf:        dataFrame
+                                index:  times
+                                cols:   values (colNames: IDs)
+                    colInfDf:   dataFrame
+                                index:  IDs
+                                cols:   information to the cols in pDf (colNames: i.e. yUnit)
+                    tcLines:    dct                        
+                                defining the Curves and their Layout:
+
+                                Key: ID is used as a key
+
+                                * tcLines - Example - = {
+                                'Objects.FBG_SCHALL.6_ZW1_20_SRT_11.In.MW.value':{'label':'VL','color':'red' ,'linestyle':'-','linewidth':3}                       
+                                }
+
+                        Definition der y-Achsentypen (y-Axes):
+                            * werden ermittelt aus den verschiedenen yDescs in colDf                                                      
+                            * yTwinedAxesPosDeltaHPStart: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche; default: -0.0125
+                            * yTwinedAxesPosDeltaHP: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche; default: -0.05
+
+
+                        Attribute:
+                            * alle gültigen
+                     
+                            * +
+                            
+                            * forceYType
+                            
+                            * offset
+                            * factor
+                            
+                            * timeStart
+                            * timeEnd
+                            
+                            * legendInfosFmt
+                            * label
+                     
+                AXES:
+                    pAx: Axes to be plotted on; if not specified: gca() is used
+
+                x-Achsen-Formatierung:                   
+                    majLocator - Beispiele:
+                            mdates.MinuteLocator(interval=5)
+                            mdates.MinuteLocator(byminute=[0,5,10,15,20,25,30,35,40,45,50,55])
+                    majFormatter - Beispiele:
+                            mdates.DateFormatter('%d.%m.%y: %H:%M')
+                    xTicksLabelsOff: wenn True, dann keine x-Achsen TickLabels
+
+        Return:
+                yAxes: dct with AXES; key=y-Achsentypen
+                yLines: dct with Line2Ds; key=Index from tcLines     
+                vLines: dct with Line2Ds; key=Index from vLines     
+                yLinesLegendLabels: dct with Legendlabels; key=Index from tcLines     
+                            
+                >>> #  -q -m 0 -s pltTC -y no -z no -w DHNetwork                
+                >>> import pandas as pd
+                >>> import matplotlib
+                >>> import matplotlib.pyplot as plt
+                >>> import matplotlib.gridspec as gridspec
+                >>> import matplotlib.dates as mdates
+                >>> import math
+                >>> try:
+                ...   import Rm
+                ... except ImportError:                   
+                ...   from PT3S import Rm
+                >>> # ---
+                >>> # xm=xms['DHNetwork']       
+                >>> mx=mxs['DHNetwork'] 
+                >>> sir3sID=mx.getSir3sIDFromSir3sIDoPK('ALLG~~~LINEPACKGEOM') # 'ALLG~~~5151766074450398225~LINEPACKGEOM'
+                >>> # mx.df[sir3sID].describe()
+                >>> # mx.df[sir3sID].iloc[0]
+                >>> plt.close()
+                >>> fig=plt.figure(figsize=Rm.DINA3q,dpi=Rm.dpiSize)         
+                >>> gs = gridspec.GridSpec(3, 1)
+                >>> # --------------------------
+                >>> axTC = fig.add_subplot(gs[0])       
+                >>> yAxes,yLines,vLines,yLinesLegendLabels=Rm.Rm.pltTC(mx.df             
+                ... ,tcLines={ 
+                ...     'ALLG~~~LINEPACKRATE':{'label':'Linepackrate','color':'red' ,'linestyle':'-','linewidth':3,'drawstyle':'steps','factor':10}
+                ...    ,'ALLG~~~LINEPACKGEOM':{'label':'Linepackgeometrie','color':'b' ,'linestyle':'-','linewidth':3,'offset':-mx.df[sir3sID].iloc[0]
+                ...         ,'timeStart':mx.df.index[0]+pd.Timedelta('10 Minutes')
+                ...         ,'timeEnd':mx.df.index[-1]-pd.Timedelta('10 Minutes')}
+                ...    ,'RSLW~wNA~~XA':{'label':'RSLW~wNA~~XA','color':'lime','forceYType':'N'}
+                ...    ,'PUMP~R-A-SS~R-A-DS~N':{'label':'PUMP~R-A-SS~R-A-DS~N','color':'aquamarine','linestyle':'--','legendInfosFmt':'{:4.0f}'}
+                ... }
+                ... ,pAx=axTC  
+                ... ,vLines={
+                ...   'a vLine Label':{'time': mx.df.index[0] + pd.Timedelta('10 Minutes')
+                ...                        ,'color':'dimgrey'
+                ...                        ,'linestyle':'--'
+                ...                        ,'linewidth':5.}
+                ... }
+                ... ,majLocator=mdates.MinuteLocator(byminute=[0,5,10,15,20,25,30,35,40,45,50,55])
+                ... ,majFormatter=mdates.DateFormatter('%d.%m.%y: %H:%M')
+                ... #,xTicksLabelsOff=True
+                ... )       
+                >>> sorted(yAxes.keys())  
+                ['LINEPACKGEOM', 'LINEPACKRATE', 'N']
+                >>> sorted(yLines.keys())  
+                ['ALLG~~~LINEPACKGEOM', 'ALLG~~~LINEPACKRATE', 'PUMP~R-A-SS~R-A-DS~N', 'RSLW~wNA~~XA']
+                >>> sorted(vLines.keys())  
+                ['a vLine Label']
+                >>> gs.tight_layout(fig)
+                >>> plt.show()                               
+                >>> 
+        """
+        logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        try:
+                keys = sorted(kwds.keys())
+                
+                # AXES
+                if 'pAx' not in keys:
+                    kwds['pAx']=plt.gca()
+
+                if 'yTwinedAxesPosDeltaHPStart' not in keys:
+                     # (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche; default: -0.0125
+                    kwds['yTwinedAxesPosDeltaHPStart']=-0.0125
+
+                if 'yTwinedAxesPosDeltaHP' not in keys:
+                     # (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche; default: -0.05
+                    kwds['yTwinedAxesPosDeltaHP']=-0.05
+
+                logger.debug("{:s}tcLines: {:s}.".format(logStr,str(tcLines)))
+                logger.debug("{:s}yTwinedAxesPosDeltaHPStart: {:s}.".format(logStr,str(kwds['yTwinedAxesPosDeltaHPStart'])))
+                logger.debug("{:s}yTwinedAxesPosDeltaHP: {:s}.".format(logStr,str(kwds['yTwinedAxesPosDeltaHP'])))
+
+                if 'lLoc' not in keys:                    
+                    kwds['lLoc']='best'                
+                if 'lFramealpha' not in keys:                    
+                    kwds['lFramealpha']=matplotlib.rcParams["legend.framealpha"]
+                if 'lFacecolor' not in keys:                    
+                    kwds['lFacecolor']='white'
+                if 'lOff' not in keys:                    
+                    kwds['lOff']=False
+
+                yAxes=yLines=vLines=None
+
+                df=pd.DataFrame(pDf.columns) 
+                colInfDfErg=df.merge(colInfDf,how='left',left_on='ID',right_index=True,suffixes=('','_r'))  
+                colInfDfErg=colInfDfErg.set_index('ID')                
+                #logger.debug("{:s}colInfDfErg: {:s}.".format(logStr,str(colInfDfErg)))
+                                              
+                # y-Achsen-Typen ermitteln
+                yTypesSequence=[]                
+                for key,props in tcLines.items():    
+                    yTypeDefault=colInfDfErg.loc[key,'yDesc']  
+                    yType=yTypeDefault
+                    #if 'forceYType' in props.keys():
+                    #    yType=props['forceYType']
+                    #    logger.debug("{:s}y-Achsentyp von {:s} vorgeschrieben: {:s} (default aus yDesc: {:s}).".format(logStr,key,yType,yTypeDefault))
+                    if yType not in yTypesSequence:
+                        yTypesSequence.append(yType)
+                        logger.debug("{:s}neuer y-Achsentyp: {:s}.".format(logStr,yType))
+
+                logger.debug("{:s}y-Achsentypen: {:s}.".format(logStr,str(yTypesSequence)))
+
+               
+ 
+                  
+                # y-Achsen konstruieren
+                yAxes={}
+                colType1st=yTypesSequence[0]
+                axTC=kwds['pAx'] 
+                axTC.spines["left"].set_position(("axes",kwds['yTwinedAxesPosDeltaHPStart'] )) 
+
+                axTC.set_ylabel(colType1st)  
+                yAxes[colType1st]=axTC                  
+                logger.debug("{:s}colType: {:s}: is attached to 1st Axes.".format(logStr,colType1st))
+                for idx,colType in enumerate(yTypesSequence[1:]):    
+                    # weitere y-Achse
+                    yPos=kwds['yTwinedAxesPosDeltaHPStart']+kwds['yTwinedAxesPosDeltaHP']*len(yAxes)
+                    logger.debug("{:s}colType: {:s}: is attached to a new Axes: yPos: {:1.4f} ...".format(logStr,colType,yPos))
+                     
+                    axTC = axTC.twinx()
+                    axTC.spines["left"].set_position(("axes", yPos)) 
+                    pltMakePatchSpinesInvisible(axTC)
+                    axTC.spines['left'].set_visible(True)  
+                    axTC.yaxis.set_label_position('left')
+                    axTC.yaxis.set_ticks_position('left')
+                    axTC.set_ylabel(colType)  
+                    yAxes[colType]=axTC                     
+
+                
+
+                # ueber alle definierten Kurven         
+                # max. Länge label vor Infos ermitteln
+                labels=[]
+                infos=[]
+                for key,props in tcLines.items(): 
+                        label=key
+                        if 'label' in props:
+                            label=props['label']
+                        labels.append(label)
+
+                        if 'legendInfosFmt' in props:
+                            legendInfosFmt=props['legendInfosFmt']
+                        else:
+                            legendInfosFmt='{:6.2f}'
+
+
+                        #if key not in colFromTcKey.keys():                       
+                        #    logger.debug("{:s}Line: {:s}: es konnte keine Spalte in pDf ermittelt werden. Spaltenname(n) kein SIR 3S Schluessel?! Kein Plot.".format(logStr,key))
+                        #    continue      
+                        #else:
+                        col=key #colFromTcKey[key]
+                        logger.debug("{:s}Line: {:s}: Spalte in pDf: {:s}.".format(logStr,key,col))
+
+
+                        if 'timeStart' in props:
+                            timeStart=props['timeStart']
+                        else:
+                            timeStart=pDf.index[0]
+
+                        if 'timeEnd' in props:
+                            timeEnd=props['timeEnd']
+                        else:
+                            timeEnd=pDf.index[-1]
+
+                        plotDf=pDf.loc[timeStart:timeEnd,:]
+                        infos.append(legendInfosFmt.format(plotDf[col].min()))
+                        infos.append(legendInfosFmt.format(plotDf[col].max()))
+
+
+                labelsLength=[len(label) for label in labels]
+                labelsLengthMax=max(labelsLength)
+
+                infosLength=[len(info) for info in infos]
+                infosLengthMax=max(infosLength)
+
+                # zeichnen
+                yLines={}       
+                yLinesLegendLabels={}
+                # ueber alle definierten Kurven         
+                for key,props in tcLines.items():                    
+                    #if key not in colFromTcKey.keys():                       
+                    #    logger.debug("{:s}Line: {:s}: es konnte keine Spalte in pDf ermittelt werden. Spaltenname(n) kein SIR 3S Schluessel?! Kein Plot.".format(logStr,key))
+                    #    continue      
+                    #else:
+                    col=key # colFromTcKey[key]
+
+                    #mo=re.match(Mx.reSir3sIDoPKcompiled,key) 
+                    #yType=mo.group('ATTRTYPE')
+                    #if 'forceYType' in props.keys():
+                    #    yType=props['forceYType']
+
+                    yType=colInfDfErg.loc[key,'yDesc']  
+                    axTC=yAxes[yType]
+
+                    logger.debug("{:s}Line: {:s} on Axes {:s} ...".format(logStr,key,yType))
+                         
+                    label=key
+                    color='black'
+                    linestyle='-'
+                    linewidth=3
+                    
+                    if 'offset' in props:
+                        offset=props['offset']
+                    else:
+                        offset=0.
+                    if 'factor' in props:
+                        factor=props['factor']
+                    else:
+                        factor=1.
+
+                    if 'timeStart' in props:
+                        timeStart=props['timeStart']
+                    else:
+                        timeStart=pDf.index[0]
+
+                    if 'timeEnd' in props:
+                        timeEnd=props['timeEnd']
+                    else:
+                        timeEnd=pDf.index[-1]
+
+                    if 'legendInfosFmt' in props:
+                        legendInfosFmt=props['legendInfosFmt']
+                    else:
+                        legendInfosFmt='{:6.2f}'
+
+                    plotDf=pDf.loc[timeStart:timeEnd,:]
+                    lines=axTC.plot(plotDf.index.values,plotDf[col]*factor+offset,label=label,color=color,linestyle=linestyle,linewidth=linewidth)                   
+                    yLines[key]=lines[0]
+
+                    if 'label' in props:
+                        label=props['label']
+                    else:
+                        label=label
+
+                    legendLabelFormat="Anf.: {:s} Ende: {:s} Min: {:s} Max: {:s}"#.format(*4*[legendInfosFmt])
+                    legendLabelFormat="{:s} "+legendLabelFormat
+                    legendInfos=[plotDf[col].iloc[0],plotDf[col].iloc[-1],plotDf[col].min(),plotDf[col].max()]                   
+                    legendInfos=[factor*legendInfo+offset for legendInfo in legendInfos]
+                    legendLabel=legendLabelFormat.format(label.ljust(labelsLengthMax,' '),
+                                                         *["{:s}".format(legendInfosFmt).format(legendInfo).rjust(infosLengthMax,' ') for legendInfo in legendInfos]
+                                                         )
+                    yLinesLegendLabels[key]=legendLabel
+                    logger.debug("{:s}legendLabel: {:s}.".format(logStr,legendLabel))
+                           
+                    for prop,value in props.items():       
+                        if prop not in ['forceYType','offset','factor','timeStart','timeEnd','legendInfosFmt']:
+                            plt.setp(yLines[key],"{:s}".format(prop),value)             
+                        
+                # x-Achse 
+                # ueber alle Axes
+                for key,ax in yAxes.items():
+                    ax.set_xlim(pDf.index[0],pDf.index[-1])     
+                    if 'majLocator' in kwds.keys():
+                        ax.xaxis.set_major_locator(kwds['majLocator'])
+                    if 'majFormatter' in kwds.keys():
+                        ax.xaxis.set_major_formatter(kwds['majFormatter'])                       
+                    plt.setp(ax.xaxis.get_majorticklabels(),rotation='vertical',ha='center')
+                    ax.xaxis.grid()
+
+                    # Beschriftung ausschalten
+                    if 'xTicksLabelsOff' in kwds.keys(): # xTicksOff
+                        if kwds['xTicksLabelsOff']:
+                            logger.debug("{:s}Achse: {:s}: x-Achse Labels aus.".format(logStr,key))
+                            #for tic in ax.xaxis.get_major_ticks():
+                            #    tic.tick1On = tic.tick2On = False
+                            ax.set_xticklabels([])
+
+                # vLines                                
+                # ueber alle definierten vLines
+                vLines={}
+                if 'vLines' in kwds.keys():
+                    for key,props in kwds['vLines'].items():       
+                        if 'time' in props.keys():
+                            logger.debug("{:s}vLine: {:s} ....".format(logStr,key))
+                            vLine=ax.axvline(x=props['time'], ymin=0, ymax=1, label=key)
+                            vLines[key]=vLine
+                            for prop,value in props.items():
+                                if prop not in ['time']:
+                                    plt.setp(vLine,"{:s}".format(prop),value)   
+                        else:
+                            logger.debug("{:s}vLine: {:s}: time nicht definiert.".format(logStr,key))
+
+
+                # Legend
+                import matplotlib.font_manager as font_manager
+                font = font_manager.FontProperties(family='monospace'
+                                   #weight='bold',
+                                   #style='normal', 
+                                   #size=16
+                                   )
+
+                if not kwds['lOff']:
+                    l=kwds['pAx'].legend(
+                        tuple([yLines[yline] for yline in yLines])
+                       ,
+                        tuple([yLinesLegendLabels[yLine] for yLine in yLinesLegendLabels])
+                       ,loc=kwds['lLoc']
+                       ,framealpha=kwds['lFramealpha']
+                       ,facecolor=kwds['lFacecolor']  
+                       ,prop=font
+                    )                
+                                                                                                                                                          
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise RmError(logStrFinal)                       
+        finally:       
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))       
+            return yAxes,yLines,vLines,yLinesLegendLabels
+
+    @classmethod
+    def getTCsFromDf(cls,df,TCsdfOPCFill=True):
+        """
+        returns several TC-dfs from df
+      
+        Args:
+            * df: a df with Log-Data
+            * TCsdfOPCFill: if True (default): fill NaNs
+        
+        Time curve dfs: cols:
+            * Time (TCsdfOPC: ProcessTime, other: ScenTime)
+            * ID
+            * Value
+
+        Time curve dfs:
+            * TCsdfOPC
+            * TCsSirCalc
+            * TCsLDSIn
+            * TCsLDSRes
+            
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+       
+        try:                          
+            TCsdfOPC=df[(df['SubSystem'].str.contains('^OPC')) & ~(df['Value'].isnull())][['ProcessTime','ID','Value']].pivot(index='ProcessTime', columns='ID', values='Value')
+            if TCsdfOPCFill:
+                for col in TCsdfOPC.columns:    
+                    TCsdfOPC[col]=TCsdfOPC[col].fillna(method='ffill')
+                    TCsdfOPC[col]=TCsdfOPC[col].fillna(method='bfill')
+
+            TCsdfSirCalc=df[(df['SubSystem'].str.contains('^SirCalc')) & ~(df['Value'].isnull())][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')                     
+            TCsdfLDSIn=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^<-'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')
+            TCsdfLDSRes=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')
+                                           
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+            return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes
+
     def __init__(self,logFile=None,zip7File=None,zip7Files=None,h5File=None,h5FileName=None,readWithDictReader=False,nRows=None):
         """
         (re-)initialize
+
+        logFile: 
+            wird gelesen und in H5 abgelegt
+            addZip7File(zip7File) liest alle Logs eines zipFiles und legt diese in H5 ab
+
+        zipFile: 
+            1. logFile wird gelesen und in H5 abgelegt
+            addZip7File(zip7File) liest alle Logs eines zipFiles und legt diese in H5 ab
+            die Initialisierung mit zipFile ist identisch mit der Initialisierung mit logFile wenn logFile das 1. logFile des Zips ist 
+
+            nach addZip7File(zip7File) - ggf. mehrfach fuer mehrere Zips:
+                koennen Daten mit self.get(...) gelesen werden (liefert 1 df)
+                koennen Daten mit self.getTCs(...) gelesen werden (liefert mehrere dfs in TC-Form)
+                koennen Daten mit self.getTCsSpecified(...) gelesen werden (liefert 1 df in TC-Form)
+
+                koennen Daten in TC-Form mit self.extractTCsToH5s(...) in separate H5s gelesen werden
+                mit self.getTCsFromH5s(...) koennen die TCs wieder gelesen werden
+
+                === addZip7File(zip7File) - ggf. mehrfach - und extractTCsToH5s(...) sind Bestandteil einer 7Zip-Verarbeitung vor der eigentlichen Analyse ===
+
+        zipFiles:
+            nur die ersten und letzten Logs aller Zips werden gelesen und da auch nur die ersten und letzten Zeilen
+            um einen Ueberblick zu gewinnen in self.lookUpDfZips (zusätzlich zu lx.lookUpDf)
+            mit self.getFromZips(...) koennen Daten gesichtet werden
+
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -275,10 +827,42 @@ class AppLog():
                     if 'lookUpDf' in h5KeysStripped:
                         self.lookUpDf=pd.read_hdf(self.h5File, key='lookUpDf')         
                     if 'lookUpDfZips' in h5KeysStripped:
-                        self.lookUpDfZips=pd.read_hdf(self.h5File, key='lookUpDfZips')                          
+                        self.lookUpDfZips=pd.read_hdf(self.h5File, key='lookUpDfZips')       
+                        
 
-             else:                                
-                logger.error("{0:s}H5-File {1:s} existiert nicht.".format(logStr,h5File))                
+                #TC-H5s
+                (name,ext)=os.path.splitext(self.h5File)
+                TCPost='_TC'
+
+                h5FileOPC=name+TCPost+'OPC'+ext
+                h5FileSirCalc=name+TCPost+'SirCalc'+ext
+                h5FileLDSIn=name+TCPost+'LDSIn'+ext
+
+                h5FileLDSRes1=name+TCPost+'LDSRes1'+ext
+                h5FileLDSRes2=name+TCPost+'LDSRes2'+ext
+                h5FileLDSRes=name+TCPost+'LDSRes'+ext
+               
+                if os.path.exists(h5FileOPC):                                         
+                    self.h5FileOPC=h5FileOPC                       
+                    logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileOPC))    
+                if os.path.exists(h5FileSirCalc):                                         
+                    self.h5FileSirCalc=h5FileSirCalc
+                    logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileSirCalc))  
+                if os.path.exists(h5FileLDSIn):                                         
+                    self.h5FileLDSIn=h5FileLDSIn
+                    logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileLDSIn))  
+
+                if os.path.exists(h5FileLDSRes):                                         
+                    self.h5FileLDSRes=h5FileLDSRes                      
+                    logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileLDSRes))    
+                if os.path.exists(h5FileLDSRes1):                                         
+                    self.h5FileLDSRes1=h5FileLDSRes1
+                    logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileLDSRes1))    
+                if os.path.exists(h5FileLDSRes2):                                         
+                    self.h5FileLDSRes2=h5FileLDSRes2
+                    logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileLDSRes2))    
+
+             
                     
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -872,14 +1456,19 @@ class AppLog():
             if not dfID.empty:
                 df=df.merge(dfID,how='left',left_on='ID',right_index=True,suffixes=('','_r'))                            
 
+            logger.debug("{0:s}{1:s}".format(logStr,'TCsdfOPC ...'))     
             TCsdfOPC=df[(df['SubSystem'].str.contains('^OPC'))][['ProcessTime','ID','Value']].pivot(index='ProcessTime', columns='ID', values='Value')
             if TCsdfOPCFill:
                 for col in TCsdfOPC.columns:    
                     TCsdfOPC[col]=TCsdfOPC[col].fillna(method='ffill')
                     TCsdfOPC[col]=TCsdfOPC[col].fillna(method='bfill')
-                      
+
+            logger.debug("{0:s}{1:s}".format(logStr,'TCsdfSirCalc ...'))                           
             TCsdfSirCalc=df[(df['SubSystem'].str.contains('^SirCalc'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')           
+
+            logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSIn ...'))      
             TCsdfLDSIn=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^<-'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')
+            
             if not dfID.empty:
                 C4Lst=['01',
                     '02',
@@ -892,9 +1481,16 @@ class AppLog():
                     '10',
                     '12',
                     '20']
+                logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes1 ...'))  
                 TCsdfLDSRes1=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->')) & (df['B'].str.contains('^3S_FBG_SEG_INFO'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')  
+
+                logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2a ...'))  
                 TCsdfLDSRes2a=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->')) & (df['B'].str.contains('^3S_FBG_DRUCK')) & (df['C2'].isin(['6'])) & (df['C4'].isin(C4Lst))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')      
+
+                logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2b ...'))  
                 TCsdfLDSRes2b=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->')) & (df['B'].str.contains('^3S_FBG_DRUCK')) & (df['C2'].isin(['6'])) & ~(df['C4'].isin(C4Lst))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')                             
+
+                logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2c ...'))  
                 TCsdfLDSRes2c=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->')) & (df['B'].str.contains('^3S_FBG_DRUCK')) & ~(df['C2'].isin(['6']))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')                                                 
 
             else:
@@ -925,6 +1521,238 @@ class AppLog():
                 return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2a,TCsdfLDSRes2b,TCsdfLDSRes2c
             else:                
                 return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1
+
+    def extractTCsToH5s(self,dfID=pd.DataFrame(),timeStart=None,timeEnd=None,TCsdfOPCFill=True):
+        """
+        extracts TC-Data from H5 to seperate H5-Files (Postfixe: _TCxxx.h5)
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+                        
+        try:   
+
+            # _TCxxx.h5 anlegen (OPC, SirCalc, LDSIn, LDSRes1, LDSRes2 (,LDSRes))
+
+            # ueber alle dfs in H5 (unter Berücksichtigung von timeStart und timeEnd)
+                # lesen
+                # TC-Teilmenge ermitteln: 'ID','ProcessTime','ScenTime','SubSystem','Value','Direction'
+                # Untermengen bilden: ['TCsdfOPC','TCsdfSirCalc','TCsdfLDSIn','TCsdfLDSRes1','TCsdfLDSRes2' (,'TCsdfLDSRes')]
+                # speichern
+
+            (name,ext)=os.path.splitext(self.h5File)
+
+            TCPost='_TC'
+            self.h5FileOPC=name+TCPost+'OPC'+ext
+            self.h5FileSirCalc=name+TCPost+'SirCalc'+ext
+            self.h5FileLDSIn=name+TCPost+'LDSIn'+ext
+            if not dfID.empty:
+                self.h5FileLDSRes1=name+TCPost+'LDSRes1'+ext
+                self.h5FileLDSRes2=name+TCPost+'LDSRes2'+ext
+
+                h5FileLDSRes=name+TCPost+'LDSRes'+ext
+                try:
+                    # wenn TC-H5 existiert wird es geloescht
+                    if os.path.exists(h5FileLDSRes):                                         
+                        os.remove(h5FileLDSRes)
+                        logger.debug("{0:s}Existing H5-File {1:s} deleted.".format(logStr,h5FileLDSRes))    
+                    del self.h5FileLDSRes
+                except:
+                    pass
+            else:
+                self.h5FileLDSRes=name+TCPost+'LDSRes'+ext
+
+                h5FileLDSRes1=name+TCPost+'LDSRes1'+ext
+                h5FileLDSRes2=name+TCPost+'LDSRes2'+ext
+                try:
+                    # wenn TC-H5 existiert wird es geloescht
+                    if os.path.exists(h5FileLDSRes1):                                         
+                        os.remove(h5FileLDSRes1)
+                        logger.debug("{0:s}Existing H5-File {1:s} deleted.".format(logStr,h5FileLDSRes1))     
+                    # wenn TC-H5 existiert wird es geloescht
+                    if os.path.exists(h5FileLDSRes2):                                         
+                        os.remove(h5FileLDSRes2)
+                        logger.debug("{0:s}Existing H5-File {1:s} deleted.".format(logStr,h5FileLDSRes2))                              
+                    del self.h5FileLDSRes1
+                    del self.h5FileLDSRes2
+                except:
+                    pass
+
+
+            dfLookUpTimes=self.lookUpDf
+            if timeStart!=None:
+                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['LastTime']>=timeStart] # endet nach dem Anfang oder EndeFile ist Anfang
+            if timeEnd!=None:
+                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
+            dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
+            dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
+            h5Keys=['Log'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
+
+
+            h5KeysOPC=['TCsOPC'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysSirCalc=['TCsSirCalc'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSIn=['TCsLDSIn'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes1=['TCsLDSRes1'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes2=['TCsLDSRes2'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes=['TCsLDSRes'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+
+            h5KeysAll=zip(h5Keys,h5KeysOPC,h5KeysSirCalc,h5KeysLDSIn,h5KeysLDSRes1,h5KeysLDSRes2,h5KeysLDSRes)
+            
+            for idx,(h5Key,h5KeyOPC,h5KeySirCalc,h5KeyLDSIn,h5KeyLDSRes1,h5KeyLDSRes2,h5KeyLDSRes) in enumerate(h5KeysAll):
+
+                #H5-Write-Modus
+                if idx==0:
+                    mode='w'
+                else:
+                    mode='a'
+
+                logger.debug("{0:s}Get (read_hdf) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
+                df=pd.read_hdf(self.h5File, key=h5Key)                   
+                df=df[['ID','ProcessTime','ScenTime','SubSystem','Value','Direction']]
+                df=df[~(df['Value'].isnull())]
+                #df['ID']=df['ID'].astype(str)
+
+                if not dfID.empty:
+                    df=df.merge(dfID,how='left',left_on='ID',right_index=True,suffixes=('','_r'))             
+                                                           
+                logger.debug("{0:s}{1:s}".format(logStr,'Write TCsdfOPC ...'))     
+                TCsdfOPC=df[(df['SubSystem'].str.contains('^OPC'))][['ProcessTime','ID','Value']].pivot(index='ProcessTime', columns='ID', values='Value')
+                if TCsdfOPCFill:
+                    for col in TCsdfOPC.columns:    
+                        TCsdfOPC[col]=TCsdfOPC[col].fillna(method='ffill')
+                        TCsdfOPC[col]=TCsdfOPC[col].fillna(method='bfill')
+                TCsdfOPC.to_hdf(self.h5FileOPC,h5KeyOPC, mode=mode)
+
+                logger.debug("{0:s}{1:s}".format(logStr,'Write TCsdfSirCalc ...'))                           
+                TCsdfSirCalc=df[(df['SubSystem'].str.contains('^SirCalc'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')       
+                TCsdfSirCalc.to_hdf(self.h5FileSirCalc,h5KeySirCalc, mode=mode)
+
+                logger.debug("{0:s}{1:s}".format(logStr,'Write TCsdfLDSIn ...'))      
+                TCsdfLDSIn=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^<-'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')
+                TCsdfLDSIn.to_hdf(self.h5FileLDSIn,h5KeyLDSIn, mode=mode)
+
+                if not dfID.empty:
+                    logger.debug("{0:s}{1:s}".format(logStr,'Write TCsdfLDSRes1 ...'))  
+                    TCsdfLDSRes1=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->')) & (df['B'].str.contains('^3S_FBG_SEG_INFO'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')  
+                    TCsdfLDSRes1.to_hdf(self.h5FileLDSRes1,h5KeyLDSRes1, mode=mode)
+
+                    logger.debug("{0:s}{1:s}".format(logStr,'Write TCsdfLDSRes2 ...'))  
+                    TCsdfLDSRes2=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->')) & (df['B'].str.contains('^3S_FBG_DRUCK'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')      
+                    TCsdfLDSRes2.to_hdf(self.h5FileLDSRes2,h5KeyLDSRes2, mode=mode)
+                else:                   
+                    logger.debug("{0:s}{1:s}".format(logStr,'Write TCsdfLDSRes ...'))  
+                    TCsdfLDSRes=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')  
+                    TCsdfLDSRes.to_hdf(self.h5FileLDSRes,h5KeyLDSRes, mode=mode)
+
+                                                                    
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            return
+
+    def getTCsFromH5s(self,timeStart=None,timeEnd=None):
+        """
+        returns several TC-dfs from TC-H5s            
+        """ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+                        
+        try:   
+
+            try:
+                self.h5FileLDSRes1                
+                Res2=True
+            except:                
+                Res2=False
+
+            dfLookUpTimes=self.lookUpDf
+            if timeStart!=None:
+                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['LastTime']>=timeStart] # endet nach dem Anfang oder EndeFile ist Anfang
+            if timeEnd!=None:
+                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
+            dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
+            dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
+            h5Keys=['Log'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
+
+
+            h5KeysOPC=['TCsOPC'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysSirCalc=['TCsSirCalc'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSIn=['TCsLDSIn'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes1=['TCsLDSRes1'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes2=['TCsLDSRes2'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes=['TCsLDSRes'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+
+            h5KeysAll=zip(h5Keys,h5KeysOPC,h5KeysSirCalc,h5KeysLDSIn,h5KeysLDSRes1,h5KeysLDSRes2,h5KeysLDSRes)
+            
+            for idx,(h5Key,h5KeyOPC,h5KeySirCalc,h5KeyLDSIn,h5KeyLDSRes1,h5KeyLDSRes2,h5KeyLDSRes) in enumerate(h5KeysAll):
+                                                           
+                logger.debug("{0:s}{1:s}".format(logStr,'TCsdfOPC ...'))                    
+                TCsdfOPC=pd.read_hdf(self.h5FileOPC,h5KeyOPC)
+
+                logger.debug("{0:s}{1:s}".format(logStr,'TCsdfSirCalc ...'))                                           
+                TCsdfSirCalc=pd.read_hdf(self.h5FileSirCalc,h5KeySirCalc)
+
+                logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSIn ...'))                      
+                TCsdfLDSIn=pd.read_hdf(self.h5FileLDSIn,h5KeyLDSIn)
+
+                if Res2:
+                    logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes1 ...'))                      
+                    TCsdfLDSRes1=pd.read_hdf(self.h5FileLDSRes1,h5KeyLDSRes1)
+                    logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2 ...'))                      
+                    TCsdfLDSRes2=pd.read_hdf(self.h5FileLDSRes2,h5KeyLDSRes2)
+                else:                   
+                    logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes ...'))                    
+                    TCsdfLDSRes=pd.read_hdf(self.h5FileLDSRes,h5KeyLDSRes)
+
+                if idx==0:
+                    TCsdfOPCLst=[]
+                    TCsdfSirCalcLst=[]
+                    TCsdfLDSInLst=[]
+                    if Res2:
+                        TCsdfLDSRes1Lst=[]
+                        TCsdfLDSRes2Lst=[]
+                    else:
+                        TCsdfLDSResLst=[]
+
+                    
+                logger.debug("{0:s}Append ...".format(logStr)) 
+
+                TCsdfOPCLst.append(TCsdfOPC)
+                TCsdfSirCalcLst.append(TCsdfSirCalc)
+                TCsdfLDSInLst.append(TCsdfLDSIn)
+                if Res2:
+                    TCsdfLDSRes1Lst.append(TCsdfLDSRes1)
+                    TCsdfLDSRes2Lst.append(TCsdfLDSRes2)
+                else:
+                    TCsdfLDSResLst.append(TCsdfLDSRes)
+
+            logger.debug("{0:s}Concat ...".format(logStr)) 
+
+            TCsdfOPC=pd.concat(TCsdfOPCLst)
+            TCsdfSirCalc=pd.concat(TCsdfSirCalcLst)
+            TCsdfLDSIn=pd.concat(TCsdfLDSInLst)
+            if Res2:
+                TCsdfLDSRes1=pd.concat(TCsdfLDSRes1Lst)
+                TCsdfLDSRes2=pd.concat(TCsdfLDSRes2Lst)
+            else:
+                TCsdfLDSRes=pd.concat(TCsdfLDSResLst)
+
+                                                                    
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            if Res2:
+                return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2
+            else:
+                return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes
 
 
     def getTCsSpecified(self,dfID=pd.DataFrame(),timeStart=None,timeEnd=None,f=lambda row: True if row['E'] == 'AL_S' else False):
@@ -979,7 +1807,10 @@ class AppLog():
 
     def getFromZips(self,timeStart=None,timeEnd=None,filter_fct=None,filterAfter=True):
         """
-        returns df with filter_fct applied
+        returns df from Zips
+
+        die Daten werden von den Zips gelesen: Log extrahieren, parsen, wieder loeschen
+        die Initalisierung muss mit AppLog(zip7Files=...) erfolgt sein da nur dann self.lookUpDfZips existiert
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1141,48 +1972,9 @@ class AppLog():
             return dfRet
 
 
-    def getTCsFromDf(self,df,TCsdfOPCFill=True):
-        """
-        returns several TC-dfs from df
 
-        Args:
-            * df: a self.get()-Result
-            * TCsdfOPCFill: if True (default): fill NaNs
-        
-        Time curve dfs: cols:
-            * Time (TCsdfOPC: ProcessTime, other: ScenTime)
-            * ID
-            * Value
 
-        Time curve dfs:
-            * TCsdfOPC
-            * TCsSirCalc
-            * TCsLDSIn
-            * TCsLDSRes
-            
-        """ 
- 
-        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-       
-        try:                          
-            TCsdfOPC=df[(df['SubSystem'].str.contains('^OPC')) & ~(df['Value'].isnull())][['ProcessTime','ID','Value']].pivot(index='ProcessTime', columns='ID', values='Value')
-            if TCsdfOPCFill:
-                for col in TCsdfOPC.columns:    
-                    TCsdfOPC[col]=TCsdfOPC[col].fillna(method='ffill')
-                    TCsdfOPC[col]=TCsdfOPC[col].fillna(method='bfill')
 
-            TCsdfSirCalc=df[(df['SubSystem'].str.contains('^SirCalc')) & ~(df['Value'].isnull())][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')                     
-            TCsdfLDSIn=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^<-'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')
-            TCsdfLDSRes=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')
-                                           
-        except Exception as e:
-            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-            logger.error(logStrFinal) 
-            raise LxError(logStrFinal)                       
-        finally:           
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-            return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes
 
 
 if __name__ == "__main__":

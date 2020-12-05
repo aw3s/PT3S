@@ -1,8 +1,9 @@
 {
   "ExpandedNodes": [
     "",
-    "\\testdata"
+    "\\testdata",
+    "\\testdata\\Lx"
   ],
-  "SelectedNode": "\\Lx.py",
+  "SelectedNode": "\\setup.py",
   "PreviewInSolutionExplorer": false
 }
