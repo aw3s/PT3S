@@ -231,6 +231,37 @@ def getDfIDUniqueCols(dfID):
         #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
         return dfIDUniqueCols
 
+def geIDsFromID(ID='Objects.3S_FBG_SEG_INFO.3S_L_6_KED_39_EL1.In.AL_S',dfID=None,matchCols=['B','C1','C2','C3','C4','C5','D'],any=False):
+    """
+    returns IDs matching ID  
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+       
+    try:
+        s=dfID.loc[ID,:]
+        IDsMatching=[]    
+    
+        for ID,row in dfID.iterrows():            
+            match=True
+            for col in [col for col in row.index.values if col in matchCols]:            
+                #if str(row[col])!=str(s[col]):
+                if row[col]!=s[col]:
+                    match=False                
+                    break                
+                else:
+                    if any:
+                        break                   
+            if match:
+                    IDsMatching.append(ID)
+    except:        
+        logger.error("{0:s}".format(logStr))  
+        
+    finally:
+        #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+        return sorted(IDsMatching)
+
 h5KeySep='/'
 
 class AppLog():
