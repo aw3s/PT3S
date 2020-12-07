@@ -341,6 +341,7 @@ def pltLDSErgVec(
     ,ylimAC=None 
     ,ylimACxlim=False 
     ,yticksAC=None 
+    ,ySpanMin=0.1 # wenn ylim R/AC undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
     
     ,Seg_AL_S_Attrs={'color':'blue'}
     ,Druck_AL_S_Attrs={'color':'blue','ls':'dashed'}
@@ -367,7 +368,11 @@ def pltLDSErgVec(
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
-    try:               
+    axLst=[]
+
+    try:    
+        
+            axLst.append(ax)
             # x-Achse ----------------
             (xlimMin,xlimMax)=xlim
             ax.set_xlim(xlim)
@@ -403,6 +408,7 @@ def pltLDSErgVec(
     
             # 2. y-Achse Fluss ----------------------------------------
             ax2 = ax.twinx()
+            axLst.append(ax2)
     
             pltLDSErgVecHelperX(
              ax2
@@ -452,6 +458,7 @@ def pltLDSErgVec(
     
             # 3. y-Achse Op-State -------------------------------------------------
             ax3 = ax.twinx()
+            axLst.append(ax3)
     
             pltLDSErgVecHelperX(
              ax3
@@ -480,6 +487,7 @@ def pltLDSErgVec(
     
             # 4. y-Achse Beschleunigung -------------------------------------------------
             ax4 = ax.twinx()
+            axLst.append(ax4)
     
             pltLDSErgVecHelperX(
              ax4
@@ -497,7 +505,6 @@ def pltLDSErgVec(
             lines=ax4.plot(dfDruckReprVec.index.values,dfDruckReprVec['AC_AV'].values)
             for prop,value in Druck_AC_AV_Attrs.items():               
                 plt.setp(lines[0],"{:s}".format(prop),value)      
-    
 
             ylimAC,yticksAC=pltLDSErgVecHelperYLimAndTicks(
              dfSegReprVec
@@ -526,10 +533,9 @@ def pltLDSErgVec(
         logger.error(logStrFinal) 
         raise RmError(logStrFinal)                       
     finally:       
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
-
-
-
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return axLst
+        
 def pltMakeCategoricalColors(color,nOfSubColorsReq=3,reversedOrder=False):
     """
     Returns an array of rgb colors derived from color.
