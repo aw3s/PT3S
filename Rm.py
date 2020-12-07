@@ -115,7 +115,7 @@ True
 ...    os.remove(plotFileName)
 """
 
-__version__='90.12.0.4.dev1'
+__version__='90.12.1.0.dev1'
 
 import warnings # 3.6
 #...\Anaconda3\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
@@ -368,6 +368,10 @@ def pltLDSErgVec(
     
     ,Seg_LR_AV_Attrs={'color':'green','zorder':2}
     ,Druck_LR_AV_Attrs={'color':'green','zorder':2,'ls':'dashed'}
+
+    ,plotLPRate=True
+    ,Seg_LP_AV_Attrs={'color':'turquoise','zorder':0,'lw':.25}
+    ,Druck_LP_AV_Attrs={'color':'turquoise','zorder':0,'lw':.25,'ls':'dashed'}
     
     ,Seg_NG_AV_Attrs={'color':'red','zorder':3}
     ,Druck_NG_AV_Attrs={'color':'red','zorder':3,'ls':'dashed'}
@@ -375,6 +379,7 @@ def pltLDSErgVec(
     ,Seg_SB_S_Attrs={'color':'black'}
     ,Druck_SB_S_Attrs={'color':'black','ls':'dashed'}    
     
+    ,plotAC=True
     ,Seg_AC_AV_Attrs={'color':'indigo'}
     ,Druck_AC_AV_Attrs={'color':'indigo','ls':'dashed'}       
 
@@ -391,6 +396,7 @@ def pltLDSErgVec(
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
     axLst=[]
+    yLines={}
 
     try:    
         
@@ -426,11 +432,13 @@ def pltLDSErgVec(
 
             if not dfSegReprVec.empty:
                 lines=ax.plot(dfSegReprVec.index.values,dfSegReprVec['AL_S'].values)
+                yLines['AL_S Seg']=lines[0]
                 for prop,value in Seg_AL_S_Attrs.items():               
                     plt.setp(lines[0],"{:s}".format(prop),value)    
                 
             if not dfDruckReprVec.empty:
                 lines=ax.plot(dfDruckReprVec.index.values,dfDruckReprVec['AL_S'].values)
+                yLines['AL_S Drk']=lines[0]
                 for prop,value in Druck_AL_S_Attrs.items():               
                     plt.setp(lines[0],"{:s}".format(prop),value)              
     
@@ -464,28 +472,51 @@ def pltLDSErgVec(
             if not dfSegReprVec.empty:
 
                 lines=ax2.plot(dfSegReprVec.index.values,dfSegReprVec['MZ_AV'].values)
+                yLines['MZ_AV Seg']=lines[0]
                 for prop,value in Seg_MZ_AV_Attrs.items():               
                     plt.setp(lines[0],"{:s}".format(prop),value)              
         
                 lines=ax2.plot(dfSegReprVec.index.values,dfSegReprVec['LR_AV'].values)
+                yLines['LR_AV Seg']=lines[0]
                 for prop,value in Seg_LR_AV_Attrs.items():               
                     plt.setp(lines[0],"{:s}".format(prop),value)     
     
                 lines=ax2.plot(dfSegReprVec.index.values,dfSegReprVec['NG_AV'].values)
+                yLines['NG_AV Seg']=lines[0]
                 for prop,value in Seg_NG_AV_Attrs.items():               
-                    plt.setp(lines[0],"{:s}".format(prop),value)      
+                    plt.setp(lines[0],"{:s}".format(prop),value)  
+                    
+                if plotLPRate:        
+                    lines=ax2.plot(dfSegReprVec.index.values,dfSegReprVec['LP_AV'].values)
+                    yLines['LP_AV Seg']=lines[0]
+                    for prop,value in Seg_LP_AV_Attrs.items():               
+                        plt.setp(lines[0],"{:s}".format(prop),value)                      
+
     
             if not dfDruckReprVec.empty:
                 lines=ax2.plot(dfDruckReprVec.index.values,dfDruckReprVec['LR_AV'].values)
+                yLines['LR_AV Drk']=lines[0]
                 for prop,value in Druck_LR_AV_Attrs.items():               
                     plt.setp(lines[0],"{:s}".format(prop),value)     
     
                 lines=ax2.plot(dfDruckReprVec.index.values,dfDruckReprVec['NG_AV'].values)
+                yLines['NG_AV Drk']=lines[0]
                 for prop,value in Druck_NG_AV_Attrs.items():               
                     plt.setp(lines[0],"{:s}".format(prop),value)      
+
+                if plotLPRate:        
+                    lines=ax2.plot(dfDruckReprVec.index.values,dfDruckReprVec['LP_AV'].values)
+                    yLines['LP_AV Drk']=lines[0]
+                    for prop,value in Druck_LP_AV_Attrs.items():               
+                        plt.setp(lines[0],"{:s}".format(prop),value)     
         
+            if not dfSegReprVec.empty:
+                dfReprVec=dfSegReprVec       
+            else:
+                dfReprVec=dfDruckReprVec  
+
             ylimR,yticksR=pltLDSErgVecHelperYLimAndTicks(
-             dfSegReprVec
+             dfReprVec
             ,'LR_AV'
             ,ylim=ylimR   
             ,yticks=yticksR 
@@ -493,13 +524,14 @@ def pltLDSErgVec(
             ,ylimxlim=ylimRxlim 
             ,xlim=xlim      
             ,ySpanMin=ySpanMin
-            )        
+            )   
+
             ax2.set_ylim(ylimR)
             ax2.set_yticks(yticksR)
         
             ax2.grid()  
     
-            ax2.set_ylabel('R1, R2, NG [Nm³/h]')
+            ax2.set_ylabel('R1, R2, NG, LP (R2-R1) [Nm³/h]')
     
             # 3. y-Achse Op-State -------------------------------------------------
             ax3 = ax.twinx()
@@ -516,11 +548,13 @@ def pltLDSErgVec(
         
             if not dfSegReprVec.empty:
                 lines=ax3.plot(dfSegReprVec.index.values,dfSegReprVec['SB_S'].values)
+                yLines['SB_S Seg']=lines[0]
                 for prop,value in Seg_SB_S_Attrs.items():               
                     plt.setp(lines[0],"{:s}".format(prop),value)     
 
             if not dfDruckReprVec.empty:    
                 lines=ax3.plot(dfDruckReprVec.index.values,dfDruckReprVec['SB_S'].values)
+                yLines['SB_S Drk']=lines[0]
                 for prop,value in Druck_SB_S_Attrs.items():               
                     plt.setp(lines[0],"{:s}".format(prop),value)       
     
@@ -531,91 +565,100 @@ def pltLDSErgVec(
             #ax3.grid()     
     
             ax3.set_ylabel('Betriebszustand [0/1/2/3/4]')
+
+            if plotAC:
     
-            # 4. y-Achse Beschleunigung -------------------------------------------------
-            ax4 = ax.twinx()
-            axLst.append(ax4)
+                # 4. y-Achse Beschleunigung -------------------------------------------------
+                ax4 = ax.twinx()
+                axLst.append(ax4)
     
-            pltLDSErgVecHelperX(
-             ax4
-            ,dateFormat=dateFormat
-            ,bysecond=bysecond
-            ,byminute=byminute
-            ,yPos=yTwinedAxesPosDeltaHPStart+3*yTwinedAxesPosDeltaHP
-            )           
-            pltLDSErgVecHelperY(ax4)
+                pltLDSErgVecHelperX(
+                 ax4
+                ,dateFormat=dateFormat
+                ,bysecond=bysecond
+                ,byminute=byminute
+                ,yPos=yTwinedAxesPosDeltaHPStart+3*yTwinedAxesPosDeltaHP
+                )           
+                pltLDSErgVecHelperY(ax4)
         
-            if not dfSegReprVec.empty:
-                lines=ax4.plot(dfSegReprVec.index.values,dfSegReprVec['AC_AV'].values)
-                for prop,value in Seg_AC_AV_Attrs.items():               
-                    plt.setp(lines[0],"{:s}".format(prop),value)         
-    
-            if not dfDruckReprVec.empty:
-                lines=ax4.plot(dfDruckReprVec.index.values,dfDruckReprVec['AC_AV'].values)
-                for prop,value in Druck_AC_AV_Attrs.items():               
-                    plt.setp(lines[0],"{:s}".format(prop),value)      
-
-            # ACC Limits
-            if plotACCLimits:
-
-
                 if not dfSegReprVec.empty:
+                    lines=ax4.plot(dfSegReprVec.index.values,dfSegReprVec['AC_AV'].values)
+                    yLines['AV_AV Seg']=lines[0]
+                    for prop,value in Seg_AC_AV_Attrs.items():               
+                        plt.setp(lines[0],"{:s}".format(prop),value)         
+    
+                if not dfDruckReprVec.empty:
+                    lines=ax4.plot(dfDruckReprVec.index.values,dfDruckReprVec['AC_AV'].values)
+                    yLines['AC_AV Drk']=lines[0]
+                    for prop,value in Druck_AC_AV_Attrs.items():               
+                        plt.setp(lines[0],"{:s}".format(prop),value)      
 
-                    line=ax4.axhline(y=dfSegReprVec['ACCST_AV'].max())
-                    for prop,value in Seg_ACC_Limits_Attrs.items():               
-                        plt.setp(line,"{:s}".format(prop),value)   
-                    line=ax4.axhline(y=dfSegReprVec['ACCTR_AV'].max())
-                    for prop,value in Seg_ACC_Limits_Attrs.items():               
-                        plt.setp(line,"{:s}".format(prop),value)  
+                # ACC Limits
+                if plotACCLimits:
+
+
+                    if not dfSegReprVec.empty:
+
+                        line=ax4.axhline(y=dfSegReprVec['ACCST_AV'].max())
+                        for prop,value in Seg_ACC_Limits_Attrs.items():               
+                            plt.setp(line,"{:s}".format(prop),value)   
+                        line=ax4.axhline(y=dfSegReprVec['ACCTR_AV'].max())
+                        for prop,value in Seg_ACC_Limits_Attrs.items():               
+                            plt.setp(line,"{:s}".format(prop),value)  
                     
 
-                if not dfDruckReprVec.empty:
+                    if not dfDruckReprVec.empty:
 
-                    line=ax4.axhline(y=dfDruckReprVec['ACCST_AV'].max())
-                    for prop,value in Druck_ACC_Limits_Attrs.items():               
-                        plt.setp(line,"{:s}".format(prop),value)   
-                    line=ax4.axhline(y=dfDruckReprVec['ACCTR_AV'].max())
-                    for prop,value in Druck_ACC_Limits_Attrs.items():               
-                        plt.setp(line,"{:s}".format(prop),value)   
+                        line=ax4.axhline(y=dfDruckReprVec['ACCST_AV'].max())
+                        for prop,value in Druck_ACC_Limits_Attrs.items():               
+                            plt.setp(line,"{:s}".format(prop),value)   
+                        line=ax4.axhline(y=dfDruckReprVec['ACCTR_AV'].max())
+                        for prop,value in Druck_ACC_Limits_Attrs.items():               
+                            plt.setp(line,"{:s}".format(prop),value)   
+
+                    if not dfSegReprVec.empty:
+                        line=ax4.axhline(y=-dfSegReprVec['ACCST_AV'].max())
+                        for prop,value in Seg_ACC_Limits_Attrs.items():               
+                            plt.setp(line,"{:s}".format(prop),value)   
+                        line=ax4.axhline(y=-dfSegReprVec['ACCTR_AV'].max())
+                        for prop,value in Seg_ACC_Limits_Attrs.items():               
+                            plt.setp(line,"{:s}".format(prop),value)   
+
+                    if not dfDruckReprVec.empty:
+
+                        line=ax4.axhline(y=-dfDruckReprVec['ACCST_AV'].max())
+                        for prop,value in Druck_ACC_Limits_Attrs.items():               
+                            plt.setp(line,"{:s}".format(prop),value)   
+                        line=ax4.axhline(y=-dfDruckReprVec['ACCTR_AV'].max())
+                        for prop,value in Druck_ACC_Limits_Attrs.items():               
+                            plt.setp(line,"{:s}".format(prop),value)   
+
 
                 if not dfSegReprVec.empty:
-                    line=ax4.axhline(y=-dfSegReprVec['ACCST_AV'].max())
-                    for prop,value in Seg_ACC_Limits_Attrs.items():               
-                        plt.setp(line,"{:s}".format(prop),value)   
-                    line=ax4.axhline(y=-dfSegReprVec['ACCTR_AV'].max())
-                    for prop,value in Seg_ACC_Limits_Attrs.items():               
-                        plt.setp(line,"{:s}".format(prop),value)   
+                    dfReprVec=dfSegReprVec       
+                else:
+                    dfReprVec=dfDruckReprVec  
 
-                if not dfDruckReprVec.empty:
-
-                    line=ax4.axhline(y=-dfDruckReprVec['ACCST_AV'].max())
-                    for prop,value in Druck_ACC_Limits_Attrs.items():               
-                        plt.setp(line,"{:s}".format(prop),value)   
-                    line=ax4.axhline(y=-dfDruckReprVec['ACCTR_AV'].max())
-                    for prop,value in Druck_ACC_Limits_Attrs.items():               
-                        plt.setp(line,"{:s}".format(prop),value)   
-
-
-            ylimAC,yticksAC=pltLDSErgVecHelperYLimAndTicks(
-             dfSegReprVec
-            ,'AC_AV'
-            ,ylim=ylimAC   
-            ,yticks=yticksAC
+                ylimAC,yticksAC=pltLDSErgVecHelperYLimAndTicks(
+                 dfReprVec
+                ,'AC_AV'
+                ,ylim=ylimAC   
+                ,yticks=yticksAC
     
-            ,ylimxlim=ylimACxlim 
-            ,xlim=xlim       
-            ,ySpanMin=ySpanMin
-            )        
-            ax4.set_ylim(ylimAC)
-            ax4.set_yticks(yticksAC)    
+                ,ylimxlim=ylimACxlim 
+                ,xlim=xlim       
+                ,ySpanMin=ySpanMin
+                )        
+                ax4.set_ylim(ylimAC)
+                ax4.set_yticks(yticksAC)    
     
     
-            #ax3.set_ylim(0,4)
-            #ax3.set_yticks([0,1,2,3,4])
+                #ax3.set_ylim(0,4)
+                #ax3.set_yticks([0,1,2,3,4])
     
-            #ax4.grid()     
+                #ax4.grid()     
     
-            ax4.set_ylabel('Beschleunigung [mm/s²]')    
+                ax4.set_ylabel('Beschleunigung [mm/s²]')    
                                                                                                                       
     except RmError:
         raise            
@@ -625,7 +668,7 @@ def pltLDSErgVec(
         raise RmError(logStrFinal)                       
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-        return axLst
+        return axLst,yLines
         
 def pltMakeCategoricalColors(color,nOfSubColorsReq=3,reversedOrder=False):
     """

@@ -2,6 +2,8 @@
 SIR 3S Logfile Utilities (short: Lx)
 """
 
+__version__='90.12.1.0.dev1'
+
 import os
 import sys
 import logging
@@ -219,7 +221,7 @@ def getDfIDUniqueCols(dfID):
         #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
         return dfIDUniqueCols
 
-def geIDsFromID(ID='Objects.3S_FBG_SEG_INFO.3S_L_6_KED_39_EL1.In.AL_S',dfID=None,matchCols=['B','C1','C2','C3','C4','C5','D'],any=False):
+def getIDsFromID(ID='Objects.3S_FBG_SEG_INFO.3S_L_6_KED_39_EL1.In.AL_S',dfID=None,matchCols=['B','C1','C2','C3','C4','C5','D'],any=False):
     """
     returns IDs matching ID  
     """
@@ -249,6 +251,37 @@ def geIDsFromID(ID='Objects.3S_FBG_SEG_INFO.3S_L_6_KED_39_EL1.In.AL_S',dfID=None
     finally:
         #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
         return sorted(IDsMatching)
+
+def getLDSResVecDf(
+     ID # ResVec-Defining-Channel; i.e. for Segs Objects.3S_FBG_SEG_INFO.3S_L_6_EL1_39_TUD.In.AL_S / i.e. for Drks Objects.3S_FBG_DRUCK.3S_6_EL1_39_PTI_02_E.In.AL_S 
+    ,dfID
+    ,TCsLDSResDf 
+    ,matchCols # i.e. ['B','C1','C2','C3','C4','C5','C6','D'] for Segs; i.e. ['B','C','D'] for Drks
+    ):
+    """
+    returns a df with LDSResChannels as columns (AL_S, ...); derived by Filtering columns from TCsLDSResDf and renaming them
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    dfResVec=pd.DataFrame()
+    try:
+        IDs=getIDsFromID(ID=ID,dfID=dfID,matchCols=matchCols)
+        dfFiltered=TCsLDSResDf.filter(items=IDs)
+       
+        colDct={}
+        for col in dfFiltered.columns:            
+            m=re.search(pID,col)
+            colDct[col]=m.group('E')
+        dfResVec=dfFiltered.rename(columns=colDct)        
+
+    except:        
+        logger.error("{0:s}".format(logStr))  
+        
+    finally:
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+        return dfResVec
 
 h5KeySep='/'
 
