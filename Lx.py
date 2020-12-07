@@ -230,8 +230,8 @@ def getIDsFromID(ID='Objects.3S_FBG_SEG_INFO.3S_L_6_KED_39_EL1.In.AL_S',dfID=Non
     #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
        
     try:
-        s=dfID.loc[ID,:]
-        IDsMatching=[]    
+        IDsMatching=[]   
+        s=dfID.loc[ID,:]        
     
         for ID,row in dfID.iterrows():            
             match=True
