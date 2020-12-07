@@ -235,6 +235,301 @@ from matplotlib.path import Path
 
 import numpy as np
 
+
+def pltLDSErgVecHelperX(
+     ax
+    ,dateFormat='%d.%m.%y: %H:%M:%S'
+    ,bysecond=[0,15,30,45]
+    ,byminute=None 
+    ,yPos=-0.0125 #: (i.d.R. negativer) Abstand der y-Achse von der Zeichenfläche; default: -0.0125
+    ):
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    if bysecond != None:
+        majLocatorTmp=mdates.SecondLocator(bysecond=bysecond)
+    else:
+        majLocatorTmp=mdates.MinuteLocator(byminute=byminute)
+    majFormatterTmp=mdates.DateFormatter(dateFormat)    
+    ax.xaxis.set_major_locator(majLocatorTmp)
+    ax.xaxis.set_major_formatter(majFormatterTmp)    
+    dummy=plt.setp(ax.xaxis.get_majorticklabels(),rotation='vertical',ha='center')
+    ax.spines["left"].set_position(("axes",yPos)) 
+
+    #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+    
+def pltLDSErgVecHelperY(
+     ax
+    ):
+    
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    pltMakePatchSpinesInvisible(ax)
+    ax.spines['left'].set_visible(True)  
+    ax.yaxis.set_label_position('left')
+    ax.yaxis.set_ticks_position('left')    
+
+    #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))
+    
+def pltLDSErgVecHelperYLimAndTicks(
+     dfReprVec
+    ,dfReprVecCol
+    ,ylim=None #(-10,10) #wenn undef., dann min/max dfReprVec    
+    ,yticks=None #[-10,0,10] #wenn undef., dann aus ylimR
+    
+    ,ylimxlim=False #wenn Wahr und ylimR undef., dann wird nachf. xlim beruecksichtigt bei min/max dfReprVec    
+    ,xlim=None     
+    ,ySpanMin=0.1 # wenn ylim undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
+    ):
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+  
+    if ylim != None:
+        # der y-Wertebereich ist explizit definiert
+        pass
+    else:        
+        if not ylimxlim:
+            ylimmin=dfReprVec.loc[:,dfReprVecCol].min()
+            ylimmax=dfReprVec.loc[:,dfReprVecCol].max()
+        else:       
+            (xlimMin,xlimMax)=xlim
+            ylimmin=dfReprVec.loc[xlimMin:xlimMax,dfReprVecCol].min()
+            ylimmax=dfReprVec.loc[xlimMin:xlimMax,dfReprVecCol].max()       
+        ylimmin=round(ylimmin,0)
+        ylimmax=round(ylimmax,0)
+        ylimminAbs=math.fabs(ylimmin)
+        
+        ylimB=max(ylimminAbs,ylimmax)
+        if ylimB < ySpanMin:
+            ylimB=ySpanMin
+        
+        if math.fabs(ylimmax-ylimmin) < ySpanMin:
+            ylimB=.5*(ylimminAbs+ylimmax)+ySpanMin
+             
+        ylim=(-ylimB,ylimB)
+    
+    if yticks != None:
+        # die y-Ticks sind explizit definiert
+        pass        
+    else:
+        # aus Wertebereich
+        (ylimMin,ylimMax)=ylim
+        yticks=[ylimMin,0,ylimMax] 
+    
+    #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))    
+    return ylim,yticks
+
+def pltLDSErgVec(
+     ax
+    ,dfSegReprVec # Ergebnisvektor SEG    
+    ,dfDruckReprVec # Ergebnisvektor DRUCK
+    ,xlim    
+    ,dateFormat='%d.%m.%y: %H:%M:%S'
+    ,bysecond=[0,15,30,45]
+    ,byminute=None
+    ,ylimAL=(0,40)
+    ,yticksAL=[0,10,20,30,40]
+    ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
+    ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
+    ,ylimR=None #(-10,10) #wenn undef., dann min/max dfSegReprVec
+    ,ylimRxlim=False #wenn Wahr und ylimR undef., dann wird xlim beruecksichtigt bei min/max dfSegReprVec
+    ,yticksR=None #[-10,0,10] #wenn undef., dann aus ylimR
+    # dito Beschl.
+    ,ylimAC=None 
+    ,ylimACxlim=False 
+    ,yticksAC=None 
+    
+    ,Seg_AL_S_Attrs={'color':'blue'}
+    ,Druck_AL_S_Attrs={'color':'blue','ls':'dashed'}
+    
+    ,Seg_MZ_AV_Attrs={'color':'orange','zorder':1}    
+    
+    ,Seg_LR_AV_Attrs={'color':'green','zorder':2}
+    ,Druck_LR_AV_Attrs={'color':'green','zorder':2,'ls':'dashed'}
+    
+    ,Seg_NG_AV_Attrs={'color':'red','zorder':3}
+    ,Druck_NG_AV_Attrs={'color':'red','zorder':3,'ls':'dashed'}
+    
+    ,Seg_SB_S_Attrs={'color':'black'}
+    ,Druck_SB_S_Attrs={'color':'black','ls':'dashed'}    
+    
+    ,Seg_AC_AV_Attrs={'color':'indigo'}
+    ,Druck_AC_AV_Attrs={'color':'indigo','ls':'dashed'}       
+          
+    ):
+    """
+    zeichnet Zeitkurven von App LDS Ergebnisvektoren auf ax
+    """
+   
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:               
+            # x-Achse ----------------
+            (xlimMin,xlimMax)=xlim
+            ax.set_xlim(xlim)
+    
+            pltLDSErgVecHelperX(
+             ax
+            ,dateFormat=dateFormat
+            ,bysecond=bysecond
+            ,byminute=byminute
+            ,yPos=yTwinedAxesPosDeltaHPStart
+            )      
+    
+            # 1. Achse Alarm -----------------------    
+            lines=ax.plot(dfSegReprVec.index.values,dfSegReprVec['AL_S'].values)
+            for prop,value in Seg_AL_S_Attrs.items():               
+                plt.setp(lines[0],"{:s}".format(prop),value)              
+            lines=ax.plot(dfDruckReprVec.index.values,dfDruckReprVec['AL_S'].values)
+            for prop,value in Druck_AL_S_Attrs.items():               
+                plt.setp(lines[0],"{:s}".format(prop),value)              
+    
+            #ax=dfSegRepr.plot.line(ax=ax,xlim=xlim,color='blue',lw=5.)
+            #ax=dfDruckRepr.plot.line(ax=ax,xlim=xlim,color='navy',ls='dashed')     
+    
+            ax.set_ylim(ylimAL)
+            ax.set_yticks(yticksAL)
+    
+            ax.grid() 
+    
+            ax.set_zorder(10)
+            ax.patch.set_visible(False)      
+    
+            ax.set_ylabel('Alarmstatus [0/10/20]')
+    
+            # 2. y-Achse Fluss ----------------------------------------
+            ax2 = ax.twinx()
+    
+            pltLDSErgVecHelperX(
+             ax2
+            ,dateFormat=dateFormat
+            ,bysecond=bysecond
+            ,byminute=byminute
+            ,yPos=yTwinedAxesPosDeltaHPStart+yTwinedAxesPosDeltaHP
+            )         
+           
+            pltLDSErgVecHelperY(ax2)
+            
+            lines=ax2.plot(dfSegReprVec.index.values,dfSegReprVec['MZ_AV'].values)
+            for prop,value in Seg_MZ_AV_Attrs.items():               
+                plt.setp(lines[0],"{:s}".format(prop),value)              
+        
+            lines=ax2.plot(dfSegReprVec.index.values,dfSegReprVec['LR_AV'].values)
+            for prop,value in Seg_LR_AV_Attrs.items():               
+                plt.setp(lines[0],"{:s}".format(prop),value)     
+    
+            lines=ax2.plot(dfSegReprVec.index.values,dfSegReprVec['NG_AV'].values)
+            for prop,value in Seg_NG_AV_Attrs.items():               
+                plt.setp(lines[0],"{:s}".format(prop),value)      
+    
+            lines=ax2.plot(dfDruckReprVec.index.values,dfDruckReprVec['LR_AV'].values)
+            for prop,value in Druck_LR_AV_Attrs.items():               
+                plt.setp(lines[0],"{:s}".format(prop),value)     
+    
+            lines=ax2.plot(dfDruckReprVec.index.values,dfDruckReprVec['NG_AV'].values)
+            for prop,value in Druck_NG_AV_Attrs.items():               
+                plt.setp(lines[0],"{:s}".format(prop),value)      
+        
+            ylimR,yticksR=pltLDSErgVecHelperYLimAndTicks(
+             dfSegReprVec
+            ,'LR_AV'
+            ,ylim=ylimR   
+            ,yticks=yticksR 
+    
+            ,ylimxlim=ylimRxlim 
+            ,xlim=xlim        
+            )        
+            ax2.set_ylim(ylimR)
+            ax2.set_yticks(yticksR)
+        
+            ax2.grid()  
+    
+            ax2.set_ylabel('R1, R2, NG [Nm³/h]')
+    
+            # 3. y-Achse Op-State -------------------------------------------------
+            ax3 = ax.twinx()
+    
+            pltLDSErgVecHelperX(
+             ax3
+            ,dateFormat=dateFormat
+            ,bysecond=bysecond
+            ,byminute=byminute
+            ,yPos=yTwinedAxesPosDeltaHPStart+2*yTwinedAxesPosDeltaHP
+            )           
+            pltLDSErgVecHelperY(ax3)
+        
+            lines=ax3.plot(dfSegReprVec.index.values,dfSegReprVec['SB_S'].values)
+            for prop,value in Seg_SB_S_Attrs.items():               
+                plt.setp(lines[0],"{:s}".format(prop),value)     
+    
+            lines=ax3.plot(dfDruckReprVec.index.values,dfDruckReprVec['SB_S'].values)
+            for prop,value in Druck_SB_S_Attrs.items():               
+                plt.setp(lines[0],"{:s}".format(prop),value)       
+    
+    
+            ax3.set_ylim(0,4)
+            ax3.set_yticks([0,1,2,3,4])
+    
+            #ax3.grid()     
+    
+            ax3.set_ylabel('Betriebszustand [0/1/2/3/4]')
+    
+            # 4. y-Achse Beschleunigung -------------------------------------------------
+            ax4 = ax.twinx()
+    
+            pltLDSErgVecHelperX(
+             ax4
+            ,dateFormat=dateFormat
+            ,bysecond=bysecond
+            ,byminute=byminute
+            ,yPos=yTwinedAxesPosDeltaHPStart+3*yTwinedAxesPosDeltaHP
+            )           
+            pltLDSErgVecHelperY(ax4)
+        
+            lines=ax4.plot(dfSegReprVec.index.values,dfSegReprVec['AC_AV'].values)
+            for prop,value in Seg_AC_AV_Attrs.items():               
+                plt.setp(lines[0],"{:s}".format(prop),value)         
+    
+            lines=ax4.plot(dfDruckReprVec.index.values,dfDruckReprVec['AC_AV'].values)
+            for prop,value in Druck_AC_AV_Attrs.items():               
+                plt.setp(lines[0],"{:s}".format(prop),value)      
+    
+
+            ylimAC,yticksAC=pltLDSErgVecHelperYLimAndTicks(
+             dfSegReprVec
+            ,'AC_AV'
+            ,ylim=ylimAC   
+            ,yticks=yticksAC
+    
+            ,ylimxlim=ylimACxlim 
+            ,xlim=xlim        
+            )        
+            ax4.set_ylim(ylimAC)
+            ax4.set_yticks(yticksAC)    
+    
+    
+            #ax3.set_ylim(0,4)
+            #ax3.set_yticks([0,1,2,3,4])
+    
+            #ax4.grid()     
+    
+            ax4.set_ylabel('Beschleunigung [mm/s²]')    
+                                                                                                                      
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+
+
+
 def pltMakeCategoricalColors(color,nOfSubColorsReq=3,reversedOrder=False):
     """
     Returns an array of rgb colors derived from color.
