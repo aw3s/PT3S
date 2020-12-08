@@ -333,8 +333,8 @@ def pltLDSpQHelperYLimAndTicks(
     ,ylim=None  # wenn undef., dann min/max dfReprVec    
     ,yticks=None # wenn undef., dann aus ylimR
     
-    ,ylimxlim=False #wenn Wahr und ylim undef., dann wird nachf. xlim beruecksichtigt bei min/max dfReprVec    
-    ,xlim=None     
+    ,ylimxlim=False # wenn Wahr und ylim undef., dann wird nachf. xlim beruecksichtigt bei min/max dfReprVec    
+    ,xlim=None  # x-Wertebereich   
     ,ySpanMin=0.1 # wenn ylim undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
     
     ,yGridSteps=0 # 0: das y-Gitter besteht dann bei ylimp=ylimQ=yticksp=yticksQ None nur aus min/max (also 1 Gitterabschnitt) 
@@ -353,58 +353,53 @@ def pltLDSpQHelperYLimAndTicks(
             pass
         else:        
             if not ylimxlim:
-                for idx,col in enumerate(dfReprVecCols):
-                    ylimminCol=dfReprVec.loc[:,col].min()
-                    ylimmaxCol=dfReprVec.loc[:,col].max()
-                    if idx==0:
-                        ylimmin=ylimminCol
-                        ylimmax=ylimmaxCol
-                    else:
-                        if ylimminCol < ylimmin:
-                            ylimmin=ylimminCol
-                        if ylimmaxCol > ylimmax:
-                            ylimmax=ylimmaxCol                                                                                                                
-            else:       
-                (xlimMin,xlimMax)=xlim
-                
-                for idx,col in enumerate(dfReprVecCols):
-                    ylimminCol=dfReprVec.loc[xlimMin:xlimMax,col].min()
-                    ylimmaxCol=dfReprVec.loc[xlimMin:xlimMax,col].max()
-                    if idx==0:
-                        ylimmin=ylimminCol
-                        ylimmax=ylimmaxCol
-                    else:
-                        if ylimminCol < ylimmin:
-                            ylimmin=ylimminCol
-                        if ylimmaxCol > ylimmax:
-                            ylimmax=ylimmaxCol                     
-          
+                # Extremalwerte Analysebereich
+                ylimmin=dfReprVec.loc[:,[col for col in dfReprVecCols]].min().min()
+                ylimmax=dfReprVec.loc[:,[col for col in dfReprVecCols]].max().max()                                                                                                             
+            else:    
+                if xlim == None:                    
+                    logger.error("{0:s} xlim muss angegeben sein wenn ylimxlim Wahr gesetzt wird. Weiter mit ylimxlim Falsch.".format(logStr)) 
+                    ylimmin=dfReprVec.loc[:,[col for col in dfReprVecCols]].min().min()
+                    ylimmax=dfReprVec.loc[:,[col for col in dfReprVecCols]].max().max()    
+                else:
+                    # Extremalwerte x-Wertebereich 
+                    (xlimMin,xlimMax)=xlim
+                    # Extremalwerte Analysebereich
+                    ylimmin=dfReprVec.loc[xlimMin:xlimMax,[col for col in dfReprVecCols]].min().min()
+                    ylimmax=dfReprVec.loc[xlimMin:xlimMax,[col for col in dfReprVecCols]].max().max()  
+
+            logger.debug("{0:s} ylimmin={1:10.2f} ylimmax={2:10.2f}.".format(logStr,ylimmin,ylimmax))         
+        
             if math.fabs(ylimmax-ylimmin) < ySpanMin:
                 ylimmax=ylimmin+ySpanMin
+                logger.debug("{0:s} ylimmin={1:10.2f} ylimmax={2:10.2f}.".format(logStr,ylimmin,ylimmax))        
                 
-            ylimMinR=round(ylimmin,-1)
-            ylimMaxR=round(ylimmax,-1)
+            ylimMinR=round(ylimmin,0)
+            ylimMaxR=round(ylimmax,0)
             if ylimMinR>ylimmin:
-                 ylimMinR=ylimMinR-1
+                    ylimMinR=ylimMinR-1
             if ylimMaxR<ylimmax:
-                ylimMaxR=ylimMaxR+1                
+                ylimMaxR=ylimMaxR+1     
+            
+            logger.debug("{0:s} ylimMinR={1:10.2f} ylimMaxR={2:10.2f}.".format(logStr,ylimMinR,ylimMaxR))        
                 
             ylim=(ylimMinR,ylimMaxR)
             
-            if yticks != None:
-                # die y-Ticks sind explizit definiert
-                pass        
-            else:
-                # aus Wertebereich
-                (ylimMin,ylimMax)=ylim
-                if yGridSteps==0:
-                    yticks=[ylimMin,ylimMax]             
-                else:                        
-                    dYGrid=(ylimMax-ylimMin)/yGridSteps
-                    y=np.arange(ylimMin,ylimMax,dYGrid)
-                    if y[-1]<ylimMax:
-                        y=np.append(y,y[-1]+dYGrid)                                                                
-                    yticks=y
+        if yticks != None:
+            # die y-Ticks sind explizit definiert
+            pass        
+        else:
+            # aus Wertebereich
+            (ylimMin,ylimMax)=ylim
+            if yGridSteps==0:
+                yticks=[ylimMin,ylimMax]             
+            else:                        
+                dYGrid=(ylimMax-ylimMin)/yGridSteps
+                y=np.arange(ylimMin,ylimMax,dYGrid)
+                if y[-1]<ylimMax:
+                    y=np.append(y,y[-1]+dYGrid)                                                                
+                yticks=y
+        logger.debug("{0:s} yticks={1:s}.".format(logStr,str(yticks)))      
 
     except RmError:
         raise            
@@ -900,7 +895,7 @@ def pltLDSpQ(
             )         
            
             for key, value in QDct.items():                
-                lines=ax.plot(dfLDS.index.values,dfLDS[key].values)                
+                lines=ax2.plot(dfLDS.index.values,dfLDS[key].values)                
                 if IDPltKey in value.keys():
                     IDPlt=value[IDPltKey]                     
                     if IDPlt in QDctAttrs.keys():                    
@@ -913,7 +908,7 @@ def pltLDSpQ(
             
            
                 if 'RTTM' in value.keys():
-                    lines=ax.plot(dfLDS.index.values,dfLDS[value['RTTM']].values)
+                    lines=ax2.plot(dfLDS.index.values,dfLDS[value['RTTM']].values)
                     
                     if IDPltKey in value.keys():
                         if value[IDPltKey] + ' ' + 'RTTM' in QDctAttrs.keys():  
