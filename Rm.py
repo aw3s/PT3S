@@ -236,7 +236,7 @@ from matplotlib.path import Path
 import numpy as np
 
 
-def pltLDSErgVecHelperX(
+def pltHelperX(
      ax
     ,dateFormat='%d.%m.%y: %H:%M:%S'
     ,bysecond=[0,15,30,45]
@@ -276,13 +276,17 @@ def pltLDSErgVecHelperY(
 def pltLDSErgVecHelperYLimAndTicks(
      dfReprVec
     ,dfReprVecCol
-    ,ylim=None #(-10,10) #wenn undef., dann min/max dfReprVec    
-    ,yticks=None #[-10,0,10] #wenn undef., dann aus ylimR
+    ,ylim=None #(-10,10) # wenn undef., dann min/max dfReprVec    
+    ,yticks=None #[-10,0,10] # wenn undef., dann aus ylimR
     
-    ,ylimxlim=False #wenn Wahr und ylimR undef., dann wird nachf. xlim beruecksichtigt bei min/max dfReprVec    
+    ,ylimxlim=False #wenn Wahr und ylim undef., dann wird nachf. xlim beruecksichtigt bei min/max dfReprVec    
     ,xlim=None     
     ,ySpanMin=0.1 # wenn ylim undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
     ):
+    """
+    Returns: ylim,yticks
+             Der y-Werte-Bereich wird zur x-Achse symmetrisch ermittelt
+    """
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -323,6 +327,95 @@ def pltLDSErgVecHelperYLimAndTicks(
     return ylim,yticks
 
 
+def pltLDSpQHelperYLimAndTicks(
+     dfReprVec
+    ,dfReprVecCols
+    ,ylim=None  # wenn undef., dann min/max dfReprVec    
+    ,yticks=None # wenn undef., dann aus ylimR
+    
+    ,ylimxlim=False #wenn Wahr und ylim undef., dann wird nachf. xlim beruecksichtigt bei min/max dfReprVec    
+    ,xlim=None     
+    ,ySpanMin=0.1 # wenn ylim undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
+    
+    ,yGridSteps=0 # 0: das y-Gitter besteht dann bei ylimp=ylimQ=yticksp=yticksQ None nur aus min/max (also 1 Gitterabschnitt) 
+    ):
+    """
+    Returns: ylim,yticks             
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:
+        
+        if ylim != None:
+            # der y-Wertebereich ist explizit definiert
+            pass
+        else:        
+            if not ylimxlim:
+                for idx,col in enumerate(dfReprVecCols):
+                    ylimminCol=dfReprVec.loc[:,col].min()
+                    ylimmaxCol=dfReprVec.loc[:,col].max()
+                    if idx==0:
+                        ylimmin=ylimminCol
+                        ylimmax=ylimmaxCol
+                    else:
+                        if ylimminCol < ylimmin:
+                            ylimmin=ylimminCol
+                        if ylimmaxCol > ylimmax:
+                            ylimmax=ylimmaxCol                                                                                                                
+            else:       
+                (xlimMin,xlimMax)=xlim
+                
+                for idx,col in enumerate(dfReprVecCols):
+                    ylimminCol=dfReprVec.loc[xlimMin:xlimMax,col].min()
+                    ylimmaxCol=dfReprVec.loc[xlimMin:xlimMax,col].max()
+                    if idx==0:
+                        ylimmin=ylimminCol
+                        ylimmax=ylimmaxCol
+                    else:
+                        if ylimminCol < ylimmin:
+                            ylimmin=ylimminCol
+                        if ylimmaxCol > ylimmax:
+                            ylimmax=ylimmaxCol                     
+          
+            if math.fabs(ylimmax-ylimmin) < ySpanMin:
+                ylimmax=ylimmin+ySpanMin
+                
+            ylimMinR=round(ylimmin,-1)
+            ylimMaxR=round(ylimmax,-1)
+            if ylimMinR>ylimmin:
+                 ylimMinR=ylimMinR-1
+            if ylimMaxR<ylimmax:
+                ylimMaxR=ylimMaxR+1                
+                
+            ylim=(ylimMinR,ylimMaxR)
+            
+            if yticks != None:
+                # die y-Ticks sind explizit definiert
+                pass        
+            else:
+                # aus Wertebereich
+                (ylimMin,ylimMax)=ylim
+                if yGridSteps==0:
+                    yticks=[ylimMin,ylimMax]             
+                else:                        
+                    dYGrid=(ylimMax-ylimMin)/yGridSteps
+                    y=np.arange(ylimMin,ylimMax,dYGrid)
+                    if y[-1]<ylimMax:
+                        y=np.append(y,y[-1]+dYGrid)                                                                
+                    yticks=y
+
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return ylim,yticks
+                                            
 linestyle_tuple = [
      ('loosely dotted',        (0, (1, 10))),
      ('dotted',                (0, (1, 1))),
@@ -425,7 +518,7 @@ def pltLDSErgVec(
 
             ax.set_xlim(xlim)
     
-            pltLDSErgVecHelperX(
+            pltHelperX(
              ax
             ,dateFormat=dateFormat
             ,bysecond=bysecond
@@ -477,7 +570,7 @@ def pltLDSErgVec(
             ax2 = ax.twinx()
             axLst.append(ax2)
     
-            pltLDSErgVecHelperX(
+            pltHelperX(
              ax2
             ,dateFormat=dateFormat
             ,bysecond=bysecond
@@ -551,46 +644,13 @@ def pltLDSErgVec(
     
             ax2.set_ylabel('R1, R2, NG, LP (R2-R1) [Nm³/h]')
     
-            ## 3. y-Achse Op-State -------------------------------------------------
-            #ax3 = ax.twinx()
-            #axLst.append(ax3)
-    
-            #pltLDSErgVecHelperX(
-            # ax3
-            #,dateFormat=dateFormat
-            #,bysecond=bysecond
-            #,byminute=byminute
-            #,yPos=yTwinedAxesPosDeltaHPStart+2*yTwinedAxesPosDeltaHP
-            #)           
-            #pltLDSErgVecHelperY(ax3)
-        
-            #if not dfSegReprVec.empty:
-            #    lines=ax3.plot(dfSegReprVec.index.values,dfSegReprVec['SB_S'].values)
-            #    yLines['SB_S Seg']=lines[0]
-            #    for prop,value in Seg_SB_S_Attrs.items():               
-            #        plt.setp(lines[0],"{:s}".format(prop),value)     
-
-            #if not dfDruckReprVec.empty:    
-            #    lines=ax3.plot(dfDruckReprVec.index.values,dfDruckReprVec['SB_S'].values)
-            #    yLines['SB_S Drk']=lines[0]
-            #    for prop,value in Druck_SB_S_Attrs.items():               
-            #        plt.setp(lines[0],"{:s}".format(prop),value)       
-    
-    
-            #ax3.set_ylim(0,4)
-            #ax3.set_yticks([0,1,2,3,4])
-    
-            ##ax3.grid()     
-    
-            #ax3.set_ylabel('Betriebszustand [0/1/2/3/4]')
-
             if plotAC:
     
                 # 3. y-Achse Beschleunigung -------------------------------------------------
                 ax3 = ax.twinx()
                 axLst.append(ax3)
     
-                pltLDSErgVecHelperX(
+                pltHelperX(
                  ax3
                 ,dateFormat=dateFormat
                 ,bysecond=bysecond
@@ -697,6 +757,216 @@ def pltLDSErgVec(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
         return axLst,yLines
+
+
+def pltLDSpQ(
+     ax
+    ,dfLDS # LDS-TCs (Druecke und Durchfluesse)
+    
+    ,QDct={ # Exanple
+        'Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value':{'IDPlt':'Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+        ,'Objects.FBG_MESSW.6_TUD_39_FT_01.In.MW.value':{'IDPlt':'Snk','RTTM':'IMDI.Objects.FBG_MESSW.6_TUD_39_FT_01.In.MW.value'}
+     }
+    
+    ,pDct={ # Example
+        'Objects.FBG_HPS_M.6_KED_39_PTI_01_E.In.MW.value':{'IDPlt':'Src'}
+        ,'Objects.FBG_HPS_M.6_TUD_39_PTI_01_E.In.MW.value':{'IDPlt':'Snk'}
+     }
+    
+    ,IDPltKey='IDPlt'
+    
+    ,pDctAttrs={'Src':{'color':'blue'}
+                ,'Snk':{'color':'blue','ls':'dashed'}
+               }
+    
+    ,QDctAttrs={'Src':{'color':'red'}
+                ,'Snk':{'color':'orange'}
+                ,'Src RTTM':{'color':'red','ls':'dotted'}
+                ,'Snk RTTM':{'color':'orange','ls':'dotted'}                
+               }    
+
+    ,dfOPC=pd.DataFrame() # Messwert-TCs (selbe IDs)        
+        
+    ,xlim=None    
+    ,dateFormat='%d.%m.%y: %H:%M:%S'
+    ,bysecond=[0,15,30,45]
+    ,byminute=None
+    
+    ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
+    ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
+    
+    # p y-Achse
+    ,ylimp=(0,100)  #wenn undef., dann min/max 
+    ,ylimpxlim=False #wenn Wahr und ylim undef., dann wird xlim beruecksichtigt bei min/max 
+    ,yticksp=[0,50,100] #wenn undef., dann aus ylimp
+    
+    # Q y-Achse
+    ,ylimQ=(0,250) 
+    ,ylimQxlim=False 
+    ,yticksQ=[0,50,100,150,200,250]  
+    
+    ,yGridSteps=0 # 0: das y-Gitter besteht dann bei ylimp=ylimQ=yticksp=yticksQ None nur aus min/max (also 1 Gitterabschnitt) 
+    
+    ,ySpanMin=0.9 # wenn ylim undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
+
+    ,plotLegend=True
+    ,legendLoc='best'
+    ,legendFramealpha=.2
+    ,legendFacecolor='white' 
+          
+    ):
+    """
+    zeichnet pq-Zeitkurven auf ax
+    """
+   
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    axLst=[]
+    yLines={}
+
+    try:    
+        
+            axLst.append(ax)
+
+            # x-Achse ----------------
+            if xlim == None:            
+                xlimMin=dfLDS.index[0]
+                xlimMax=dfLDS.index[-1]                                
+                xlim=(xlimMin,xlimMax)
+            (xlimMin,xlimMax)=xlim
+
+            ax.set_xlim(xlim)
+            
+           
+    
+            pltHelperX(
+             ax
+            ,dateFormat=dateFormat
+            ,bysecond=bysecond
+            ,byminute=byminute
+            ,yPos=yTwinedAxesPosDeltaHPStart
+            )  
+        
+          
+    
+            # 1. Achse p -----------------------    
+        
+            for key, value in pDct.items():                
+                lines=ax.plot(dfLDS.index.values,dfLDS[key].values)
+                                                
+                if IDPltKey in value.keys():
+                    IDPlt=value[IDPltKey]                     
+                    if IDPlt in pDctAttrs.keys():                    
+                        for prop,propValue in pDctAttrs[IDPlt].items():               
+                            plt.setp(lines[0],"{:s}".format(prop),propValue)                 
+                
+                    key_yLines=IDPlt+' '+key
+                else:
+                    key_yLines=key
+                yLines[key_yLines]=lines[0]
+                
+            ylimp,yticksp=pltLDSpQHelperYLimAndTicks(
+             dfLDS
+            ,pDct.keys()
+            ,ylim=ylimp
+            ,yticks=yticksp     
+            ,ylimxlim=ylimpxlim 
+            ,xlim=xlim      
+            ,ySpanMin=ySpanMin
+            ,yGridSteps=yGridSteps
+            )       
+    
+            ax.set_ylim(ylimp)
+            ax.set_yticks(yticksp)
+                            
+            ax.grid() 
+    
+            ax.set_zorder(10)
+            ax.patch.set_visible(False)      
+    
+            ax.set_ylabel('[bar]')
+    
+            # 2. y-Achse Q ----------------------------------------
+            ax2 = ax.twinx()
+            axLst.append(ax2)
+    
+            pltHelperX(
+             ax2
+            ,dateFormat=dateFormat
+            ,bysecond=bysecond
+            ,byminute=byminute
+            ,yPos=yTwinedAxesPosDeltaHPStart+yTwinedAxesPosDeltaHP
+            )         
+           
+            for key, value in QDct.items():                
+                lines=ax.plot(dfLDS.index.values,dfLDS[key].values)                
+                if IDPltKey in value.keys():
+                    IDPlt=value[IDPltKey]                     
+                    if IDPlt in QDctAttrs.keys():                    
+                        for prop,propValue in QDctAttrs[IDPlt].items():               
+                            plt.setp(lines[0],"{:s}".format(prop),propValue)                                 
+                    key_yLines=IDPlt+' '+key
+                else:
+                    key_yLines=key                                                            
+                yLines[key_yLines]=lines[0]    
+            
+           
+                if 'RTTM' in value.keys():
+                    lines=ax.plot(dfLDS.index.values,dfLDS[value['RTTM']].values)
+                    
+                    if IDPltKey in value.keys():
+                        if value[IDPltKey] + ' ' + 'RTTM' in QDctAttrs.keys():  
+                            for prop,propValue in QDctAttrs[value[IDPltKey] + ' ' + 'RTTM'].items():               
+                                plt.setp(lines[0],"{:s}".format(prop),propValue) 
+                    
+                        key_yLines=value[IDPltKey]+' '+value['RTTM']
+                    else:
+                        key_yLines=value['RTTM']
+                    yLines[key_yLines]=lines[0]  
+                    
+        
+            
+            pltLDSErgVecHelperY(ax2)
+                     
+            ylimQ,yticksQ=pltLDSpQHelperYLimAndTicks(
+             dfLDS
+            ,QDct.keys()
+            ,ylim=ylimQ
+            ,yticks=yticksQ     
+            ,ylimxlim=ylimQxlim 
+            ,xlim=xlim      
+            ,ySpanMin=ySpanMin
+            ,yGridSteps=yGridSteps                
+            )                               
+
+            ax2.set_ylim(ylimQ)
+            ax2.set_yticks(yticksQ)
+                                         
+            ax2.grid()  
+    
+            ax2.set_ylabel('[Nm³/h]')
+    
+            if plotLegend:
+                pass
+                ax.legend(
+                 tuple([yLines[yline] for yline in yLines])
+                ,tuple([key for key,value in yLines.items()])
+                ,loc=legendLoc
+                ,framealpha=legendFramealpha
+                ,facecolor=legendFacecolor
+                )
+                                                                                                                      
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return axLst,yLines
+
         
 def pltMakeCategoricalColors(color,nOfSubColorsReq=3,reversedOrder=False):
     """
