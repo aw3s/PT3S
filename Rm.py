@@ -277,7 +277,7 @@ def pltLDSErgVecHelperYLimAndTicks(
      dfReprVec
     ,dfReprVecCol
     ,ylim=None #(-10,10) # wenn undef., dann min/max dfReprVec    
-    ,yticks=None #[-10,0,10] # wenn undef., dann aus ylimR
+    ,yticks=None #[-10,0,10] # wenn undef., dann aus ylim
     
     ,ylimxlim=False #wenn Wahr und ylim undef., dann wird nachf. xlim beruecksichtigt bei min/max dfReprVec    
     ,xlim=None     
@@ -285,34 +285,43 @@ def pltLDSErgVecHelperYLimAndTicks(
     ):
     """
     Returns: ylim,yticks
-             Der y-Werte-Bereich wird zur x-Achse symmetrisch ermittelt
+             Der y-Werte-Bereich ylim wird zur x-Achse symmetrisch ermittelt.
+                yticks spielt dabei keine Rolle.
+             Sind ylim bzw. yticks definiert, erfahren sie keine Änderung.
     """
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
   
     if ylim != None:
         # der y-Wertebereich ist explizit definiert
         pass
     else:                    
-        if not dfReprVec.empty and not dfReprVec.loc[:,dfReprVecCol].isnull().any().any() :
+        if not dfReprVec.empty and not dfReprVec.loc[:,dfReprVecCol].isnull().all().all():
             if not ylimxlim:
                 ylimmin=dfReprVec.loc[:,dfReprVecCol].min()
                 ylimmax=dfReprVec.loc[:,dfReprVecCol].max()
             else:       
                 (xlimMin,xlimMax)=xlim
-                if not dfReprVec.loc[xlimMin:xlimMax,dfReprVecCol].isnull().any().any():                    
+                if not dfReprVec.loc[xlimMin:xlimMax,dfReprVecCol].isnull().all().all():                    
                     ylimmin=dfReprVec.loc[xlimMin:xlimMax,dfReprVecCol].min()
                     ylimmax=dfReprVec.loc[xlimMin:xlimMax,dfReprVecCol].max()       
                 else:
                     ylimmin=0
                     ylimmax=0
-            ylimmin=round(ylimmin,0)
-            ylimmax=round(ylimmax,0)
-            ylimminAbs=math.fabs(ylimmin)
+
+            ylimminR=round(ylimmin,0)
+            ylimmaxR=round(ylimmax,0)
+
+            if ylimminR > ylimmin:                
+                ylimminR=ylimminR-1
+            if ylimmaxR < ylimmax:                
+                ylimmaxR=ylimmaxR+1
+
+            ylimminAbsR=math.fabs(ylimminR)
         
             # B auf den extremaleren Wert
-            ylimB=max(ylimminAbs,ylimmax)
+            ylimB=max(ylimminAbsR,ylimmaxR)
             if ylimB < ySpanMin:
                 # B auf Mindestwert
                 ylimB=ySpanMin
@@ -443,14 +452,18 @@ def pltLDSErgVec(
      ax
     ,dfSegReprVec=pd.DataFrame() # Ergebnisvektor SEG; pass empty Df if Druck only    
     ,dfDruckReprVec=pd.DataFrame() # Ergebnisvektor DRUCK; pass empty Df if Seg only
+    
     ,xlim=None    
     ,dateFormat='%d.%m.%y: %H:%M:%S'
     ,bysecond=[0,15,30,45]
     ,byminute=None
+    
     ,ylimAL=(0,40)
     ,yticksAL=[0,10,20,30,40]
+
     ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
     ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
+
     ,ylimR=None #(-10,10) #wenn undef., dann min/max dfSegReprVec
     ,ylimRxlim=False #wenn Wahr und ylimR undef., dann wird xlim beruecksichtigt bei min/max dfSegReprVec
     ,yticksR=None #[-10,0,10] #wenn undef., dann aus ylimR
@@ -559,10 +572,7 @@ def pltLDSErgVec(
                 yLines['SB_S Drk']=lines[0]
                 for prop,value in Druck_SB_S_Attrs.items():               
                     plt.setp(lines[0],"{:s}".format(prop),value)       
-    
-            #ax=dfSegRepr.plot.line(ax=ax,xlim=xlim,color='blue',lw=5.)
-            #ax=dfDruckRepr.plot.line(ax=ax,xlim=xlim,color='navy',ls='dashed')     
-    
+        
             ax.set_ylim(ylimAL)
             ax.set_yticks(yticksAL)
     
@@ -634,11 +644,12 @@ def pltLDSErgVec(
 
             ylimSeg,yticksSeg=pltLDSErgVecHelperYLimAndTicks(
              dfSegReprVec
+
             ,'LR_AV'
             ,ylim=ylimR   
             ,yticks=yticksR 
-    
             ,ylimxlim=ylimRxlim 
+
             ,xlim=xlim      
             ,ySpanMin=ySpanMin
             )   
@@ -646,11 +657,12 @@ def pltLDSErgVec(
 
             ylimDrk,yticksDrk=pltLDSErgVecHelperYLimAndTicks(
              dfDruckReprVec
+
             ,'LR_AV'
             ,ylim=ylimR   
             ,yticks=yticksR 
-    
-            ,ylimxlim=ylimRxlim 
+            ,ylimxlim=ylimRxlim
+            
             ,xlim=xlim      
             ,ySpanMin=ySpanMin
             ) 
@@ -741,11 +753,12 @@ def pltLDSErgVec(
 
                 ylimSeg,yticksSeg=pltLDSErgVecHelperYLimAndTicks(
                  dfSegReprVec
+
                 ,'AC_AV'
                 ,ylim=ylimAC   
-                ,yticks=yticksAC
-    
+                ,yticks=yticksAC    
                 ,ylimxlim=ylimACxlim 
+
                 ,xlim=xlim       
                 ,ySpanMin=ySpanMin
                 )   
@@ -753,11 +766,12 @@ def pltLDSErgVec(
 
                 ylimDrk,yticksDrk=pltLDSErgVecHelperYLimAndTicks(
                  dfDruckReprVec              
+
                 ,'AC_AV'
                 ,ylim=ylimAC   
-                ,yticks=yticksAC
-    
+                ,yticks=yticksAC    
                 ,ylimxlim=ylimACxlim 
+
                 ,xlim=xlim       
                 ,ySpanMin=ySpanMin
                 ) 
@@ -771,16 +785,8 @@ def pltLDSErgVec(
                     yticksAC=yticksDrk
                 logger.debug("{0:s}ylimAC: {1:s} yticksAC: {2:s}".format(logStr,str(ylimAC),str(yticksAC)))   
 
-
-
-
                 ax3.set_ylim(ylimAC)
                 ax3.set_yticks(yticksAC)    
-    
-    
-
-    
-                #ax3.grid()     
     
                 ax3.set_ylabel('a [mm/s²]')    
 
