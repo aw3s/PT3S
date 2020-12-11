@@ -813,7 +813,10 @@ def pltLDSErgVec(
 
 def pltLDSpQ(
      ax
-    ,dfLDS # LDS-TCs (Druecke und Durchfluesse)
+    ,dfTCsLDSIn # es werden nur die pDct/QDct-definierten geplottet
+    ,dfTCsdfOPC=pd.DataFrame() # es werden nur die pDctOPC/QDctOPC-definierten geplottet
+    # der Schluessel in den Dcts ist die ID (der Spaltenname) in den TCs
+    ,dfTCsdfOPCScenTimeShift=pd.Timedelta('1 hour') 
     
     ,QDct={ # Exanple
         'Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value':{'IDPlt':'Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
@@ -823,21 +826,30 @@ def pltLDSpQ(
     ,pDct={ # Example
         'Objects.FBG_HPS_M.6_KED_39_PTI_01_E.In.MW.value':{'IDPlt':'Src'}
         ,'Objects.FBG_HPS_M.6_TUD_39_PTI_01_E.In.MW.value':{'IDPlt':'Snk'}
+        ,'Objects.FBG_HPS_M.6_EL1_39_PTI_01_E.In.MW.value':{'IDPlt':'DE SS'}
+        ,'Objects.FBG_HPS_M.6_EL1_39_PTI_02_E.In.MW.value':{'IDPlt':'DE DS'}    
      }
+
+    ,QDctOPC={ # Exanple
+        'Objects.FBG_MESSW.6_EL1_39_FT_01.In.MW.value':{'IDPlt':'DE'}       
+     }
+
+    ,pDctOPC={} 
     
-    ,IDPltKey='IDPlt'
+    ,IDPltKey='IDPlt' # Schluesselbezeichner in den obigen Dcts; Wert ist Referenz auf die folgenden Layout-Dcts
     
     ,pDctAttrs={'Src':{'color':'blue'}
                 ,'Snk':{'color':'blue','ls':'dashed'}
+                ,'DE SS':{'color':'darkgreen','ls':'dotted'}   
+                ,'DE DS':{'color':'limegreen','ls':'dotted'}   
                }
     
     ,QDctAttrs={'Src':{'color':'red'}
                 ,'Snk':{'color':'orange'}
-                ,'Src RTTM':{'color':'red','ls':'dotted'}
-                ,'Snk RTTM':{'color':'orange','ls':'dotted'}                
-               }    
-
-    ,dfOPC=pd.DataFrame() # Messwert-TCs (selbe IDs)        
+                ,'Src RTTM':{'color':'red','ls':'dotted'} # 'x' und 'x RTTM' muessen die Layout-Schluessel von Wertepaaren lauten
+                ,'Snk RTTM':{'color':'orange','ls':'dotted'} # 'x' und 'x RTTM' muessen die Layout-Schluessel von Wertepaaren lauten          
+                ,'DE':{'color':'mediumspringgreen','ls':'dashed','where':'post'}           # wenn where spezifiziert ist: Step-Plot
+               }       
         
     ,xlim=None    
     ,dateFormat='%d.%m.%y: %H:%M:%S'
@@ -883,8 +895,8 @@ def pltLDSpQ(
 
             # x-Achse ----------------
             if xlim == None:            
-                xlimMin=dfLDS.index[0]
-                xlimMax=dfLDS.index[-1]                                
+                xlimMin=dfTCsLDSIn.index[0]
+                xlimMax=dfTCsLDSIn.index[-1]                                
                 xlim=(xlimMin,xlimMax)
             (xlimMin,xlimMax)=xlim
 
@@ -904,22 +916,55 @@ def pltLDSpQ(
     
             # 1. Achse p -----------------------    
         
-            for key, value in pDct.items():                
-                lines=ax.plot(dfLDS.index.values,dfLDS[key].values)
-                                                
-                if IDPltKey in value.keys():
-                    IDPlt=value[IDPltKey]                     
-                    if IDPlt in pDctAttrs.keys():                    
-                        for prop,propValue in pDctAttrs[IDPlt].items():               
-                            plt.setp(lines[0],"{:s}".format(prop),propValue)                 
-                
-                    key_yLines=IDPlt+' '+key
+            for key, value in pDct.items(): # nur die konfigurierten IDs plotten          
+                if key in dfTCsLDSIn.columns: # nur dann, wenn ID als Spalte enthalten 
+                    # lines=ax.plot(dfTCsLDSIn.index.values,dfTCsLDSIn[key].values)
+                    if IDPltKey in value.keys():
+                        # es liegen Layout-Informationen vor
+                        IDPlt=value[IDPltKey]                     
+                        if IDPlt in pDctAttrs.keys():     
+                            if 'where' in pDctAttrs[IDPlt].keys():
+                                lines = ax.step(dfTCsLDSIn.index.values,dfTCsLDSIn[key].values,where=pDctAttrs[IDPlt]['where'])                                                                                        
+                            else:
+                                lines = ax.plot(dfTCsLDSIn.index.values,dfTCsLDSIn[key].values)
+                            for prop,propValue in [(prop,value) for (prop, value) in pDctAttrs[IDPlt].items() if prop not in ['where']]:               
+                                plt.setp(lines[0],"{:s}".format(prop),propValue)        
+                            key_yLines='p '+IDPlt+' '+key
+                    else:
+                        # es liegen keine Layout-Informationen vor - einfach plotten
+                        lines = ax.plot(dfTCsLDSIn.index.values,dfTCsLDSIn[key].values)
+                        key_yLines=key
+                    
+                    yLines[key_yLines]=lines[0]               
                 else:
-                    key_yLines=key
-                yLines[key_yLines]=lines[0]
-                
+                    logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))   
+
+            if not dfTCsdfOPC.empty:   
+                for key, value in pDctOPC.items():   
+                    if key in dfTCsdfOPC.columns:
+                        # lines=ax.plot(dfTCsdfOPC.index.values+dfTCsdfOPCScenTimeShift,dfTCsdfOPC[key].values)
+                        if IDPltKey in value.keys():
+                            # es liegen Layout-Informationen vor
+                            IDPlt=value[IDPltKey]                     
+                            if IDPlt in pDctAttrs.keys():     
+                                if 'where' in pDctAttrs[IDPlt].keys():
+                                    lines = ax.step(dfTCsdfOPC.index.values+dfTCsdfOPCScenTimeShift,dfTCsdfOPC[key].values,where=pDctAttrs[IDPlt]['where'])                                                                                        
+                                else:
+                                    lines = ax.plot(dfTCsdfOPC.index.values+dfTCsdfOPCScenTimeShift,dfTCsdfOPC[key].values)
+                                for prop,propValue in [(prop,value) for (prop,value) in pDctAttrs[IDPlt].items() if prop not in ['where']]:               
+                                    plt.setp(lines[0],"{:s}".format(prop),propValue)        
+                                key_yLines='p OPC '+IDPlt+' '+key
+                        else:
+                            # es liegen Layout-Informationen vor - normal plotten
+                            lines = ax.plot(dfTCsdfOPC.index.values+dfTCsdfOPCScenTimeShift,dfTCsdfOPC[key].values)
+                            key_yLines=key
+                    
+                        yLines[key_yLines]=lines[0]               
+                    else:
+                        logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))                                        
+                                                                                                           
             ylimp,yticksp=pltLDSpQHelperYLimAndTicks(
-             dfLDS
+             dfTCsLDSIn
             ,pDct.keys()
             ,ylim=ylimp
             ,yticks=yticksp     
@@ -951,38 +996,77 @@ def pltLDSpQ(
             ,yPos=yTwinedAxesPosDeltaHPStart+yTwinedAxesPosDeltaHP
             )         
            
-            for key, value in QDct.items():                
-                lines=ax2.plot(dfLDS.index.values,dfLDS[key].values)                
-                if IDPltKey in value.keys():
-                    IDPlt=value[IDPltKey]                     
-                    if IDPlt in QDctAttrs.keys():                    
-                        for prop,propValue in QDctAttrs[IDPlt].items():               
-                            plt.setp(lines[0],"{:s}".format(prop),propValue)                                 
-                    key_yLines=IDPlt+' '+key
-                else:
-                    key_yLines=key                                                            
-                yLines[key_yLines]=lines[0]    
-            
-           
-                if 'RTTM' in value.keys():
-                    lines=ax2.plot(dfLDS.index.values,dfLDS[value['RTTM']].values)
-                    
+            for key, value in QDct.items():   
+                if key in dfTCsLDSIn.columns:
+                    #lines=ax2.plot(dfTCsLDSIn.index.values,dfTCsLDSIn[key].values)                      
                     if IDPltKey in value.keys():
-                        if value[IDPltKey] + ' ' + 'RTTM' in QDctAttrs.keys():  
-                            for prop,propValue in QDctAttrs[value[IDPltKey] + ' ' + 'RTTM'].items():               
-                                plt.setp(lines[0],"{:s}".format(prop),propValue) 
-                    
-                        key_yLines=value[IDPltKey]+' '+value['RTTM']
+                        # es liegen Layout-Informationen vor
+                        IDPlt=value[IDPltKey]                     
+                        if IDPlt in QDctAttrs.keys():     
+                            if 'where' in QDctAttrs[IDPlt].keys():
+                                lines = ax2.step(dfTCsLDSIn.index.values,dfTCsLDSIn[key].values,where=QDctAttrs[IDPlt]['where'])                                                                                        
+                            else:
+                                lines = ax2.plot(dfTCsLDSIn.index.values,dfTCsLDSIn[key].values)
+                            for prop,propValue in [(prop,value) for (prop,value) in QDctAttrs[IDPlt].items() if prop not in ['where']]:               
+                                plt.setp(lines[0],"{:s}".format(prop),propValue)        
+                            key_yLines='p '+IDPlt+' '+key
                     else:
-                        key_yLines=value['RTTM']
-                    yLines[key_yLines]=lines[0]  
+                        # es liegen keine Layout-Informationen vor - normal plotten
+                        lines = ax2.plot(dfTCsLDSIn.index.values,dfTCsLDSIn[key].values)
+                        key_yLines=key                    
+                                                          
+                    yLines[key_yLines]=lines[0]    
+                else:
+                    logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))       
+                       
+                if 'RTTM' in value.keys():
+                        #lines=ax2.plot(dfTCsLDSIn.index.values,dfTCsLDSIn[value['RTTM']].values)
                     
-        
-            
+                        if IDPltKey in value.keys():
+                            if value[IDPltKey] + ' ' + 'RTTM' in QDctAttrs.keys():  
+
+                                    if 'where' in QDctAttrs[value[IDPltKey] + ' ' + 'RTTM'].keys():
+                                        lines = ax2.step(dfTCsLDSIn.index.values,dfTCsLDSIn[value['RTTM']].values,where=QDctAttrs[value[IDPltKey] + ' ' + 'RTTM']['where'])                                                                                        
+                                    else:
+                                        lines = ax2.plot(dfTCsLDSIn.index.values,dfTCsLDSIn[value['RTTM']].values)
+                                    for prop,propValue in [(prop,value) for (prop,value) in QDctAttrs[value[IDPltKey] + ' ' + 'RTTM'].items() if prop not in ['where']]:               
+                                        plt.setp(lines[0],"{:s}".format(prop),propValue)        
+                                    key_yLines='Q RTTM'+value[IDPltKey]+' '+value['RTTM']
+                            else:
+                                key_yLines=value['RTTM']
+                            yLines[key_yLines]=lines[0]  
+                        else:
+                            logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))   
+
+            if not dfTCsdfOPC.empty:   
+                for key, value in QDctOPC.items():   
+                    if key in dfTCsdfOPC.columns:
+                        # lines=ax2.plot(dfTCsdfOPC.index.values+dfTCsdfOPCScenTimeShift,dfTCsdfOPC[key].values)      
+                        if IDPltKey in value.keys():
+                            # es liegen Layout-Informationen vor
+                            IDPlt=value[IDPltKey]                     
+                            if IDPlt in QDctAttrs.keys():     
+                                if 'where' in QDctAttrs[IDPlt].keys():
+                                    lines = ax2.step(dfTCsdfOPC.index.values+dfTCsdfOPCScenTimeShift,dfTCsdfOPC[key].values,where=QDctAttrs[IDPlt]['where'])                                                                                        
+                                else:
+                                    lines = ax2.plot(dfTCsdfOPC.index.values+dfTCsdfOPCScenTimeShift,dfTCsdfOPC[key].values)
+                                for prop,propValue in [(prop,value) for (prop,value) in QDctAttrs[IDPlt].items() if prop not in ['where']]:               
+                                    plt.setp(lines[0],"{:s}".format(prop),propValue)        
+                                key_yLines='Q OPC '+IDPlt+' '+key
+                        else:
+                            # es liegen Layout-Informationen vor - normal plotten
+                            lines = ax2.plot(dfTCsdfOPC.index.values+dfTCsdfOPCScenTimeShift,dfTCsdfOPC[key].values)
+                            key_yLines=key
+                    
+                        yLines[key_yLines]=lines[0]               
+                    else:
+                        logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))     #           
+ 
+                                
             pltLDSErgVecHelperY(ax2)
                      
             ylimQ,yticksQ=pltLDSpQHelperYLimAndTicks(
-             dfLDS
+             dfTCsLDSIn
             ,QDct.keys()
             ,ylim=ylimQ
             ,yticks=yticksQ     
