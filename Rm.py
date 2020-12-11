@@ -811,6 +811,59 @@ def pltLDSErgVec(
         return axLst,yLines
 
 
+def pltLDSpQHelper(
+    ax    
+   ,TCdf
+   ,ID # Spaltenname
+   ,xDctValue # pDct/QDct-Value (a Dct) - i.e. {'IDPlt':'Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+   ,xDctAttrs # pDctAttrs/QDctAttrs (a Dct) 
+   ,IDPltKey='IDPlt' # Schluesselbezeichner   
+   ,timeShift=pd.Timedelta('0 seconds')
+    ):
+    """
+    Helper
+
+    Returns:
+    label: Bezeichner
+    lines: ax.plot-Ergebnis
+    """
+   
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:    
+            
+        label=''
+        lines=[]
+
+        if IDPltKey in xDctValue.keys():
+            # es liegt ein Schluessel fuer eine Layout-Informationen vor
+            IDPlt=xDctValue[IDPltKey]                     
+            if IDPlt in xDctAttrs.keys():     
+                if 'where' in xDctAttrs[IDPlt].keys():
+                    lines = ax.step(TCdf.index.values+timeShift,TCdf[ID].values,where=xDctAttrs[IDPlt]['where'])                                                                                        
+                else:
+                    lines = ax.plot(TCdf.index.values+timeShift,TCdf[ID].values)
+                for prop,propValue in [(prop,value) for (prop, value) in xDctAttrs[IDPlt].items() if prop not in ['where']]:               
+                    plt.setp(lines[0],"{:s}".format(prop),propValue)        
+                label=IDPlt+' '+ID
+        else:
+            # es liegt kein Schluessel fuer eine Layout-Informationen vor - einfach plotten
+            lines = ax.plot(TCdf.index.values+timeShift,TCdf[ID].values)
+            label=ID
+
+        logger.debug("{0:s}label: {1:s} len(lines): {2:d}".format(logStr,label,len(lines))) 
+                                      
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return label, lines
+
 def pltLDSpQ(
      ax
     ,dfTCsLDSIn # es werden nur die pDct/QDct-definierten geplottet
@@ -918,48 +971,32 @@ def pltLDSpQ(
         
             for key, value in pDct.items(): # nur die konfigurierten IDs plotten          
                 if key in dfTCsLDSIn.columns: # nur dann, wenn ID als Spalte enthalten 
-                    # lines=ax.plot(dfTCsLDSIn.index.values,dfTCsLDSIn[key].values)
-                    if IDPltKey in value.keys():
-                        # es liegen Layout-Informationen vor
-                        IDPlt=value[IDPltKey]                     
-                        if IDPlt in pDctAttrs.keys():     
-                            if 'where' in pDctAttrs[IDPlt].keys():
-                                lines = ax.step(dfTCsLDSIn.index.values,dfTCsLDSIn[key].values,where=pDctAttrs[IDPlt]['where'])                                                                                        
-                            else:
-                                lines = ax.plot(dfTCsLDSIn.index.values,dfTCsLDSIn[key].values)
-                            for prop,propValue in [(prop,value) for (prop, value) in pDctAttrs[IDPlt].items() if prop not in ['where']]:               
-                                plt.setp(lines[0],"{:s}".format(prop),propValue)        
-                            key_yLines='p '+IDPlt+' '+key
-                    else:
-                        # es liegen keine Layout-Informationen vor - einfach plotten
-                        lines = ax.plot(dfTCsLDSIn.index.values,dfTCsLDSIn[key].values)
-                        key_yLines=key
-                    
-                    yLines[key_yLines]=lines[0]               
+                    label, lines = pltLDSpQHelper(
+                        ax    
+                       ,dfTCsLDSIn
+                       ,key # Spaltenname
+                       ,value # pDct/QDct-Value (a Dct) - i.e. {'IDPlt':'Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                       ,pDctAttrs # pDctAttrs/QDctAttrs (a Dct) 
+                       ,IDPltKey=IDPltKey # Schluesselbezeichner    
+                        )                    
+                    yLines[label]=lines[0]               
                 else:
                     logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))   
 
             if not dfTCsdfOPC.empty:   
                 for key, value in pDctOPC.items():   
                     if key in dfTCsdfOPC.columns:
-                        # lines=ax.plot(dfTCsdfOPC.index.values+dfTCsdfOPCScenTimeShift,dfTCsdfOPC[key].values)
-                        if IDPltKey in value.keys():
-                            # es liegen Layout-Informationen vor
-                            IDPlt=value[IDPltKey]                     
-                            if IDPlt in pDctAttrs.keys():     
-                                if 'where' in pDctAttrs[IDPlt].keys():
-                                    lines = ax.step(dfTCsdfOPC.index.values+dfTCsdfOPCScenTimeShift,dfTCsdfOPC[key].values,where=pDctAttrs[IDPlt]['where'])                                                                                        
-                                else:
-                                    lines = ax.plot(dfTCsdfOPC.index.values+dfTCsdfOPCScenTimeShift,dfTCsdfOPC[key].values)
-                                for prop,propValue in [(prop,value) for (prop,value) in pDctAttrs[IDPlt].items() if prop not in ['where']]:               
-                                    plt.setp(lines[0],"{:s}".format(prop),propValue)        
-                                key_yLines='p OPC '+IDPlt+' '+key
-                        else:
-                            # es liegen Layout-Informationen vor - normal plotten
-                            lines = ax.plot(dfTCsdfOPC.index.values+dfTCsdfOPCScenTimeShift,dfTCsdfOPC[key].values)
-                            key_yLines=key
-                    
-                        yLines[key_yLines]=lines[0]               
+
+                        label, lines = pltLDSpQHelper(
+                        ax    
+                       ,dfTCsdfOPC
+                       ,key # Spaltenname
+                       ,value # pDct/QDct-Value (a Dct) - i.e. {'IDPlt':'Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                       ,pDctAttrs # pDctAttrs/QDctAttrs (a Dct) 
+                       ,IDPltKey=IDPltKey # Schluesselbezeichner    
+                        )                    
+                        yLines[label]=lines[0]   
+
                     else:
                         logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))                                        
                                                                                                            
@@ -998,24 +1035,15 @@ def pltLDSpQ(
            
             for key, value in QDct.items():   
                 if key in dfTCsLDSIn.columns:
-                    #lines=ax2.plot(dfTCsLDSIn.index.values,dfTCsLDSIn[key].values)                      
-                    if IDPltKey in value.keys():
-                        # es liegen Layout-Informationen vor
-                        IDPlt=value[IDPltKey]                     
-                        if IDPlt in QDctAttrs.keys():     
-                            if 'where' in QDctAttrs[IDPlt].keys():
-                                lines = ax2.step(dfTCsLDSIn.index.values,dfTCsLDSIn[key].values,where=QDctAttrs[IDPlt]['where'])                                                                                        
-                            else:
-                                lines = ax2.plot(dfTCsLDSIn.index.values,dfTCsLDSIn[key].values)
-                            for prop,propValue in [(prop,value) for (prop,value) in QDctAttrs[IDPlt].items() if prop not in ['where']]:               
-                                plt.setp(lines[0],"{:s}".format(prop),propValue)        
-                            key_yLines='p '+IDPlt+' '+key
-                    else:
-                        # es liegen keine Layout-Informationen vor - normal plotten
-                        lines = ax2.plot(dfTCsLDSIn.index.values,dfTCsLDSIn[key].values)
-                        key_yLines=key                    
-                                                          
-                    yLines[key_yLines]=lines[0]    
+                        label, lines = pltLDSpQHelper(
+                        ax2    
+                       ,dfTCsLDSIn
+                       ,key # Spaltenname
+                       ,value # pDct/QDct-Value (a Dct) - i.e. {'IDPlt':'Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                       ,QDctAttrs # pDctAttrs/QDctAttrs (a Dct) 
+                       ,IDPltKey=IDPltKey # Schluesselbezeichner    
+                        )                    
+                        yLines[label]=lines[0]  
                 else:
                     logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))       
                        
@@ -1040,25 +1068,17 @@ def pltLDSpQ(
 
             if not dfTCsdfOPC.empty:   
                 for key, value in QDctOPC.items():   
-                    if key in dfTCsdfOPC.columns:
-                        # lines=ax2.plot(dfTCsdfOPC.index.values+dfTCsdfOPCScenTimeShift,dfTCsdfOPC[key].values)      
-                        if IDPltKey in value.keys():
-                            # es liegen Layout-Informationen vor
-                            IDPlt=value[IDPltKey]                     
-                            if IDPlt in QDctAttrs.keys():     
-                                if 'where' in QDctAttrs[IDPlt].keys():
-                                    lines = ax2.step(dfTCsdfOPC.index.values+dfTCsdfOPCScenTimeShift,dfTCsdfOPC[key].values,where=QDctAttrs[IDPlt]['where'])                                                                                        
-                                else:
-                                    lines = ax2.plot(dfTCsdfOPC.index.values+dfTCsdfOPCScenTimeShift,dfTCsdfOPC[key].values)
-                                for prop,propValue in [(prop,value) for (prop,value) in QDctAttrs[IDPlt].items() if prop not in ['where']]:               
-                                    plt.setp(lines[0],"{:s}".format(prop),propValue)        
-                                key_yLines='Q OPC '+IDPlt+' '+key
-                        else:
-                            # es liegen Layout-Informationen vor - normal plotten
-                            lines = ax2.plot(dfTCsdfOPC.index.values+dfTCsdfOPCScenTimeShift,dfTCsdfOPC[key].values)
-                            key_yLines=key
-                    
-                        yLines[key_yLines]=lines[0]               
+                    if key in dfTCsdfOPC.columns:                       
+                        label, lines = pltLDSpQHelper(
+                        ax2    
+                       ,dfTCsdfOPC
+                       ,key # Spaltenname
+                       ,value # pDct/QDct-Value (a Dct) - i.e. {'IDPlt':'Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                       ,QDctAttrs # pDctAttrs/QDctAttrs (a Dct) 
+                       ,IDPltKey=IDPltKey # Schluesselbezeichner   
+                       ,timeShift=dfTCsdfOPCScenTimeShift
+                        )                    
+                        yLines[label]=lines[0]                                              
                     else:
                         logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))     #           
  
