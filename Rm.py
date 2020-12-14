@@ -815,11 +815,14 @@ def pltLDSpQHelper(
     ax    
    ,TCdf
    ,ID # Spaltenname
-   ,xDctValue # pDct/QDct-Value (a Dct) - i.e. {'IDPlt':'Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-   ,xDctAttrs # pDctAttrs/QDctAttrs (a Dct) 
-   ,IDPltKey='IDPlt' # Schluesselbezeichner   
+   ,xDctValue={} # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+   ,xDctAttrs={} # a Dct with - i.e. {'Q Src':{'color':'red'},...}
+   ,IDPltKey='IDPlt' # Schluesselbezeichner in xDctValue (Key in xDctAttrs und xDctFcts)
+   ,IDPltValuePostfix=None # SchluesselPostfix in xDctAttrs und xDctFcts - i.e. ' RTTM'
    ,timeShift=pd.Timedelta('0 seconds')
+   ,xDctFcts={} # a Dct with Fcts - i.e. {'p Src':  lambda x: 134.969 + x*10^5/(794.*9.81)}
     ):
+
     """
     Helper
 
@@ -836,23 +839,44 @@ def pltLDSpQHelper(
         label=''
         lines=[]
 
+        x=TCdf.index.values+timeShift
+
         if IDPltKey in xDctValue.keys():
             # es liegt ein Schluessel fuer eine Layout-Informationen vor
-            IDPlt=xDctValue[IDPltKey]                     
-            if IDPlt in xDctAttrs.keys():     
-                if 'where' in xDctAttrs[IDPlt].keys():
-                    lines = ax.step(TCdf.index.values+timeShift,TCdf[ID].values,where=xDctAttrs[IDPlt]['where'])                                                                                        
-                else:
-                    lines = ax.plot(TCdf.index.values+timeShift,TCdf[ID].values)
-                for prop,propValue in [(prop,value) for (prop, value) in xDctAttrs[IDPlt].items() if prop not in ['where']]:               
-                    plt.setp(lines[0],"{:s}".format(prop),propValue)        
-                label=IDPlt+' '+ID
+            IDPltValue=xDctValue[IDPltKey]   
+            if IDPltValuePostfix != None:
+                IDPltValue=IDPltValue+IDPltValuePostfix
         else:
-            # es liegt kein Schluessel fuer eine Layout-Informationen vor - einfach plotten
-            lines = ax.plot(TCdf.index.values+timeShift,TCdf[ID].values)
+            IDPltValue=None
+        
+        if IDPltValue in xDctFcts.keys():     
+            fct=xDctFcts[IDPltValue]
+            y=TCdf[ID].apply(fct).values
+        else:           
+            y=TCdf[ID].values
+
+        if  IDPltValue != None: 
+            if IDPltValue in xDctAttrs.keys():     
+                if 'where' in xDctAttrs[IDPltValue].keys():
+                    logger.debug("{0:s}ID: {1:s}: step-Plot".format(logStr,ID))                    
+                    lines = ax.step(x,y,where=xDctAttrs[IDPltValue]['where'])                                                                                                           
+                else:
+                    lines = ax.plot(x,y)
+                for prop,propValue in [(prop,value) for (prop, value) in xDctAttrs[IDPltValue].items() if prop not in ['where']]:               
+                    plt.setp(lines[0],"{:s}".format(prop),propValue)        
+                label=IDPltValue+' '+ID
+            else:
+                # es ist kein Layout definiert - einfach plotten
+                logger.debug("{0:s}IDPltValue: {1:s}: es ist kein Layout definiert - einfach plotten ...".format(logStr,IDPltValue))     
+                lines = ax.plot(x,y)
+                label=ID                
+        else:
+            # es liegt kein Schluessel (oder kein Wert) fuer eine Layout-Informationen vor - einfach plotten
+            logger.debug("{0:s}ID: {1:s}: es liegt kein Schluessel (oder kein Wert) fuer eine Layout-Informationen vor - einfach plotten ...".format(logStr,ID))     
+            lines = ax.plot(x,y)
             label=ID
 
-        logger.debug("{0:s}label: {1:s} len(lines): {2:d}".format(logStr,label,len(lines))) 
+        logger.debug("{0:s}label: '{1:s}' len(lines): {2:d}".format(logStr,label,len(lines))) 
                                       
     except RmError:
         raise            
@@ -866,43 +890,45 @@ def pltLDSpQHelper(
 
 def pltLDSpQ(
      ax
-    ,dfTCsLDSIn # es werden nur die pDct/QDct-definierten geplottet
-    ,dfTCsdfOPC=pd.DataFrame() # es werden nur die pDctOPC/QDctOPC-definierten geplottet
-    # der Schluessel in den Dcts ist die ID (der Spaltenname) in den TCs
-    ,dfTCsdfOPCScenTimeShift=pd.Timedelta('1 hour') 
+    ,dfTCsLDSIn # es werden nur die aDct-definierten geplottet
+    ,dfTCsOPC=pd.DataFrame() # es werden nur die aDctOPC-definierten geplottet
+    # der Schluessel in den vorstehenden Dcts ist die ID (der Spaltenname) in den TCs
+    ,dfTCsOPCScenTimeShift=pd.Timedelta('1 hour') 
     
     ,QDct={ # Exanple
-        'Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value':{'IDPlt':'Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-        ,'Objects.FBG_MESSW.6_TUD_39_FT_01.In.MW.value':{'IDPlt':'Snk','RTTM':'IMDI.Objects.FBG_MESSW.6_TUD_39_FT_01.In.MW.value'}
+        'Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value':{'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+        ,'Objects.FBG_MESSW.6_TUD_39_FT_01.In.MW.value':{'IDPlt':'Q Snk','RTTM':'IMDI.Objects.FBG_MESSW.6_TUD_39_FT_01.In.MW.value'}
      }
     
     ,pDct={ # Example
-        'Objects.FBG_HPS_M.6_KED_39_PTI_01_E.In.MW.value':{'IDPlt':'Src'}
-        ,'Objects.FBG_HPS_M.6_TUD_39_PTI_01_E.In.MW.value':{'IDPlt':'Snk'}
-        ,'Objects.FBG_HPS_M.6_EL1_39_PTI_01_E.In.MW.value':{'IDPlt':'DE SS'}
-        ,'Objects.FBG_HPS_M.6_EL1_39_PTI_02_E.In.MW.value':{'IDPlt':'DE DS'}    
+        'Objects.FBG_HPS_M.6_KED_39_PTI_01_E.In.MW.value':{'IDPlt':'p Src'}
+        ,'Objects.FBG_HPS_M.6_TUD_39_PTI_01_E.In.MW.value':{'IDPlt':'p Snk'}
+        ,'Objects.FBG_HPS_M.6_EL1_39_PTI_01_E.In.MW.value':{'IDPlt':'p DE SS'}
+        ,'Objects.FBG_HPS_M.6_EL1_39_PTI_02_E.In.MW.value':{'IDPlt':'p DE DS'}    
      }
 
     ,QDctOPC={ # Exanple
-        'Objects.FBG_MESSW.6_EL1_39_FT_01.In.MW.value':{'IDPlt':'DE'}       
+        'Objects.FBG_MESSW.6_EL1_39_FT_01.In.MW.value':{'IDPlt':'Q DE'}       
      }
 
     ,pDctOPC={} 
     
-    ,IDPltKey='IDPlt' # Schluesselbezeichner in den obigen Dcts; Wert ist Referenz auf die folgenden Layout-Dcts
+    ,IDPltKey='IDPlt' # Schluesselbezeichner in den vorstehenden 4 Dcts; Wert ist Referenz auf das folgende Layout-Dct und das folgende Fcts-Dct; Werte muessen eindeutig sein
     
-    ,pDctAttrs={'Src':{'color':'blue'}
-                ,'Snk':{'color':'blue','ls':'dashed'}
-                ,'DE SS':{'color':'darkgreen','ls':'dotted'}   
-                ,'DE DS':{'color':'limegreen','ls':'dotted'}   
-               }
+    ,attrsDct={'p Src':{'color':'blue'}
+                ,'p Snk':{'color':'blue','ls':'dashed'}
+                ,'p DE SS':{'color':'darkgreen','ls':'dotted'}   
+                ,'p DE DS':{'color':'limegreen','ls':'dotted'}   
+             
+                ,'Q Src':{'color':'red'}
+                ,'Q Snk':{'color':'orange'}
+                ,'Q Src RTTM':{'color':'red','ls':'dotted'} # 'x' und 'x RTTM' muessen die Layout-Schluessel von Wertepaaren lauten
+                ,'Q Snk RTTM':{'color':'orange','ls':'dotted'} # 'x' und 'x RTTM' muessen die Layout-Schluessel von Wertepaaren lauten      
+                
+                ,'Q DE':{'color':'mediumspringgreen','ls':'dashed','where':'post'}           # wenn where spezifiziert ist: Step-Plot
+               }      
     
-    ,QDctAttrs={'Src':{'color':'red'}
-                ,'Snk':{'color':'orange'}
-                ,'Src RTTM':{'color':'red','ls':'dotted'} # 'x' und 'x RTTM' muessen die Layout-Schluessel von Wertepaaren lauten
-                ,'Snk RTTM':{'color':'orange','ls':'dotted'} # 'x' und 'x RTTM' muessen die Layout-Schluessel von Wertepaaren lauten          
-                ,'DE':{'color':'mediumspringgreen','ls':'dashed','where':'post'}           # wenn where spezifiziert ist: Step-Plot
-               }       
+    ,fctsDct={} # a Dct with Fcts
         
     ,xlim=None    
     ,dateFormat='%d.%m.%y: %H:%M:%S'
@@ -916,14 +942,15 @@ def pltLDSpQ(
     ,ylimp=(0,100)  #wenn undef., dann min/max 
     ,ylimpxlim=False #wenn Wahr und ylim undef., dann wird xlim beruecksichtigt bei min/max 
     ,yticksp=[0,50,100] #wenn undef., dann aus ylimp
+    ,ylabelp='[bar]'
     
     # Q y-Achse
     ,ylimQ=(0,250) 
     ,ylimQxlim=False 
     ,yticksQ=[0,50,100,150,200,250]  
+    ,ylabelQ='[Nm³/h]'
     
-    ,yGridSteps=0 # 0: das y-Gitter besteht dann bei ylimp=ylimQ=yticksp=yticksQ None nur aus min/max (also 1 Gitterabschnitt) 
-    
+    ,yGridSteps=0 # 0: das y-Gitter besteht dann bei ylimp=ylimQ=yticksp=yticksQ None nur aus min/max (also 1 Gitterabschnitt)     
     ,ySpanMin=0.9 # wenn ylim undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
 
     ,plotLegend=True
@@ -954,9 +981,7 @@ def pltLDSpQ(
             (xlimMin,xlimMax)=xlim
 
             ax.set_xlim(xlim)
-            
-           
-    
+                           
             pltHelperX(
              ax
             ,dateFormat=dateFormat
@@ -964,9 +989,20 @@ def pltLDSpQ(
             ,byminute=byminute
             ,yPos=yTwinedAxesPosDeltaHPStart
             )  
-        
-          
-    
+                      
+            # Eindeutigkeit der IDPlts pruefen
+            keys=[]
+            keysUneindeutig=[]
+            for dct in [QDct,pDct,QDctOPC,pDctOPC]:
+                for key, value in dct.items():
+                    if IDPltKey in value.keys():
+                        IDPltValue=value[IDPltKey]
+                        if IDPltValue in keys:                
+                            print("IDPlt {:s} bereits vergeben".format(IDPltValue))
+                            keysUneindeutig.append(IDPltValue)
+                        else:
+                            keys.append(IDPltValue)
+
             # 1. Achse p -----------------------    
         
             for key, value in pDct.items(): # nur die konfigurierten IDs plotten          
@@ -975,25 +1011,46 @@ def pltLDSpQ(
                         ax    
                        ,dfTCsLDSIn
                        ,key # Spaltenname
-                       ,value # pDct/QDct-Value (a Dct) - i.e. {'IDPlt':'Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-                       ,pDctAttrs # pDctAttrs/QDctAttrs (a Dct) 
-                       ,IDPltKey=IDPltKey # Schluesselbezeichner    
+                       ,value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                       ,attrsDct # a Dct with - i.e. {'Q Src':{'color':'red'},...}
+                       ,IDPltKey=IDPltKey # Schluesselbezeichner in value   
+                       ,xDctFcts=fctsDct
                         )                    
                     yLines[label]=lines[0]               
                 else:
                     logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))   
 
-            if not dfTCsdfOPC.empty:   
+                if 'RTTM' in value.keys():       
+                    if value['RTTM'] in dfTCsLDSIn.columns:
+                        
+                        label, lines = pltLDSpQHelper(
+                        ax    
+                       ,dfTCsLDSIn
+                       ,value['RTTM'] 
+                       ,value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                       ,attrsDct 
+                       ,IDPltKey=IDPltKey 
+                       ,IDPltValuePostfix=' RTTM' 
+                       ,xDctFcts=fctsDct
+                        )                    
+                        yLines[label]=lines[0]  
+
+                    else:
+                        logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,value['RTTM']))   
+
+            if not dfTCsOPC.empty:   
                 for key, value in pDctOPC.items():   
-                    if key in dfTCsdfOPC.columns:
+                    if key in dfTCsOPC.columns:
 
                         label, lines = pltLDSpQHelper(
                         ax    
-                       ,dfTCsdfOPC
-                       ,key # Spaltenname
-                       ,value # pDct/QDct-Value (a Dct) - i.e. {'IDPlt':'Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-                       ,pDctAttrs # pDctAttrs/QDctAttrs (a Dct) 
-                       ,IDPltKey=IDPltKey # Schluesselbezeichner    
+                       ,dfTCsOPC
+                       ,key 
+                       ,value 
+                       ,attrsDct
+                       ,IDPltKey=IDPltKey 
+                       ,timeShift=dfTCsOPCScenTimeShift
+                       ,xDctFcts=fctsDct
                         )                    
                         yLines[label]=lines[0]   
 
@@ -1019,7 +1076,7 @@ def pltLDSpQ(
             ax.set_zorder(10)
             ax.patch.set_visible(False)      
     
-            ax.set_ylabel('[bar]')
+            ax.set_ylabel(ylabelp)
     
             # 2. y-Achse Q ----------------------------------------
             ax2 = ax.twinx()
@@ -1038,49 +1095,50 @@ def pltLDSpQ(
                         label, lines = pltLDSpQHelper(
                         ax2    
                        ,dfTCsLDSIn
-                       ,key # Spaltenname
-                       ,value # pDct/QDct-Value (a Dct) - i.e. {'IDPlt':'Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-                       ,QDctAttrs # pDctAttrs/QDctAttrs (a Dct) 
-                       ,IDPltKey=IDPltKey # Schluesselbezeichner    
+                       ,key 
+                       ,value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                       ,attrsDct 
+                       ,IDPltKey=IDPltKey 
+                       ,xDctFcts=fctsDct
                         )                    
                         yLines[label]=lines[0]  
                 else:
                     logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))       
                        
-                if 'RTTM' in value.keys():
-                        #lines=ax2.plot(dfTCsLDSIn.index.values,dfTCsLDSIn[value['RTTM']].values)
-                    
-                        if IDPltKey in value.keys():
-                            if value[IDPltKey] + ' ' + 'RTTM' in QDctAttrs.keys():  
-
-                                    if 'where' in QDctAttrs[value[IDPltKey] + ' ' + 'RTTM'].keys():
-                                        lines = ax2.step(dfTCsLDSIn.index.values,dfTCsLDSIn[value['RTTM']].values,where=QDctAttrs[value[IDPltKey] + ' ' + 'RTTM']['where'])                                                                                        
-                                    else:
-                                        lines = ax2.plot(dfTCsLDSIn.index.values,dfTCsLDSIn[value['RTTM']].values)
-                                    for prop,propValue in [(prop,value) for (prop,value) in QDctAttrs[value[IDPltKey] + ' ' + 'RTTM'].items() if prop not in ['where']]:               
-                                        plt.setp(lines[0],"{:s}".format(prop),propValue)        
-                                    key_yLines='Q RTTM'+value[IDPltKey]+' '+value['RTTM']
-                            else:
-                                key_yLines=value['RTTM']
-                            yLines[key_yLines]=lines[0]  
-                        else:
-                            logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))   
-
-            if not dfTCsdfOPC.empty:   
-                for key, value in QDctOPC.items():   
-                    if key in dfTCsdfOPC.columns:                       
+                if 'RTTM' in value.keys():       
+                    if value['RTTM'] in dfTCsLDSIn.columns:
+                        
                         label, lines = pltLDSpQHelper(
                         ax2    
-                       ,dfTCsdfOPC
-                       ,key # Spaltenname
-                       ,value # pDct/QDct-Value (a Dct) - i.e. {'IDPlt':'Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-                       ,QDctAttrs # pDctAttrs/QDctAttrs (a Dct) 
-                       ,IDPltKey=IDPltKey # Schluesselbezeichner   
-                       ,timeShift=dfTCsdfOPCScenTimeShift
+                       ,dfTCsLDSIn
+                       ,value['RTTM'] 
+                       ,value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                       ,attrsDct 
+                       ,IDPltKey=IDPltKey 
+                       ,IDPltValuePostfix=' RTTM' 
+                       ,xDctFcts=fctsDct
+                        )                    
+                        yLines[label]=lines[0]  
+
+                    else:
+                        logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,value['RTTM']))   
+
+            if not dfTCsOPC.empty:   
+                for key, value in QDctOPC.items():   
+                    if key in dfTCsOPC.columns:                       
+                        label, lines = pltLDSpQHelper(
+                        ax2    
+                       ,dfTCsOPC
+                       ,key 
+                       ,value 
+                       ,attrsDct 
+                       ,IDPltKey=IDPltKey 
+                       ,timeShift=dfTCsOPCScenTimeShift
+                       ,xDctFcts=fctsDct
                         )                    
                         yLines[label]=lines[0]                                              
                     else:
-                        logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))     #           
+                        logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))               
  
                                 
             pltLDSErgVecHelperY(ax2)
@@ -1101,7 +1159,7 @@ def pltLDSpQ(
                                          
             ax2.grid()  
     
-            ax2.set_ylabel('[Nm³/h]')
+            ax2.set_ylabel(ylabelQ)
     
             if plotLegend:
                 pass
