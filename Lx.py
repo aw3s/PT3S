@@ -1224,9 +1224,9 @@ class AppLog():
             ###########################
 
             if not dfID.empty:
-                TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2=getTCsFromDf(df,dfID=dfID,TCsdfOPCFill=TCsdfOPCFill)
+                TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2=self.getTCsFromDf(df,dfID=dfID,TCsdfOPCFill=TCsdfOPCFill)
             else:
-                TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes=getTCsFromDf(df,dfID=dfID,TCsdfOPCFill=TCsdfOPCFill)
+                TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes=self.getTCsFromDf(df,dfID=dfID,TCsdfOPCFill=TCsdfOPCFill)
 
 
             #if not dfID.empty:
@@ -1393,9 +1393,9 @@ class AppLog():
                 #df['ID']=df['ID'].astype(str)
 
                 if not dfID.empty:
-                    TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2=getTCsFromDf(df,dfID=dfID,TCsdfOPCFill=TCsdfOPCFill)
+                    TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2=self.getTCsFromDf(df,dfID=dfID,TCsdfOPCFill=TCsdfOPCFill)
                 else:
-                    TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes=getTCsFromDf(df,dfID=dfID,TCsdfOPCFill=TCsdfOPCFill)
+                    TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes=self.getTCsFromDf(df,dfID=dfID,TCsdfOPCFill=TCsdfOPCFill)
                                                                                                      
                 logger.debug("{0:s}{1:s}".format(logStr,'Write ...'))     
 
@@ -1431,6 +1431,15 @@ class AppLog():
                 Res2=True
             except:                
                 Res2=False
+
+            TCsdfOPC=pd.DataFrame()
+            TCsdfSirCalc=pd.DataFrame()
+            TCsdfLDSIn=pd.DataFrame()
+            if Res2:
+                TCsdfLDSRes1=pd.DataFrame()
+                TCsdfLDSRes2=pd.DataFrame()
+            else:
+                TCsdfLDSRes=pd.DataFrame()
 
             dfLookUpTimes=self.lookUpDf
             if timeStart!=None:
