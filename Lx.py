@@ -1220,64 +1220,11 @@ class AppLog():
             del dfLst
 
             logger.debug("{0:s}{1:s}".format(logStr,'Concat finished. Filter & Pivot ...'))      
-
-            ###########################
-
+            
             if not dfID.empty:
                 TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2=self.getTCsFromDf(df,dfID=dfID,TCsdfOPCFill=TCsdfOPCFill)
             else:
                 TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes=self.getTCsFromDf(df,dfID=dfID,TCsdfOPCFill=TCsdfOPCFill)
-
-
-            #if not dfID.empty:
-            #    df=df.merge(dfID,how='left',left_on='ID',right_index=True,suffixes=('','_r'))                            
-
-            #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfOPC ...'))     
-            #TCsdfOPC=df[(df['SubSystem'].str.contains('^OPC'))][['ProcessTime','ID','Value']].pivot(index='ProcessTime', columns='ID', values='Value')
-            #if TCsdfOPCFill:
-            #    for col in TCsdfOPC.columns:    
-            #        TCsdfOPC[col]=TCsdfOPC[col].fillna(method='ffill')
-            #        TCsdfOPC[col]=TCsdfOPC[col].fillna(method='bfill')
-
-            #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfSirCalc ...'))                           
-            #TCsdfSirCalc=df[(df['SubSystem'].str.contains('^SirCalc'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')           
-
-            #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSIn ...'))      
-            #TCsdfLDSIn=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^<-'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')
-
-
-
-            
-            #if not dfID.empty:
-            #    C4Lst=['01',
-            #        '02',
-            #        '03',
-            #        '04',
-            #        '05',
-            #        '07',
-            #        '08',
-            #        '09',
-            #        '10',
-            #        '12',
-            #        '20']
-            #    logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes1 ...'))  
-            #    TCsdfLDSRes1=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->')) & (df['B'].str.contains('^3S_FBG_SEG_INFO'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')  
-
-            #    logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2a ...'))  
-            #    TCsdfLDSRes2a=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->')) & (df['B'].str.contains('^3S_FBG_DRUCK')) & (df['C2'].isin(['6'])) & (df['C4'].isin(C4Lst))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')      
-
-            #    logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2b ...'))  
-            #    TCsdfLDSRes2b=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->')) & (df['B'].str.contains('^3S_FBG_DRUCK')) & (df['C2'].isin(['6'])) & ~(df['C4'].isin(C4Lst))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')                             
-
-            #    logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2c ...'))  
-            #    TCsdfLDSRes2c=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->')) & (df['B'].str.contains('^3S_FBG_DRUCK')) & ~(df['C2'].isin(['6']))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')                                                 
-
-            #else:
-            #    #TCsdfLDSRes1=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')         
-            #    TCsdfLDSRes2a=pd.DataFrame()
-            #    TCsdfLDSRes2b=pd.DataFrame()
-            #    TCsdfLDSRes2c=pd.DataFrame()
-
                
             if persistent:                 
                     logger.debug("{0:s}peristent: TCKeys {1:s} nach H5-File ...".format(logStr,str(TCKeys))) 
