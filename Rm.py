@@ -888,14 +888,105 @@ def pltLDSpQHelper(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
         return label, lines
 
+
+def pltLDSSIDHelper(
+    ax 
+   ,dfTCsSIDEvents
+   ,dfTCsScenTimeShift
+   ,labelPrefix
+   ,pSIDEvents
+   ,valRegExMiddleCmds
+   ,eventCCmds
+   ,eventCStats
+   ,markerDef
+   ,baseColorsDef
+    ):
+
+    """
+    Helper
+
+    Returns:
+    label: Bezeichner
+    scatter: ax.scatter-Ergebnis
+    """
+   
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:    
+            
+        label=''
+        scatter=None
+
+        # Anzahl der verschiedenen Schieber ermitteln 
+        idxKat={}
+        idxSchieberLfd=0    
+        for col in dfTCsSIDEvents.columns:    
+            m=re.search(pSIDEvents,col)
+            valRegExSchieberID=m.group('colRegExSchieberID')
+                            
+            if valRegExSchieberID not in idxKat.keys():
+                idxKat[valRegExSchieberID]=idxSchieberLfd
+                idxSchieberLfd=idxSchieberLfd+1          
+                        
+        logger.debug("{0:s}idxKat: keys: {1:s}: values: {2:s}".format(logStr,str(idxKat.keys()),str(idxKat.values())))
+
+        ### jede Grundfarbe so oft wie es Schieber gibt ### VERALTET ### jetzt 1 Farbe pro Schieber - nachfolgendes Aufrufergebnis ohne Verwendung
+        cm=pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,nOfSubCatsReq=len(idxKat),reversedSubCatOrder=True)   
+        
+        for col in dfTCsSIDEvents.columns:                       
+            m=re.search(pSIDEvents,col)
+        
+            valRegExSchieberID=m.group('colRegExSchieberID')
+            idxSchieberLfd=idxKat[valRegExSchieberID]        
+            valRegExEventID=m.group('colRegExEventID')        
+            valRegExMiddle=m.group('colRegExMiddle')
+        
+            if valRegExMiddle == valRegExMiddleCmds:
+                idxMarker=eventCCmds[valRegExEventID]
+            else:
+                idxMarker=eventCStats[valRegExEventID]
+
+            if idxMarker < len(markerDef):
+                m=markerDef[idxMarker]
+            else:
+                m=markerDef[-1]
+                logger.debug("{0:s}{1:s}: idxMarker: Soll: {2:d} MarkerIdx gewählt: {3:d}".format(logStr,col,idxMarker,len(markerDef)-1))   
+
+            if idxSchieberLfd < len(baseColorsDef):
+                c=baseColorsDef[idxSchieberLfd]
+            else:
+                c=baseColorsDef[-1]
+                logger.debug("{0:s}{1:s}: idxSchieberLfd: Ist: {2:d} FarbenIdx gewählt: {3:d}".format(logStr,col,idxSchieberLfd,len(baseColorsDef)-1))   
+                            
+            colors=[c for idx in range(len(dfTCsSIDEvents.index))] # aller Ereignisse (der Spalte) haben dieselbe Farbe
+            label=labelPrefix+col   # alle Ereignisse (der Spalte) haben dasselbe label
+            scatter = ax.scatter(dfTCsSIDEvents.index.values+dfTCsScenTimeShift
+                        ,dfTCsSIDEvents[col].values
+                        ,c=colors
+                        ,marker=m
+                        ,label=label
+                        )           
+                                      
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return label, scatter
+
 def pltLDSpQAndEvents(
      ax
     ,dfTCsLDSIn # es werden nur die aDct-definierten geplottet
     ,dfTCsOPC=pd.DataFrame() # es werden nur die aDctOPC-definierten geplottet
     # der Schluessel in den vorstehenden Dcts ist die ID (der Spaltenname) in den TCs
     ,dfTCsOPCScenTimeShift=pd.Timedelta('1 hour') 
-    ,dfTCsSIDEvents=pd.DataFrame() # es werden alle Schieberevents geplottet 
-    ,dfTCsSIDEventsTimeShift=pd.Timedelta('1 hour') 
+    ,dfTCsOPCSIDEvents=pd.DataFrame() # es werden alle Schieberevents geplottet 
+   # ,dfTCsSIDEventsTimeShift=pd.Timedelta('1 hour') 
+    ,dfTCsSirCalcSIDEvents=pd.DataFrame() # es werden alle Schieberevents geplottet 
     
     ,QDct={ # Exanple
         'Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value':{'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
@@ -969,12 +1060,12 @@ def pltLDSpQAndEvents(
                  ,'Out.ZU':1
                  ,'Out.HALT':2}
     ,eventCStats={'In.LAEUFT':3
-                 ,'In.LAEUFT_NICHT':3
-                 ,'In.ZUST':4
-                 ,'Out.AUF':5
-                 ,'Out.ZU':6
-                 ,'Out.HALT':7            
-                 ,'In.STOER':8}
+                 ,'In.LAEUFT_NICHT':4
+                 ,'In.ZUST':5
+                 ,'Out.AUF':6
+                 ,'Out.ZU':7
+                 ,'Out.HALT':8            
+                 ,'In.STOER':9}
     ,valRegExMiddleCmds='3S_FBG_ESCHIEBER' # colRegExMiddle-Auspraegung fuer Befehle (==> eventCCmds)
     # es muessen soviele Farben definiert sein wie Schieber
     ,baseColorsDef=[                     'b'        #                           0
@@ -991,13 +1082,13 @@ def pltLDSpQAndEvents(
                                         ,'v'        # 1 Zu
                                         ,'>'        # 2 Halt
                                         # ab hier Zustaende
-                                        ,'4'        # 3 
-                                        ,'P'        # 4
-                                        ,'1'        # 5
-                                        ,'2'        # 6
-                                        ,'3'        # 7
-                                        ,'x'        # 8
-
+                                        ,'4'        # 3 Laeuft
+                                        ,'3'        # 4 Laeuft nicht
+                                        ,'P'        # 5 Zust
+                                        ,'1'        # 6 Auf
+                                        ,'2'        # 7 Zu
+                                        ,'+'        # 8 Halt
+                                        ,'x'        # 9 Stoer
                     ]          
     ):
     """
@@ -1210,7 +1301,7 @@ def pltLDSpQAndEvents(
 
             # ggf. 3. Achse
 
-            if not dfTCsSIDEvents.empty:                   
+            if not dfTCsOPCSIDEvents.empty or not dfTCsSirCalcSIDEvents.empty:                   
 
                 ax3 = ax.twinx()                
                 axes['SID']=ax3
@@ -1223,67 +1314,93 @@ def pltLDSpQAndEvents(
                 ,yPos=yTwinedAxesPosDeltaHPStart+2*yTwinedAxesPosDeltaHP
                 )         
 
-                # Anzahl der verschiedenen Schieber ermitteln 
-                idxKat={}
-                idxSchieberLfd=0    
-                for col in dfTCsSIDEvents.columns:    
-                    m=re.search(pSIDEvents,col)
-                    valRegExSchieberID=m.group('colRegExSchieberID')
+            if not dfTCsOPCSIDEvents.empty:
+
+                label,scatter=pltLDSSIDHelper(
+                ax3 
+               ,dfTCsOPCSIDEvents
+               ,dfTCsOPCScenTimeShift
+               ,'OPC '
+               ,pSIDEvents
+               ,valRegExMiddleCmds
+               ,eventCCmds
+               ,eventCStats
+               ,markerDef
+               ,baseColorsDef
+                )
+
+                ## Anzahl der verschiedenen Schieber ermitteln 
+                #idxKat={}
+                #idxSchieberLfd=0    
+                #for col in dfTCsOPCSIDEvents.columns:    
+                #    m=re.search(pSIDEvents,col)
+                #    valRegExSchieberID=m.group('colRegExSchieberID')
                             
-                    if valRegExSchieberID not in idxKat.keys():
-                        idxKat[valRegExSchieberID]=idxSchieberLfd
-                        idxSchieberLfd=idxSchieberLfd+1          
+                #    if valRegExSchieberID not in idxKat.keys():
+                #        idxKat[valRegExSchieberID]=idxSchieberLfd
+                #        idxSchieberLfd=idxSchieberLfd+1          
                         
-                logger.debug("{0:s}idxKat: keys: {1:s}: values: {2:s}".format(logStr,str(idxKat.keys()),str(idxKat.values())))
+                #logger.debug("{0:s}idxKat: keys: {1:s}: values: {2:s}".format(logStr,str(idxKat.keys()),str(idxKat.values())))
 
-                ### jede Grundfarbe so oft wie es Schieber gibt ### VERALTET ### jetzt 1 Farbe pro Schieber - nachfolgendes Aufrufergebnis ohne Verwendung
-                cm=pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,nOfSubCatsReq=len(idxKat),reversedSubCatOrder=True)   
+                #### jede Grundfarbe so oft wie es Schieber gibt ### VERALTET ### jetzt 1 Farbe pro Schieber - nachfolgendes Aufrufergebnis ohne Verwendung
+                #cm=pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,nOfSubCatsReq=len(idxKat),reversedSubCatOrder=True)   
         
-                for col in dfTCsSIDEvents.columns:                       
-                    m=re.search(pSIDEvents,col)
+                #for col in dfTCsOPCSIDEvents.columns:                       
+                #    m=re.search(pSIDEvents,col)
         
-                    valRegExSchieberID=m.group('colRegExSchieberID')
-                    idxSchieberLfd=idxKat[valRegExSchieberID]        
-                    valRegExEventID=m.group('colRegExEventID')        
-                    valRegExMiddle=m.group('colRegExMiddle')
+                #    valRegExSchieberID=m.group('colRegExSchieberID')
+                #    idxSchieberLfd=idxKat[valRegExSchieberID]        
+                #    valRegExEventID=m.group('colRegExEventID')        
+                #    valRegExMiddle=m.group('colRegExMiddle')
         
-                    if valRegExMiddle == valRegExMiddleCmds:
-                        idxMarker=eventCCmds[valRegExEventID]
-                    else:
-                        idxMarker=eventCStats[valRegExEventID]
+                #    if valRegExMiddle == valRegExMiddleCmds:
+                #        idxMarker=eventCCmds[valRegExEventID]
+                #    else:
+                #        idxMarker=eventCStats[valRegExEventID]
 
-                    if idxMarker < len(markerDef):
-                        m=markerDef[idxMarker]
-                    else:
-                        m=markerDef[-1]
-                        logger.debug("{0:s}{1:s}: idxMarker: Soll: {2:d} MarkerIdx gewählt: {3:d}".format(logStr,col,idxMarker,len(markerDef)-1))   
+                #    if idxMarker < len(markerDef):
+                #        m=markerDef[idxMarker]
+                #    else:
+                #        m=markerDef[-1]
+                #        logger.debug("{0:s}{1:s}: idxMarker: Soll: {2:d} MarkerIdx gewählt: {3:d}".format(logStr,col,idxMarker,len(markerDef)-1))   
 
-                    if idxSchieberLfd < len(baseColorsDef):
-                        c=baseColorsDef[idxSchieberLfd]
-                    else:
-                        c=baseColorsDef[-1]
-                        logger.debug("{0:s}{1:s}: idxSchieberLfd: Ist: {2:d} FarbenIdx gewählt: {3:d}".format(logStr,col,idxSchieberLfd,len(baseColorsDef)-1))   
+                #    if idxSchieberLfd < len(baseColorsDef):
+                #        c=baseColorsDef[idxSchieberLfd]
+                #    else:
+                #        c=baseColorsDef[-1]
+                #        logger.debug("{0:s}{1:s}: idxSchieberLfd: Ist: {2:d} FarbenIdx gewählt: {3:d}".format(logStr,col,idxSchieberLfd,len(baseColorsDef)-1))   
                             
-                    colors=[c for idx in range(len(dfTCsSIDEvents.index))] # aller Ereignisse (der Spalte) haben dieselbe Farbe
-                    scatter = ax3.scatter(dfTCsSIDEvents.index.values+dfTCsSIDEventsTimeShift
-                              ,dfTCsSIDEvents[col].values
-                              ,c=colors
-                              ,marker=m
-                              ,label=col   # aller Ereignisse (der Spalte) haben dasselbe label
-                              )
-                    scatters[col]=scatter                    
+                #    colors=[c for idx in range(len(dfTCsOPCSIDEvents.index))] # aller Ereignisse (der Spalte) haben dieselbe Farbe
+                #    label='OPC '+col   # alle Ereignisse (der Spalte) haben dasselbe label
+                #    scatter = ax3.scatter(dfTCsOPCSIDEvents.index.values+dfTCsOPCScenTimeShift
+                #              ,dfTCsOPCSIDEvents[col].values
+                #              ,c=colors
+                #              ,marker=m
+                #              ,label=label
+                #              )
+                scatters[label]=scatter 
+                
 
+            if not dfTCsSirCalcSIDEvents.empty:
+                label,scatter=pltLDSSIDHelper(
+                ax3 
+               ,dfTCsSirCalcSIDEvents
+               ,pd.Timedelta('0 Seconds')
+               ,''
+               ,pSIDEvents
+               ,valRegExMiddleCmds
+               ,eventCCmds
+               ,eventCStats
+               ,markerDef
+               ,baseColorsDef
+                )
+
+            if not dfTCsOPCSIDEvents.empty or not dfTCsSirCalcSIDEvents.empty:    
                 pltLDSHelperY(ax3)
                 ax3.set_ylim((-1,3))
                 ax3.set_yticks([0,1,2,3])
-
-            else:
-                pass
-
-
     
-            if plotLegend:
-                pass
+            if plotLegend:                
                 ax.legend(
                  tuple([lines[line] for line in lines])
                 ,tuple([key for key,value in lines.items()])
@@ -1291,6 +1408,12 @@ def pltLDSpQAndEvents(
                 ,framealpha=legendFramealpha
                 ,facecolor=legendFacecolor
                 )
+
+                if not dfTCsOPCSIDEvents.empty or not dfTCsSirCalcSIDEvents.empty:                                       
+                    ax3.legend(
+                         framealpha=legendFramealpha
+                        ,facecolor=legendFacecolor
+                        )
                                                                                                                       
     except RmError:
         raise            
