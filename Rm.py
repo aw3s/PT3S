@@ -259,7 +259,7 @@ def pltHelperX(
 
     #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
     
-def pltLDSErgVecHelperY(
+def pltLDSHelperY(
      ax
     ):
     
@@ -595,7 +595,7 @@ def pltLDSErgVec(
             ,yPos=yTwinedAxesPosDeltaHPStart+yTwinedAxesPosDeltaHP
             )         
            
-            pltLDSErgVecHelperY(ax2)
+            pltLDSHelperY(ax2)
             
             if not dfSegReprVec.empty:
 
@@ -696,7 +696,7 @@ def pltLDSErgVec(
                 ,byminute=byminute
                 ,yPos=yTwinedAxesPosDeltaHPStart+2*yTwinedAxesPosDeltaHP
                 )           
-                pltLDSErgVecHelperY(ax3)
+                pltLDSHelperY(ax3)
         
                 if not dfSegReprVec.empty:
                     lines=ax3.plot(dfSegReprVec.index.values,dfSegReprVec['AC_AV'].values)
@@ -888,12 +888,13 @@ def pltLDSpQHelper(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
         return label, lines
 
-def pltLDSpQ(
+def pltLDSpQAndEvents(
      ax
     ,dfTCsLDSIn # es werden nur die aDct-definierten geplottet
     ,dfTCsOPC=pd.DataFrame() # es werden nur die aDctOPC-definierten geplottet
     # der Schluessel in den vorstehenden Dcts ist die ID (der Spaltenname) in den TCs
     ,dfTCsOPCScenTimeShift=pd.Timedelta('1 hour') 
+    ,dfTCsOPCSIDEvents=pd.DataFrame() # es werden alle Schieberevents geplottet 
     
     ,QDct={ # Exanple
         'Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value':{'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
@@ -957,21 +958,62 @@ def pltLDSpQ(
     ,legendLoc='best'
     ,legendFramealpha=.2
     ,legendFacecolor='white' 
-          
+
+    # SchieberEvents
+
+    ,pSIDEvents=re.compile('(?P<Prae>IMDI\.)?Objects\.(?P<C1>[a-z,A-Z,0-9]+)(?P<colRegExMiddle>_FBG_ESCHIEBER\.3S_|_ESCHIEBER\.)+(?P<colRegExSchieberID>[a-z,A-Z,0-9,_,.]+)\.(?P<colRegExEventID>(In\.ZUST|In\.LAEUFT|In\.STOER|Out\.AUF,|Out\.HALT|Out\.ZU)$)')
+    # ausgewertet werden: colRegExSchieberID (um welchen Schieber geht es), colRegExMiddle (Befehl oder Zustand) und colRegExEventID (welcher Befehl bzw. Zustand) 
+    # die Befehle bzw. Zustaende (die Auspraegungen von colRegExEventID) muessen nachf. def. sein um die Farbe (des Befehls bzw. des Zustandes) zu definieren
+    ,eventCCmds={ 'Out.AUF':0
+                 ,'Out.ZU':1
+                 ,'Out.HALT':2}
+    ,eventCStats={'In.LAEUFT':3
+                 ,'In.LAEUFT_NICHT':3
+                 ,'In.ZUST':4
+                 ,'Out.AUF':5
+                 ,'Out.ZU':6
+                 ,'Out.HALT':7            
+                 ,'In.STOER':8}
+    ,valRegExMiddleCmds='_FBG_ESCHIEBER.3S_' # colRegExMiddle-Auspraegung fuer Befehle (==> eventCCmds)
+    # es muessen soviele Farben definiert sein wie Befehle & Zustaende
+    ,baseColorsDef=[                     'b'        # Befehl Auf                0
+                                        ,'m'        # Befehl Zu                 1
+                                        ,'green'    # Befehl Halt               2
+                                        # ab hier Zustaende
+                                        ,'c'        # laeuft und Laeuft Nicht   3
+                                        ,'r'        # Zust 0-3                  4
+                                        ,'aqua'     # Auf                       5  
+                                        ,'orange'   # Zu                        6
+                                        ,'bisque'   # Halt                      7
+                                        ,'gold'     # Stoer                     8
+                    ]
+    ,markerDef=[                         'v'        # 0 / Schieber 1
+                                        ,'>'        # 1 / Schieber 2
+                                        ,'h'        # 2 / Schieber 3
+                                        ,'d'        # 3 / Schieber 4
+                                        ,'o'        # letzter / alle weiteren Schieber
+
+                    ]          
     ):
     """
-    zeichnet pq-Zeitkurven auf ax
+    zeichnet pq-Zeitkurven - ggf. ergaenzt durch Events
+
+    Returns:
+        * axes (Dct of axes)
+        * lines (Dct of lines)
+        * scatters (Dct of scatters)
     """
    
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
-    axLst=[]
-    yLines={}
+    axes={}
+    lines={}
+    scatters={}
 
     try:    
         
-            axLst.append(ax)
+            axes['p']=ax
 
             # x-Achse ----------------
             if xlim == None:            
@@ -1007,7 +1049,7 @@ def pltLDSpQ(
         
             for key, value in pDct.items(): # nur die konfigurierten IDs plotten          
                 if key in dfTCsLDSIn.columns: # nur dann, wenn ID als Spalte enthalten 
-                    label, lines = pltLDSpQHelper(
+                    label, linesAct = pltLDSpQHelper(
                         ax    
                        ,dfTCsLDSIn
                        ,key # Spaltenname
@@ -1016,14 +1058,14 @@ def pltLDSpQ(
                        ,IDPltKey=IDPltKey # Schluesselbezeichner in value   
                        ,xDctFcts=fctsDct
                         )                    
-                    yLines[label]=lines[0]               
+                    lines[label]=linesAct[0]               
                 else:
                     logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))   
 
                 if 'RTTM' in value.keys():       
                     if value['RTTM'] in dfTCsLDSIn.columns:
                         
-                        label, lines = pltLDSpQHelper(
+                        label, linesAct = pltLDSpQHelper(
                         ax    
                        ,dfTCsLDSIn
                        ,value['RTTM'] 
@@ -1033,7 +1075,7 @@ def pltLDSpQ(
                        ,IDPltValuePostfix=' RTTM' 
                        ,xDctFcts=fctsDct
                         )                    
-                        yLines[label]=lines[0]  
+                        lines[label]=linesAct[0]  
 
                     else:
                         logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,value['RTTM']))   
@@ -1042,7 +1084,7 @@ def pltLDSpQ(
                 for key, value in pDctOPC.items():   
                     if key in dfTCsOPC.columns:
 
-                        label, lines = pltLDSpQHelper(
+                        label, linesAct = pltLDSpQHelper(
                         ax    
                        ,dfTCsOPC
                        ,key 
@@ -1052,7 +1094,7 @@ def pltLDSpQ(
                        ,timeShift=dfTCsOPCScenTimeShift
                        ,xDctFcts=fctsDct
                         )                    
-                        yLines[label]=lines[0]   
+                        lines[label]=linesAct[0]   
 
                     else:
                         logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))                                        
@@ -1080,7 +1122,7 @@ def pltLDSpQ(
     
             # 2. y-Achse Q ----------------------------------------
             ax2 = ax.twinx()
-            axLst.append(ax2)
+            axes['Q']=ax2            
     
             pltHelperX(
              ax2
@@ -1092,7 +1134,7 @@ def pltLDSpQ(
            
             for key, value in QDct.items():   
                 if key in dfTCsLDSIn.columns:
-                        label, lines = pltLDSpQHelper(
+                        label, linesAct = pltLDSpQHelper(
                         ax2    
                        ,dfTCsLDSIn
                        ,key 
@@ -1101,14 +1143,14 @@ def pltLDSpQ(
                        ,IDPltKey=IDPltKey 
                        ,xDctFcts=fctsDct
                         )                    
-                        yLines[label]=lines[0]  
+                        lines[label]=linesAct[0]  
                 else:
                     logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))       
                        
                 if 'RTTM' in value.keys():       
                     if value['RTTM'] in dfTCsLDSIn.columns:
                         
-                        label, lines = pltLDSpQHelper(
+                        label, linesAct = pltLDSpQHelper(
                         ax2    
                        ,dfTCsLDSIn
                        ,value['RTTM'] 
@@ -1118,7 +1160,7 @@ def pltLDSpQ(
                        ,IDPltValuePostfix=' RTTM' 
                        ,xDctFcts=fctsDct
                         )                    
-                        yLines[label]=lines[0]  
+                        lines[label]=linesAct[0]  
 
                     else:
                         logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,value['RTTM']))   
@@ -1126,7 +1168,7 @@ def pltLDSpQ(
             if not dfTCsOPC.empty:   
                 for key, value in QDctOPC.items():   
                     if key in dfTCsOPC.columns:                       
-                        label, lines = pltLDSpQHelper(
+                        label, linesAct = pltLDSpQHelper(
                         ax2    
                        ,dfTCsOPC
                        ,key 
@@ -1136,12 +1178,12 @@ def pltLDSpQ(
                        ,timeShift=dfTCsOPCScenTimeShift
                        ,xDctFcts=fctsDct
                         )                    
-                        yLines[label]=lines[0]                                              
+                        lines[label]=linesAct[0]                                              
                     else:
                         logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))               
  
                                 
-            pltLDSErgVecHelperY(ax2)
+            pltLDSHelperY(ax2)
                      
             ylimQ,yticksQ=pltLDSpQHelperYLimAndTicks(
              dfTCsLDSIn
@@ -1160,12 +1202,87 @@ def pltLDSpQ(
             ax2.grid()  
     
             ax2.set_ylabel(ylabelQ)
+
+            # ggf. 3. Achse
+
+            if not dfTCsOPCSIDEvents.empty:                   
+
+                ax3 = ax.twinx()                
+                axes['SID']=ax3
+    
+                pltHelperX(
+                 ax3
+                ,dateFormat=dateFormat
+                ,bysecond=bysecond
+                ,byminute=byminute
+                ,yPos=yTwinedAxesPosDeltaHPStart+2*yTwinedAxesPosDeltaHP
+                )         
+
+                # Anzahl der verschiedenen Schieber ermitteln = Anzahl der Unterkategorien für die Farbe
+                idxKat={}
+                idxKatLfd=0    
+                for col in dfTCsOPCSIDEvents.columns:    
+                    m=re.search(pSIDEvents,col)
+                    valRegExSchieberID=m.group('colRegExSchieberID')
+                            
+                    if valRegExSchieberID not in idxKat.keys():
+                        idxKat[valRegExSchieberID]=idxKatLfd
+                        idxKatLfd=idxKatLfd+1          
+                        
+                logger.debug("{0:s}idxKat: keys: {1:s}: values: {2:s}".format(logStr,str(idxKat.keys()),str(idxKat.values())))
+
+                # jede Grundfarbe so oft wie es Schieber gibt; 1 Schieber: nur die Grundfarben
+                cm=pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,nOfSubCatsReq=len(idxKat),reversedSubCatOrder=True)   
+        
+                for col in dfTCsOPCSIDEvents.columns:                       
+                    m=re.search(pSIDEvents,col)
+        
+                    valRegExSchieberID=m.group('colRegExSchieberID')
+                    idxKatLfd=idxKat[valRegExSchieberID]        
+                    valRegExEventID=m.group('colRegExEventID')        
+                    valRegExMiddle=m.group('colRegExMiddle')
+        
+                    if valRegExMiddle == valRegExMiddleCmds:
+                        idxUnter=eventCCmds[valRegExEventID]
+                    else:
+                        idxUnter=eventCStats[valRegExEventID]
+                    cIdx=idxKatLfd*len(baseColorsDef)+idxUnter
+                    c=cm.colors[cIdx]
+
+                    logger.debug("{0:s}{1:s}: colIdx: {2:d} col: {3:s} min: {4:s} max: {5:s}".format(logStr,col,cIdx,str(c),str(dfTCsOPCSIDEvents[col].min()),str(dfTCsOPCSIDEvents[col].max())))   
+
+                    if idxKatLfd < len(markerDef):
+                        m=markerDef[idxKatLfd]
+                    else:
+                        m=markerDef[-1]
+        
+                    colors=[c for idx in range(len(dfTCsOPCSIDEvents.index))] # aller Ereignisse (der Spalte) haben dieselbe Farbe
+                    scatter = ax3.scatter(dfTCsOPCSIDEvents.index.values+dfTCsOPCScenTimeShift
+                              ,dfTCsOPCSIDEvents[col].values
+                              ,c=colors
+                              ,marker=m
+                              ,label=col   # aller Ereignisse (der Spalte) haben dasselbe label
+                              )
+                    scatters[col]=scatter
+                    #handlesSID, labelsSID = scatter.legend_elements(prop="colors", alpha=0.6)
+
+                pltLDSHelperY(ax3)
+
+
+
+                ax3.set_ylim((-1,3))
+                ax3.set_yticks([0,1,2,3])
+
+            else:
+                pass
+
+
     
             if plotLegend:
                 pass
                 ax.legend(
-                 tuple([yLines[yline] for yline in yLines])
-                ,tuple([key for key,value in yLines.items()])
+                 tuple([lines[line] for line in lines])
+                ,tuple([key for key,value in lines.items()])
                 ,loc=legendLoc
                 ,framealpha=legendFramealpha
                 ,facecolor=legendFacecolor
@@ -1179,7 +1296,7 @@ def pltLDSpQ(
         raise RmError(logStrFinal)                       
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-        return axLst,yLines
+        return axes,lines,scatters#handlesSID, labelsSID
 
         
 def pltMakeCategoricalColors(color,nOfSubColorsReq=3,reversedOrder=False):
@@ -1359,6 +1476,10 @@ def pltMakeCategoricalCmap(baseColorsDef="tab10",catagoryColors=None,nOfSubCatsR
         finally:
             pass
     
+        logger.debug("{0:s}ccolors: {1:s}".format(logStr,str(ccolors))) 
+        logger.debug("{0:s}nOfCatsReq: {1:s}".format(logStr,str((nOfCatsReq)))) 
+        logger.debug("{0:s}nOfSubCatsReq: {1:s}".format(logStr,str((nOfSubCatsReq)))) 
+
         # Farben bauen  -------------------------------------
 
         # resultierende Farben vorbelegen
@@ -1369,6 +1490,8 @@ def pltMakeCategoricalCmap(baseColorsDef="tab10",catagoryColors=None,nOfSubCatsR
             reversedSubCatOrderLst=nOfCatsReq*[reversedSubCatOrder]
         else:
             reversedSubCatOrderLst=reversedSubCatOrder
+
+        logger.debug("{0:s}reversedSubCatOrderLst: {1:s}".format(logStr,str((reversedSubCatOrderLst)))) 
 
         for i, c in enumerate(ccolors):
             rgb=pltMakeCategoricalColors(c,nOfSubColorsReq=nOfSubCatsReq,reversedOrder=reversedSubCatOrderLst[i])               
