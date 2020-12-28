@@ -839,7 +839,12 @@ def pltLDSpQHelper(
         label=''
         lines=[]
 
-        x=TCdf.index.values+timeShift
+
+        # nur Not Null plotten
+        s=TCdf[ID][TCsOPC[ID].notnull()]
+
+
+        x=s.index.values #TCdf.index.values+timeShift
 
         if IDPltKey in xDctValue.keys():
             # es liegt ein Schluessel fuer eine Layout-Informationen vor
@@ -851,9 +856,9 @@ def pltLDSpQHelper(
         
         if IDPltValue in xDctFcts.keys():     
             fct=xDctFcts[IDPltValue]
-            y=TCdf[ID].apply(fct).values
+            y=s.apply(fct).values#TCdf[ID].apply(fct).values
         else:           
-            y=TCdf[ID].values
+            y=s.values #TCdf[ID].values
 
         if  IDPltValue != None: 
             if IDPltValue in xDctAttrs.keys():     
@@ -984,8 +989,7 @@ def pltLDSpQAndEvents(
     ,dfTCsOPC=pd.DataFrame() # es werden nur die aDctOPC-definierten geplottet
     # der Schluessel in den vorstehenden Dcts ist die ID (der Spaltenname) in den TCs
     ,dfTCsOPCScenTimeShift=pd.Timedelta('1 hour') 
-    ,dfTCsOPCSIDEvents=pd.DataFrame() # es werden alle Schieberevents geplottet 
-   # ,dfTCsSIDEventsTimeShift=pd.Timedelta('1 hour') 
+    ,dfTCsOPCSIDEvents=pd.DataFrame() # es werden alle Schieberevents geplottet    
     ,dfTCsSirCalcSIDEvents=pd.DataFrame() # es werden alle Schieberevents geplottet 
     
     ,QDct={ # Exanple
