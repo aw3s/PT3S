@@ -839,20 +839,17 @@ def pltLDSpQHelper(
         label=''
         lines=[]
 
-
         # nur Not Null plotten
-        s=TCdf[ID][TCsOPC[ID].notnull()]
+        s=TCdf[ID][TCdf[ID].notnull()]
 
+        x=s.index.values+timeShift #TCdf.index.values+timeShift
 
-        x=s.index.values #TCdf.index.values+timeShift
-
+        IDPltValue=None
         if IDPltKey in xDctValue.keys():
             # es liegt ein Schluessel fuer eine Layout-Informationen vor
-            IDPltValue=xDctValue[IDPltKey]   
-            if IDPltValuePostfix != None:
+            IDPltValue=xDctValue[IDPltKey]  # koennte auch None sein ...  {'IDPlt':None}    
+            if IDPltValue != None and IDPltValuePostfix != None:
                 IDPltValue=IDPltValue+IDPltValuePostfix
-        else:
-            IDPltValue=None
         
         if IDPltValue in xDctFcts.keys():     
             fct=xDctFcts[IDPltValue]
@@ -869,14 +866,15 @@ def pltLDSpQHelper(
                     lines = ax.plot(x,y)
                 for prop,propValue in [(prop,value) for (prop, value) in xDctAttrs[IDPltValue].items() if prop not in ['where']]:               
                     plt.setp(lines[0],"{:s}".format(prop),propValue)        
-                label=IDPltValue+' '+ID
+                #label=IDPltValue+' '+ID
             else:
                 # es ist kein Layout definiert - einfach plotten
                 logger.debug("{0:s}IDPltValue: {1:s}: es ist kein Layout definiert - einfach plotten ...".format(logStr,IDPltValue))     
                 lines = ax.plot(x,y)
-                label=ID                
+                #label=ID                
+            label=IDPltValue+' '+ID
         else:
-            # es liegt kein Schluessel (oder kein Wert) fuer eine Layout-Informationen vor - einfach plotten
+            # es liegt kein Schluessel (oder Wert None) fuer eine Layout-Informationen vor - einfach plotten
             logger.debug("{0:s}ID: {1:s}: es liegt kein Schluessel (oder kein Wert) fuer eine Layout-Informationen vor - einfach plotten ...".format(logStr,ID))     
             lines = ax.plot(x,y)
             label=ID
@@ -1332,56 +1330,6 @@ def pltLDSpQAndEvents(
                ,markerDef
                ,baseColorsDef
                 )
-
-                ## Anzahl der verschiedenen Schieber ermitteln 
-                #idxKat={}
-                #idxSchieberLfd=0    
-                #for col in dfTCsOPCSIDEvents.columns:    
-                #    m=re.search(pSIDEvents,col)
-                #    valRegExSchieberID=m.group('colRegExSchieberID')
-                            
-                #    if valRegExSchieberID not in idxKat.keys():
-                #        idxKat[valRegExSchieberID]=idxSchieberLfd
-                #        idxSchieberLfd=idxSchieberLfd+1          
-                        
-                #logger.debug("{0:s}idxKat: keys: {1:s}: values: {2:s}".format(logStr,str(idxKat.keys()),str(idxKat.values())))
-
-                #### jede Grundfarbe so oft wie es Schieber gibt ### VERALTET ### jetzt 1 Farbe pro Schieber - nachfolgendes Aufrufergebnis ohne Verwendung
-                #cm=pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,nOfSubCatsReq=len(idxKat),reversedSubCatOrder=True)   
-        
-                #for col in dfTCsOPCSIDEvents.columns:                       
-                #    m=re.search(pSIDEvents,col)
-        
-                #    valRegExSchieberID=m.group('colRegExSchieberID')
-                #    idxSchieberLfd=idxKat[valRegExSchieberID]        
-                #    valRegExEventID=m.group('colRegExEventID')        
-                #    valRegExMiddle=m.group('colRegExMiddle')
-        
-                #    if valRegExMiddle == valRegExMiddleCmds:
-                #        idxMarker=eventCCmds[valRegExEventID]
-                #    else:
-                #        idxMarker=eventCStats[valRegExEventID]
-
-                #    if idxMarker < len(markerDef):
-                #        m=markerDef[idxMarker]
-                #    else:
-                #        m=markerDef[-1]
-                #        logger.debug("{0:s}{1:s}: idxMarker: Soll: {2:d} MarkerIdx gewählt: {3:d}".format(logStr,col,idxMarker,len(markerDef)-1))   
-
-                #    if idxSchieberLfd < len(baseColorsDef):
-                #        c=baseColorsDef[idxSchieberLfd]
-                #    else:
-                #        c=baseColorsDef[-1]
-                #        logger.debug("{0:s}{1:s}: idxSchieberLfd: Ist: {2:d} FarbenIdx gewählt: {3:d}".format(logStr,col,idxSchieberLfd,len(baseColorsDef)-1))   
-                            
-                #    colors=[c for idx in range(len(dfTCsOPCSIDEvents.index))] # aller Ereignisse (der Spalte) haben dieselbe Farbe
-                #    label='OPC '+col   # alle Ereignisse (der Spalte) haben dasselbe label
-                #    scatter = ax3.scatter(dfTCsOPCSIDEvents.index.values+dfTCsOPCScenTimeShift
-                #              ,dfTCsOPCSIDEvents[col].values
-                #              ,c=colors
-                #              ,marker=m
-                #              ,label=label
-                #              )
                 scatters[label]=scatter 
                 
 
@@ -1427,7 +1375,7 @@ def pltLDSpQAndEvents(
         raise RmError(logStrFinal)                       
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-        return axes,lines,scatters#handlesSID, labelsSID
+        return axes,lines,scatters
 
         
 def pltMakeCategoricalColors(color,nOfSubColorsReq=3,reversedOrder=False):
