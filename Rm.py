@@ -939,8 +939,13 @@ def pltLDSSIDHelper(
 
         ### jede Grundfarbe so oft wie es Schieber gibt ### VERALTET ### jetzt 1 Farbe pro Schieber - nachfolgendes Aufrufergebnis ohne Verwendung
         cm=pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,nOfSubCatsReq=len(idxKat),reversedSubCatOrder=True)   
+
+
+        #dfSIDsEvents.loc[xlimsAnSchritte[1][0]-pd.Timedelta('1 hour'):xlimsAnSchritte[1][1]-pd.Timedelta('1 hour'),:].dropna(axis=1,how='all')
+        # Spalten ohne Eintrag sollen nicht geplottet werden damit diese Spalten nicht in die Legende kommen
+        dfTCsSIDEventsPlot=dfTCsSIDEvents.dropna(axis=1,how='all')
         
-        for col in dfTCsSIDEvents.columns:                       
+        for col in dfTCsSIDEventsPlot.columns:                       
             m=re.search(pSIDEvents,col)
         
             valRegExSchieberID=m.group('colRegExSchieberID')
