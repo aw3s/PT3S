@@ -909,17 +909,20 @@ def pltLDSSIDHelper(
     Helper
 
     Returns:
-    label: Bezeichner
-    scatter: ax.scatter-Ergebnis
+    labels: Bezeichner
+    scatters: ax.scatter-Ergebnisse
     """
    
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
     try:    
-            
-        label=''
-        scatter=None
+        
+        labels=[]
+        scatters=[]
+        
+        #label=''
+        #scatter=None
 
         # Anzahl der verschiedenen Schieber ermitteln 
         idxKat={}
@@ -969,7 +972,10 @@ def pltLDSSIDHelper(
                         ,c=colors
                         ,marker=m
                         ,label=label
-                        )           
+                        )     
+            # scatter ist eine PathCollection; Attribut u.a. get_label(): Return the label used for this artist in the legend
+            labels.append(label)
+            scatters.append(scatter)
                                       
     except RmError:
         raise            
@@ -979,7 +985,7 @@ def pltLDSSIDHelper(
         raise RmError(logStrFinal)                       
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-        return label, scatter
+        return labels, scatters
 
 def pltLDSpQAndEvents(
      ax
@@ -1072,13 +1078,18 @@ def pltLDSpQAndEvents(
     # es muessen soviele Farben definiert sein wie Schieber
     ,baseColorsDef=[                     'b'        #                           0
                                         ,'m'        #                           1
-                                        ,'green'    #                           2                                      
+                                        ,'g'        #                           2                                      
                                         ,'c'        #                           3
                                         ,'r'        #                           4
                                         ,'aqua'     #                           5  
                                         ,'orange'   #                           6
                                         ,'bisque'   #                           7
                                         ,'gold'     #                           8
+                                        ,'fuchsia'  #                           9
+                                        ,'teal'     #                           10
+                                        ,'coral'    #                           11
+                                        ,'cornflowerblue' #                     12
+
                     ]
     ,markerDef=[                         '^'        # 0 Auf
                                         ,'v'        # 1 Zu
@@ -1099,7 +1110,7 @@ def pltLDSpQAndEvents(
     Returns:
         * axes (Dct of axes)
         * lines (Dct of lines)
-        * scatters (Dct of scatters)
+        * scatters (List of ax.scatter-Results)
     """
    
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
@@ -1107,7 +1118,7 @@ def pltLDSpQAndEvents(
 
     axes={}
     lines={}
-    scatters={}
+    scatters=[]
 
     try:    
         
@@ -1318,7 +1329,7 @@ def pltLDSpQAndEvents(
 
             if not dfTCsOPCSIDEvents.empty:
 
-                label,scatter=pltLDSSIDHelper(
+                labelsOneCall,scattersOneCall=pltLDSSIDHelper(
                 ax3 
                ,dfTCsOPCSIDEvents
                ,dfTCsOPCScenTimeShift
@@ -1329,12 +1340,11 @@ def pltLDSpQAndEvents(
                ,eventCStats
                ,markerDef
                ,baseColorsDef
-                )
-                scatters[label]=scatter 
+                )                
+                scatters=scatters+scattersOneCall
                 
-
             if not dfTCsSirCalcSIDEvents.empty:
-                label,scatter=pltLDSSIDHelper(
+                labelsOneCall,scattersOneCall=pltLDSSIDHelper(
                 ax3 
                ,dfTCsSirCalcSIDEvents
                ,pd.Timedelta('0 Seconds')
@@ -1346,6 +1356,7 @@ def pltLDSpQAndEvents(
                ,markerDef
                ,baseColorsDef
                 )
+                scatters=scatters+scattersOneCall
 
             if not dfTCsOPCSIDEvents.empty or not dfTCsSirCalcSIDEvents.empty:    
                 pltLDSHelperY(ax3)
