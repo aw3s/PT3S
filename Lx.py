@@ -777,6 +777,8 @@ class AppLog():
                    raise LxError(logStrFinal)    
                 else:
                    (zip7FileHead, zip7FileTail)=os.path.split(zip7File)
+                   logger.debug("{0:s}zip7FileHead: {1:s} zip7FileTail: {2:s}.".format(logStr,zip7FileHead,zip7FileTail))  
+
                 
                 tmpDir=os.path.dirname(zip7File)
                 tmpDirContent=glob.glob(tmpDir)
@@ -860,7 +862,12 @@ class AppLog():
                         #  ...
                         (name, ext)=os.path.splitext(logFileTail)
                         key='Log'+name
-                        self.__toH5(key,df,updLookUpDf=True,logName=logFileTail,zipName=os.path.join(os.path.relpath(zip7FileHead),zip7FileTail))
+
+                        if zip7FileHead != '':
+                            zipName=os.path.join(os.path.relpath(zip7FileHead),zip7FileTail)
+                        else:
+                            zipName=zip7FileTail
+                        self.__toH5(key,df,updLookUpDf=True,logName=logFileTail,zipName=zipName)#os.path.join(os.path.relpath(zip7FileHead),zip7FileTail))
                         # danach gleich schreiben ...
                         self.__toH5('lookUpDf',self.lookUpDf)
                                 
