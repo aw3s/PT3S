@@ -137,6 +137,7 @@
     <Compile Include="test.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Am.py" />
     <Compile Include="__init__.py">
       <SubType>Code</SubType>
     </Compile>

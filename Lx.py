@@ -2,7 +2,7 @@
 SIR 3S Logfile Utilities (short: Lx)
 """
 
-__version__='90.12.1.0.dev1'
+__version__='90.12.2.0.dev1'
 
 import os
 import sys
@@ -464,6 +464,11 @@ class AppLog():
             um einen Ueberblick zu gewinnen in self.lookUpDfZips (zusätzlich zu lx.lookUpDf)
             mit self.getFromZips(...) koennen Daten gesichtet werden
 
+        h5File:
+            die lookUp-Dfs vom H5-File werden gelesen
+            die zum H5-File zugehoerigen TC-H5-Filenamen werden belegt
+            die TC-H5-Files werden nicht auf Existenz geprüft oder gar gelesen            
+
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -563,7 +568,11 @@ class AppLog():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
 
     def __initWithH5File(self,h5File,useRawHdfAPI=False):
-        """
+        """       
+        die lookUp-Dfs vom H5-File werden gelesen
+        die zum H5-File zugehoerigen TC-H5-Filenamen werden belegt
+        die TC-H5-Files werden nicht auf Existenz geprüft oder gar gelesen
+
         self.h5File=h5File
         self.lookUpDf     from H5-File
         self.lookUpDfZips from H5-File
@@ -573,8 +582,8 @@ class AppLog():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try:  
-             # H5 existiert 
-             if os.path.exists(h5File):
+            # H5 existiert 
+            if os.path.exists(h5File):
                 self.h5File=h5File
 
                 # Keys available
@@ -592,44 +601,80 @@ class AppLog():
                             self.lookUpDfZips=h5Store['lookUpDfZips']
                 else:
                     if 'lookUpDf' in h5KeysStripped:
-                        self.lookUpDf=pd.read_hdf(self.h5File, key='lookUpDf')         
+                        self.lookUpDf=pd.read_hdf(self.h5File, key='lookUpDf')        
                     if 'lookUpDfZips' in h5KeysStripped:
-                        self.lookUpDfZips=pd.read_hdf(self.h5File, key='lookUpDfZips')       
-                        
+                        self.lookUpDfZips=pd.read_hdf(self.h5File, key='lookUpDfZips')     
 
-                #TC-H5s
-                (name,ext)=os.path.splitext(self.h5File)
-                TCPost='_TC'
+            else:
+                logStrFinal="{0:s}h5File {1:s} not existing.".format(logStr,h5File) 
+                logger.debug(logStrFinal)    
+                raise LxError(logStrFinal)        
+                                     
+            #TC-H5s
+            (name,ext)=os.path.splitext(self.h5File)
+            TCPost='_TC'
 
-                h5FileOPC=name+TCPost+'OPC'+ext
-                h5FileSirCalc=name+TCPost+'SirCalc'+ext
-                h5FileLDSIn=name+TCPost+'LDSIn'+ext
+            h5FileOPC=name+TCPost+'OPC'+ext
+            h5FileSirCalc=name+TCPost+'SirCalc'+ext
+            h5FileLDSIn=name+TCPost+'LDSIn'+ext
 
-                h5FileLDSRes1=name+TCPost+'LDSRes1'+ext
-                h5FileLDSRes2=name+TCPost+'LDSRes2'+ext
-                h5FileLDSRes=name+TCPost+'LDSRes'+ext
+            h5FileLDSRes1=name+TCPost+'LDSRes1'+ext
+            h5FileLDSRes2=name+TCPost+'LDSRes2'+ext
+            h5FileLDSRes=name+TCPost+'LDSRes'+ext
                
-                if os.path.exists(h5FileOPC):                                         
-                    self.h5FileOPC=h5FileOPC                       
-                    logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileOPC))    
-                if os.path.exists(h5FileSirCalc):                                         
-                    self.h5FileSirCalc=h5FileSirCalc
-                    logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileSirCalc))  
-                if os.path.exists(h5FileLDSIn):                                         
-                    self.h5FileLDSIn=h5FileLDSIn
-                    logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileLDSIn))  
+            if os.path.exists(h5FileOPC):                                         
+                self.h5FileOPC=h5FileOPC                       
+                logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileOPC))    
+            if os.path.exists(h5FileSirCalc):                                         
+                self.h5FileSirCalc=h5FileSirCalc
+                logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileSirCalc))  
+            if os.path.exists(h5FileLDSIn):                                         
+                self.h5FileLDSIn=h5FileLDSIn
+                logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileLDSIn))  
 
-                if os.path.exists(h5FileLDSRes):                                         
-                    self.h5FileLDSRes=h5FileLDSRes                      
-                    logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileLDSRes))    
-                if os.path.exists(h5FileLDSRes1):                                         
-                    self.h5FileLDSRes1=h5FileLDSRes1
-                    logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileLDSRes1))    
-                if os.path.exists(h5FileLDSRes2):                                         
-                    self.h5FileLDSRes2=h5FileLDSRes2
-                    logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileLDSRes2))    
+            if os.path.exists(h5FileLDSRes):                                         
+                self.h5FileLDSRes=h5FileLDSRes                      
+                logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileLDSRes))    
+            if os.path.exists(h5FileLDSRes1):                                         
+                self.h5FileLDSRes1=h5FileLDSRes1
+                logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileLDSRes1))    
+            if os.path.exists(h5FileLDSRes2):                                         
+                self.h5FileLDSRes2=h5FileLDSRes2
+                logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileLDSRes2))    
+                    
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
 
-             
+    def shrinkH5File(self,h5File):
+        """       
+        die dfs werden geloescht im H5-File
+        extract TCs to H5s sollte vorher gelaufen sein
+        dann stehen die TCs als H5s zur Verfügung und das Master-H5 als looUp ohne weitere Daten 
+
+        self.lookUpDf     from H5-File
+        self.lookUpDfZips from H5-File
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:  
+            # H5 existiert 
+            if os.path.exists(self.h5File):
+                
+                # Keys available
+                with pd.HDFStore(self.h5File) as h5Store:
+                     h5Keys=sorted(h5Store.keys())                                     
+                     logger.debug("{0:s}h5Keys available: {1:s}".format(logStr,str(h5Keys))) 
+                     1/0
+                     
+
+
+               
                     
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))

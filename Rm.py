@@ -115,7 +115,7 @@ True
 ...    os.remove(plotFileName)
 """
 
-__version__='90.12.1.0.dev1'
+__version__='90.12.2.0.dev1'
 
 import warnings # 3.6
 #...\Anaconda3\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
@@ -224,6 +224,14 @@ DINA4_y=11.6929133858
 DINA3_x=DINA4_x*math.sqrt(2)
 DINA3_y=DINA4_y*math.sqrt(2)
 
+
+from itertools import tee
+def pairwise(iterable):
+    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
+
 class RmError(Exception):
     def __init__(self, value):
         self.value = value
@@ -234,6 +242,255 @@ from matplotlib import markers
 from matplotlib.path import Path
 
 import numpy as np
+
+
+
+def genTimespans(timeStart
+     ,timeEnd
+     ,timeSpan=pd.Timedelta('12 Minutes')
+     ,timeOverlap=pd.Timedelta('0 Seconds')
+     ,timeStartPraefix=pd.Timedelta('0 Seconds')
+     ,timeEndPostfix=pd.Timedelta('0 Seconds')
+    ):
+    
+    # generates timeSpan-Sections 
+
+    # if timeStart is 
+    #     an int, it is considered as the number of desired Sections before timeEnd; timeEnd must be a time
+    #     a time, it is considered as timeStart      
+    
+    # if timeEnd is 
+    #     an int, it is considered as the number of desired Sections after timeStart; timeStart must be a time
+    #     a time, it is considered as timeEnd 
+    
+    # if timeSpan is 
+    #     an int, it is considered as the number of desired Sections 
+    #     a time, it is considered as timeSpan
+    
+    # returns an array of tuples
+    
+    xlims=[]
+ 
+    if type(timeStart) == int:    
+        numOfDesiredSections=timeStart                
+        timeStartEff=timeEnd+timeEndPostfix-numOfDesiredSections*timeSpan+(numOfDesiredSections-1)*timeOverlap-timeStartPraefix
+    else:        
+        timeStartEff=timeStart-timeStartPraefix
+    #print(timeStartEff)
+    
+    if type(timeEnd) == int:    
+        numOfDesiredSections=timeEnd
+        timeEndEff=timeStart-timeStartPraefix+numOfDesiredSections*timeSpan-(numOfDesiredSections-1)*timeOverlap+timeEndPostfix        
+    else:        
+        timeEndEff=timeEnd+timeEndPostfix
+    #print(timeEndEff)
+    
+    if type(timeSpan) == int:    
+        numOfDesiredSections=timeSpan  
+        dt=timeEndEff-timeStartEff
+        timeSpanEff=dt/numOfDesiredSections+(numOfDesiredSections-1)*timeOverlap        
+    else:        
+        timeSpanEff=timeSpan
+    #print(timeSpanEff)    
+    
+    #print(timeOverlap) 
+        
+    timeStartAct = timeStartEff           
+    while timeStartAct <= timeEndEff: 
+        timeEndAct=timeStartAct+timeSpanEff
+        xlim=(timeStartAct,timeEndAct)
+        xlims.append(xlim)        
+        timeStartAct = timeEndAct - timeOverlap         
+    
+    return xlims
+
+def gen2Timespans(
+      timeStart # Anfang eines "Prozesses"
+     ,timeEnd # Ende eines Prozesses
+     ,timeSpan=pd.Timedelta('12 Minutes')     
+     ,timeStartPraefix=pd.Timedelta('0 Seconds')
+     ,timeEndPostfix=pd.Timedelta('0 Seconds')
+     ,roundStr=None # i.e. '5min': timeStart.round(roundStr) und timeEnd dito
+    ):
+
+    """
+    erzeugt 2 gleich lange Zeitbereiche
+    1 um timeStart herum
+    1 um time End herum
+    """
+      
+    #print("timeStartPraefix: {:s}".format(str(timeStartPraefix)))
+    #print("timeEndPostfix: {:s}".format(str(timeEndPostfix)))
+    
+    xlims=[]
+
+    if roundStr != None:
+        timeStart=timeStart.round(roundStr)
+        timeEnd=timeEnd.round(roundStr)
+
+    xlims.append((timeStart-timeStartPraefix,timeStart-timeStartPraefix+timeSpan))
+    xlims.append((timeEnd+timeEndPostfix-timeSpan,timeEnd+timeEndPostfix))
+     
+    return xlims
+
+
+baseColorsSchieber=[ # Schieberfarben   
+                                         'b'        #                           1
+                                        ,'m'        #                           2
+                                        ,'g'        #                           3                                      
+                                        ,'c'        #                           4
+                                        ,'r'        #                           5
+                                        # alle Basisfarben außer y gelb
+                                        ,'tab:blue' #                           6
+                                        ,'tab:orange' #                         7 
+                                        ,'tab:green' #                          8
+                                        ,'tab:red' #                            9
+                                        ,'tab:purple' #                         10
+                                        ,'tab:brown' #                          11
+                                        ,'tab:pink'  #                          12                                    
+                                        ,'gold'     #                           13
+                                        ,'fuchsia'  #                           14                                       
+                                        ,'coral'    #                           15                                                     
+                    ]   
+markerDefSchieber=[ # Schiebersymobole                      
+                                         '^'        # 0 Auf
+                                        ,'v'        # 1 Zu
+                                        ,'>'        # 2 Halt
+                                        # ab hier Zustaende
+                                        ,'4'        # 3 Laeuft
+                                        ,'3'        # 4 Laeuft nicht
+                                        ,'P'        # 5 Zust
+                                        ,'1'        # 6 Auf
+                                        ,'2'        # 7 Zu
+                                        ,'+'        # 8 Halt
+                                        ,'x'        # 9 Stoer
+                    ]          
+
+def plotTimespans(    
+    axLst # list of axes to be used    
+   ,sectionTitles #  list of section titles to be used    
+
+   ,xlims
+    
+   ,vLinesX # plotted in each section if X-time fits
+   ,hLinesY # plotted in each section 
+    
+        
+   ,TCsLDSIn     
+   ,TCsOPC
+   ,TCsOPCSIDEvents
+   ,TCsSirCalcSIDEvents    
+    
+   ,QDct
+   ,pDct
+   ,QDctOPC
+   ,pDctOPC
+   ,attrsDct    
+    
+   ,fctsDct 
+    
+   ,dateFormat
+   ,bysecond
+   ,byminute
+        
+   ,ylimp   
+   ,ylabelp
+   ,yticksp  
+
+   ,ylimQ   
+   ,yticksQ
+
+   ,yGridSteps
+    
+   ,dfTCsOPCScenTimeShift=pd.Timedelta('1 hour') 
+    
+   ,SIDEventsTimeOnly=True # nur die Zeilen im jeweils zu plottenden Zeitbereich werden bei Events uebergeben
+   # hat ueber .dropna in Rm.pltLDSpQAndEvents ggf. Einfluss auf die Legende
+        
+   ,baseColorsDef=baseColorsSchieber):
+    
+    # plots timeSpan-Sections 
+    
+    # returns a Lst of pltLDSpQAndEvents-Results
+    
+    if sectionTitles==[] or sectionTitles ==None:
+        sectionTitles=len(xlims)*['a plotTimespansPlot sectionTitle Praefix']
+             
+    pltLDSpQAndEventsResults=[]
+    for idx,xlim in enumerate(xlims):   
+        
+        
+        if SIDEventsTimeOnly and not TCsOPCSIDEvents.empty:
+            dfTCsOPCSIDEventsPlot=TCsOPCSIDEvents.loc[xlim[0]-dfTCsOPCScenTimeShift:xlim[1]-dfTCsOPCScenTimeShift,:]#.dropna(axis=1,how='all')
+        else:
+            dfTCsOPCSIDEventsPlot=TCsOPCSIDEvents
+
+        if SIDEventsTimeOnly and not TCsSirCalcSIDEvents.empty:
+            TCsSirCalcSIDEventsPlot=TCsSirCalcSIDEvents.loc[xlim[0]:xlim[1],:]#.dropna(axis=1,how='all')
+        else:
+            TCsSirCalcSIDEventsPlot=TCsSirCalcSIDEvents          
+        
+                        
+        ax = axLst[idx]
+
+        (axes,lines,scatters)=pltLDSpQAndEvents(
+             ax
+            
+            ,dfTCsLDSIn=TCsLDSIn 
+            ,dfTCsOPC=TCsOPC
+            ,dfTCsOPCScenTimeShift=dfTCsOPCScenTimeShift
+            
+            ,dfTCsOPCSIDEvents=dfTCsOPCSIDEventsPlot
+            ,dfTCsSirCalcSIDEvents=TCsSirCalcSIDEventsPlot
+                        
+            ,QDct=QDct
+            ,pDct=pDct
+            ,QDctOPC=QDctOPC
+            ,pDctOPC=pDctOPC
+            ,attrsDct=attrsDct    
+            
+            ,fctsDct=fctsDct
+
+            ,xlim=xlim
+
+            ,dateFormat=dateFormat
+            ,bysecond=bysecond
+            ,byminute=byminute
+
+            ,ylimp=ylimp
+            ,ylabelp=ylabelp
+            ,yticksp=yticksp
+
+            ,ylimQ=ylimQ
+            ,yticksQ=yticksQ    
+
+            ,yGridSteps=yGridSteps
+
+            ,plotLegend=False
+            
+            ,baseColorsDef=baseColorsDef
+            )
+        pltLDSpQAndEventsResults.append((axes,lines,scatters))                
+
+        (timeStart,timeEnd)=xlim
+        sectionTitleSingle="{:s}: Plot Nr. {:d} - Zeitspanne: ({:s})".format(sectionTitles[idx],idx+1,str(timeEnd-timeStart)).replace('days','Tage')  
+        ax.set_title(sectionTitleSingle) 
+
+        for vLineX in vLinesX:        
+            if vLineX >= timeStart and vLineX <= timeEnd:
+                ax.axvline(x=vLineX,ymin=0, ymax=1, color='gray',ls='dashed')
+                
+        for hLineY in hLinesY:      
+            ax.axhline(y=hLineY,xmin=0, xmax=1,color='gray',ls='dashed')         
+            
+        if idx<len(xlims)-1:
+            if xlims[idx+1][0] < timeEnd: 
+                ax.axvspan(xlims[idx+1][0], timeEnd, alpha=0.2, color='gray')
+                
+                
+    return pltLDSpQAndEventsResults
+        
+    
 
 
 def pltHelperX(
@@ -371,22 +628,23 @@ def pltLDSpQHelperYLimAndTicks(
         if ylim != None:
             # der y-Wertebereich ist explizit definiert
             pass
-        else:        
+        else:       
+            df=dfReprVec.loc[:,[col for col in dfReprVecCols]]
             if not ylimxlim:
                 # Extremalwerte Analysebereich
-                ylimmin=dfReprVec.loc[:,[col for col in dfReprVecCols]].min().min()
-                ylimmax=dfReprVec.loc[:,[col for col in dfReprVecCols]].max().max()                                                                                                             
+                ylimmin=df.min().min()
+                ylimmax=df.max().max()                                                                                                             
             else:    
                 if xlim == None:                    
                     logger.error("{0:s} xlim muss angegeben sein wenn ylimxlim Wahr gesetzt wird. Weiter mit ylimxlim Falsch.".format(logStr)) 
-                    ylimmin=dfReprVec.loc[:,[col for col in dfReprVecCols]].min().min()
-                    ylimmax=dfReprVec.loc[:,[col for col in dfReprVecCols]].max().max()    
+                    ylimmin=df.min().min()
+                    ylimmax=df.max().max()    
                 else:
                     # Extremalwerte x-Wertebereich 
                     (xlimMin,xlimMax)=xlim
                     # Extremalwerte Analysebereich
-                    ylimmin=dfReprVec.loc[xlimMin:xlimMax,[col for col in dfReprVecCols]].min().min()
-                    ylimmax=dfReprVec.loc[xlimMin:xlimMax,[col for col in dfReprVecCols]].max().max()  
+                    ylimmin=df.loc[xlimMin:xlimMax,:].min().min()
+                    ylimmax=df.loc[xlimMin:xlimMax,:].max().max()  
 
             logger.debug("{0:s} ylimmin={1:10.2f} ylimmax={2:10.2f}.".format(logStr,ylimmin,ylimmax))         
         
@@ -504,6 +762,16 @@ def pltLDSErgVec(
     ,plotACCLimits=True
     ,Seg_ACC_Limits_Attrs={'color':'indigo','ls':linestyle_tuple[2][1]}
     ,Druck_ACC_Limits_Attrs={'color':'indigo','ls':linestyle_tuple[8][1]} 
+
+    ,plotAreas=True # 101-Initialisierungsphasen einfaerben; bei FLussbilanzen zusätzlich die -1-Phase
+    ,Seg_Init_Color='gray'
+    ,Seg_Init_Alpha=.1 
+    ,Seg_Not_Color='red'
+    ,Seg_Not_Alpha=.1
+    ,Druck_Init_Color='gray'
+    ,Druck_Init_Alpha=.3
+    
+    
           
     ):
     """
@@ -548,6 +816,20 @@ def pltLDSErgVec(
     
             # 1. Achse Alarm -----------------------    
 
+            if not dfSegReprVec.empty and plotAreas:
+                dfSegReprVec['STAT_S_DIFF']=dfSegReprVec['STAT_S'].diff()
+                for (i1, row1), (i2, row2) in pairwise(dfSegReprVec[dfSegReprVec['STAT_S_DIFF'] != 0.].dropna(how='all')[['STAT_S','STAT_S_DIFF']].iterrows()):    
+                    if row1.STAT_S == 101. and row2.STAT_S != 101.:
+                        ax.axvspan(i1, i2, alpha=Seg_Init_Alpha, color=Seg_Init_Color)
+                    if row1.STAT_S == -1. and row2.STAT_S != -1.:
+                        ax.axvspan(i1, i2, alpha=Seg_Not_Alpha, color=Seg_Not_Color)          
+
+            if not dfDruckReprVec.empty and plotAreas:
+                dfDruckReprVec['STAT_S_DIFF']=dfDruckReprVec['STAT_S'].diff()
+                for (i1, row1), (i2, row2) in pairwise(dfDruckReprVec[dfDruckReprVec['STAT_S_DIFF'] != 0.].dropna(how='all')[['STAT_S','STAT_S_DIFF']].iterrows()):        
+                    if row1.STAT_S == 101. and row2.STAT_S != 101.:
+                        ax.axvspan(i1, i2, alpha=Druck_Init_Alpha, color=Druck_Init_Color)
+
             if not dfSegReprVec.empty:
                 lines=ax.plot(dfSegReprVec.index.values,dfSegReprVec['AL_S'].values)
                 yLines['AL_S Seg']=lines[0]
@@ -560,7 +842,6 @@ def pltLDSErgVec(
                 for prop,value in Druck_AL_S_Attrs.items():               
                     plt.setp(lines[0],"{:s}".format(prop),value)      
                     
-
             if not dfSegReprVec.empty:
                 lines=ax.plot(dfSegReprVec.index.values,dfSegReprVec['SB_S'].values*10)
                 yLines['SB_S Seg']=lines[0]
@@ -1081,33 +1362,8 @@ def pltLDSpQAndEvents(
                  ,'In.STOER':9}
     ,valRegExMiddleCmds='3S_FBG_ESCHIEBER' # colRegExMiddle-Auspraegung fuer Befehle (==> eventCCmds)
     # es muessen soviele Farben definiert sein wie Schieber
-    ,baseColorsDef=[                     'b'        #                           0
-                                        ,'m'        #                           1
-                                        ,'g'        #                           2                                      
-                                        ,'c'        #                           3
-                                        ,'r'        #                           4
-                                        ,'aqua'     #                           5  
-                                        ,'orange'   #                           6
-                                        ,'bisque'   #                           7
-                                        ,'gold'     #                           8
-                                        ,'fuchsia'  #                           9
-                                        ,'teal'     #                           10
-                                        ,'coral'    #                           11
-                                        ,'cornflowerblue' #                     12
-
-                    ]
-    ,markerDef=[                         '^'        # 0 Auf
-                                        ,'v'        # 1 Zu
-                                        ,'>'        # 2 Halt
-                                        # ab hier Zustaende
-                                        ,'4'        # 3 Laeuft
-                                        ,'3'        # 4 Laeuft nicht
-                                        ,'P'        # 5 Zust
-                                        ,'1'        # 6 Auf
-                                        ,'2'        # 7 Zu
-                                        ,'+'        # 8 Halt
-                                        ,'x'        # 9 Stoer
-                    ]          
+    ,baseColorsDef=baseColorsSchieber                                                             
+    ,markerDef=markerDefSchieber 
     ):
     """
     zeichnet pq-Zeitkurven - ggf. ergaenzt durch Events
