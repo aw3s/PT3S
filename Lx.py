@@ -649,14 +649,15 @@ class AppLog():
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
 
-    def shrinkH5File(self,h5File):
+    def shrinkH5File(self):
         """       
         die dfs werden geloescht im H5-File
         extract TCs to H5s sollte vorher gelaufen sein
-        dann stehen die TCs als H5s zur Verfügung und das Master-H5 als looUp ohne weitere Daten 
-
-        self.lookUpDf     from H5-File
-        self.lookUpDfZips from H5-File
+        dann stehen die TCs als H5s zur Verfügung und das Master-H5 als lookUp ohne weitere Daten
+        
+        HDF5 does not adjust the size of the store after removal (see SO answer), 
+        so it is necessary to recompress/restructure the store - i.e. via cmd-Line:
+        ptrepack --chunkshape=auto --propindexes --complib=blosc in.h5 out.h5
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -668,14 +669,16 @@ class AppLog():
                 
                 # Keys available
                 with pd.HDFStore(self.h5File) as h5Store:
-                     h5Keys=sorted(h5Store.keys())                                     
+                     h5Keys=sorted(h5Store.keys())         # /Log20201216_0000001                            
                      logger.debug("{0:s}h5Keys available: {1:s}".format(logStr,str(h5Keys))) 
-                     1/0
-                     
 
-
-               
-                    
+                     for key in h5Keys:
+                        if re.match('(^/Log)',key):                            
+                            logger.debug("{0:s}key removed: {1:s}".format(logStr,str(key))) 
+                            h5Store.remove(key.replace(h5KeySep,''))
+                        else:
+                            logger.debug("{0:s}key NOT removed: {1:s}".format(logStr,str(key))) 
+                            
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
