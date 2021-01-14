@@ -369,45 +369,104 @@ markerDefSchieber=[ # Schiebersymobole
 def plotTimespans(    
     axLst # list of axes to be used    
    ,sectionTitles #  list of section titles to be used    
-
-   ,xlims
-    
+   ,xlims # list of sections    
    ,vLinesX # plotted in each section if X-time fits
    ,hLinesY # plotted in each section 
-    
-        
-   ,TCsLDSIn     
-   ,TCsOPC
-   ,TCsOPCSIDEvents
-   ,TCsSirCalcSIDEvents    
-    
-   ,QDct
-   ,pDct
-   ,QDctOPC
-   ,pDctOPC
-   ,attrsDct    
-    
-   ,fctsDct 
-    
-   ,dateFormat
-   ,bysecond
-   ,byminute
-        
-   ,ylimp   
-   ,ylabelp
-   ,yticksp  
 
-   ,ylimQ   
-   ,yticksQ
+   # ############
 
-   ,yGridSteps
-    
+   ,dfTCsLDSIn # es werden nur die aDct-definierten geplottet
+   ,dfTCsOPC=pd.DataFrame() # es werden nur die aDctOPC-definierten geplottet
+   # der Schluessel in den vorstehenden Dcts ist die ID (der Spaltenname) in den TCs
    ,dfTCsOPCScenTimeShift=pd.Timedelta('1 hour') 
-    
-   ,SIDEventsTimeOnly=True # nur die Zeilen im jeweils zu plottenden Zeitbereich werden bei Events uebergeben
-   # hat ueber .dropna in Rm.pltLDSpQAndEvents ggf. Einfluss auf die Legende
-        
-   ,baseColorsDef=baseColorsSchieber):
+   ,dfTCsSIDEvents=pd.DataFrame() # es werden alle Schieberevents geplottet    
+   ,dfTCsSIDEventsTimeShift=pd.Timedelta('1 hour') 
+   ,dfTCsSIDEventsInXlimOnly=True # es werden nur die Spalten geplottet, die in xlim vorkommen (in xlim mindestens 1x nicht Null sind)
+   
+   ,QDct={ # Exanple
+       'Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value':{'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+       ,'Objects.FBG_MESSW.6_TUD_39_FT_01.In.MW.value':{'IDPlt':'Q Snk','RTTM':'IMDI.Objects.FBG_MESSW.6_TUD_39_FT_01.In.MW.value'}
+    }
+   
+   ,pDct={ # Example
+       'Objects.FBG_HPS_M.6_KED_39_PTI_01_E.In.MW.value':{'IDPlt':'p Src'}
+       ,'Objects.FBG_HPS_M.6_TUD_39_PTI_01_E.In.MW.value':{'IDPlt':'p Snk'}
+       ,'Objects.FBG_HPS_M.6_EL1_39_PTI_01_E.In.MW.value':{'IDPlt':'p DE SS'}
+       ,'Objects.FBG_HPS_M.6_EL1_39_PTI_02_E.In.MW.value':{'IDPlt':'p DE DS'}    
+    }
+
+   ,QDctOPC={ # Exanple
+       'Objects.FBG_MESSW.6_EL1_39_FT_01.In.MW.value':{'IDPlt':'Q DE'}       
+    }
+
+   ,pDctOPC={} 
+   
+   ,IDPltKey='IDPlt' # Schluesselbezeichner in den vorstehenden 4 Dcts; Wert ist Referenz auf das folgende Layout-Dct und das folgende Fcts-Dct; Werte muessen eindeutig sein
+   
+   ,attrsDct={'p Src':{'color':'blue'}
+               ,'p Snk':{'color':'blue','ls':'dashed'}
+               ,'p DE SS':{'color':'darkgreen','ls':'dotted'}   
+               ,'p DE DS':{'color':'limegreen','ls':'dotted'}   
+            
+               ,'Q Src':{'color':'red'}
+               ,'Q Snk':{'color':'orange'}
+               ,'Q Src RTTM':{'color':'red','ls':'dotted'} # 'x' und 'x RTTM' muessen die Layout-Schluessel von Wertepaaren lauten
+               ,'Q Snk RTTM':{'color':'orange','ls':'dotted'} # 'x' und 'x RTTM' muessen die Layout-Schluessel von Wertepaaren lauten      
+               
+               ,'Q DE':{'color':'mediumspringgreen','ls':'dashed','where':'post'}           # wenn where spezifiziert ist: Step-Plot
+              }      
+   
+   ,fctsDct={} # a Dct with Fcts
+       
+   ,xlim=None    
+   ,dateFormat='%d.%m.%y: %H:%M:%S'
+   ,bysecond=[0,15,30,45]
+   ,byminute=None
+   
+   ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
+   ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
+   
+   # p y-Achse
+   ,ylimp=(0,100)  #wenn undef., dann min/max 
+   ,ylimpxlim=False #wenn Wahr und ylim undef., dann wird xlim beruecksichtigt bei min/max 
+   ,yticksp=[0,50,100] #wenn undef., dann aus ylimp
+   ,ylabelp='[bar]'
+   
+   # Q y-Achse
+   ,ylimQ=(0,250) 
+   ,ylimQxlim=False 
+   ,yticksQ=[0,50,100,150,200,250]  
+   ,ylabelQ='[Nm³/h]'
+   
+   ,yGridSteps=0 # 0: das y-Gitter besteht dann bei ylimp=ylimQ=yticksp=yticksQ None nur aus min/max (also 1 Gitterabschnitt)     
+   ,ySpanMin=0.9 # wenn ylim undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
+
+   ,plotLegend=True
+   ,legendLoc='best'
+   ,legendFramealpha=.2
+   ,legendFacecolor='white' 
+
+   # SchieberEvents
+
+   ,pSIDEvents=re.compile('(?P<Prae>IMDI\.)?Objects\.(?P<colRegExMiddle>3S_FBG_ESCHIEBER|FBG_ESCHIEBER{1})\.(3S_)?(?P<colRegExSchieberID>[a-z,A-Z,0-9,_]+)\.(?P<colRegExEventID>(In\.ZUST|In\.LAEUFT|In\.LAEUFT_NICHT|In\.STOER|Out\.AUF|Out\.HALT|Out\.ZU)$)')#re.compile('(?P<Prae>IMDI\.)?Objects\.(?P<colRegExMiddle>3S_FBG_ESCHIEBER\.|3S_FBG_ESCHIEBER\.3S_|FBG_ESCHIEBER\.{1})(?P<colRegExSchieberID>[a-z,A-Z,0-9,_]+)\.(?P<colRegExEventID>(In\.ZUST|In\.LAEUFT|In\.LAEUFT_NICHT|In\.STOER|Out\.AUF|Out\.HALT|Out\.ZU)$)')#re.compile('(?P<Prae>IMDI\.)?Objects\.(?P<C1>[a-z,A-Z,0-9]+)(?P<colRegExMiddle>_FBG_ESCHIEBER\.3S_|_ESCHIEBER\.)+(?P<colRegExSchieberID>[a-z,A-Z,0-9,_,.]+)\.(?P<colRegExEventID>(In\.ZUST|In\.LAEUFT|In\.STOER|Out\.AUF,|Out\.HALT|Out\.ZU)$)')
+   # ausgewertet werden: colRegExSchieberID (um welchen Schieber geht es), colRegExMiddle (Befehl oder Zustand) und colRegExEventID (welcher Befehl bzw. Zustand) 
+   # die Befehle bzw. Zustaende (die Auspraegungen von colRegExEventID) muessen nachf. def. sein um den Marker (des Befehls bzw. des Zustandes) zu definieren
+   ,eventCCmds={ 'Out.AUF':0
+                ,'Out.ZU':1
+                ,'Out.HALT':2}
+   ,eventCStats={'In.LAEUFT':3
+                ,'In.LAEUFT_NICHT':4
+                ,'In.ZUST':5
+                ,'Out.AUF':6
+                ,'Out.ZU':7
+                ,'Out.HALT':8            
+                ,'In.STOER':9}
+   ,valRegExMiddleCmds='3S_FBG_ESCHIEBER' # colRegExMiddle-Auspraegung fuer Befehle (==> eventCCmds)
+   # es muessen soviele Farben definiert sein wie Schieber
+   ,baseColorsDef=baseColorsSchieber                                                             
+   ,markerDef=markerDefSchieber 
+   
+   ):
     
     # plots timeSpan-Sections 
     
@@ -418,30 +477,19 @@ def plotTimespans(
              
     pltLDSpQAndEventsResults=[]
     for idx,xlim in enumerate(xlims):   
-        
-        
-        if SIDEventsTimeOnly and not TCsOPCSIDEvents.empty:
-            dfTCsOPCSIDEventsPlot=TCsOPCSIDEvents.loc[xlim[0]-dfTCsOPCScenTimeShift:xlim[1]-dfTCsOPCScenTimeShift,:]#.dropna(axis=1,how='all')
-        else:
-            dfTCsOPCSIDEventsPlot=TCsOPCSIDEvents
-
-        if SIDEventsTimeOnly and not TCsSirCalcSIDEvents.empty:
-            TCsSirCalcSIDEventsPlot=TCsSirCalcSIDEvents.loc[xlim[0]:xlim[1],:]#.dropna(axis=1,how='all')
-        else:
-            TCsSirCalcSIDEventsPlot=TCsSirCalcSIDEvents          
-        
-                        
+                             
         ax = axLst[idx]
 
         (axes,lines,scatters)=pltLDSpQAndEvents(
              ax
             
-            ,dfTCsLDSIn=TCsLDSIn 
-            ,dfTCsOPC=TCsOPC
+            ,dfTCsLDSIn=dfTCsLDSIn
+            ,dfTCsOPC=dfTCsOPC
             ,dfTCsOPCScenTimeShift=dfTCsOPCScenTimeShift
             
-            ,dfTCsOPCSIDEvents=dfTCsOPCSIDEventsPlot
-            ,dfTCsSirCalcSIDEvents=TCsSirCalcSIDEventsPlot
+            ,dfTCsSIDEvents=dfTCsSIDEvents    
+            ,dfTCsSIDEventsTimeShift=dfTCsSIDEventsTimeShift
+            ,dfTCsSIDEventsInXlimOnly=dfTCsSIDEventsInXlimOnly
                         
             ,QDct=QDct
             ,pDct=pDct
@@ -490,9 +538,6 @@ def plotTimespans(
                 
     return pltLDSpQAndEventsResults
         
-    
-
-
 def pltHelperX(
      ax
     ,dateFormat='%d.%m.%y: %H:%M:%S'
@@ -1176,8 +1221,7 @@ def pltLDSpQHelper(
 def pltLDSSIDHelper(
     ax 
    ,dfTCsSIDEvents
-   ,dfTCsScenTimeShift
-   ,labelPrefix
+   ,dfTCsScenTimeShift      
    ,pSIDEvents
    ,valRegExMiddleCmds
    ,eventCCmds
@@ -1220,9 +1264,7 @@ def pltLDSSIDHelper(
 
         ### jede Grundfarbe so oft wie es Schieber gibt ### VERALTET ### jetzt 1 Farbe pro Schieber - nachfolgendes Aufrufergebnis ohne Verwendung
         cm=pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,nOfSubCatsReq=len(idxKat),reversedSubCatOrder=True)   
-
-
-        #dfSIDsEvents.loc[xlimsAnSchritte[1][0]-pd.Timedelta('1 hour'):xlimsAnSchritte[1][1]-pd.Timedelta('1 hour'),:].dropna(axis=1,how='all')
+       
         # Spalten ohne Eintrag sollen nicht geplottet werden damit diese Spalten nicht in die Legende kommen
         dfTCsSIDEventsPlot=dfTCsSIDEvents.dropna(axis=1,how='all')
         
@@ -1252,7 +1294,7 @@ def pltLDSSIDHelper(
                 logger.debug("{0:s}{1:s}: idxSchieberLfd: Ist: {2:d} FarbenIdx gewählt: {3:d}".format(logStr,col,idxSchieberLfd,len(baseColorsDef)-1))   
                             
             colors=[c for idx in range(len(dfTCsSIDEvents.index))] # aller Ereignisse (der Spalte) haben dieselbe Farbe
-            label=labelPrefix+col   # alle Ereignisse (der Spalte) haben dasselbe label
+            label=col   # alle Ereignisse (der Spalte) haben dasselbe Label
             scatter = ax.scatter(dfTCsSIDEvents.index.values+dfTCsScenTimeShift
                         ,dfTCsSIDEvents[col].values
                         ,c=colors
@@ -1279,8 +1321,10 @@ def pltLDSpQAndEvents(
     ,dfTCsOPC=pd.DataFrame() # es werden nur die aDctOPC-definierten geplottet
     # der Schluessel in den vorstehenden Dcts ist die ID (der Spaltenname) in den TCs
     ,dfTCsOPCScenTimeShift=pd.Timedelta('1 hour') 
-    ,dfTCsOPCSIDEvents=pd.DataFrame() # es werden alle Schieberevents geplottet    
-    ,dfTCsSirCalcSIDEvents=pd.DataFrame() # es werden alle Schieberevents geplottet 
+
+    ,dfTCsSIDEvents=pd.DataFrame() 
+    ,dfTCsSIDEventsTimeShift=pd.Timedelta('1 hour') 
+    ,dfTCsSIDEventsInXlimOnly=True # es werden nur die Spalten geplottet, die in xlim vorkommen (in xlim mindestens 1x nicht Null sind)
     
     ,QDct={ # Exanple
         'Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value':{'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
@@ -1575,7 +1619,7 @@ def pltLDSpQAndEvents(
 
             # ggf. 3. Achse
 
-            if not dfTCsOPCSIDEvents.empty or not dfTCsSirCalcSIDEvents.empty:                   
+            if not dfTCsSIDEvents.empty:# or not dfTCsSirCalcSIDEvents.empty:                   
 
                 ax3 = ax.twinx()                
                 axes['SID']=ax3
@@ -1588,13 +1632,17 @@ def pltLDSpQAndEvents(
                 ,yPos=yTwinedAxesPosDeltaHPStart+2*yTwinedAxesPosDeltaHP
                 )         
 
-            if not dfTCsOPCSIDEvents.empty:
 
+                if dfTCsSIDEventsInXlimOnly:                    
+                    # auf xlim beschränken
+                    dfTCsSIDEventsPlot=dfTCsSIDEvents.loc[xlim[0]-dfTCsSIDEventsTimeShift:xlim[1]-dfTCsSIDEventsTimeShift,:]
+                else:
+                    dfTCsSIDEventsPlot=dfTCsSIDEvents
+            
                 labelsOneCall,scattersOneCall=pltLDSSIDHelper(
                 ax3 
-               ,dfTCsOPCSIDEvents
-               ,dfTCsOPCScenTimeShift
-               ,'OPC '
+               ,dfTCsSIDEventsPlot
+               ,dfTCsSIDEventsTimeShift                   
                ,pSIDEvents
                ,valRegExMiddleCmds
                ,eventCCmds
@@ -1604,22 +1652,9 @@ def pltLDSpQAndEvents(
                 )                
                 scatters=scatters+scattersOneCall
                 
-            if not dfTCsSirCalcSIDEvents.empty:
-                labelsOneCall,scattersOneCall=pltLDSSIDHelper(
-                ax3 
-               ,dfTCsSirCalcSIDEvents
-               ,pd.Timedelta('0 Seconds')
-               ,''
-               ,pSIDEvents
-               ,valRegExMiddleCmds
-               ,eventCCmds
-               ,eventCStats
-               ,markerDef
-               ,baseColorsDef
-                )
-                scatters=scatters+scattersOneCall
 
-            if not dfTCsOPCSIDEvents.empty or not dfTCsSirCalcSIDEvents.empty:    
+
+            if not dfTCsSIDEvents.empty:# or not dfTCsSirCalcSIDEvents.empty:    
                 pltLDSHelperY(ax3)
                 ax3.set_ylim((-1,3))
                 ax3.set_yticks([0,1,2,3])
@@ -1633,7 +1668,7 @@ def pltLDSpQAndEvents(
                 ,facecolor=legendFacecolor
                 )
 
-                if not dfTCsOPCSIDEvents.empty or not dfTCsSirCalcSIDEvents.empty:                                       
+                if not dfTCsSIDEvents.empty:# or not dfTCsSirCalcSIDEvents.empty:                                       
                     ax3.legend(
                          framealpha=legendFramealpha
                         ,facecolor=legendFacecolor
