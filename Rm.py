@@ -217,13 +217,29 @@ DINA0q =  ( 46.81,33.11)
 
 dpiSize=72
 
-
 DINA4_x=8.2677165354
 DINA4_y=11.6929133858
 
 DINA3_x=DINA4_x*math.sqrt(2)
 DINA3_y=DINA4_y*math.sqrt(2)
 
+
+linestyle_tuple = [
+     ('loosely dotted',        (0, (1, 10))),
+     ('dotted',                (0, (1, 1))),
+     ('densely dotted',        (0, (1, 1))),
+
+     ('loosely dashed',        (0, (5, 10))),
+     ('dashed',                (0, (5, 5))),
+     ('densely dashed',        (0, (5, 1))),
+
+     ('loosely dashdotted',    (0, (3, 10, 1, 10))),
+     ('dashdotted',            (0, (3, 5, 1, 5))),
+     ('densely dashdotted',    (0, (3, 1, 1, 1))),
+
+     ('dashdotdotted',         (0, (3, 5, 1, 5, 1, 5))),
+     ('loosely dashdotdotted', (0, (3, 10, 1, 10, 1, 10))),
+     ('densely dashdotdotted', (0, (3, 1, 1, 1, 1, 1)))]
 
 from itertools import tee
 def pairwise(iterable):
@@ -242,8 +258,6 @@ from matplotlib import markers
 from matplotlib.path import Path
 
 import numpy as np
-
-
 
 def genTimespans(timeStart
      ,timeEnd
@@ -366,14 +380,14 @@ markerDefSchieber=[ # Schiebersymobole
                                         ,'x'        # 9 Stoer
                     ]          
 
-def plotTimespans(    
+def plotTimespansHydr(    
     axLst # list of axes to be used    
    ,sectionTitles #  list of section titles to be used    
    ,xlims # list of sections    
    ,vLinesX # plotted in each section if X-time fits
    ,hLinesY # plotted in each section 
 
-   # ############
+   # --- Args Fct. ---:
 
    ,dfTCsLDSIn # es werden nur die aDct-definierten geplottet
    ,dfTCsOPC=pd.DataFrame() # es werden nur die aDctOPC-definierten geplottet
@@ -526,10 +540,10 @@ def plotTimespans(
 
         for vLineX in vLinesX:        
             if vLineX >= timeStart and vLineX <= timeEnd:
-                ax.axvline(x=vLineX,ymin=0, ymax=1, color='gray',ls='dashed')
+                ax.axvline(x=vLineX,ymin=0, ymax=1, color='gray',ls=linestyle_tuple[11][1])
                 
         for hLineY in hLinesY:      
-            ax.axhline(y=hLineY,xmin=0, xmax=1,color='gray',ls='dashed')         
+            ax.axhline(y=hLineY,xmin=0, xmax=1,color='gray',ls=linestyle_tuple[11][1])         
             
         if idx<len(xlims)-1:
             if xlims[idx+1][0] < timeEnd: 
@@ -734,22 +748,57 @@ def pltLDSpQHelperYLimAndTicks(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
         return ylim,yticks
                                             
-linestyle_tuple = [
-     ('loosely dotted',        (0, (1, 10))),
-     ('dotted',                (0, (1, 1))),
-     ('densely dotted',        (0, (1, 1))),
+def findAllTimeIntervalls(
+ df
+,fct=lambda row: True if row['col'] == 46 else False
+):
+# alle [Zeitbereiche] finden fuer die fct Wahr ist
+# returns array of Time-Pair-Tuples
 
-     ('loosely dashed',        (0, (5, 10))),
-     ('dashed',                (0, (5, 5))),
-     ('densely dashed',        (0, (5, 1))),
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
-     ('loosely dashdotted',    (0, (3, 10, 1, 10))),
-     ('dashdotted',            (0, (3, 5, 1, 5))),
-     ('densely dashdotted',    (0, (3, 1, 1, 1))),
+    tPairs=[]
 
-     ('dashdotdotted',         (0, (3, 5, 1, 5, 1, 5))),
-     ('loosely dashdotdotted', (0, (3, 10, 1, 10, 1, 10))),
-     ('densely dashdotdotted', (0, (3, 1, 1, 1, 1, 1)))]
+    try:
+        tEin=None
+        # paarweise über alle Zeilen
+        for (i1, row1), (i2, row2) in pairwise(df.iterrows()):    
+            row1Value=fct(row1)
+            row2Value=fct(row2)
+
+            # wenn 1 nicht x und 2       x tEin=t2
+            if not row1Value and row2Value:
+                tEin=i2
+
+            # wenn 1       x und 2 nicht x tAus=t1
+            if row1Value and not row2Value:
+                if tEin != None:
+                    # Paar speichern
+                    tAus=i1
+                    tPair=(tEin,tAus)
+                    tPairs.append(tPair)            
+                else:
+                    pass # sonst: # im ersten Wertepaar geht der Bereich Aus
+
+            # wenn 1       x und 2       x
+            if row1Value and not row2Value:
+                if tEin != None:
+                    pass
+                else:
+                    # im ersten Wertepaar ist der Bereich Ein
+                    tEin=i1
+
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return tPairs
+
 
 def pltLDSErgVec(
      ax
@@ -791,14 +840,14 @@ def pltLDSErgVec(
     ,Druck_LR_AV_Attrs={'color':'green','zorder':1,'ls':'dashed'}
 
     ,plotLPRate=True
-    ,Seg_LP_AV_Attrs={'color':'turquoise','zorder':0,'lw':.25}
-    ,Druck_LP_AV_Attrs={'color':'turquoise','zorder':0,'lw':.25,'ls':'dashed'}
+    ,Seg_LP_AV_Attrs={'color':'turquoise','zorder':0,'lw':1.50}
+    ,Druck_LP_AV_Attrs={'color':'turquoise','zorder':0,'lw':1.50,'ls':'dashed'}
     
     ,Seg_NG_AV_Attrs={'color':'red','zorder':2}
     ,Druck_NG_AV_Attrs={'color':'red','zorder':2,'ls':'dashed'}
     
-    ,Seg_SB_S_Attrs={'color':'black'}
-    ,Druck_SB_S_Attrs={'color':'black','ls':'dashed'}    
+    ,Seg_SB_S_Attrs={'color':'black','alpha':.5}
+    ,Druck_SB_S_Attrs={'color':'black','ls':'dashed','alpha':.5}    
     
     ,plotAC=True
     ,Seg_AC_AV_Attrs={'color':'indigo'}
@@ -808,25 +857,31 @@ def pltLDSErgVec(
     ,Seg_ACC_Limits_Attrs={'color':'indigo','ls':linestyle_tuple[2][1]}
     ,Druck_ACC_Limits_Attrs={'color':'indigo','ls':linestyle_tuple[8][1]} 
 
-    ,plotAreas=True # 101-Initialisierungsphasen einfaerben; bei FLussbilanzen zusätzlich die -1-Phase
-    ,Seg_Init_Color='gray'
-    ,Seg_Init_Alpha=.1 
-    ,Seg_Not_Color='red'
-    ,Seg_Not_Alpha=.1
-    ,Druck_Init_Color='gray'
-    ,Druck_Init_Alpha=.3
-    
-    
-          
+    ,highlightAreas=True # Phasen einfaerben
+    ,Seg_Highlight_Color='gray'
+    ,Seg_Highlight_Alpha=.1     
+    ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False   
+    ,Seg_HighlightError_Color='red'
+    ,Seg_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False   
+
+    ,Druck_Highlight_Color='gray'
+    ,Druck_Highlight_Alpha=.2
+    ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
+    ,Druck_HighlightError_Color='red'
+    ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False  
+           
     ):
     """
     zeichnet Zeitkurven von App LDS Ergebnisvektoren auf ax
+
+    return: axes (Dct der Achsen), yLines (Dct der Linien) 
+    Dct der Achsen: 'A': Alarm etc.; 'R': m3/h; 'a': ACC
     """
    
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
-    axLst=[]
+    axes={}
     yLines={}
 
     try:    
@@ -835,7 +890,7 @@ def pltLDSErgVec(
                 logger.error("{0:s}{1:s}".format(logStr,'dfSegReprVec UND dfDruckReprVec leer?! Return.')) 
                 return
 
-            axLst.append(ax)
+            axes['A']=ax #axLst.append(ax)
 
             # x-Achse ----------------
             if xlim == None:
@@ -861,19 +916,21 @@ def pltLDSErgVec(
     
             # 1. Achse Alarm -----------------------    
 
-            if not dfSegReprVec.empty and plotAreas:
-                dfSegReprVec['STAT_S_DIFF']=dfSegReprVec['STAT_S'].diff()
-                for (i1, row1), (i2, row2) in pairwise(dfSegReprVec[dfSegReprVec['STAT_S_DIFF'] != 0.].dropna(how='all')[['STAT_S','STAT_S_DIFF']].iterrows()):    
-                    if row1.STAT_S == 101. and row2.STAT_S != 101.:
-                        ax.axvspan(i1, i2, alpha=Seg_Init_Alpha, color=Seg_Init_Color)
-                    if row1.STAT_S == -1. and row2.STAT_S != -1.:
-                        ax.axvspan(i1, i2, alpha=Seg_Not_Alpha, color=Seg_Not_Color)          
+            if not dfSegReprVec.empty and highlightAreas:
+                tPairs=findAllTimeIntervalls(dfSegReprVec,Seg_Highlight_Fct)
+                for t1,t2 in tPairs:                    
+                    ax.axvspan(t1, t2, alpha=Seg_Highlight_Alpha, color=Seg_Highlight_Color)
+                tPairs=findAllTimeIntervalls(dfSegReprVec,Seg_HighlightError_Fct)
+                for t1,t2 in tPairs:                    
+                    ax.axvspan(t1, t2, alpha=Seg_Highlight_Alpha, color=Seg_HighlightError_Color)
 
-            if not dfDruckReprVec.empty and plotAreas:
-                dfDruckReprVec['STAT_S_DIFF']=dfDruckReprVec['STAT_S'].diff()
-                for (i1, row1), (i2, row2) in pairwise(dfDruckReprVec[dfDruckReprVec['STAT_S_DIFF'] != 0.].dropna(how='all')[['STAT_S','STAT_S_DIFF']].iterrows()):        
-                    if row1.STAT_S == 101. and row2.STAT_S != 101.:
-                        ax.axvspan(i1, i2, alpha=Druck_Init_Alpha, color=Druck_Init_Color)
+            if not dfDruckReprVec.empty and highlightAreas:
+                tPairs=findAllTimeIntervalls(dfDruckReprVec,Druck_Highlight_Fct)
+                for t1,t2 in tPairs:                    
+                    ax.axvspan(t1, t2, alpha=Druck_Highlight_Alpha, color=Druck_Highlight_Color)
+                tPairs=findAllTimeIntervalls(dfDruckReprVec,Druck_HighlightError_Fct)
+                for t1,t2 in tPairs:                    
+                    ax.axvspan(t1, t2, alpha=Druck_Highlight_Alpha, color=Druck_HighlightError_Color)
 
             if not dfSegReprVec.empty:
                 lines=ax.plot(dfSegReprVec.index.values,dfSegReprVec['AL_S'].values)
@@ -911,7 +968,8 @@ def pltLDSErgVec(
     
             # 2. y-Achse Fluss ----------------------------------------
             ax2 = ax.twinx()
-            axLst.append(ax2)
+            axes['R']=ax2
+            #axLst.append(ax2)
     
             pltHelperX(
              ax2
@@ -1013,7 +1071,8 @@ def pltLDSErgVec(
     
                 # 3. y-Achse Beschleunigung -------------------------------------------------
                 ax3 = ax.twinx()
-                axLst.append(ax3)
+                axes['a']=ax3
+                #axLst.append(ax3)
     
                 pltHelperX(
                  ax3
@@ -1134,7 +1193,7 @@ def pltLDSErgVec(
         raise RmError(logStrFinal)                       
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-        return axLst,yLines
+        return axes,yLines
 
 
 def pltLDSpQHelper(
