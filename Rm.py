@@ -482,12 +482,12 @@ def plotTimespansHydr(
    
    ):
     
-    # plots timeSpan-Sections 
+    # plots pltLDSpQAndEvents-Sections 
     
     # returns a Lst of pltLDSpQAndEvents-Results
     
-    if sectionTitles==[] or sectionTitles ==None:
-        sectionTitles=len(xlims)*['a plotTimespansPlot sectionTitle Praefix']
+    if sectionTitles==[] or sectionTitles==None:
+        sectionTitles=len(xlims)*['a plotTimespansHydr sectionTitle Praefix']
              
     pltLDSpQAndEventsResults=[]
     for idx,xlim in enumerate(xlims):   
@@ -799,13 +799,13 @@ def findAllTimeIntervalls(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
         return tPairs
 
-
 def pltLDSErgVec(
      ax
     ,dfSegReprVec=pd.DataFrame() # Ergebnisvektor SEG; pass empty Df if Druck only    
-    ,dfDruckReprVec=pd.DataFrame() # Ergebnisvektor DRUCK; pass empty Df if Seg only
-    
+    ,dfDruckReprVec=pd.DataFrame() # Ergebnisvektor DRUCK; pass empty Df if Seg only    
+
     ,xlim=None    
+
     ,dateFormat='%d.%m.%y: %H:%M:%S'
     ,bysecond=[0,15,30,45]
     ,byminute=None
@@ -1196,6 +1196,233 @@ def pltLDSErgVec(
         return axes,yLines
 
 
+def plotTimespansLDS(    
+     axLst # list of axes to be used      
+    ,xlims # list of sections    
+    
+    ,sectionTitles=[] #  list of section titles to be used  
+    ,vLinesX=[] # plotted in each section if X-time fits
+
+   # --- Args Fct. ---:     
+    ,dfSegReprVec=pd.DataFrame() 
+    ,dfDruckReprVec=pd.DataFrame() 
+    
+    #,xlim=None    
+    ,dateFormat='%d.%m.%y: %H:%M:%S'
+    ,bysecond=[0,15,30,45]
+    ,byminute=None
+    
+    ,ylimAL=(0,40)
+    ,yticksAL=[0,10,20,30,40]
+
+    ,yTwinedAxesPosDeltaHPStart=-0.0125 
+    ,yTwinedAxesPosDeltaHP=-0.075 
+
+    ,ylimR=None 
+    ,ylimRxlim=False 
+    ,yticksR=[0,2,4,10,15,30]
+    # dito Beschl.
+    ,ylimAC=None 
+    ,ylimACxlim=False 
+    ,yticksAC=None 
+
+    ,ySpanMin=0.9 
+
+    ,plotLegend=True # interpretiert fuer diese Funktion; Inverse gilt fuer pltLDSErgVec selbst
+    ,legendLoc='best'
+    ,legendFramealpha=.2
+    ,legendFacecolor='white' 
+    
+    ,Seg_AL_S_Attrs={'color':'blue'}
+    ,Druck_AL_S_Attrs={'color':'blue','ls':'dashed'}
+    
+    ,Seg_MZ_AV_Attrs={'color':'orange','zorder':3}    
+    
+    ,Seg_LR_AV_Attrs={'color':'green','zorder':1}
+    ,Druck_LR_AV_Attrs={'color':'green','zorder':1,'ls':'dashed'}
+
+    ,plotLPRate=True
+    ,Seg_LP_AV_Attrs={'color':'turquoise','zorder':0,'lw':1.50}
+    ,Druck_LP_AV_Attrs={'color':'turquoise','zorder':0,'lw':1.50,'ls':'dashed'}
+    
+    ,Seg_NG_AV_Attrs={'color':'red','zorder':2}
+    ,Druck_NG_AV_Attrs={'color':'red','zorder':2,'ls':'dashed'}
+    
+    ,Seg_SB_S_Attrs={'color':'black','alpha':.5}
+    ,Druck_SB_S_Attrs={'color':'black','ls':'dashed','alpha':.5}    
+    
+    ,plotAC=True
+    ,Seg_AC_AV_Attrs={'color':'indigo'}
+    ,Druck_AC_AV_Attrs={'color':'indigo','ls':'dashed'}       
+
+    ,plotACCLimits=True
+    ,Seg_ACC_Limits_Attrs={'color':'indigo','ls':linestyle_tuple[2][1]}
+    ,Druck_ACC_Limits_Attrs={'color':'indigo','ls':linestyle_tuple[8][1]} 
+
+    ,highlightAreas=True 
+    ,Seg_Highlight_Color='gray'
+    ,Seg_Highlight_Alpha=.1     
+    ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False   
+    ,Seg_HighlightError_Color='red'
+    ,Seg_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False   
+
+    ,Druck_Highlight_Color='gray'
+    ,Druck_Highlight_Alpha=.2
+    ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
+    ,Druck_HighlightError_Color='red'
+    ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
+    
+    
+):
+
+    # plots pltLDSErgVec-Sections 
+    
+    # returns a Lst of pltLDSErgVec-Results, a Lst of (axes,lines)
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:    
+
+        if sectionTitles==[] or sectionTitles ==None:
+            sectionTitles=len(xlims)*['a plotTimespansLDS sectionTitle Praefix']
+        
+        if plotLegend:
+           plotLegendFct=False
+        else:
+           plotLegendFct=True
+
+        pltLDSErgVecResults=[]
+        for idx,xlim in enumerate(xlims):   
+                             
+            ax = axLst[idx]
+        
+            (axes,lines)=pltLDSErgVec(
+                     ax
+                    ,dfSegReprVec=dfSegReprVec
+                    ,dfDruckReprVec=dfDruckReprVec
+                    ,xlim=xlims[idx]    
+                      
+                    ,dateFormat=dateFormat
+                    ,bysecond=bysecond
+                    ,byminute=byminute
+
+                    ,ylimAL=ylimAL
+                    ,yticksAL=yticksAL
+
+                    ,yTwinedAxesPosDeltaHPStart=yTwinedAxesPosDeltaHPStart
+                    ,yTwinedAxesPosDeltaHP=yTwinedAxesPosDeltaHP
+
+                    ,ylimR=ylimR
+                    ,ylimRxlim=ylimRxlim
+                    ,yticksR=yticksR
+                
+                    ,ylimAC=ylimAC 
+                    ,ylimACxlim=ylimACxlim 
+                    ,yticksAC=yticksAC 
+
+                    ,ySpanMin=ySpanMin
+
+                    ,plotLegend=plotLegendFct
+                    ,legendLoc=legendLoc
+                    ,legendFramealpha=legendFramealpha
+                    ,legendFacecolor=legendFacecolor 
+
+                    ,Seg_AL_S_Attrs=Seg_AL_S_Attrs
+                    ,Druck_AL_S_Attrs=Druck_AL_S_Attrs
+
+                    ,Seg_MZ_AV_Attrs=Seg_MZ_AV_Attrs    
+
+                    ,Seg_LR_AV_Attrs=Seg_LR_AV_Attrs
+                    ,Druck_LR_AV_Attrs=Druck_LR_AV_Attrs
+
+                    ,plotLPRate=plotLPRate
+                    ,Seg_LP_AV_Attrs=Seg_LP_AV_Attrs
+                    ,Druck_LP_AV_Attrs=Druck_LP_AV_Attrs
+
+                    ,Seg_NG_AV_Attrs=Seg_NG_AV_Attrs
+                    ,Druck_NG_AV_Attrs=Druck_NG_AV_Attrs
+
+                    ,Seg_SB_S_Attrs=Seg_SB_S_Attrs
+                    ,Druck_SB_S_Attrs=Druck_SB_S_Attrs    
+
+                    ,plotAC=plotAC
+                    ,Seg_AC_AV_Attrs=Seg_AC_AV_Attrs
+                    ,Druck_AC_AV_Attrs=Druck_AC_AV_Attrs       
+
+                    ,plotACCLimits=plotACCLimits
+                    ,Seg_ACC_Limits_Attrs=Seg_ACC_Limits_Attrs
+                    ,Druck_ACC_Limits_Attrs=Druck_ACC_Limits_Attrs 
+
+                    ,highlightAreas=highlightAreas 
+                    ,Seg_Highlight_Color=Seg_Highlight_Color
+                    ,Seg_Highlight_Alpha=Seg_Highlight_Alpha     
+                    ,Seg_Highlight_Fct=Seg_Highlight_Fct   
+                    ,Seg_HighlightError_Color=Seg_HighlightError_Color
+                    ,Seg_HighlightError_Fct=Seg_HighlightError_Fct   
+
+                    ,Druck_Highlight_Color=Druck_Highlight_Color
+                    ,Druck_Highlight_Alpha=Druck_Highlight_Alpha
+                    ,Druck_Highlight_Fct=Druck_Highlight_Fct  
+                    ,Druck_HighlightError_Color=Druck_HighlightError_Color
+                    ,Druck_HighlightError_Fct=Druck_HighlightError_Fct              
+            
+                    )    
+            pltLDSErgVecResults.append((axes,lines))
+        
+            (timeStart,timeEnd)=xlim        
+        
+            sectionTitleSingle="{:s}: Plot Nr. {:d} - Zeitspanne: ({:s})".format(sectionTitles[idx],idx+1,str(timeEnd-timeStart)).replace('days','Tage')  
+            ax.set_title(sectionTitleSingle)         
+        
+            for vLineX in vLinesX:        
+                if vLineX >= timeStart and vLineX <= timeEnd:
+                    ax.axvline(x=vLineX,ymin=0, ymax=1, color='gray',ls=linestyle_tuple[11][1])     
+                
+            if idx<len(xlims)-1:
+                if xlims[idx+1][0] < timeEnd: 
+                    ax.axvspan(xlims[idx+1][0], timeEnd, alpha=0.2, color='gray')                
+                
+                
+            # Legend
+            if plotLegend:
+                legendHorizontalPos='center'
+                if len(xlims)>1:
+                    if idx in [0]: # Anfahren
+                        legendHorizontalPos='right'
+                    elif idx in [1]: # Abfahren
+                        legendHorizontalPos='left'                    
+                
+                if not dfSegReprVec.empty:
+                    patternSeg='Seg$'
+                    axes['A'].add_artist(axes['A'].legend(
+                                tuple([lines[line] for line in lines if re.search(patternSeg,line) != None]) 
+                               ,tuple([line for line in lines if re.search(patternSeg,line) != None]) 
+                               ,loc='upper '+legendHorizontalPos
+                               ,framealpha=legendFramealpha
+                               ,facecolor=legendFacecolor
+                                ))         
+                if not dfDruckReprVec.empty:
+                    patternDruck='Drk$'
+                    axes['A'].add_artist(axes['A'].legend(
+                                tuple([lines[line] for line in lines if re.search(patternDruck,line) != None]) 
+                               ,tuple([line for line in lines if re.search(patternDruck,line) != None]) 
+                               ,loc='lower '+legendHorizontalPos
+                               ,framealpha=legendFramealpha
+                               ,facecolor=legendFacecolor
+                                ))                   
+        
+                     
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return pltLDSErgVecResults    
+        
 def pltLDSpQHelper(
     ax    
    ,TCdf

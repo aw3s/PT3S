@@ -327,6 +327,85 @@ def getLDSResVecDf(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
         return dfResVec
 
+
+def fGetIDSets(
+    dfID
+   ,pipelineNrLst #['43','44']
+):
+    # returns Dct: key: Bezeichner einer ID-Menge; value: zugeh. IDs
+    
+    IDSets={}
+    
+    IDs=[]
+    for ID in sorted(dfID.index.unique()):
+        m=re.search(pID,ID)
+        if m != None:
+            C1= m.group('C1')        
+            C2= m.group('C2')
+            C3= m.group('C3')
+            C4= m.group('C4')
+            C5= m.group('C5')
+
+            if   C1 in ['7'] and C3 in pipelineNrLst: # SEG ErgVecs
+                IDs.append(ID)        
+
+            elif C2 in ['7'] and C4 in pipelineNrLst:
+                IDs.append(ID)
+
+            elif C3 in ['7'] and C5 in pipelineNrLst: # FT, PTI, etc.
+                IDs.append(ID)     
+                
+    IDSets['IDs']=IDs
+    
+    IDsAlarm=[ID for ID in IDs if re.search(pID,ID).group('E') == 'AL_S']
+    IDSets['IDsAlarm']=IDsAlarm
+    
+    IDsAlarmSEG=[ID for ID in IDsAlarm if re.search(pID,ID).group('C5') != 'PTI']    
+    IDSets['IDsAlarmSEG']=IDsAlarmSEG
+    IDsAlarmDruck=[ID for ID in IDsAlarm if re.search(pID,ID).group('C5') == 'PTI']
+    IDSets['IDsAlarmDruck']=IDsAlarmDruck
+    
+    IDsStat=[ID for ID in IDs if re.search(pID,ID).group('E') == 'STAT_S']
+    IDSets['IDsStat']=IDsStat
+
+    IDsStatSEG=[ID for ID in IDsStat if re.search(pID,ID).group('C5') != 'PTI']    
+    IDSets['IDsStatSEG']=IDsStatSEG
+    IDsStatDruck=[ID for ID in IDsStat if re.search(pID,ID).group('C5') == 'PTI']
+    IDSets['IDsStatDruck']=IDsStatDruck
+    
+    IDsFT=[ID for ID in IDs if re.search(pID,ID).group('C4') == 'FT']
+    IDSets['IDsFT']=IDsFT
+    
+    IDsPT=[ID for ID in IDs if re.search(pID,ID).group('C4') == 'PTI']
+    IDSets['IDsPT']=IDsPT
+    
+    IDsZUST=[ID for ID in IDs if re.search(pID,ID).group('E') == 'ZUST']
+    IDsZUST=sorted(IDsZUST,key=lambda x: re.match(pID,x).group('C5'))   
+    IDSets['IDsZUST']=IDsZUST
+    
+    IDs_3S_FBG_ESCHIEBER=[ID for ID in IDs if re.search(pID,ID).group('B') == '3S_FBG_ESCHIEBER']
+    IDs_3S_FBG_ESCHIEBER=sorted(IDs_3S_FBG_ESCHIEBER,key=lambda x: re.match(pID,x).group('C6'))    
+    IDSets['IDs_3S_FBG_ESCHIEBER']=IDs_3S_FBG_ESCHIEBER
+    
+    IDs_FBG_ESCHIEBER=[ID for ID in IDs if re.search(pID,ID).group('B') == 'FBG_ESCHIEBER']
+    IDs_FBG_ESCHIEBER=sorted(IDs_FBG_ESCHIEBER,key=lambda x: re.match(pID,x).group('C5'))    #
+    IDSets['IDs_FBG_ESCHIEBER']=IDs_FBG_ESCHIEBER    
+        
+    IDs_FBG_ESCHIEBER_Ohne_ZUST=[ID for ID in IDs_FBG_ESCHIEBER if re.search(pID,ID).group('E') != 'ZUST']
+    IDs_FBG_ESCHIEBER_Ohne_ZUST=sorted(IDs_FBG_ESCHIEBER_Ohne_ZUST,key=lambda x: re.match(pID,x).group('C5'))    
+    IDSets['IDs_FBG_ESCHIEBER']=IDs_FBG_ESCHIEBER_Ohne_ZUST
+    
+    IDsSchieberAlle=IDsZUST+IDs_FBG_ESCHIEBER_Ohne_ZUST+IDs_3S_FBG_ESCHIEBER  
+    IDSets['IDsSchieberAlle']=IDsSchieberAlle
+    
+    IDsSchieberAlleOhneLAEUFT=[ID for ID in IDsSchieberAlle if re.search('LAEUFT$',ID) == None]
+    IDsSchieberAlleOhneLAEUFT=[ID for ID in IDsSchieberAlleOhneLAEUFT if re.search('LAEUFT_NICHT$',ID) == None]    
+    IDSets['IDsSchieberAlleOhneLAEUFT']=IDsSchieberAlleOhneLAEUFT
+    
+    
+    return IDSets   
+
+
 h5KeySep='/'
 
 class AppLog():
