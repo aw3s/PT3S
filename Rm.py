@@ -382,14 +382,15 @@ markerDefSchieber=[ # Schiebersymobole
 
 def plotTimespansHydr(    
     axLst # list of axes to be used    
-   ,sectionTitles #  list of section titles to be used    
    ,xlims # list of sections    
-   ,vLinesX # plotted in each section if X-time fits
-   ,hLinesY # plotted in each section 
+
+   ,sectionTitles=[] #  list of section titles to be used    
+   ,vLinesX=[] # plotted in each section if X-time fits
+   ,hLinesY=[] # plotted in each section 
 
    # --- Args Fct. ---:
 
-   ,dfTCsLDSIn # es werden nur die aDct-definierten geplottet
+   ,dfTCsLDSIn=pd.DataFrame() # es werden nur die aDct-definierten geplottet
    ,dfTCsOPC=pd.DataFrame() # es werden nur die aDctOPC-definierten geplottet
    # der Schluessel in den vorstehenden Dcts ist die ID (der Spaltenname) in den TCs
    ,dfTCsOPCScenTimeShift=pd.Timedelta('1 hour') 
@@ -455,7 +456,7 @@ def plotTimespansHydr(
    ,yGridSteps=0 # 0: das y-Gitter besteht dann bei ylimp=ylimQ=yticksp=yticksQ None nur aus min/max (also 1 Gitterabschnitt)     
    ,ySpanMin=0.9 # wenn ylim undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
 
-   ,plotLegend=True
+   ,plotLegend=True # interpretiert fuer diese Funktion; Inverse gilt fuer pltLDSpQAndEvents selbst
    ,legendLoc='best'
    ,legendFramealpha=.2
    ,legendFacecolor='white' 
@@ -484,10 +485,15 @@ def plotTimespansHydr(
     
     # plots pltLDSpQAndEvents-Sections 
     
-    # returns a Lst of pltLDSpQAndEvents-Results
+    # returns a Lst of pltLDSpQAndEvents-Results, a Lst of (axes,lines,scatters)
     
     if sectionTitles==[] or sectionTitles==None:
         sectionTitles=len(xlims)*['a plotTimespansHydr sectionTitle Praefix']
+
+    if plotLegend:
+        plotLegendFct=False
+    else:
+        plotLegendFct=True
              
     pltLDSpQAndEventsResults=[]
     for idx,xlim in enumerate(xlims):   
@@ -528,7 +534,7 @@ def plotTimespansHydr(
 
             ,yGridSteps=yGridSteps
 
-            ,plotLegend=False
+            ,plotLegend=plotLegendFct
             
             ,baseColorsDef=baseColorsDef
             )
@@ -546,9 +552,37 @@ def plotTimespansHydr(
             ax.axhline(y=hLineY,xmin=0, xmax=1,color='gray',ls=linestyle_tuple[11][1])         
             
         if idx<len(xlims)-1:
-            if xlims[idx+1][0] < timeEnd: 
+            if xlims[idx+1][0] < timeEnd and xlims[idx+1] != xlims[idx]: 
                 ax.axvspan(xlims[idx+1][0], timeEnd, alpha=0.2, color='gray')
-                
+
+        # Legend
+        if plotLegend:
+            legendHorizontalPos='center'
+            if len(xlims)>1:
+                if idx in [0,2,4]: # Anfahren ...
+                    legendHorizontalPos='right'
+                elif idx in [1,3,5]: # Abfahren ...
+                    legendHorizontalPos='left'   
+
+            axes['p'].add_artist(axes['p'].legend(
+                            tuple([lines[line] for line in lines if re.search('^p S[rc|nk]',line) != None]) 
+                            ,tuple([line for line in lines if re.search('^p ',line) != None]) 
+                            ,loc='upper '+legendHorizontalPos
+                            ,framealpha=legendFramealpha
+                            ,facecolor=legendFacecolor
+                            ))
+            axes['p'].legend(
+                            tuple([lines[line] for line in lines if re.search('^Q S[rc|nk]',line) != None]) 
+                            ,tuple([line for line in lines if re.search('^Q S[rc|nk]',line) != None]) 
+                            ,loc='lower '+legendHorizontalPos
+                            ,framealpha=legendFramealpha
+                            ,facecolor=legendFacecolor
+                            )
+
+            if 'SID' in axes.keys():
+                    axes['SID'].legend(loc='center '+legendHorizontalPos
+                            ,framealpha=legendFramealpha
+                            ,facecolor=legendFacecolor)                
                 
     return pltLDSpQAndEventsResults
         
@@ -1382,8 +1416,7 @@ def plotTimespansLDS(
             if idx<len(xlims)-1:
                 if xlims[idx+1][0] < timeEnd: 
                     ax.axvspan(xlims[idx+1][0], timeEnd, alpha=0.2, color='gray')                
-                
-                
+                                
             # Legend
             if plotLegend:
                 legendHorizontalPos='center'
