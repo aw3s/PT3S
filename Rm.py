@@ -384,7 +384,10 @@ def plotTimespansHydr(
     axLst # list of axes to be used    
    ,xlims # list of sections    
 
+   ,figTitle='a plotTimespansHydr title' # the title of the plot; will be extended by min. and max. time calculated over all sections; will be also the pdf and png fileName
+   ,figSave=True # creates pdf and png
    ,sectionTitles=[] #  list of section titles to be used    
+   ,sectionTexts=[] #  list of section texts to be used    
    ,vLinesX=[] # plotted in each section if X-time fits
    ,hLinesY=[] # plotted in each section 
    ,vAreasX=[] # for each section a list of areas to highlight 
@@ -504,6 +507,17 @@ def plotTimespansHydr(
             logger.warning("{0:s}sectionTitles muss dieselbe Laenge haben wie xlims.".format(logStr)) 
             sectionTitles=len(xlims)*['a plotTimespansHydr sectionTitle Praefix']
 
+        if sectionTexts==[] or sectionTexts==None:
+            sectionTexts=len(xlims)*['']
+
+        if not isinstance(sectionTexts, list):            
+            logger.warning("{0:s}sectionTexts muss eine Liste von strings sein.".format(logStr)) 
+            sectionTexts=len(xlims)*['']
+
+        if len(sectionTexts)!=len(xlims):            
+            logger.warning("{0:s}sectionTexts muss dieselbe Laenge haben wie xlims.".format(logStr)) 
+            sectionTexts=len(xlims)*['']
+
         if plotLegend:
             plotLegendFct=False
         else:
@@ -567,7 +581,15 @@ def plotTimespansHydr(
             
                 ,baseColorsDef=baseColorsDef
                 )
-            pltLDSpQAndEventsResults.append((axes,lines,scatters))                
+            pltLDSpQAndEventsResults.append((axes,lines,scatters))     
+            
+            sectionText=sectionTexts[idx]
+            ax.text(  
+                0.5, 0.5,
+                sectionText,
+                ha='center', va='top',
+                transform=ax.transAxes
+            )
 
             (timeStart,timeEnd)=xlim
             sectionTitleSingle="{:s}: Plot Nr. {:d} - Zeitspanne: ({:s})".format(sectionTitles[idx],idx+1,str(timeEnd-timeStart)).replace('days','Tage')  
@@ -618,8 +640,30 @@ def plotTimespansHydr(
                 if 'SID' in axes.keys():
                         axes['SID'].legend(loc='center '+legendHorizontalPos
                                 ,framealpha=legendFramealpha
-                                ,facecolor=legendFacecolor)                
+                                ,facecolor=legendFacecolor)        
+                        
+        # Titel
+        tMin=xlims[0][0]
+        tMax=xlims[-1][1]
+        for tPair in xlims:
+            (t1,t2)=tPair
+            if t1 < tMin:
+                tMin=t1
+            if t2>tMax:
+                tMax=t2
                     
+        figTitle="{:s} - {:s} - {:s}".format(figTitle,str(tMin),str(tMax)).replace(':',' ')
+        fig=plt.gcf()
+        fig.suptitle(figTitle)   
+
+        # speichern?!
+        if figSave:
+            fig.tight_layout(pad=2.) # gs.tight_layout(fig,pad=2.)
+
+            plt.savefig(figTitle+'.png')
+            plt.savefig(figTitle+'.pdf') 
+
+
 
     except RmError:
         raise            
