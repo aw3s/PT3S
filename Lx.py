@@ -904,7 +904,7 @@ class AppLog():
                    raise LxError(logStrFinal)    
                 else:
                    (zip7FileHead, zip7FileTail)=os.path.split(zip7File)
-                   logger.debug("{0:s}zip7FileHead: {1:s} zip7FileTail: {2:s}.".format(logStr,zip7FileHead,zip7FileTail))  
+                   logger.debug("{0:s}zip7FileHead (leer wenn zip7 im selben Verz.): {1:s} zip7FileTail: {2:s}.".format(logStr,zip7FileHead,zip7FileTail))  
 
                 
                 tmpDir=os.path.dirname(zip7File)

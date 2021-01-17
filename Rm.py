@@ -387,6 +387,7 @@ def plotTimespansHydr(
    ,sectionTitles=[] #  list of section titles to be used    
    ,vLinesX=[] # plotted in each section if X-time fits
    ,hLinesY=[] # plotted in each section 
+   ,vAreasX=[] # for each section a list of areas to highlight 
 
    # --- Args Fct. ---:
 
@@ -434,9 +435,9 @@ def plotTimespansHydr(
    ,fctsDct={} # a Dct with Fcts
        
    ,xlim=None    
-   ,dateFormat='%d.%m.%y: %H:%M:%S'
-   ,bysecond=[0,15,30,45]
-   ,byminute=None
+   ,dateFormat='%d.%m.%y: %H:%M:%S' # can be a list
+   ,bysecond=[0,15,30,45] # can be a list
+   ,byminute=None # can be a list
    
    ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
    ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
@@ -482,109 +483,154 @@ def plotTimespansHydr(
    ,markerDef=markerDefSchieber 
    
    ):
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
     
     # plots pltLDSpQAndEvents-Sections 
     
     # returns a Lst of pltLDSpQAndEvents-Results, a Lst of (axes,lines,scatters)
+
+    try:
     
-    if sectionTitles==[] or sectionTitles==None:
-        sectionTitles=len(xlims)*['a plotTimespansHydr sectionTitle Praefix']
+        if sectionTitles==[] or sectionTitles==None:
+            sectionTitles=len(xlims)*['a plotTimespansHydr sectionTitle Praefix']
 
-    if plotLegend:
-        plotLegendFct=False
-    else:
-        plotLegendFct=True
-             
-    pltLDSpQAndEventsResults=[]
-    for idx,xlim in enumerate(xlims):   
-                             
-        ax = axLst[idx]
+        if not isinstance(sectionTitles, list):            
+            logger.warning("{0:s}sectionTitles muss eine Liste von strings sein.".format(logStr)) 
+            sectionTitles=len(xlims)*['a plotTimespansHydr sectionTitle Praefix']
 
-        (axes,lines,scatters)=pltLDSpQAndEvents(
-             ax
-            
-            ,dfTCsLDSIn=dfTCsLDSIn
-            ,dfTCsOPC=dfTCsOPC
-            ,dfTCsOPCScenTimeShift=dfTCsOPCScenTimeShift
-            
-            ,dfTCsSIDEvents=dfTCsSIDEvents    
-            ,dfTCsSIDEventsTimeShift=dfTCsSIDEventsTimeShift
-            ,dfTCsSIDEventsInXlimOnly=dfTCsSIDEventsInXlimOnly
-                        
-            ,QDct=QDct
-            ,pDct=pDct
-            ,QDctOPC=QDctOPC
-            ,pDctOPC=pDctOPC
-            ,attrsDct=attrsDct    
-            
-            ,fctsDct=fctsDct
+        if len(sectionTitles)!=len(xlims):            
+            logger.warning("{0:s}sectionTitles muss dieselbe Laenge haben wie xlims.".format(logStr)) 
+            sectionTitles=len(xlims)*['a plotTimespansHydr sectionTitle Praefix']
 
-            ,xlim=xlim
-
-            ,dateFormat=dateFormat
-            ,bysecond=bysecond
-            ,byminute=byminute
-
-            ,ylimp=ylimp
-            ,ylabelp=ylabelp
-            ,yticksp=yticksp
-
-            ,ylimQ=ylimQ
-            ,yticksQ=yticksQ    
-
-            ,yGridSteps=yGridSteps
-
-            ,plotLegend=plotLegendFct
-            
-            ,baseColorsDef=baseColorsDef
-            )
-        pltLDSpQAndEventsResults.append((axes,lines,scatters))                
-
-        (timeStart,timeEnd)=xlim
-        sectionTitleSingle="{:s}: Plot Nr. {:d} - Zeitspanne: ({:s})".format(sectionTitles[idx],idx+1,str(timeEnd-timeStart)).replace('days','Tage')  
-        ax.set_title(sectionTitleSingle) 
-
-        for vLineX in vLinesX:        
-            if vLineX >= timeStart and vLineX <= timeEnd:
-                ax.axvline(x=vLineX,ymin=0, ymax=1, color='gray',ls=linestyle_tuple[11][1])
-                
-        for hLineY in hLinesY:      
-            ax.axhline(y=hLineY,xmin=0, xmax=1,color='gray',ls=linestyle_tuple[11][1])         
-            
-        if idx<len(xlims)-1:
-            if xlims[idx+1][0] < timeEnd and xlims[idx+1] != xlims[idx]: 
-                ax.axvspan(xlims[idx+1][0], timeEnd, alpha=0.2, color='gray')
-
-        # Legend
         if plotLegend:
-            legendHorizontalPos='center'
-            if len(xlims)>1:
-                if idx in [0,2,4]: # Anfahren ...
-                    legendHorizontalPos='right'
-                elif idx in [1,3,5]: # Abfahren ...
-                    legendHorizontalPos='left'   
+            plotLegendFct=False
+        else:
+            plotLegendFct=True
+             
+        pltLDSpQAndEventsResults=[]
+        for idx,xlim in enumerate(xlims):   
+                             
+            ax = axLst[idx]
 
-            axes['p'].add_artist(axes['p'].legend(
-                            tuple([lines[line] for line in lines if re.search('^p S[rc|nk]',line) != None]) 
-                            ,tuple([line for line in lines if re.search('^p ',line) != None]) 
-                            ,loc='upper '+legendHorizontalPos
-                            ,framealpha=legendFramealpha
-                            ,facecolor=legendFacecolor
-                            ))
-            axes['p'].legend(
-                            tuple([lines[line] for line in lines if re.search('^Q S[rc|nk]',line) != None]) 
-                            ,tuple([line for line in lines if re.search('^Q S[rc|nk]',line) != None]) 
-                            ,loc='lower '+legendHorizontalPos
-                            ,framealpha=legendFramealpha
-                            ,facecolor=legendFacecolor
-                            )
+            if isinstance(dateFormat, list):
+                dateFormatIdx=dateFormat[idx]
+            else:
+                dateFormatIdx=dateFormat
 
-            if 'SID' in axes.keys():
-                    axes['SID'].legend(loc='center '+legendHorizontalPos
-                            ,framealpha=legendFramealpha
-                            ,facecolor=legendFacecolor)                
+            if isinstance(bysecond, list):
+                bysecondIdx=bysecond[idx]
+            else:
+                bysecondIdx=bysecond
+
+            if isinstance(byminute, list):
+                byminuteIdx=byminute[idx]
+            else:
+                byminuteIdx=byminute
+
+            (axes,lines,scatters)=pltLDSpQAndEvents(
+                 ax
+            
+                ,dfTCsLDSIn=dfTCsLDSIn
+                ,dfTCsOPC=dfTCsOPC
+                ,dfTCsOPCScenTimeShift=dfTCsOPCScenTimeShift
+            
+                ,dfTCsSIDEvents=dfTCsSIDEvents    
+                ,dfTCsSIDEventsTimeShift=dfTCsSIDEventsTimeShift
+                ,dfTCsSIDEventsInXlimOnly=dfTCsSIDEventsInXlimOnly
+                        
+                ,QDct=QDct
+                ,pDct=pDct
+                ,QDctOPC=QDctOPC
+                ,pDctOPC=pDctOPC
+                ,attrsDct=attrsDct    
+            
+                ,fctsDct=fctsDct
+
+                ,xlim=xlim
+
+                ,dateFormat=dateFormatIdx
+                ,bysecond=bysecondIdx
+                ,byminute=byminuteIdx
+
+                ,ylimp=ylimp
+                ,ylabelp=ylabelp
+                ,yticksp=yticksp
+
+                ,ylimQ=ylimQ
+                ,yticksQ=yticksQ    
+
+                ,yGridSteps=yGridSteps
+
+                ,plotLegend=plotLegendFct
+            
+                ,baseColorsDef=baseColorsDef
+                )
+            pltLDSpQAndEventsResults.append((axes,lines,scatters))                
+
+            (timeStart,timeEnd)=xlim
+            sectionTitleSingle="{:s}: Plot Nr. {:d} - Zeitspanne: ({:s})".format(sectionTitles[idx],idx+1,str(timeEnd-timeStart)).replace('days','Tage')  
+            ax.set_title(sectionTitleSingle) 
+
+            for vLineX in vLinesX:        
+                if vLineX >= timeStart and vLineX <= timeEnd:
+                    ax.axvline(x=vLineX,ymin=0, ymax=1, color='gray',ls=linestyle_tuple[11][1])
                 
-    return pltLDSpQAndEventsResults
+            for hLineY in hLinesY:      
+                ax.axhline(y=hLineY,xmin=0, xmax=1,color='gray',ls=linestyle_tuple[11][1])         
+
+            if len(vAreasX) == len(xlims):
+                vAreasXSection=vAreasX[idx]
+                if vAreasXSection==[] or vAreasXSection==None:
+                    pass
+                else:
+                    for vArea in vAreasXSection:
+                        ax.axvspan(vArea[0], vArea[1], alpha=0.2, color='gray')
+            else:
+                logger.warning("{0:s}vAreasX muss dieselbe Laenge haben wie xlims.".format(logStr)) 
+
+           
+            # Legend
+            if plotLegend:
+                legendHorizontalPos='center'
+                if len(xlims)>1:
+                    if idx in [0,2,4]: # Anfahren ...
+                        legendHorizontalPos='right'
+                    elif idx in [1,3,5]: # Abfahren ...
+                        legendHorizontalPos='left'   
+
+                axes['p'].add_artist(axes['p'].legend(
+                                tuple([lines[line] for line in lines if re.search('^p S[rc|nk]',line) != None]) 
+                                ,tuple([line for line in lines if re.search('^p ',line) != None]) 
+                                ,loc='upper '+legendHorizontalPos
+                                ,framealpha=legendFramealpha
+                                ,facecolor=legendFacecolor
+                                ))
+                axes['p'].legend(
+                                tuple([lines[line] for line in lines if re.search('^Q S[rc|nk]',line) != None]) 
+                                ,tuple([line for line in lines if re.search('^Q S[rc|nk]',line) != None]) 
+                                ,loc='lower '+legendHorizontalPos
+                                ,framealpha=legendFramealpha
+                                ,facecolor=legendFacecolor
+                                )
+
+                if 'SID' in axes.keys():
+                        axes['SID'].legend(loc='center '+legendHorizontalPos
+                                ,framealpha=legendFramealpha
+                                ,facecolor=legendFacecolor)                
+                    
+
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return pltLDSpQAndEventsResults
+
         
 def pltHelperX(
      ax
