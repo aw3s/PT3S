@@ -533,15 +533,15 @@ def plotTimespansHydr(
             else:
                 dateFormatIdx=dateFormat
 
+            bysecondIdx=bysecond
             if isinstance(bysecond, list):
-                bysecondIdx=bysecond[idx]
-            else:
-                bysecondIdx=bysecond
+                if any(isinstance(el, list) for el in bysecond):               
+                    bysecondIdx=bysecond[idx]                        
 
+            byminuteIdx=byminute
             if isinstance(byminute, list):
-                byminuteIdx=byminute[idx]
-            else:
-                byminuteIdx=byminute
+                if any(isinstance(el, list) for el in byminute):              
+                    byminuteIdx=byminute[idx]     
 
             (axes,lines,scatters)=pltLDSpQAndEvents(
                  ax
@@ -1028,6 +1028,9 @@ def pltLDSErgVec(
             (xlimMin,xlimMax)=xlim
 
             ax.set_xlim(xlim)
+
+            logger.debug("{0:s}bysecond: {1:s}".format(logStr,str(bysecond))) 
+            logger.debug("{0:s}byminute: {1:s}".format(logStr,str(byminute))) 
     
             pltHelperX(
              ax
@@ -1448,15 +1451,15 @@ def plotTimespansLDS(
             else:
                 dateFormatIdx=dateFormat
 
+            bysecondIdx=bysecond
             if isinstance(bysecond, list):
-                bysecondIdx=bysecond[idx]
-            else:
-                bysecondIdx=bysecond
+                if any(isinstance(el, list) for el in bysecond):               
+                    bysecondIdx=bysecond[idx]                        
 
+            byminuteIdx=byminute
             if isinstance(byminute, list):
-                byminuteIdx=byminute[idx]
-            else:
-                byminuteIdx=byminute
+                if any(isinstance(el, list) for el in byminute):              
+                    byminuteIdx=byminute[idx]                     
         
             (axes,lines)=pltLDSErgVec(
                      ax
@@ -1916,6 +1919,9 @@ def pltLDSpQAndEvents(
             (xlimMin,xlimMax)=xlim
 
             ax.set_xlim(xlim)
+
+            logger.debug("{0:s}bysecond: {1:s}".format(logStr,str(bysecond))) 
+            logger.debug("{0:s}byminute: {1:s}".format(logStr,str(byminute))) 
                            
             pltHelperX(
              ax
