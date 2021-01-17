@@ -611,7 +611,6 @@ def plotTimespansHydr(
                         ax.axvspan(vArea[0], vArea[1], alpha=0.2, color='gray')
             else:
                 logger.warning("{0:s}vAreasX muss dieselbe Laenge haben wie xlims.".format(logStr)) 
-
            
             # Legend
             if plotLegend:
@@ -1323,18 +1322,22 @@ def pltLDSErgVec(
 def plotTimespansLDS(    
      axLst # list of axes to be used      
     ,xlims # list of sections    
-    
-    ,sectionTitles=[] #  list of section titles to be used  
-    ,vLinesX=[] # plotted in each section if X-time fits
+
+    ,figTitle='a plotTimespansLDS title' # the title of the plot; will be extended by min. and max. time calculated over all sections; will be also the pdf and png fileName
+    ,figSave=True # creates pdf and png
+    ,sectionTitles=[] #  list of section titles to be used    
+    ,sectionTexts=[] #  list of section texts to be used    
+    ,vLinesX=[] # plotted in each section if X-time fits    
+    ,vAreasX=[] # for each section a list of areas to highlight 
 
    # --- Args Fct. ---:     
     ,dfSegReprVec=pd.DataFrame() 
     ,dfDruckReprVec=pd.DataFrame() 
     
     #,xlim=None    
-    ,dateFormat='%d.%m.%y: %H:%M:%S'
-    ,bysecond=[0,15,30,45]
-    ,byminute=None
+    ,dateFormat='%d.%m.%y: %H:%M:%S'  # can be a list
+    ,bysecond=[0,15,30,45]  # can be a list
+    ,byminute=None  # can be a list
     
     ,ylimAL=(0,40)
     ,yticksAL=[0,10,20,30,40]
@@ -1410,6 +1413,25 @@ def plotTimespansLDS(
 
         if sectionTitles==[] or sectionTitles ==None:
             sectionTitles=len(xlims)*['a plotTimespansLDS sectionTitle Praefix']
+
+        if not isinstance(sectionTitles, list):            
+            logger.warning("{0:s}sectionTitles muss eine Liste von strings sein.".format(logStr)) 
+            sectionTitles=len(xlims)*['a plotTimespansLDS sectionTitle Praefix']
+
+        if len(sectionTitles)!=len(xlims):            
+            logger.warning("{0:s}sectionTitles muss dieselbe Laenge haben wie xlims.".format(logStr)) 
+            sectionTitles=len(xlims)*['a plotTimespansLDS sectionTitle Praefix']
+
+        if sectionTexts==[] or sectionTexts==None:
+            sectionTexts=len(xlims)*['']
+
+        if not isinstance(sectionTexts, list):            
+            logger.warning("{0:s}sectionTexts muss eine Liste von strings sein.".format(logStr)) 
+            sectionTexts=len(xlims)*['']
+
+        if len(sectionTexts)!=len(xlims):            
+            logger.warning("{0:s}sectionTexts muss dieselbe Laenge haben wie xlims.".format(logStr)) 
+            sectionTexts=len(xlims)*['']
         
         if plotLegend:
            plotLegendFct=False
@@ -1420,6 +1442,21 @@ def plotTimespansLDS(
         for idx,xlim in enumerate(xlims):   
                              
             ax = axLst[idx]
+
+            if isinstance(dateFormat, list):
+                dateFormatIdx=dateFormat[idx]
+            else:
+                dateFormatIdx=dateFormat
+
+            if isinstance(bysecond, list):
+                bysecondIdx=bysecond[idx]
+            else:
+                bysecondIdx=bysecond
+
+            if isinstance(byminute, list):
+                byminuteIdx=byminute[idx]
+            else:
+                byminuteIdx=byminute
         
             (axes,lines)=pltLDSErgVec(
                      ax
@@ -1427,9 +1464,9 @@ def plotTimespansLDS(
                     ,dfDruckReprVec=dfDruckReprVec
                     ,xlim=xlims[idx]    
                       
-                    ,dateFormat=dateFormat
-                    ,bysecond=bysecond
-                    ,byminute=byminute
+                    ,dateFormat=dateFormatIdx
+                    ,bysecond=bysecondIdx
+                    ,byminute=byminuteIdx
 
                     ,ylimAL=ylimAL
                     ,yticksAL=yticksAL
@@ -1493,9 +1530,16 @@ def plotTimespansLDS(
             
                     )    
             pltLDSErgVecResults.append((axes,lines))
+
+            sectionText=sectionTexts[idx]
+            ax.text(  
+                0.5, 0.5,
+                sectionText,
+                ha='center', va='top',
+                transform=ax.transAxes
+            )
         
-            (timeStart,timeEnd)=xlim        
-        
+            (timeStart,timeEnd)=xlim                
             sectionTitleSingle="{:s}: Plot Nr. {:d} - Zeitspanne: ({:s})".format(sectionTitles[idx],idx+1,str(timeEnd-timeStart)).replace('days','Tage')  
             ax.set_title(sectionTitleSingle)         
         
@@ -1503,17 +1547,23 @@ def plotTimespansLDS(
                 if vLineX >= timeStart and vLineX <= timeEnd:
                     ax.axvline(x=vLineX,ymin=0, ymax=1, color='gray',ls=linestyle_tuple[11][1])     
                 
-            if idx<len(xlims)-1:
-                if xlims[idx+1][0] < timeEnd: 
-                    ax.axvspan(xlims[idx+1][0], timeEnd, alpha=0.2, color='gray')                
+            if len(vAreasX) == len(xlims):
+                vAreasXSection=vAreasX[idx]
+                if vAreasXSection==[] or vAreasXSection==None:
+                    pass
+                else:
+                    for vArea in vAreasXSection:
+                        ax.axvspan(vArea[0], vArea[1], alpha=0.2, color='gray')
+            else:
+                logger.warning("{0:s}vAreasX muss dieselbe Laenge haben wie xlims.".format(logStr))                
                                 
             # Legend
             if plotLegend:
                 legendHorizontalPos='center'
                 if len(xlims)>1:
-                    if idx in [0]: # Anfahren
+                    if idx in [0,2,4]: # Anfahren ...
                         legendHorizontalPos='right'
-                    elif idx in [1]: # Abfahren
+                    elif idx in [1,3,5]: # Abfahren ...
                         legendHorizontalPos='left'                    
                 
                 if not dfSegReprVec.empty:
@@ -1535,6 +1585,26 @@ def plotTimespansLDS(
                                ,facecolor=legendFacecolor
                                 ))                   
         
+        # Titel
+        tMin=xlims[0][0]
+        tMax=xlims[-1][1]
+        for tPair in xlims:
+            (t1,t2)=tPair
+            if t1 < tMin:
+                tMin=t1
+            if t2>tMax:
+                tMax=t2
+                    
+        figTitle="{:s} - {:s} - {:s}".format(figTitle,str(tMin),str(tMax)).replace(':',' ')
+        fig=plt.gcf()
+        fig.suptitle(figTitle)   
+
+        # speichern?!
+        if figSave:
+            fig.tight_layout(pad=2.) # gs.tight_layout(fig,pad=2.)
+
+            plt.savefig(figTitle+'.png')
+            plt.savefig(figTitle+'.pdf') 
                      
     except RmError:
         raise            
