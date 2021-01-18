@@ -223,7 +223,6 @@ DINA4_y=11.6929133858
 DINA3_x=DINA4_x*math.sqrt(2)
 DINA3_y=DINA4_y*math.sqrt(2)
 
-
 linestyle_tuple = [
      ('loosely dotted',        (0, (1, 10))),
      ('dotted',                (0, (1, 1))),
@@ -247,6 +246,257 @@ def pairwise(iterable):
     a, b = tee(iterable)
     next(b, None)
     return zip(a, b)
+
+def pltMakeCategoricalColors(color,nOfSubColorsReq=3,reversedOrder=False):
+    """
+    Returns an array of rgb colors derived from color.
+
+    Parameter:
+        color:             a rgb color                       
+        nOfSubColorsReq:   number of SubColors requested
+        
+    Raises:
+        RmError
+
+    >>> import matplotlib
+    >>> color='red'
+    >>> c=list(matplotlib.colors.to_rgb(color))
+    >>> import Rm    
+    >>> Rm.pltMakeCategoricalColors(c)
+    array([[1.   , 0.   , 0.   ],
+           [1.   , 0.375, 0.375],
+           [1.   , 0.75 , 0.75 ]])
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    rgb=None
+
+    try:             
+        chsv = matplotlib.colors.rgb_to_hsv(color[:3])
+        arhsv = np.tile(chsv,nOfSubColorsReq).reshape(nOfSubColorsReq,3)
+        arhsv[:,1] = np.linspace(chsv[1],0.25,nOfSubColorsReq)
+        arhsv[:,2] = np.linspace(chsv[2],1,nOfSubColorsReq)
+        rgb = matplotlib.colors.hsv_to_rgb(arhsv)
+        if reversedOrder:
+            rgb=list(reversed(rgb))                                                                                                                    
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return rgb
+
+def pltMakeCategoricalCmap(baseColorsDef="tab10",catagoryColors=None,nOfSubCatsReq=3,reversedSubCatOrder=False):
+    """
+    Returns a cmap with nOfCatsReq * nOfSubCatsReq discrete colors.
+
+    Parameter:
+        baseColorsDef:    a (discrete) cmap defining the "base"colors
+                         default: tab10
+
+                         if baseColorsDef is not via get_cmap a matplotlib.colors.ListedColormap, baseColorsDef is interpreted via to_rgb as a list of colors
+                         in this case catagoryColors is ignored 
+
+        catagoryColors:  a list of "base"colors indices for this cmap
+                         the length of the list is the number of Categories requested: nOfCatsReq
+                         apparently cmap's nOfColors must be ge than nOfCatsReq
+                         default: None (==> nOfCatsReq = cmap's nOfColors)
+                         i.e. [2,8,3] for tab10 is green, yellow (ocher), red
+
+        nOfSubCatsReq:   number of Subcategories requested
+
+        reversedSubCatOrder: False (default): if True, the last color of a category is from baseColorsDef
+        reversedSubCatOrder can be a list
+        
+    Returns:
+        cmap with nOfCatsReq * nOfSubCatsReq discrete colors; None if an error occurs
+        one "base"color per category
+        nOfSubCatsReq "sub"colors per category
+        so each category consists of nOfSubCatsReq colors
+
+    Raises:
+        RmError
+
+    >>> import matplotlib
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> import Rm    
+    >>> Rm.pltMakeCategoricalCmap().N
+    30
+    >>> Rm.pltMakeCategoricalCmap(catagoryColors=[2,8,3]).N # 2 8 3 in tab10: grün gelb rot
+    9
+    >>> baseColorsDef="tab10"
+    >>> catagoryColors=[2,8,3]
+    >>> nOfSubCatsReq=4
+    >>> # grün gelb rot mit je 4 Farben von hell nach dunkel
+    >>> cm=Rm.pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,catagoryColors=catagoryColors,nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=True)
+    >>> cm.colors
+    array([[0.75      , 1.        , 0.75      ],
+           [0.51819172, 0.87581699, 0.51819172],
+           [0.32570806, 0.75163399, 0.32570806],
+           [0.17254902, 0.62745098, 0.17254902],
+           [0.9983871 , 1.        , 0.75      ],
+           [0.91113148, 0.91372549, 0.51165404],
+           [0.82408742, 0.82745098, 0.30609849],
+           [0.7372549 , 0.74117647, 0.13333333],
+           [1.        , 0.75      , 0.75142857],
+           [0.94640523, 0.53069452, 0.53307001],
+           [0.89281046, 0.33167491, 0.3348814 ],
+           [0.83921569, 0.15294118, 0.15686275]])
+    >>> cm2=Rm.pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,catagoryColors=catagoryColors,nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=[False]+2*[True])
+    >>> cm.colors[nOfSubCatsReq-1]==cm2.colors[0]
+    array([ True,  True,  True])
+    >>> plt.close()
+    >>> size_DINA6quer=(5.8,4.1)    
+    >>> fig, ax = plt.subplots(figsize=size_DINA6quer)
+    >>> fig.subplots_adjust(bottom=0.5)
+    >>> norm=matplotlib.colors.Normalize(vmin=0, vmax=100)
+    >>> cb=matplotlib.colorbar.ColorbarBase(ax, cmap=cm2,norm=norm,orientation='horizontal')
+    >>> cb.set_label('baseColorsDef was (via get_cmap) a matplotlib.colors.ListedColormap')    
+    >>> #plt.show()
+    >>> cm3=Rm.pltMakeCategoricalCmap(baseColorsDef=['b','c','m'],nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=True)   
+    >>> cm3.colors
+    array([[0.75      , 0.75      , 1.        ],
+           [0.5       , 0.5       , 1.        ],
+           [0.25      , 0.25      , 1.        ],
+           [0.        , 0.        , 1.        ],
+           [0.75      , 1.        , 1.        ],
+           [0.45833333, 0.91666667, 0.91666667],
+           [0.20833333, 0.83333333, 0.83333333],
+           [0.        , 0.75      , 0.75      ],
+           [1.        , 0.75      , 1.        ],
+           [0.91666667, 0.45833333, 0.91666667],
+           [0.83333333, 0.20833333, 0.83333333],
+           [0.75      , 0.        , 0.75      ]])
+    >>> plt.close()     
+    >>> fig, ax = plt.subplots(figsize=size_DINA6quer)
+    >>> fig.subplots_adjust(bottom=0.5)
+    >>> norm=matplotlib.colors.Normalize(vmin=0, vmax=100)
+    >>> cb=matplotlib.colorbar.ColorbarBase(ax, cmap=cm3,norm=norm,orientation='horizontal')
+    >>> cb.set_label('baseColorsDef was (via to_rgb) a list of colors')   
+    >>> #plt.show()
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    cmap=None
+
+    try:  
+
+        try:
+            # Farben, "base"colors, welche die cmap hat
+            nOfColors=plt.get_cmap(baseColorsDef).N
+
+            if catagoryColors==None:            
+                catagoryColors=np.arange(nOfColors,dtype=int)
+
+            # verlangte Kategorien
+            nOfCatsReq=len(catagoryColors)
+        
+            if nOfCatsReq > nOfColors:
+                logStrFinal="{0:s}: nOfCatsReq: {1:d} > cmap's nOfColors: {2:d}!".format(logStr,nOfCatsReq,nOfColors)                                 
+                raise RmError(logStrFinal)          
+                        
+            if max(catagoryColors) > nOfColors-1:
+                logStrFinal="{0:s}: max. Idx of catsReq: {1:d} > cmap's nOfColors-1: {2:d}!".format(logStr,max(catagoryColors),nOfColors-1)                                 
+                raise RmError(logStrFinal)      
+
+            # alle Farben holen, welche die cmap hat
+            ccolors = plt.get_cmap(baseColorsDef)(np.arange(nOfColors,dtype=int))
+            # die gewuenschten Kategorie"Basis"farben extrahieren        
+            ccolors=[ccolors[idx] for idx in catagoryColors]
+           
+        except:
+            listOfColors=baseColorsDef
+            nOfColors=len(listOfColors)
+            nOfCatsReq=nOfColors
+
+            ccolors=[]
+            for color in listOfColors:                
+                ccolors.append(list(matplotlib.colors.to_rgb(color)))
+
+        finally:
+            pass
+    
+        logger.debug("{0:s}ccolors: {1:s}".format(logStr,str(ccolors))) 
+        logger.debug("{0:s}nOfCatsReq: {1:s}".format(logStr,str((nOfCatsReq)))) 
+        logger.debug("{0:s}nOfSubCatsReq: {1:s}".format(logStr,str((nOfSubCatsReq)))) 
+
+        # Farben bauen  -------------------------------------
+
+        # resultierende Farben vorbelegen
+        cols = np.zeros((nOfCatsReq*nOfSubCatsReq, 3))
+
+        # ueber alle Kategoriefarben
+        if type(reversedSubCatOrder) is not list:
+            reversedSubCatOrderLst=nOfCatsReq*[reversedSubCatOrder]
+        else:
+            reversedSubCatOrderLst=reversedSubCatOrder
+
+        logger.debug("{0:s}reversedSubCatOrderLst: {1:s}".format(logStr,str((reversedSubCatOrderLst)))) 
+
+        for i, c in enumerate(ccolors):
+            rgb=pltMakeCategoricalColors(c,nOfSubColorsReq=nOfSubCatsReq,reversedOrder=reversedSubCatOrderLst[i])               
+            cols[i*nOfSubCatsReq:(i+1)*nOfSubCatsReq,:] = rgb
+            
+        cmap = matplotlib.colors.ListedColormap(cols)                
+                                                                                          
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return cmap
+
+# Farben fuer Druecke
+SrcColorp='green'
+SrcColorsp=pltMakeCategoricalColors(list(matplotlib.colors.to_rgb(SrcColorp)),nOfSubColorsReq=4,reversedOrder=False)
+# erste Farbe ist Original-Farbe
+
+SnkColorp='blue'
+SnkColorsp=pltMakeCategoricalColors(list(matplotlib.colors.to_rgb(SnkColorp)),nOfSubColorsReq=4,reversedOrder=True)
+# letzte Farbe ist Original-Farbe
+
+# Farben fuer Fluesse
+SrcColorQ='red'
+SrcColorsQ=pltMakeCategoricalColors(list(matplotlib.colors.to_rgb(SrcColorQ)),nOfSubColorsReq=4,reversedOrder=False)
+# erste Farbe ist Original-Farbe
+
+SnkColorQ='orange'
+SnkColorsQ=pltMakeCategoricalColors(list(matplotlib.colors.to_rgb(SnkColorQ)),nOfSubColorsReq=4,reversedOrder=True)
+# letzte Farbe ist Original-Farbe
+
+attrsDct={   'p Src':{'color':SrcColorp,'lw':3.,'where':'post'}
+            ,'p Snk':{'color':SnkColorp,'lw':3.,'where':'post'}
+                                             
+            ,'Q Src':{'color':SrcColorQ,'lw':3.,'where':'post'}
+            ,'Q Snk':{'color':SnkColorQ,'lw':3.,'where':'post'}
+                    
+            ,'Q Src RTTM':{'color':SrcColorQ,'ls':'dotted','where':'post'}
+            ,'Q Snk RTTM':{'color':SnkColorQ,'ls':'dotted','where':'post'}        
+                    
+            ,'p ISrc 1':{'color':SrcColorsp[-1],'ls':'dashdot','where':'post'}          
+            ,'p ISrc 2':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     
+          
+            ,'p ISnk 1':{'color':SnkColorsp[0],'ls':'dashdot','where':'post'}          
+            ,'p ISnk 2':{'color':SnkColorsp[1],'ls':'dashdot','where':'post'}        
+          
+            ,'Q xSrc 1':{'color':SrcColorsQ[-1],'ls':'dashdot','where':'post'}          
+            ,'Q xSrc 2':{'color':SrcColorsQ[-2],'ls':'dashdot','where':'post'}     
+          
+            ,'Q xSnk 1':{'color':SnkColorsQ[0],'ls':'dashdot','where':'post'}          
+            ,'Q xSnk 2':{'color':SnkColorsQ[1],'ls':'dashdot','where':'post'}             
+                    
+          }
 
 class RmError(Exception):
     def __init__(self, value):
@@ -410,30 +660,19 @@ def plotTimespansHYD(
    ,pDct={ # Example
        'Objects.FBG_HPS_M.6_KED_39_PTI_01_E.In.MW.value':{'IDPlt':'p Src'}
        ,'Objects.FBG_HPS_M.6_TUD_39_PTI_01_E.In.MW.value':{'IDPlt':'p Snk'}
-       ,'Objects.FBG_HPS_M.6_EL1_39_PTI_01_E.In.MW.value':{'IDPlt':'p DE SS'}
-       ,'Objects.FBG_HPS_M.6_EL1_39_PTI_02_E.In.MW.value':{'IDPlt':'p DE DS'}    
+       ,'Objects.FBG_HPS_M.6_EL1_39_PTI_01_E.In.MW.value':{'IDPlt':'p ISrc 1'}
+       ,'Objects.FBG_HPS_M.6_EL1_39_PTI_02_E.In.MW.value':{'IDPlt':'p ISnk 2'}    
     }
 
    ,QDctOPC={ # Exanple
-       'Objects.FBG_MESSW.6_EL1_39_FT_01.In.MW.value':{'IDPlt':'Q DE'}       
+       'Objects.FBG_MESSW.6_EL1_39_FT_01.In.MW.value':{'IDPlt':'Q xSrc 1'}       
     }
 
    ,pDctOPC={} 
    
    ,IDPltKey='IDPlt' # Schluesselbezeichner in den vorstehenden 4 Dcts; Wert ist Referenz auf das folgende Layout-Dct und das folgende Fcts-Dct; Werte muessen eindeutig sein
    
-   ,attrsDct={'p Src':{'color':'blue'}
-               ,'p Snk':{'color':'blue','ls':'dashed'}
-               ,'p DE SS':{'color':'darkgreen','ls':'dotted'}   
-               ,'p DE DS':{'color':'limegreen','ls':'dotted'}   
-            
-               ,'Q Src':{'color':'red'}
-               ,'Q Snk':{'color':'orange'}
-               ,'Q Src RTTM':{'color':'red','ls':'dotted'} # 'x' und 'x RTTM' muessen die Layout-Schluessel von Wertepaaren lauten
-               ,'Q Snk RTTM':{'color':'orange','ls':'dotted'} # 'x' und 'x RTTM' muessen die Layout-Schluessel von Wertepaaren lauten      
-               
-               ,'Q DE':{'color':'mediumspringgreen','ls':'dashed','where':'post'}           # wenn where spezifiziert ist: Step-Plot
-              }      
+   ,attrsDct=attrsDct 
    
    ,fctsDct={} # a Dct with Fcts
        
@@ -1840,34 +2079,22 @@ def pltLDSpQAndEvents(
         ,'Objects.FBG_MESSW.6_TUD_39_FT_01.In.MW.value':{'IDPlt':'Q Snk','RTTM':'IMDI.Objects.FBG_MESSW.6_TUD_39_FT_01.In.MW.value'}
      }
     
-    ,pDct={ # Example
-        'Objects.FBG_HPS_M.6_KED_39_PTI_01_E.In.MW.value':{'IDPlt':'p Src'}
-        ,'Objects.FBG_HPS_M.6_TUD_39_PTI_01_E.In.MW.value':{'IDPlt':'p Snk'}
-        ,'Objects.FBG_HPS_M.6_EL1_39_PTI_01_E.In.MW.value':{'IDPlt':'p DE SS'}
-        ,'Objects.FBG_HPS_M.6_EL1_39_PTI_02_E.In.MW.value':{'IDPlt':'p DE DS'}    
-     }
-
+    ,pDct={# Example
+       'Objects.FBG_HPS_M.6_KED_39_PTI_01_E.In.MW.value':{'IDPlt':'p Src'}
+       ,'Objects.FBG_HPS_M.6_TUD_39_PTI_01_E.In.MW.value':{'IDPlt':'p Snk'}
+       ,'Objects.FBG_HPS_M.6_EL1_39_PTI_01_E.In.MW.value':{'IDPlt':'p ISrc 1'}
+       ,'Objects.FBG_HPS_M.6_EL1_39_PTI_02_E.In.MW.value':{'IDPlt':'p ISnk 2'}    
+    }
     ,QDctOPC={ # Exanple
-        'Objects.FBG_MESSW.6_EL1_39_FT_01.In.MW.value':{'IDPlt':'Q DE'}       
+        'Objects.FBG_MESSW.6_EL1_39_FT_01.In.MW.value':{'IDPlt':'Q xSnk 1'}       
      }
 
     ,pDctOPC={} 
     
     ,IDPltKey='IDPlt' # Schluesselbezeichner in den vorstehenden 4 Dcts; Wert ist Referenz auf das folgende Layout-Dct und das folgende Fcts-Dct; Werte muessen eindeutig sein
     
-    ,attrsDct={'p Src':{'color':'blue'}
-                ,'p Snk':{'color':'blue','ls':'dashed'}
-                ,'p DE SS':{'color':'darkgreen','ls':'dotted'}   
-                ,'p DE DS':{'color':'limegreen','ls':'dotted'}   
-             
-                ,'Q Src':{'color':'red'}
-                ,'Q Snk':{'color':'orange'}
-                ,'Q Src RTTM':{'color':'red','ls':'dotted'} # 'x' und 'x RTTM' muessen die Layout-Schluessel von Wertepaaren lauten
-                ,'Q Snk RTTM':{'color':'orange','ls':'dotted'} # 'x' und 'x RTTM' muessen die Layout-Schluessel von Wertepaaren lauten      
-                
-                ,'Q DE':{'color':'mediumspringgreen','ls':'dashed','where':'post'}           # wenn where spezifiziert ist: Step-Plot
-               }      
-    
+    ,attrsDct=attrsDct 
+     
     ,fctsDct={} # a Dct with Fcts
         
     ,xlim=None    
@@ -2195,218 +2422,7 @@ def pltLDSpQAndEvents(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
         return axes,lines,scatters
-
         
-def pltMakeCategoricalColors(color,nOfSubColorsReq=3,reversedOrder=False):
-    """
-    Returns an array of rgb colors derived from color.
-
-    Parameter:
-        color:             a rgb color                       
-        nOfSubColorsReq:   number of SubColors requested
-        
-    Raises:
-        RmError
-
-    >>> import matplotlib
-    >>> color='red'
-    >>> c=list(matplotlib.colors.to_rgb(color))
-    >>> import Rm    
-    >>> Rm.pltMakeCategoricalColors(c)
-    array([[1.   , 0.   , 0.   ],
-           [1.   , 0.375, 0.375],
-           [1.   , 0.75 , 0.75 ]])
-    """
-
-    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-    rgb=None
-
-    try:             
-        chsv = matplotlib.colors.rgb_to_hsv(color[:3])
-        arhsv = np.tile(chsv,nOfSubColorsReq).reshape(nOfSubColorsReq,3)
-        arhsv[:,1] = np.linspace(chsv[1],0.25,nOfSubColorsReq)
-        arhsv[:,2] = np.linspace(chsv[2],1,nOfSubColorsReq)
-        rgb = matplotlib.colors.hsv_to_rgb(arhsv)
-        if reversedOrder:
-            rgb=list(reversed(rgb))                                                                                                                    
-    except RmError:
-        raise            
-    except Exception as e:
-        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-        logger.error(logStrFinal) 
-        raise RmError(logStrFinal)                       
-    finally:       
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
-        return rgb
-
-def pltMakeCategoricalCmap(baseColorsDef="tab10",catagoryColors=None,nOfSubCatsReq=3,reversedSubCatOrder=False):
-    """
-    Returns a cmap with nOfCatsReq * nOfSubCatsReq discrete colors.
-
-    Parameter:
-        baseColorsDef:    a (discrete) cmap defining the "base"colors
-                         default: tab10
-
-                         if baseColorsDef is not via get_cmap a matplotlib.colors.ListedColormap, baseColorsDef is interpreted via to_rgb as a list of colors
-                         in this case catagoryColors is ignored 
-
-        catagoryColors:  a list of "base"colors indices for this cmap
-                         the length of the list is the number of Categories requested: nOfCatsReq
-                         apparently cmap's nOfColors must be ge than nOfCatsReq
-                         default: None (==> nOfCatsReq = cmap's nOfColors)
-                         i.e. [2,8,3] for tab10 is green, yellow (ocher), red
-
-        nOfSubCatsReq:   number of Subcategories requested
-
-        reversedSubCatOrder: False (default): if True, the last color of a category is from baseColorsDef
-        reversedSubCatOrder can be a list
-        
-    Returns:
-        cmap with nOfCatsReq * nOfSubCatsReq discrete colors; None if an error occurs
-        one "base"color per category
-        nOfSubCatsReq "sub"colors per category
-        so each category consists of nOfSubCatsReq colors
-
-    Raises:
-        RmError
-
-    >>> import matplotlib
-    >>> import matplotlib.pyplot as plt
-    >>> import numpy as np
-    >>> import Rm    
-    >>> Rm.pltMakeCategoricalCmap().N
-    30
-    >>> Rm.pltMakeCategoricalCmap(catagoryColors=[2,8,3]).N # 2 8 3 in tab10: grün gelb rot
-    9
-    >>> baseColorsDef="tab10"
-    >>> catagoryColors=[2,8,3]
-    >>> nOfSubCatsReq=4
-    >>> # grün gelb rot mit je 4 Farben von hell nach dunkel
-    >>> cm=Rm.pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,catagoryColors=catagoryColors,nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=True)
-    >>> cm.colors
-    array([[0.75      , 1.        , 0.75      ],
-           [0.51819172, 0.87581699, 0.51819172],
-           [0.32570806, 0.75163399, 0.32570806],
-           [0.17254902, 0.62745098, 0.17254902],
-           [0.9983871 , 1.        , 0.75      ],
-           [0.91113148, 0.91372549, 0.51165404],
-           [0.82408742, 0.82745098, 0.30609849],
-           [0.7372549 , 0.74117647, 0.13333333],
-           [1.        , 0.75      , 0.75142857],
-           [0.94640523, 0.53069452, 0.53307001],
-           [0.89281046, 0.33167491, 0.3348814 ],
-           [0.83921569, 0.15294118, 0.15686275]])
-    >>> cm2=Rm.pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,catagoryColors=catagoryColors,nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=[False]+2*[True])
-    >>> cm.colors[nOfSubCatsReq-1]==cm2.colors[0]
-    array([ True,  True,  True])
-    >>> plt.close()
-    >>> size_DINA6quer=(5.8,4.1)    
-    >>> fig, ax = plt.subplots(figsize=size_DINA6quer)
-    >>> fig.subplots_adjust(bottom=0.5)
-    >>> norm=matplotlib.colors.Normalize(vmin=0, vmax=100)
-    >>> cb=matplotlib.colorbar.ColorbarBase(ax, cmap=cm2,norm=norm,orientation='horizontal')
-    >>> cb.set_label('baseColorsDef was (via get_cmap) a matplotlib.colors.ListedColormap')    
-    >>> #plt.show()
-    >>> cm3=Rm.pltMakeCategoricalCmap(baseColorsDef=['b','c','m'],nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=True)   
-    >>> cm3.colors
-    array([[0.75      , 0.75      , 1.        ],
-           [0.5       , 0.5       , 1.        ],
-           [0.25      , 0.25      , 1.        ],
-           [0.        , 0.        , 1.        ],
-           [0.75      , 1.        , 1.        ],
-           [0.45833333, 0.91666667, 0.91666667],
-           [0.20833333, 0.83333333, 0.83333333],
-           [0.        , 0.75      , 0.75      ],
-           [1.        , 0.75      , 1.        ],
-           [0.91666667, 0.45833333, 0.91666667],
-           [0.83333333, 0.20833333, 0.83333333],
-           [0.75      , 0.        , 0.75      ]])
-    >>> plt.close()     
-    >>> fig, ax = plt.subplots(figsize=size_DINA6quer)
-    >>> fig.subplots_adjust(bottom=0.5)
-    >>> norm=matplotlib.colors.Normalize(vmin=0, vmax=100)
-    >>> cb=matplotlib.colorbar.ColorbarBase(ax, cmap=cm3,norm=norm,orientation='horizontal')
-    >>> cb.set_label('baseColorsDef was (via to_rgb) a list of colors')   
-    >>> #plt.show()
-    """
-
-    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-    cmap=None
-
-    try:  
-
-        try:
-            # Farben, "base"colors, welche die cmap hat
-            nOfColors=plt.get_cmap(baseColorsDef).N
-
-            if catagoryColors==None:            
-                catagoryColors=np.arange(nOfColors,dtype=int)
-
-            # verlangte Kategorien
-            nOfCatsReq=len(catagoryColors)
-        
-            if nOfCatsReq > nOfColors:
-                logStrFinal="{0:s}: nOfCatsReq: {1:d} > cmap's nOfColors: {2:d}!".format(logStr,nOfCatsReq,nOfColors)                                 
-                raise RmError(logStrFinal)          
-                        
-            if max(catagoryColors) > nOfColors-1:
-                logStrFinal="{0:s}: max. Idx of catsReq: {1:d} > cmap's nOfColors-1: {2:d}!".format(logStr,max(catagoryColors),nOfColors-1)                                 
-                raise RmError(logStrFinal)      
-
-            # alle Farben holen, welche die cmap hat
-            ccolors = plt.get_cmap(baseColorsDef)(np.arange(nOfColors,dtype=int))
-            # die gewuenschten Kategorie"Basis"farben extrahieren        
-            ccolors=[ccolors[idx] for idx in catagoryColors]
-           
-        except:
-            listOfColors=baseColorsDef
-            nOfColors=len(listOfColors)
-            nOfCatsReq=nOfColors
-
-            ccolors=[]
-            for color in listOfColors:                
-                ccolors.append(list(matplotlib.colors.to_rgb(color)))
-
-        finally:
-            pass
-    
-        logger.debug("{0:s}ccolors: {1:s}".format(logStr,str(ccolors))) 
-        logger.debug("{0:s}nOfCatsReq: {1:s}".format(logStr,str((nOfCatsReq)))) 
-        logger.debug("{0:s}nOfSubCatsReq: {1:s}".format(logStr,str((nOfSubCatsReq)))) 
-
-        # Farben bauen  -------------------------------------
-
-        # resultierende Farben vorbelegen
-        cols = np.zeros((nOfCatsReq*nOfSubCatsReq, 3))
-
-        # ueber alle Kategoriefarben
-        if type(reversedSubCatOrder) is not list:
-            reversedSubCatOrderLst=nOfCatsReq*[reversedSubCatOrder]
-        else:
-            reversedSubCatOrderLst=reversedSubCatOrder
-
-        logger.debug("{0:s}reversedSubCatOrderLst: {1:s}".format(logStr,str((reversedSubCatOrderLst)))) 
-
-        for i, c in enumerate(ccolors):
-            rgb=pltMakeCategoricalColors(c,nOfSubColorsReq=nOfSubCatsReq,reversedOrder=reversedSubCatOrderLst[i])               
-            cols[i*nOfSubCatsReq:(i+1)*nOfSubCatsReq,:] = rgb
-            
-        cmap = matplotlib.colors.ListedColormap(cols)                
-                                                                                          
-    except RmError:
-        raise            
-    except Exception as e:
-        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-        logger.error(logStrFinal) 
-        raise RmError(logStrFinal)                       
-    finally:       
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
-        return cmap
-
 def pltMakePatchSpinesInvisible(ax):
     ax.set_frame_on(True)
     ax.patch.set_visible(False)

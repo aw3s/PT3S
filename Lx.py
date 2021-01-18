@@ -515,7 +515,7 @@ class AppLog():
         else:
             return pd.to_numeric(x,errors='coerce')
 
-    def __init__(self,logFile=None,zip7File=None,zip7Files=None,h5File=None,h5FileName=None,readWithDictReader=False,nRows=None):
+    def __init__(self,logFile=None,zip7File=None,h5File=None,h5FileName=None,readWithDictReader=False,nRows=None):
         """
         (re-)initialize
 
@@ -538,11 +538,6 @@ class AppLog():
 
                 === addZip7File(zip7File) - ggf. mehrfach - und extractTCsToH5s(...) sind Bestandteil einer 7Zip-Verarbeitung vor der eigentlichen Analyse ===
 
-        zipFiles:
-            nur die ersten und letzten Logs aller Zips werden gelesen und da auch nur die ersten und letzten Zeilen
-            um einen Ueberblick zu gewinnen in self.lookUpDfZips (zusätzlich zu lx.lookUpDf)
-            mit self.getFromZips(...) koennen Daten gesichtet werden
-
         h5File:
             die lookUp-Dfs vom H5-File werden gelesen
             die zum H5-File zugehoerigen TC-H5-Filenamen werden belegt
@@ -554,6 +549,7 @@ class AppLog():
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         self.lookUpDf=pd.DataFrame() 
+        self.lookUpDfZips=pd.DataFrame() 
 
         try:     
              if logFile != None and zip7File != None and h5File != None:
@@ -567,9 +563,7 @@ class AppLog():
              elif  logFile != None:                 
                  self.__initlogFile(logFile,h5FileName=h5FileName)
              elif zip7File != None:
-                 self.__initzip7File(zip7File,h5FileName=h5FileName)
-             elif zip7Files != None:
-                 self.__initzip7Files(zip7Files,h5FileName=h5FileName)
+                 self.__initzip7File(zip7File,h5FileName=h5FileName)            
              elif h5File != None:
                  self.__initWithH5File(h5File)
              else:                 
@@ -782,41 +776,45 @@ class AppLog():
                 else:
                    (zip7FileHead, zip7FileTail)=os.path.split(zip7File)
                 
-                tmpDir=os.path.dirname(zip7File)
+                zipFileDirname=os.path.dirname(zip7File)
+                logger.debug("{0:s}zipFileDirname: {1:s}".format(logStr,zipFileDirname))   
 
                 aDfRead=False
                 with py7zr.SevenZipFile(zip7File, 'r') as zip7FileObj:                
                     allLogFiles = zip7FileObj.getnames()
 
                     logger.debug("{0:s}{1:s}: len(getnames()): {2:d}.".format(logStr,zip7FileTail,len(allLogFiles)))  
+                    logger.debug("{0:s}getnames(): {1:s}.".format(logStr,str(allLogFiles)))  
 
                     extDirLstTBDeleted=[]
                     extDirLstExistingLogged=[]                    
 
                     for idx,logFileNameInZip in enumerate(allLogFiles):
 
-                        logger.debug("{0:s}idx: {1:d} item: {2:s} ...".format(logStr,idx,logFileNameInZip))   
+                        logger.debug("{0:s}idx: {1:d} logFileNameInZip: {2:s}".format(logStr,idx,logFileNameInZip))   
 
                         # die Datei die 7Zip bei extract erzeugen wird
-                        logFile=os.path.join(tmpDir,logFileNameInZip)
-                        (logFileHead, logFileTail)=os.path.split(logFile)
+                        logFile=os.path.join(zipFileDirname,logFileNameInZip)
 
-                        # evtl. bezeichnet logFileNameInZip keine Datei sondern ein Verzeichnis
-                        (name, ext)=os.path.splitext(logFileNameInZip)
+                        (logFileHead, logFileTail)=os.path.split(logFile) # logFileHead == dirname()
+                        logger.debug("{0:s}idx: {1:d} logFileHead: {2:s} logFileTail: {3:s}".format(logStr,idx,logFileHead,logFileTail))   
+
+                        (name, ext)=os.path.splitext(logFile)
+                        logger.debug("{0:s}idx: {1:d} name: {2:s} ext: {3:s}".format(logStr,idx,name,ext))   
+
+                        if logFileHead!='': # logFileHead == dirname()
+                            if os.path.exists(logFileHead) and logFileHead not in extDirLstExistingLogged:
+                                logger.debug("{0:s}idx: {1:d} Verz. logFileHead: {2:s} existiert bereits.".format(logStr,idx,logFileHead))  
+                                extDirLstExistingLogged.append(logFileHead)
+                            elif not os.path.exists(logFileHead):
+                                logger.debug("{0:s}idx: {1:d} Verz. logFileHead: {2:s} existiert noch nicht.".format(logStr,idx,logFileHead))                      
+                                extDirLstTBDeleted.append(logFileHead)
+                        
+                        # kein Logfile zu prozessieren ...
                         if ext == '':
-                            # Verzeichnis!                        
-                            extDir=os.path.join(tmpDir,logFileNameInZip)                       
-                            (extDirHead, extDirTail)=os.path.split(extDir)
-                            if os.path.exists(extDir) and extDir not in extDirLstExistingLogged:
-                                logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert bereits.".format(logStr,idx,extDirTail))  
-                                extDirLstExistingLogged.append(extDir)
-                            elif not os.path.exists(extDir):
-                                logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert noch nicht.".format(logStr,idx,extDirTail))                      
-                                extDirLstTBDeleted.append(extDir)
-                            # kein Logfile zu prozessieren ...
                             continue
 
-                        # logFileNameInZip bezeichnet eine Datei       
+                        # Logfile prozessieren ...
                         if os.path.exists(logFile):
                             isFile = os.path.isfile(logFile)
                             if isFile:
@@ -829,7 +827,7 @@ class AppLog():
                             logFileTBDeleted=True
                   
                         # extrahieren 
-                        zip7FileObj.extract(path=tmpDir,targets=logFileNameInZip)
+                        zip7FileObj.extract(path=zipFileDirname,targets=logFileNameInZip)
                     
                         if os.path.exists(logFile):
                             pass                       
@@ -879,14 +877,14 @@ class AppLog():
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
 
-    def addZip7File(self,zip7File,firstsAndLastsLogsOnly=False,nRows=None,readWithDictReader=False):
+    def addZip7File(self,zip7File,firstsAndLastsLogsOnly=False,nRows=None,readWithDictReader=False,noDfStorage=False):
         """
         add zip7File
 
         Args:
         * zipFile: zipFile which LogFiles shall be added
 
-        * internal Usage: 
+        * Args for internal Usage: 
             * firstsAndLastsLogsOnly (True dann)
             * nRows (1 dann)
             * readWithDictReader (True dann)
@@ -994,9 +992,10 @@ class AppLog():
                             zipName=os.path.join(os.path.relpath(zip7FileHead),zip7FileTail)
                         else:
                             zipName=zip7FileTail
-                        self.__toH5(key,df,updLookUpDf=True,logName=logFileTail,zipName=zipName)#os.path.join(os.path.relpath(zip7FileHead),zip7FileTail))
-                        # danach gleich schreiben ...
-                        self.__toH5('lookUpDf',self.lookUpDf)
+                        # df schreiben
+                        self.__toH5(key,df,updLookUpDf=True,logName=logFileTail,zipName=zipName,noDfStorage=noDfStorage)#os.path.join(os.path.relpath(zip7FileHead),zip7FileTail))
+                        # danach gleich lookUpDf schreiben ...
+                        self.__toH5('lookUpDf',self.lookUpDf,noDfStorage=noDfStorage)
                                 
                 for dirName in extDirLstTBDeleted:
                     if os.path.exists(dirName):
@@ -1016,19 +1015,24 @@ class AppLog():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
 
 
-    def __initzip7Files(self,zip7Files,h5FileName=None):
+    def rebuildLookUpDfZips(self,zip7Files):#,h5FileName=None):
         """
         (re-)initialize with zip7Files
+
+        only outcome is lookUpDfZips (Attribute and H5-Persistence)
         """ 
+
+
+        #noDfStorage=False
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
         try:                                                             
-                self.__initzip7File(zip7File=zip7Files[0],h5FileName=h5FileName,nRows=1,readWithDictReader=True)
+                #self.__initzip7File(zip7File=zip7Files[0],h5FileName=h5FileName,nRows=1,readWithDictReader=True)
             
                 for zip7File in zip7Files:
-                    self.addZip7File(zip7File,firstsAndLastsLogsOnly=True,nRows=1,readWithDictReader=True)
+                    self.addZip7File(zip7File,firstsAndLastsLogsOnly=True,nRows=1,readWithDictReader=True,noDfStorage=True)
 
                 df=self.lookUpDf.groupby(by='zipName').agg(['min', 'max'])
                 minTime=df.loc[:,('FirstTime','min')]
@@ -1048,6 +1052,7 @@ class AppLog():
 
                 lookUpDfZips=lookUpDfZips[['FirstTime','LastTime','TimespanPerLog','NumOfFiles','minFileNr','maxFileNr']]
 
+                # lookUpDfZips schreiben
                 self.lookUpDfZips=lookUpDfZips
                 self.__toH5('lookUpDfZips',self.lookUpDfZips)
                                                              
@@ -1058,9 +1063,9 @@ class AppLog():
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
 
-    def __toH5(self,key,df,useRawHdfAPI=False,updLookUpDf=False,logName='',zipName=''):
+    def __toH5(self,key,df,useRawHdfAPI=False,updLookUpDf=False,logName='',zipName='',noDfStorage=False):
         """
-        write df with key to H5-File
+        write df with key to H5-File (if not noDfStorage)
 
         Args:
         * updLookUpDf: if True, self.lookUpDf is updated with 
@@ -1068,6 +1073,7 @@ class AppLog():
             * logName (the name of the logFile i.e. 20201113_0000004.log)
             * FirstTime (the first logTime in df)
             * LastTime (the last logTime in df)
+            self.lookUpDf is not wriiten to H5
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1077,16 +1083,17 @@ class AppLog():
             
              (h5FileHead,h5FileTail)=os.path.split(self.h5File)
 
-             if useRawHdfAPI:
-                 with pd.HDFStore(self.h5File) as h5Store:                 
-                    try:
-                        h5Store.put(key,df)
-                    except Exception as e:
-                        logger.error("{0:s}Writing df with h5Key={1:s} to {2:s} FAILED!".format(logStr,key,h5FileTail))    
-                        raise e
-             else:
-                 df.to_hdf(self.h5File, key=key)
-             logger.debug("{0:s}Writing df with h5Key={1:s} to {2:s} done.".format(logStr,key,h5FileTail))    
+             if not noDfStorage:
+                 if useRawHdfAPI:
+                     with pd.HDFStore(self.h5File) as h5Store:                 
+                        try:
+                            h5Store.put(key,df)
+                        except Exception as e:
+                            logger.error("{0:s}Writing df with h5Key={1:s} to {2:s} FAILED!".format(logStr,key,h5FileTail))    
+                            raise e
+                 else:
+                     df.to_hdf(self.h5File, key=key)
+                 logger.debug("{0:s}Writing df with h5Key={1:s} to {2:s} done.".format(logStr,key,h5FileTail))    
 
              if updLookUpDf:
                  s=df.iloc[[0,-1]]['#LogTime']
