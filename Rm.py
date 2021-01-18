@@ -380,11 +380,11 @@ markerDefSchieber=[ # Schiebersymobole
                                         ,'x'        # 9 Stoer
                     ]          
 
-def plotTimespansHydr(    
+def plotTimespansHYD(    
     axLst # list of axes to be used    
    ,xlims # list of sections    
 
-   ,figTitle='a plotTimespansHydr title' # the title of the plot; will be extended by min. and max. time calculated over all sections; will be also the pdf and png fileName
+   ,figTitle='a plotTimespansHYD title' # the title of the plot; will be extended by min. and max. time calculated over all sections; will be also the pdf and png fileName
    ,figSave=True # creates pdf and png
    ,sectionTitles=[] #  list of section titles to be used    
    ,sectionTexts=[] #  list of section texts to be used    
@@ -497,15 +497,15 @@ def plotTimespansHydr(
     try:
     
         if sectionTitles==[] or sectionTitles==None:
-            sectionTitles=len(xlims)*['a plotTimespansHydr sectionTitle Praefix']
+            sectionTitles=len(xlims)*['a plotTimespansHYD sectionTitle Praefix']
 
         if not isinstance(sectionTitles, list):            
             logger.warning("{0:s}sectionTitles muss eine Liste von strings sein.".format(logStr)) 
-            sectionTitles=len(xlims)*['a plotTimespansHydr sectionTitle Praefix']
+            sectionTitles=len(xlims)*['a plotTimespansHYD sectionTitle Praefix']
 
         if len(sectionTitles)!=len(xlims):            
             logger.warning("{0:s}sectionTitles muss dieselbe Laenge haben wie xlims.".format(logStr)) 
-            sectionTitles=len(xlims)*['a plotTimespansHydr sectionTitle Praefix']
+            sectionTitles=len(xlims)*['a plotTimespansHYD sectionTitle Praefix']
 
         if sectionTexts==[] or sectionTexts==None:
             sectionTexts=len(xlims)*['']
@@ -621,20 +621,47 @@ def plotTimespansHydr(
                     elif idx in [1,3,5]: # Abfahren ...
                         legendHorizontalPos='left'   
 
+                patterBCp='^p S[rc|nk]'
+                patterBCQ='^Q S[rc|nk]'
+                patterBCpQ='^[p|Q] S[rc|nk]'
                 axes['p'].add_artist(axes['p'].legend(
-                                tuple([lines[line] for line in lines if re.search('^p S[rc|nk]',line) != None]) 
-                                ,tuple([line for line in lines if re.search('^p ',line) != None]) 
+                                tuple([lines[line] for line in lines if re.search(patterBCp,line) != None]) 
+                                ,tuple([line for line in lines if re.search(patterBCp,line) != None]) 
                                 ,loc='upper '+legendHorizontalPos
                                 ,framealpha=legendFramealpha
                                 ,facecolor=legendFacecolor
                                 ))
                 axes['p'].legend(
-                                tuple([lines[line] for line in lines if re.search('^Q S[rc|nk]',line) != None]) 
-                                ,tuple([line for line in lines if re.search('^Q S[rc|nk]',line) != None]) 
+                                tuple([lines[line] for line in lines if re.search(patterBCQ,line) != None]) 
+                                ,tuple([line for line in lines if re.search(patterBCQ,line) != None]) 
                                 ,loc='lower '+legendHorizontalPos
                                 ,framealpha=legendFramealpha
                                 ,facecolor=legendFacecolor
                                 )
+
+
+                moreLines=[line for line in lines if re.search(patterBCpQ,line) == None]
+                if len(moreLines) > 0:
+                    opposite={'right':'left','left':'right'}
+                    moreLinesp=[line for line in moreLines if re.search('^p',line) != None]
+                    if len(moreLinesp)>0:
+                        axes['p'].add_artist(axes['p'].legend(
+                                    tuple([lines[line] for line in moreLinesp]) 
+                                    ,tuple(moreLinesp) 
+                                    ,loc='upper '+opposite[legendHorizontalPos]
+                                    ,framealpha=legendFramealpha
+                                    ,facecolor=legendFacecolor
+                                    ))
+                    moreLinesQ=[line for line in moreLines if re.search('^Q',line) != None]
+                    if len(moreLinesQ)>0:
+                        axes['p'].add_artist(axes['p'].legend(
+                                    tuple([lines[line] for line in moreLinesQ]) 
+                                    ,tuple(moreLinesQ) 
+                                    ,loc='lower '+opposite[legendHorizontalPos]
+                                    ,framealpha=legendFramealpha
+                                    ,facecolor=legendFacecolor
+                                    ))
+
 
                 if 'SID' in axes.keys():
                         axes['SID'].legend(loc='center '+legendHorizontalPos
