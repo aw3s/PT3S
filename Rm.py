@@ -532,45 +532,61 @@ def genTimespans(timeStart
     #     a time, it is considered as timeSpan
     
     # returns an array of tuples
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
     
     xlims=[]
+
+    try:
  
-    if type(timeStart) == int:    
-        numOfDesiredSections=timeStart                
-        timeStartEff=timeEnd+timeEndPostfix-numOfDesiredSections*timeSpan+(numOfDesiredSections-1)*timeOverlap-timeStartPraefix
-    else:        
-        timeStartEff=timeStart-timeStartPraefix
-    #print(timeStartEff)
+        if type(timeStart) == int:    
+            numOfDesiredSections=timeStart                
+            timeStartEff=timeEnd+timeEndPostfix-numOfDesiredSections*timeSpan+(numOfDesiredSections-1)*timeOverlap-timeStartPraefix
+        else:        
+            timeStartEff=timeStart-timeStartPraefix
+        logger.debug("{0:s}timeStartEff: {1:s}".format(logStr,str(timeStartEff))) 
     
-    if type(timeEnd) == int:    
-        numOfDesiredSections=timeEnd
-        timeEndEff=timeStart-timeStartPraefix+numOfDesiredSections*timeSpan-(numOfDesiredSections-1)*timeOverlap+timeEndPostfix        
-    else:        
-        timeEndEff=timeEnd+timeEndPostfix
-    #print(timeEndEff)
+        if type(timeEnd) == int:    
+            numOfDesiredSections=timeEnd
+            timeEndEff=timeStart-timeStartPraefix+numOfDesiredSections*timeSpan-(numOfDesiredSections-1)*timeOverlap+timeEndPostfix        
+        else:        
+            timeEndEff=timeEnd+timeEndPostfix
+        logger.debug("{0:s}timeEndEff: {1:s}".format(logStr,str(timeEndEff))) 
     
-    if type(timeSpan) == int:    
-        numOfDesiredSections=timeSpan  
-        dt=timeEndEff-timeStartEff
-        timeSpanEff=dt/numOfDesiredSections+(numOfDesiredSections-1)*timeOverlap        
-    else:        
-        timeSpanEff=timeSpan
-    #print(timeSpanEff)    
+        if type(timeSpan) == int:    
+            numOfDesiredSections=timeSpan  
+            dt=timeEndEff-timeStartEff
+            timeSpanEff=dt/numOfDesiredSections+(numOfDesiredSections-1)*timeOverlap        
+        else:        
+            timeSpanEff=timeSpan
+        logger.debug("{0:s}timeSpanEff: {1:s}".format(logStr,str(timeSpanEff))) 
     
-    #print(timeOverlap) 
+        logger.debug("{0:s}timeOverlap: {1:s}".format(logStr,str(timeOverlap)))  
         
-    timeStartAct = timeStartEff           
-    while timeStartAct <= timeEndEff: 
-        timeEndAct=timeStartAct+timeSpanEff
-        xlim=(timeStartAct,timeEndAct)
-        xlims.append(xlim)        
-        timeStartAct = timeEndAct - timeOverlap         
+        timeStartAct = timeStartEff           
+        while timeStartAct < timeEndEff: 
+            logger.debug("{0:s}timeStartAct: {1:s}".format(logStr,str(timeStartAct)))  
+            timeEndAct=timeStartAct+timeSpanEff
+            xlim=(timeStartAct,timeEndAct)
+            xlims.append(xlim)        
+            timeStartAct = timeEndAct - timeOverlap         
     
-    return xlims
+   
+
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return xlims
 
 def gen2Timespans(
       timeStart # Anfang eines "Prozesses"
-     ,timeEnd # Ende eines Prozesses
+     ,timeEnd # Ende eines "Prozesses"
      ,timeSpan=pd.Timedelta('12 Minutes')     
      ,timeStartPraefix=pd.Timedelta('0 Seconds')
      ,timeEndPostfix=pd.Timedelta('0 Seconds')
@@ -588,14 +604,29 @@ def gen2Timespans(
     
     xlims=[]
 
-    if roundStr != None:
-        timeStart=timeStart.round(roundStr)
-        timeEnd=timeEnd.round(roundStr)
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
-    xlims.append((timeStart-timeStartPraefix,timeStart-timeStartPraefix+timeSpan))
-    xlims.append((timeEnd+timeEndPostfix-timeSpan,timeEnd+timeEndPostfix))
+    try:
+
+        if roundStr != None:
+            timeStart=timeStart.round(roundStr)
+            timeEnd=timeEnd.round(roundStr)
+
+        xlims.append((timeStart-timeStartPraefix,timeStart-timeStartPraefix+timeSpan))
+        xlims.append((timeEnd+timeEndPostfix-timeSpan,timeEnd+timeEndPostfix))
      
-    return xlims
+        return xlims
+
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return xlims
 
 
 baseColorsSchieber=[ # Schieberfarben   
@@ -870,13 +901,13 @@ def plotTimespansHYD(
                                 ,framealpha=legendFramealpha
                                 ,facecolor=legendFacecolor
                                 ))
-                axes['p'].legend(
+                axes['p'].add_artist(axes['p'].legend(
                                 tuple([lines[line] for line in lines if re.search(patterBCQ,line) != None]) 
                                 ,tuple([line for line in lines if re.search(patterBCQ,line) != None]) 
                                 ,loc='lower '+legendHorizontalPos
                                 ,framealpha=legendFramealpha
                                 ,facecolor=legendFacecolor
-                                )
+                                ))
 
 
                 moreLines=[line for line in lines if re.search(patterBCpQ,line) == None]
