@@ -328,10 +328,29 @@ def getLDSResVecDf(
         return dfResVec
 
 
+def fGetFirstAndLastValidIdx(df):
+    """
+    returns (tFirst,tLast)
+    """
+    
+    for idx,col in enumerate(df.columns):
+        tF=df[col].first_valid_index()
+        tL=df[col].last_valid_index()
+        if idx==0:        
+            tFirst=tF
+            tLast=tL
+        else:
+            if tF < tFirst:
+                tFirst=tF
+            if tL > tLast:
+                tLast=tL     
+    return (tFirst,tLast)
+    
 def fGetIDSets(
     dfID
    ,divNr #'7'
    ,pipelineNrLst #['43','44']
+   ,fctIn=None # Funktion von ID die Falsch heraus gibt, wenn ID (doch) nicht in Menge sein soll
 ):
     # returns Dct: key: Bezeichner einer ID-Menge; value: zugeh. IDs
     
@@ -347,7 +366,7 @@ def fGetIDSets(
             C4= m.group('C4')
             C5= m.group('C5')
 
-            if   C1 in [divNr] and C3 in pipelineNrLst: # SEG ErgVecs
+            if   C1 in [divNr] and C3 in pipelineNrLst: # u.a. SEG ErgVecs
                 IDs.append(ID)        
 
             elif C2 in [divNr] and C4 in pipelineNrLst:
@@ -355,7 +374,10 @@ def fGetIDSets(
 
             elif C3 in [divNr] and C5 in pipelineNrLst: # FT, PTI, etc.
                 IDs.append(ID)     
-                
+         
+    if fctIn != None:
+        IDs=[ID for ID in IDs if fctIn(ID)]
+
     IDSets['IDs']=IDs
     
     IDsAlarm=[ID for ID in IDs if re.search(pID,ID).group('E') == 'AL_S']
@@ -379,6 +401,8 @@ def fGetIDSets(
     
     IDsPT=[ID for ID in IDs if re.search(pID,ID).group('C4') == 'PTI']
     IDSets['IDsPT']=IDsPT
+
+    ### Schieber
     
     IDsZUST=[ID for ID in IDs if re.search(pID,ID).group('E') == 'ZUST']
     IDsZUST=sorted(IDsZUST,key=lambda x: re.match(pID,x).group('C5'))   
@@ -395,6 +419,9 @@ def fGetIDSets(
     IDs_FBG_ESCHIEBER_Ohne_ZUST=[ID for ID in IDs_FBG_ESCHIEBER if re.search(pID,ID).group('E') != 'ZUST']
     IDs_FBG_ESCHIEBER_Ohne_ZUST=sorted(IDs_FBG_ESCHIEBER_Ohne_ZUST,key=lambda x: re.match(pID,x).group('C5'))    
     IDSets['IDs_FBG_ESCHIEBER']=IDs_FBG_ESCHIEBER_Ohne_ZUST
+
+
+
     
     IDsSchieberAlle=IDsZUST+IDs_FBG_ESCHIEBER_Ohne_ZUST+IDs_3S_FBG_ESCHIEBER  
     IDSets['IDsSchieberAlle']=IDsSchieberAlle
