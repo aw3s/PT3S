@@ -330,6 +330,7 @@ def getLDSResVecDf(
 
 def fGetIDSets(
     dfID
+   ,divNr #'7'
    ,pipelineNrLst #['43','44']
 ):
     # returns Dct: key: Bezeichner einer ID-Menge; value: zugeh. IDs
@@ -346,13 +347,13 @@ def fGetIDSets(
             C4= m.group('C4')
             C5= m.group('C5')
 
-            if   C1 in ['7'] and C3 in pipelineNrLst: # SEG ErgVecs
+            if   C1 in [divNr] and C3 in pipelineNrLst: # SEG ErgVecs
                 IDs.append(ID)        
 
-            elif C2 in ['7'] and C4 in pipelineNrLst:
+            elif C2 in [divNr] and C4 in pipelineNrLst:
                 IDs.append(ID)
 
-            elif C3 in ['7'] and C5 in pipelineNrLst: # FT, PTI, etc.
+            elif C3 in [divNr] and C5 in pipelineNrLst: # FT, PTI, etc.
                 IDs.append(ID)     
                 
     IDSets['IDs']=IDs

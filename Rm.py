@@ -912,7 +912,7 @@ def plotTimespansHYD(
 
                 moreLines=[line for line in lines if re.search(patterBCpQ,line) == None]
                 if len(moreLines) > 0:
-                    opposite={'right':'left','left':'right'}
+                    opposite={'right':'left','left':'right','center':'left'}
                     moreLinesp=[line for line in moreLines if re.search('^p',line) != None]
                     if len(moreLinesp)>0:
                         axes['p'].add_artist(axes['p'].legend(
@@ -934,7 +934,11 @@ def plotTimespansHYD(
 
 
                 if 'SID' in axes.keys():
-                        axes['SID'].legend(loc='center '+legendHorizontalPos
+                        if legendHorizontalPos == 'center':
+                            legendHorizontalPosAct=''
+                        else:
+                            legendHorizontalPosAct=' '+legendHorizontalPos
+                        axes['SID'].legend(loc='center'+legendHorizontalPosAct
                                 ,framealpha=legendFramealpha
                                 ,facecolor=legendFacecolor)        
                         
@@ -1646,7 +1650,7 @@ def plotTimespansLDS(
     ,yTwinedAxesPosDeltaHP=-0.075 
 
     ,ylimR=None 
-    ,ylimRxlim=False 
+    ,ylimRxlim=False # can be a list
     ,yticksR=[0,2,4,10,15,30]
     # dito Beschl.
     ,ylimAC=None 
@@ -1756,7 +1760,11 @@ def plotTimespansLDS(
             byminuteIdx=byminute
             if isinstance(byminute, list):
                 if any(isinstance(el, list) for el in byminute):              
-                    byminuteIdx=byminute[idx]                     
+                    byminuteIdx=byminute[idx]      
+            
+            ylimRxlimIdx=ylimRxlim
+            if isinstance(ylimRxlim, list):
+                ylimRxlimIdx=ylimRxlim[idx]
         
             (axes,lines)=pltLDSErgVec(
                      ax
@@ -1775,7 +1783,7 @@ def plotTimespansLDS(
                     ,yTwinedAxesPosDeltaHP=yTwinedAxesPosDeltaHP
 
                     ,ylimR=ylimR
-                    ,ylimRxlim=ylimRxlim
+                    ,ylimRxlim=ylimRxlimIdx
                     ,yticksR=yticksR
                 
                     ,ylimAC=ylimAC 
