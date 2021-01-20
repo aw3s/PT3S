@@ -671,7 +671,7 @@ def plotTimespansHYD(
    ,sectionTexts=[] #  list of section texts to be used    
    ,vLinesX=[] # plotted in each section if X-time fits
    ,hLinesY=[] # plotted in each section 
-   ,vAreasX=[] # for each section a list of areas to highlight 
+   ,vAreasX=[] # for each section a list of areas to highlight i.e. [[(timeStartAusschnittDruck,timeEndAusschnittDruck),...],...]
 
    # --- Args Fct. ---:
 
@@ -682,6 +682,7 @@ def plotTimespansHYD(
    ,dfTCsSIDEvents=pd.DataFrame() # es werden alle Schieberevents geplottet    
    ,dfTCsSIDEventsTimeShift=pd.Timedelta('1 hour') 
    ,dfTCsSIDEventsInXlimOnly=True # es werden nur die Spalten geplottet, die in xlim vorkommen (in xlim mindestens 1x nicht Null sind)
+   ,dfTCsSIDEventsyOffset=.05 # die y-Werte werden ab dem 1. Schieber um je dfTCsSIDEventsyOffset erhöht (damit zeitgleiche Events besser sichtbar werden)
    
    ,QDct={ # Exanple
        'Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value':{'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
@@ -823,6 +824,7 @@ def plotTimespansHYD(
                 ,dfTCsSIDEvents=dfTCsSIDEvents    
                 ,dfTCsSIDEventsTimeShift=dfTCsSIDEventsTimeShift
                 ,dfTCsSIDEventsInXlimOnly=dfTCsSIDEventsInXlimOnly
+                ,dfTCsSIDEventsyOffset=dfTCsSIDEventsyOffset
                         
                 ,QDct=QDct
                 ,pDct=pDct
@@ -1242,7 +1244,8 @@ def pltLDSErgVec(
 
     ,ylimR=None #(-10,10) #wenn undef., dann min/max dfSegReprVec
     ,ylimRxlim=False #wenn Wahr und ylimR undef., dann wird xlim beruecksichtigt bei min/max dfSegReprVec
-    ,yticksR=None #[-10,0,10] #wenn undef., dann aus ylimR
+    ,yticksR=[0,2,4,10,15,30,45]  #wenn undef., dann aus ylimR 
+
     # dito Beschl.
     ,ylimAC=None 
     ,ylimACxlim=False 
@@ -1632,7 +1635,7 @@ def plotTimespansLDS(
     ,sectionTitles=[] #  list of section titles to be used    
     ,sectionTexts=[] #  list of section texts to be used    
     ,vLinesX=[] # plotted in each section if X-time fits    
-    ,vAreasX=[] # for each section a list of areas to highlight 
+    ,vAreasX=[] # for each section a list of areas to highlight i.e. [[(timeStartAusschnittDruck,timeEndAusschnittDruck),...],...]
 
    # --- Args Fct. ---:     
     ,dfSegReprVec=pd.DataFrame() 
@@ -1651,7 +1654,7 @@ def plotTimespansLDS(
 
     ,ylimR=None 
     ,ylimRxlim=False # can be a list
-    ,yticksR=[0,2,4,10,15,30]
+    ,yticksR=[0,2,4,10,15,30,45]
     # dito Beschl.
     ,ylimAC=None 
     ,ylimACxlim=False 
@@ -2008,7 +2011,8 @@ def pltLDSpQHelper(
 def pltLDSSIDHelper(
     ax 
    ,dfTCsSIDEvents
-   ,dfTCsScenTimeShift      
+   ,dfTCsScenTimeShift   
+   ,dfTCsSIDEventsyOffset # die y-Werte werden ab dem 1. Schieber um je dfTCsSIDEventsyOffset erhöht (damit zeitgleiche Events besser sichtbar werden)   
    ,pSIDEvents
    ,valRegExMiddleCmds
    ,eventCCmds
@@ -2083,7 +2087,7 @@ def pltLDSSIDHelper(
             colors=[c for idx in range(len(dfTCsSIDEvents.index))] # aller Ereignisse (der Spalte) haben dieselbe Farbe
             label=col   # alle Ereignisse (der Spalte) haben dasselbe Label
             scatter = ax.scatter(dfTCsSIDEvents.index.values+dfTCsScenTimeShift
-                        ,dfTCsSIDEvents[col].values
+                        ,dfTCsSIDEvents[col].values+idxSchieberLfd*dfTCsSIDEventsyOffset
                         ,c=colors
                         ,marker=m
                         ,label=label
@@ -2112,6 +2116,7 @@ def pltLDSpQAndEvents(
     ,dfTCsSIDEvents=pd.DataFrame() 
     ,dfTCsSIDEventsTimeShift=pd.Timedelta('1 hour') 
     ,dfTCsSIDEventsInXlimOnly=True # es werden nur die Spalten geplottet, die in xlim vorkommen (in xlim mindestens 1x nicht Null sind)
+    ,dfTCsSIDEventsyOffset=.05 # die y-Werte werden ab dem 1. Schieber um je dfTCsSIDEventsyOffset erhöht (damit zeitgleiche Events besser sichtbar werden)
     
     ,QDct={ # Exanple
         'Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value':{'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
@@ -2420,7 +2425,8 @@ def pltLDSpQAndEvents(
                 labelsOneCall,scattersOneCall=pltLDSSIDHelper(
                 ax3 
                ,dfTCsSIDEventsPlot
-               ,dfTCsSIDEventsTimeShift                   
+               ,dfTCsSIDEventsTimeShift   
+               ,dfTCsSIDEventsyOffset
                ,pSIDEvents
                ,valRegExMiddleCmds
                ,eventCCmds

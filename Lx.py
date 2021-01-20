@@ -165,7 +165,7 @@ def fODIMatch(dfODI,TYPE=None,OBJTYPE=None,NAME1=None,NAME2=None):
     
     return df
 
-def fODIFindAllSchieberSteuerungsIDs(dfODI,NAME1=None,NAME2=None):    
+def fODIFindAllSchieberSteuerungsIDs(dfODI,NAME1=None,NAME2=None):    # dfODI: pd.read_csv(ODI,delimiter=';')
     df=fODIMatch(dfODI,TYPE='OL_2',OBJTYPE='VENT',NAME1=NAME1,NAME2=NAME2)
     return sorted(list(df['ID'].unique())+[ID for ID in df['REF_ID'].unique() if not pd.isnull(ID)])
 
