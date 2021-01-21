@@ -395,12 +395,23 @@ def fGetIDSets(
     IDSets['IDsStatSEG']=IDsStatSEG
     IDsStatDruck=[ID for ID in IDsStat if re.search(pID,ID).group('C5') == 'PTI']
     IDSets['IDsStatDruck']=IDsStatDruck
+
+    IDsZHK=[ID for ID in IDs if re.search(pID,ID).group('E') == 'ZHKNR_S']
+    IDSets['IDsZHK']=IDsZHK
+
+    IDsZHKSEG=[ID for ID in IDsZHK if re.search(pID,ID).group('C5') != 'PTI']    
+    IDSets['IDsZHKSEG']=IDsZHKSEG
+    IDsZHKDruck=[ID for ID in IDsZHK if re.search(pID,ID).group('C5') == 'PTI']
+    IDSets['IDsZHKDruck']=IDsZHKDruck
     
     IDsFT=[ID for ID in IDs if re.search(pID,ID).group('C4') == 'FT']
     IDSets['IDsFT']=IDsFT
     
     IDsPT=[ID for ID in IDs if re.search(pID,ID).group('C4') == 'PTI']
     IDSets['IDsPT']=IDsPT
+
+    IDsPT_BCIND=[ID for ID in IDs if re.search(pID,ID).group('C5') == 'PTI' and re.search(pID,ID).group('E') == 'BCIND_S' ]
+    IDSets['IDsPT_BCIND']=IDsPT_BCIND
 
     ### Schieber
     

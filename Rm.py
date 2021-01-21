@@ -1974,26 +1974,30 @@ def pltLDSpQHelper(
             y=s.values #TCdf[ID].values
 
         if  IDPltValue != None: 
+            label=IDPltValue+' '+ID
             if IDPltValue in xDctAttrs.keys():     
                 if 'where' in xDctAttrs[IDPltValue].keys():
                     logger.debug("{0:s}ID: {1:s}: step-Plot".format(logStr,ID))                    
-                    lines = ax.step(x,y,where=xDctAttrs[IDPltValue]['where'])                                                                                                           
+                    lines = ax.step(x,y
+                                    ,label=label
+                                    ,where=xDctAttrs[IDPltValue]['where'])                                                                                                           
                 else:
-                    lines = ax.plot(x,y)
+                    lines = ax.plot(x,y
+                                   ,label=label
+                                    )
                 for prop,propValue in [(prop,value) for (prop, value) in xDctAttrs[IDPltValue].items() if prop not in ['where']]:               
-                    plt.setp(lines[0],"{:s}".format(prop),propValue)        
-                #label=IDPltValue+' '+ID
+                    plt.setp(lines[0],"{:s}".format(prop),propValue)                        
             else:
-                # es ist kein Layout definiert - einfach plotten
+                # es ist kein Layout definiert - einfach plotten                
                 logger.debug("{0:s}IDPltValue: {1:s}: es ist kein Layout definiert - einfach plotten ...".format(logStr,IDPltValue))     
-                lines = ax.plot(x,y)
-                #label=ID                
-            label=IDPltValue+' '+ID
+                lines = ax.plot(x,y
+                               ,label=label
+                                )
         else:
             # es liegt kein Schluessel (oder Wert None) fuer eine Layout-Informationen vor - einfach plotten
-            logger.debug("{0:s}ID: {1:s}: es liegt kein Schluessel (oder kein Wert) fuer eine Layout-Informationen vor - einfach plotten ...".format(logStr,ID))     
-            lines = ax.plot(x,y)
             label=ID
+            logger.debug("{0:s}ID: {1:s}: es liegt kein Schluessel (oder kein Wert) fuer eine Layout-Informationen vor - einfach plotten ...".format(logStr,ID))     
+            lines = ax.plot(x,y)            
 
         logger.debug("{0:s}label: '{1:s}' len(lines): {2:d}".format(logStr,label,len(lines))) 
                                       
