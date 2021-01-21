@@ -2,7 +2,7 @@
 SIR 3S Logfile Utilities (short: Lx)
 """
 
-__version__='90.12.2.0.dev1'
+__version__='90.12.3.0.dev1'
 
 import os
 import sys
