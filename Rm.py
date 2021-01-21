@@ -1277,6 +1277,9 @@ def pltLDSErgVec(
     ,plotLPRate=True
     ,Seg_LP_AV_Attrs={'color':'turquoise','zorder':0,'lw':1.50}
     ,Druck_LP_AV_Attrs={'color':'turquoise','zorder':0,'lw':1.50,'ls':'dashed'}
+
+    ,plotR2FillSeg=True 
+    ,plotR2FillDruck=True 
     
     ,Seg_NG_AV_Attrs={'color':'red','zorder':2}
     ,Druck_NG_AV_Attrs={'color':'red','zorder':2,'ls':'dashed'}
@@ -1443,7 +1446,16 @@ def pltLDSErgVec(
                     lines=ax2.plot(dfSegReprVec.index.values,dfSegReprVec['LP_AV'].values)
                     yLines['LP_AV Seg']=lines[0]
                     for prop,value in Seg_LP_AV_Attrs.items():               
-                        plt.setp(lines[0],"{:s}".format(prop),value)                      
+                        plt.setp(lines[0],"{:s}".format(prop),value)            
+                                  
+                if plotR2FillSeg: 
+                    df=dfSegReprVec
+                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
+                                           ,where=df['LR_AV']>df['NG_AV'],color='red',alpha=.2)
+                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
+                                           ,where=df['LR_AV']<df['NG_AV'],color='yellow',alpha=.2)
+                    dummy=ax2.fill_between(df.index, df['LR_AV'],0
+                                           ,where=df['LR_AV']<0,color='grey',alpha=.5)
 
     
             if not dfDruckReprVec.empty:
@@ -1462,6 +1474,15 @@ def pltLDSErgVec(
                     yLines['LP_AV Drk']=lines[0]
                     for prop,value in Druck_LP_AV_Attrs.items():               
                         plt.setp(lines[0],"{:s}".format(prop),value)     
+
+                if plotR2FillDruck: 
+                    df=dfDruckReprVec
+                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
+                                           ,where=df['LR_AV']>df['NG_AV'],color='red',alpha=.2)
+                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
+                                           ,where=df['LR_AV']<df['NG_AV'],color='yellow',alpha=.2)
+                    dummy=ax2.fill_between(df.index, df['LR_AV'],0
+                                           ,where=df['LR_AV']<0,color='grey',alpha=.5)
         
 
             ylimSeg,yticksSeg=pltLDSErgVecHelperYLimAndTicks(
@@ -1686,6 +1707,9 @@ def plotTimespansLDS(
     ,plotLPRate=True
     ,Seg_LP_AV_Attrs={'color':'turquoise','zorder':0,'lw':1.50}
     ,Druck_LP_AV_Attrs={'color':'turquoise','zorder':0,'lw':1.50,'ls':'dashed'}
+
+    ,plotR2FillSeg=True 
+    ,plotR2FillDruck=True 
     
     ,Seg_NG_AV_Attrs={'color':'red','zorder':2}
     ,Druck_NG_AV_Attrs={'color':'red','zorder':2,'ls':'dashed'}
@@ -1819,6 +1843,9 @@ def plotTimespansLDS(
                     ,plotLPRate=plotLPRate
                     ,Seg_LP_AV_Attrs=Seg_LP_AV_Attrs
                     ,Druck_LP_AV_Attrs=Druck_LP_AV_Attrs
+
+                    ,plotR2FillSeg=plotR2FillSeg
+                    ,plotR2FillDruck=plotR2FillDruck
 
                     ,Seg_NG_AV_Attrs=Seg_NG_AV_Attrs
                     ,Druck_NG_AV_Attrs=Druck_NG_AV_Attrs
