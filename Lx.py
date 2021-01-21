@@ -40,6 +40,47 @@ class LxError(Exception):
         return repr(self.value)
 
 
+def getTCsOPCDerivative(TCsOPC,col,shiftSize,windowSize,fct=None):
+    """
+    returns a df
+    index: ProcessTime
+    cols:
+        col
+        dt
+        dValue
+        dValueDt
+        dValueDtRollingMean
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    mDf=pd.DataFrame()
+
+    try:    
+        s=TCsOPC[col].dropna()        
+        mDf=pd.DataFrame(s)        
+        dt=mDf.index.to_series().diff(periods=shiftSize)
+        mDf['dt']=dt
+        mDf['dValue']=mDf[col].diff(periods=shiftSize)
+        mDf=mDf.iloc[shiftSize:]
+        mDf['dValueDt']=mDf.apply(lambda row: row['dValue']/row['dt'].total_seconds(),axis=1)       
+        if fct != None:
+            mDf['dValueDt']=mDf['dValueDt'].apply(fct)            
+        mDf['dValueDtRollingMean']=mDf['dValueDt'].rolling(window=windowSize).mean()
+        mDf=mDf.iloc[windowSize-1:]               
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise LxError(logStrFinal)                       
+    finally:           
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+        return mDf
+
+
+
+
+
 # nicht alle IDs werden von RE pID erfasst
 # diese werden mit pID2, getDfFromODIHelper und in getDfFromODI "nachbehandelt"
 

@@ -727,6 +727,10 @@ def plotTimespansHYD(
    ,ylimQxlim=False 
    ,yticksQ=[0,50,100,150,200,250]  
    ,ylabelQ='[Nm³/h]'
+
+    # 3. Achse
+    ,ylim3rd=(-1,3)
+    ,yticks3rd=[0,1,2,3]
    
    ,yGridSteps=0 # 0: das y-Gitter besteht dann bei ylimp=ylimQ=yticksp=yticksQ None nur aus min/max (also 1 Gitterabschnitt)     
    ,ySpanMin=0.9 # wenn ylim undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
@@ -846,6 +850,10 @@ def plotTimespansHYD(
 
                 ,ylimQ=ylimQ
                 ,yticksQ=yticksQ    
+
+                # 3. Achse
+                ,ylim3rd=ylim3rd
+                ,yticks3rd=yticks3rd
 
                 ,yGridSteps=yGridSteps
 
@@ -2164,6 +2172,10 @@ def pltLDSpQAndEvents(
     ,ylimQxlim=False 
     ,yticksQ=[0,50,100,150,200,250]  
     ,ylabelQ='[Nm³/h]'
+
+    # 3. Achse
+    ,ylim3rd=(-1,3)
+    ,yticks3rd=[0,1,2,3]
     
     ,yGridSteps=0 # 0: das y-Gitter besteht dann bei ylimp=ylimQ=yticksp=yticksQ None nur aus min/max (also 1 Gitterabschnitt)     
     ,ySpanMin=0.9 # wenn ylim undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
@@ -2443,9 +2455,9 @@ def pltLDSpQAndEvents(
 
 
             if not dfTCsSIDEvents.empty:# or not dfTCsSirCalcSIDEvents.empty:    
-                pltLDSHelperY(ax3)
-                ax3.set_ylim((-1,3))
-                ax3.set_yticks([0,1,2,3])
+                pltLDSHelperY(ax3)             
+                ax3.set_ylim(ylim3rd)
+                ax3.set_yticks(yticks3rd)
     
             if plotLegend:                
                 ax.legend(
