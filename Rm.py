@@ -1233,6 +1233,52 @@ def findAllTimeIntervalls(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
         return tPairs
 
+def pltLDSErgVecHelper(
+    ax    
+   ,dfReprVec=pd.DataFrame()
+   ,ID='AL_S' # Spaltenname in dfReprVec
+   ,attrs={}
+    ):
+
+    """
+    Helper
+
+    Returns:    
+    lines: ax.plot-Ergebnis
+    """
+   
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:    
+
+        lines=[]
+            
+        label=ID
+        x=dfReprVec.index.values
+        y=dfReprVec[ID].values
+
+        if 'where' in attrs.keys():
+            logger.debug("{0:s}ID: {1:s}: step-Plot".format(logStr,ID))                    
+            lines = ax.step(x,y,label=label
+                            ,where=attrs['where'])                                                                                                           
+        else:
+            lines = ax.plot(x,y,label=label
+                            )
+        for prop,propValue in [(prop,value) for (prop, value) in attrs.items() if prop not in ['where']]:               
+            plt.setp(lines[0],"{:s}".format(prop),propValue)     
+                                  
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return lines
+
+
 def pltLDSErgVec(
      ax
     ,dfSegReprVec=pd.DataFrame() # Ergebnisvektor SEG; pass empty Df if Druck only    
@@ -1374,10 +1420,11 @@ def pltLDSErgVec(
                     ax.axvspan(t1, t2, alpha=Druck_Highlight_Alpha, color=Druck_HighlightError_Color)
 
             if not dfSegReprVec.empty:
-                lines=ax.plot(dfSegReprVec.index.values,dfSegReprVec['AL_S'].values)
+                lines = pltLDSErgVecHelper(ax,dfSegReprVec,'AL_S',Seg_AL_S_Attrs)
+                #lines=ax.plot(dfSegReprVec.index.values,dfSegReprVec['AL_S'].values)
                 yLines['AL_S Seg']=lines[0]
-                for prop,value in Seg_AL_S_Attrs.items():               
-                    plt.setp(lines[0],"{:s}".format(prop),value)    
+                #for prop,value in Seg_AL_S_Attrs.items():               
+                #    plt.setp(lines[0],"{:s}".format(prop),value)    
                 
             if not dfDruckReprVec.empty:
                 lines=ax.plot(dfDruckReprVec.index.values,dfDruckReprVec['AL_S'].values)
