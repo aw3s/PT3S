@@ -498,6 +498,31 @@ attrsDct={   'p Src':{'color':SrcColorp,'lw':3.,'where':'post'}
                     
           }
 
+attrsDctLDS={
+     'Seg_AL_S_Attrs':{'color':'blue','lw':3.,'where':'post'}
+    ,'Druck_AL_S_Attrs':{'color':'blue','lw':3.,'ls':'dashed','where':'post'}
+    
+    ,'Seg_MZ_AV_Attrs':{'color':'orange','zorder':3,'where':'post'}    
+    
+    ,'Seg_LR_AV_Attrs':{'color':'green','zorder':1,'where':'post'}
+    ,'Druck_LR_AV_Attrs':{'color':'green','zorder':1,'ls':'dashed','where':'post'}
+    
+    ,'Seg_LP_AV_Attrs':{'color':'turquoise','zorder':0,'lw':1.50,'where':'post'}
+    ,'Druck_LP_AV_Attrs':{'color':'turquoise','zorder':0,'lw':1.50,'ls':'dashed','where':'post'}
+    
+    ,'Seg_NG_AV_Attrs':{'color':'red','zorder':2,'where':'post'}
+    ,'Druck_NG_AV_Attrs':{'color':'red','zorder':2,'ls':'dashed','where':'post'}
+    
+    ,'Seg_SB_S_Attrs':{'color':'black','alpha':.5,'where':'post'}
+    ,'Druck_SB_S_Attrs':{'color':'black','ls':'dashed','alpha':.5,'where':'post'}    
+    
+    ,'Seg_AC_AV_Attrs':{'color':'indigo','where':'post'}
+    ,'Druck_AC_AV_Attrs':{'color':'indigo','ls':'dashed','where':'post'}       
+
+    ,'Seg_ACC_Limits_Attrs':{'color':'indigo','ls':linestyle_tuple[2][1]}
+    ,'Druck_ACC_Limits_Attrs':{'color':'indigo','ls':linestyle_tuple[8][1]}
+    }
+
 class RmError(Exception):
     def __init__(self, value):
         self.value = value
@@ -872,7 +897,7 @@ def plotTimespansHYD(
             )
 
             (timeStart,timeEnd)=xlim
-            sectionTitleSingle="{:s}: Plot Nr. {:d} - Zeitspanne: ({:s})".format(sectionTitles[idx],idx+1,str(timeEnd-timeStart)).replace('days','Tage')  
+            sectionTitleSingle="{:s}: Plot Nr. {:d} - Zeitspanne: {:s}".format(sectionTitles[idx],idx+1,str(timeEnd-timeStart)).replace('days','Tage')  
             ax.set_title(sectionTitleSingle) 
 
             for vLineX in vLinesX:        
@@ -1317,35 +1342,14 @@ def pltLDSErgVec(
     ,legendLoc='best'
     ,legendFramealpha=.2
     ,legendFacecolor='white' 
-    
-    ,Seg_AL_S_Attrs={'color':'blue'}
-    ,Druck_AL_S_Attrs={'color':'blue','ls':'dashed'}
-    
-    ,Seg_MZ_AV_Attrs={'color':'orange','zorder':3}    
-    
-    ,Seg_LR_AV_Attrs={'color':'green','zorder':1}
-    ,Druck_LR_AV_Attrs={'color':'green','zorder':1,'ls':'dashed'}
 
+    ,attrsDctLDS=attrsDctLDS         
+                    
     ,plotLPRate=True
-    ,Seg_LP_AV_Attrs={'color':'turquoise','zorder':0,'lw':1.50}
-    ,Druck_LP_AV_Attrs={'color':'turquoise','zorder':0,'lw':1.50,'ls':'dashed'}
-
     ,plotR2FillSeg=True 
-    ,plotR2FillDruck=True 
-    
-    ,Seg_NG_AV_Attrs={'color':'red','zorder':2}
-    ,Druck_NG_AV_Attrs={'color':'red','zorder':2,'ls':'dashed'}
-    
-    ,Seg_SB_S_Attrs={'color':'black','alpha':.5}
-    ,Druck_SB_S_Attrs={'color':'black','ls':'dashed','alpha':.5}    
-    
-    ,plotAC=True
-    ,Seg_AC_AV_Attrs={'color':'indigo'}
-    ,Druck_AC_AV_Attrs={'color':'indigo','ls':'dashed'}       
-
+    ,plotR2FillDruck=True         
+    ,plotAC=True      
     ,plotACCLimits=True
-    ,Seg_ACC_Limits_Attrs={'color':'indigo','ls':linestyle_tuple[2][1]}
-    ,Druck_ACC_Limits_Attrs={'color':'indigo','ls':linestyle_tuple[8][1]} 
 
     ,highlightAreas=True # Phasen einfaerben
     ,Seg_Highlight_Color='gray'
@@ -1379,6 +1383,18 @@ def pltLDSErgVec(
             if dfSegReprVec.empty and dfDruckReprVec.empty:                
                 logger.error("{0:s}{1:s}".format(logStr,'dfSegReprVec UND dfDruckReprVec leer?! Return.')) 
                 return
+
+            if not dfSegReprVec.empty: 
+                # keine komplett leeren Zeilen
+                dfSegReprVec=dfSegReprVec[~dfSegReprVec.isnull().all(1)]
+                # keine doppelten Indices
+                dfSegReprVec=dfSegReprVec.groupby(dfSegReprVec.index).last()
+
+            if not dfDruckReprVec.empty: 
+                # keine komplett leeren Zeilen
+                dfDruckReprVec=dfDruckReprVec[~dfDruckReprVec.isnull().all(1)]
+                # keine doppelten Indices
+                dfDruckReprVec=dfDruckReprVec.groupby(dfDruckReprVec.index).last()
 
             axes['A']=ax #axLst.append(ax)
 
@@ -1426,32 +1442,24 @@ def pltLDSErgVec(
                     ax.axvspan(t1, t2, alpha=Druck_Highlight_Alpha, color=Druck_HighlightError_Color)
 
             if not dfSegReprVec.empty:
-                lines = pltLDSErgVecHelper(ax,dfSegReprVec,'AL_S',Seg_AL_S_Attrs)
-                #lines=ax.plot(dfSegReprVec.index.values,dfSegReprVec['AL_S'].values)
+                lines = pltLDSErgVecHelper(ax,dfSegReprVec,'AL_S',attrsDctLDS['Seg_AL_S_Attrs'])              
                 yLines['AL_S Seg']=lines[0]
-                #for prop,value in Seg_AL_S_Attrs.items():               
-                #    plt.setp(lines[0],"{:s}".format(prop),value)    
+
                 
             if not dfDruckReprVec.empty:
-                lines = pltLDSErgVecHelper(ax,dfDruckReprVec,'AL_S',Druck_AL_S_Attrs)
-                #lines=ax.plot(dfDruckReprVec.index.values,dfDruckReprVec['AL_S'].values)
+                lines = pltLDSErgVecHelper(ax,dfDruckReprVec,'AL_S',attrsDctLDS['Druck_AL_S_Attrs'])                
                 yLines['AL_S Drk']=lines[0]
-                #for prop,value in Druck_AL_S_Attrs.items():               
-                #    plt.setp(lines[0],"{:s}".format(prop),value)      
+    
                     
             if not dfSegReprVec.empty:
-                lines = pltLDSErgVecHelper(ax,dfSegReprVec,'SB_S',Seg_SB_S_Attrs,fct=lambda x: x*10)
-                #lines=ax.plot(dfSegReprVec.index.values,dfSegReprVec['SB_S'].values*10)
+                lines = pltLDSErgVecHelper(ax,dfSegReprVec,'SB_S',attrsDctLDS['Seg_SB_S_Attrs'],fct=lambda x: x*10)                
                 yLines['SB_S Seg']=lines[0]
-                #for prop,value in Seg_SB_S_Attrs.items():               
-                #    plt.setp(lines[0],"{:s}".format(prop),value)     
+
 
             if not dfDruckReprVec.empty:    
-                lines = pltLDSErgVecHelper(ax,dfDruckReprVec,'SB_S',Druck_SB_S_Attrs,fct=lambda x: x*10)
-                #lines=ax.plot(dfDruckReprVec.index.values,dfDruckReprVec['SB_S'].values*10)
+                lines = pltLDSErgVecHelper(ax,dfDruckReprVec,'SB_S',attrsDctLDS['Druck_SB_S_Attrs'],fct=lambda x: x*10)                
                 yLines['SB_S Drk']=lines[0]
-                #for prop,value in Druck_SB_S_Attrs.items():               
-                #    plt.setp(lines[0],"{:s}".format(prop),value)       
+   
         
             ax.set_ylim(ylimAL)
             ax.set_yticks(yticksAL)
@@ -1480,72 +1488,104 @@ def pltLDSErgVec(
             
             if not dfSegReprVec.empty:
 
-                lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'MZ_AV',Seg_MZ_AV_Attrs)
-                #lines=ax2.plot(dfSegReprVec.index.values,dfSegReprVec['MZ_AV'].values)
+                lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'MZ_AV',attrsDctLDS['Seg_MZ_AV_Attrs'])                
                 yLines['MZ_AV (R1) Seg']=lines[0]
-                #for prop,value in Seg_MZ_AV_Attrs.items():               
-                #    plt.setp(lines[0],"{:s}".format(prop),value)              
+         
         
-                lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'LR_AV',Seg_LR_AV_Attrs)
-                #lines=ax2.plot(dfSegReprVec.index.values,dfSegReprVec['LR_AV'].values)
+                lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'LR_AV',attrsDctLDS['Seg_LR_AV_Attrs'])                
                 yLines['LR_AV (R2) Seg']=lines[0]
-                #for prop,value in Seg_LR_AV_Attrs.items():               
-                #    plt.setp(lines[0],"{:s}".format(prop),value)     
+ 
     
-                lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'NG_AV',Seg_NG_AV_Attrs)
-                #lines=ax2.plot(dfSegReprVec.index.values,dfSegReprVec['NG_AV'].values)                
+                lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'NG_AV',attrsDctLDS['Seg_NG_AV_Attrs'])                            
                 yLines['NG_AV Seg']=lines[0]
-                #for prop,value in Seg_NG_AV_Attrs.items():               
-                #    plt.setp(lines[0],"{:s}".format(prop),value)  
+
                     
                 if plotLPRate:        
                     # R2 = R1 - LP
                     # R2 - R1 = -LP
                     # LP = R1 - R2
-                    lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'LP_AV',Seg_LP_AV_Attrs)
-                    #lines=ax2.plot(dfSegReprVec.index.values,dfSegReprVec['LP_AV'].values)
+                    lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'LP_AV',attrsDctLDS['Seg_LP_AV_Attrs'])                   
                     yLines['LP_AV Seg']=lines[0]
-                    #for prop,value in Seg_LP_AV_Attrs.items():               
-                    #    plt.setp(lines[0],"{:s}".format(prop),value)            
+         
                                   
                 if plotR2FillSeg: 
                     df=dfSegReprVec
-                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
-                                           ,where=df['LR_AV']>df['NG_AV'],color='red',alpha=.2)
-                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
-                                           ,where=df['LR_AV']<df['NG_AV'],color='yellow',alpha=.2)
+                    df=df.reindex(pd.date_range(start=df.index[0], end=df.index[-1], freq='1s'))
+                    df=df.fillna(method='ffill').fillna(method='bfill')
+
+                    # R2 unter 0
                     dummy=ax2.fill_between(df.index, df['LR_AV'],0
-                                           ,where=df['LR_AV']<0,color='grey',alpha=.5)
+                                           ,where=df['LR_AV']<0,color='grey',alpha=.2)
+
+                    # zwischen R2 und 0   
+                    dummy=ax2.fill_between(df.index, 0, df['LR_AV']
+                                           ,where=df['LR_AV']>0
+                                           #,color='yellow',alpha=.1
+                                           ,color='red',alpha=.1
+                                           )
+
+
+                    # R2 über 0 aber unter NG  
+                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
+                                           ,where=(df['LR_AV']>0) & (df['LR_AV']<df['NG_AV']) 
+                                           #,color='red',alpha=.1
+                                           ,color='yellow',alpha=.1
+                                           )
+
+                    # R2 über NG
+                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
+                                           ,where=df['LR_AV']>df['NG_AV']
+                                           ,color='red',alpha=.2)
+
+
+
+
+
 
     
             if not dfDruckReprVec.empty:
-                lines = pltLDSErgVecHelper(ax2,dfDruckReprVec,'LR_AV',Druck_LR_AV_Attrs)
-                #lines=ax2.plot(dfDruckReprVec.index.values,dfDruckReprVec['LR_AV'].values)
+                lines = pltLDSErgVecHelper(ax2,dfDruckReprVec,'LR_AV',attrsDctLDS['Druck_LR_AV_Attrs'])                
                 yLines['LR_AV (R2) Drk']=lines[0]
-                #for prop,value in Druck_LR_AV_Attrs.items():               
-                #    plt.setp(lines[0],"{:s}".format(prop),value)     
+   
     
-                lines = pltLDSErgVecHelper(ax2,dfDruckReprVec,'NG_AV',Druck_NG_AV_Attrs)
-                #lines=ax2.plot(dfDruckReprVec.index.values,dfDruckReprVec['NG_AV'].values)
+                lines = pltLDSErgVecHelper(ax2,dfDruckReprVec,'NG_AV',attrsDctLDS['Druck_NG_AV_Attrs'])                
                 yLines['NG_AV Drk']=lines[0]
-                #for prop,value in Druck_NG_AV_Attrs.items():               
-                #    plt.setp(lines[0],"{:s}".format(prop),value)      
+
 
                 if plotLPRate:        
-                    lines = pltLDSErgVecHelper(ax2,dfDruckReprVec,'LP_AV',Druck_LP_AV_Attrs)
-                    #lines=ax2.plot(dfDruckReprVec.index.values,dfDruckReprVec['LP_AV'].values)
+                    lines = pltLDSErgVecHelper(ax2,dfDruckReprVec,'LP_AV',attrsDctLDS['Druck_LP_AV_Attrs'])                    
                     yLines['LP_AV Drk']=lines[0]
-                    #for prop,value in Druck_LP_AV_Attrs.items():               
-                    #    plt.setp(lines[0],"{:s}".format(prop),value)     
+  
 
                 if plotR2FillDruck: 
                     df=dfDruckReprVec
-                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
-                                           ,where=df['LR_AV']>df['NG_AV'],color='red',alpha=.2)
-                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
-                                           ,where=df['LR_AV']<df['NG_AV'],color='yellow',alpha=.2)
+                    df=df.reindex(pd.date_range(start=df.index[0], end=df.index[-1], freq='1s'))
+                    df=df.fillna(method='ffill').fillna(method='bfill')
+
+                    # R2 unter 0
                     dummy=ax2.fill_between(df.index, df['LR_AV'],0
-                                           ,where=df['LR_AV']<0,color='grey',alpha=.5)
+                                           ,where=df['LR_AV']<0,color='grey',alpha=.4)
+
+                    # zwischen R2 und 0   
+                    dummy=ax2.fill_between(df.index, 0, df['LR_AV']
+                                           ,where=df['LR_AV']>0
+                                           #,color='yellow',alpha=.1
+                                           ,color='red',alpha=.1
+                                           )
+
+
+                    # R2 über 0 aber unter NG  
+                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
+                                           ,where=(df['LR_AV']>0) & (df['LR_AV']<df['NG_AV']) 
+                                           #,color='red',alpha=.1
+                                           ,color='yellow',alpha=.1
+                                           )
+
+                    # R2 über NG
+                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
+                                           ,where=df['LR_AV']>df['NG_AV']
+                                           ,color='red',alpha=.2)
+
         
 
             ylimSeg,yticksSeg=pltLDSErgVecHelperYLimAndTicks(
@@ -1606,14 +1646,14 @@ def pltLDSErgVec(
                 pltLDSHelperY(ax3)
         
                 if not dfSegReprVec.empty:
-                    lines = pltLDSErgVecHelper(ax3,dfSegReprVec,'AC_AV',Seg_AC_AV_Attrs)
+                    lines = pltLDSErgVecHelper(ax3,dfSegReprVec,'AC_AV',attrsDctLDS['Seg_AC_AV_Attrs'])
                     #lines=ax3.plot(dfSegReprVec.index.values,dfSegReprVec['AC_AV'].values)
                     yLines['AC_AV Seg']=lines[0]
                     #for prop,value in Seg_AC_AV_Attrs.items():               
                     #    plt.setp(lines[0],"{:s}".format(prop),value)         
     
                 if not dfDruckReprVec.empty:
-                    lines = pltLDSErgVecHelper(ax3,dfDruckReprVec,'AC_AV',Druck_AC_AV_Attrs)
+                    lines = pltLDSErgVecHelper(ax3,dfDruckReprVec,'AC_AV',attrsDctLDS['Druck_AC_AV_Attrs'])
                     #lines=ax3.plot(dfDruckReprVec.index.values,dfDruckReprVec['AC_AV'].values)
                     yLines['AC_AV Drk']=lines[0]
                     #for prop,value in Druck_AC_AV_Attrs.items():               
@@ -1622,42 +1662,40 @@ def pltLDSErgVec(
                 # ACC Limits
                 if plotACCLimits:
 
-
                     if not dfSegReprVec.empty:
                         # +
                         line=ax3.axhline(y=dfSegReprVec['ACCST_AV'].max())
-                        for prop,value in Seg_ACC_Limits_Attrs.items():               
+                        for prop,value in attrsDctLDS['Seg_ACC_Limits_Attrs'].items():               
                             plt.setp(line,"{:s}".format(prop),value)   
                         line=ax3.axhline(y=dfSegReprVec['ACCTR_AV'].max())
-                        for prop,value in Seg_ACC_Limits_Attrs.items():               
+                        for prop,value in attrsDctLDS['Seg_ACC_Limits_Attrs'].items():               
                             plt.setp(line,"{:s}".format(prop),value)  
                     
-
                     if not dfDruckReprVec.empty:
                         # +
                         line=ax3.axhline(y=dfDruckReprVec['ACCST_AV'].max())
-                        for prop,value in Druck_ACC_Limits_Attrs.items():               
+                        for prop,value in attrsDctLDS['Druck_ACC_Limits_Attrs'].items():               
                             plt.setp(line,"{:s}".format(prop),value)   
                         line=ax3.axhline(y=dfDruckReprVec['ACCTR_AV'].max())
-                        for prop,value in Druck_ACC_Limits_Attrs.items():               
+                        for prop,value in attrsDctLDS['Druck_ACC_Limits_Attrs'].items():               
                             plt.setp(line,"{:s}".format(prop),value)   
 
                     if not dfSegReprVec.empty:
                         # -
                         line=ax3.axhline(y=-dfSegReprVec['ACCST_AV'].max())
-                        for prop,value in Seg_ACC_Limits_Attrs.items():               
+                        for prop,value in attrsDctLDS['Seg_ACC_Limits_Attrs'].items():               
                             plt.setp(line,"{:s}".format(prop),value)   
                         line=ax3.axhline(y=-dfSegReprVec['ACCTR_AV'].max())
-                        for prop,value in Seg_ACC_Limits_Attrs.items():               
+                        for prop,value in attrsDctLDS['Seg_ACC_Limits_Attrs'].items():               
                             plt.setp(line,"{:s}".format(prop),value)   
 
                     if not dfDruckReprVec.empty:
                         # -
                         line=ax3.axhline(y=-dfDruckReprVec['ACCST_AV'].max())
-                        for prop,value in Druck_ACC_Limits_Attrs.items():               
+                        for prop,value in attrsDctLDS['Druck_ACC_Limits_Attrs'].items():               
                             plt.setp(line,"{:s}".format(prop),value)   
                         line=ax3.axhline(y=-dfDruckReprVec['ACCTR_AV'].max())
-                        for prop,value in Druck_ACC_Limits_Attrs.items():               
+                        for prop,value in attrsDctLDS['Druck_ACC_Limits_Attrs'].items():               
                             plt.setp(line,"{:s}".format(prop),value)   
 
 
@@ -1761,35 +1799,14 @@ def plotTimespansLDS(
     ,legendLoc='best'
     ,legendFramealpha=.2
     ,legendFacecolor='white' 
-    
-    ,Seg_AL_S_Attrs={'color':'blue'}
-    ,Druck_AL_S_Attrs={'color':'blue','ls':'dashed'}
-    
-    ,Seg_MZ_AV_Attrs={'color':'orange','zorder':3}    
-    
-    ,Seg_LR_AV_Attrs={'color':'green','zorder':1}
-    ,Druck_LR_AV_Attrs={'color':'green','zorder':1,'ls':'dashed'}
+
+    ,attrsDctLDS=attrsDctLDS
 
     ,plotLPRate=True
-    ,Seg_LP_AV_Attrs={'color':'turquoise','zorder':0,'lw':1.50}
-    ,Druck_LP_AV_Attrs={'color':'turquoise','zorder':0,'lw':1.50,'ls':'dashed'}
-
     ,plotR2FillSeg=True 
     ,plotR2FillDruck=True 
-    
-    ,Seg_NG_AV_Attrs={'color':'red','zorder':2}
-    ,Druck_NG_AV_Attrs={'color':'red','zorder':2,'ls':'dashed'}
-    
-    ,Seg_SB_S_Attrs={'color':'black','alpha':.5}
-    ,Druck_SB_S_Attrs={'color':'black','ls':'dashed','alpha':.5}    
-    
     ,plotAC=True
-    ,Seg_AC_AV_Attrs={'color':'indigo'}
-    ,Druck_AC_AV_Attrs={'color':'indigo','ls':'dashed'}       
-
     ,plotACCLimits=True
-    ,Seg_ACC_Limits_Attrs={'color':'indigo','ls':linestyle_tuple[2][1]}
-    ,Druck_ACC_Limits_Attrs={'color':'indigo','ls':linestyle_tuple[8][1]} 
 
     ,highlightAreas=True 
     ,Seg_Highlight_Color='gray'
@@ -1803,8 +1820,7 @@ def plotTimespansLDS(
     ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
     ,Druck_HighlightError_Color='red'
     ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
-    
-    
+     
 ):
 
     # plots pltLDSErgVec-Sections 
@@ -1898,34 +1914,13 @@ def plotTimespansLDS(
                     ,legendFramealpha=legendFramealpha
                     ,legendFacecolor=legendFacecolor 
 
-                    ,Seg_AL_S_Attrs=Seg_AL_S_Attrs
-                    ,Druck_AL_S_Attrs=Druck_AL_S_Attrs
-
-                    ,Seg_MZ_AV_Attrs=Seg_MZ_AV_Attrs    
-
-                    ,Seg_LR_AV_Attrs=Seg_LR_AV_Attrs
-                    ,Druck_LR_AV_Attrs=Druck_LR_AV_Attrs
-
-                    ,plotLPRate=plotLPRate
-                    ,Seg_LP_AV_Attrs=Seg_LP_AV_Attrs
-                    ,Druck_LP_AV_Attrs=Druck_LP_AV_Attrs
-
+                    ,attrsDctLDS=attrsDctLDS         
+                    
+                    ,plotLPRate=plotLPRate                  
                     ,plotR2FillSeg=plotR2FillSeg
-                    ,plotR2FillDruck=plotR2FillDruck
-
-                    ,Seg_NG_AV_Attrs=Seg_NG_AV_Attrs
-                    ,Druck_NG_AV_Attrs=Druck_NG_AV_Attrs
-
-                    ,Seg_SB_S_Attrs=Seg_SB_S_Attrs
-                    ,Druck_SB_S_Attrs=Druck_SB_S_Attrs    
-
-                    ,plotAC=plotAC
-                    ,Seg_AC_AV_Attrs=Seg_AC_AV_Attrs
-                    ,Druck_AC_AV_Attrs=Druck_AC_AV_Attrs       
-
+                    ,plotR2FillDruck=plotR2FillDruck                   
+                    ,plotAC=plotAC     
                     ,plotACCLimits=plotACCLimits
-                    ,Seg_ACC_Limits_Attrs=Seg_ACC_Limits_Attrs
-                    ,Druck_ACC_Limits_Attrs=Druck_ACC_Limits_Attrs 
 
                     ,highlightAreas=highlightAreas 
                     ,Seg_Highlight_Color=Seg_Highlight_Color
