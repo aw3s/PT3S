@@ -33,6 +33,9 @@ import csv
 
 import glob
 
+# pd.set_option("max_rows", None)
+# pd.reset_option('max_rows')
+
 class LxError(Exception):
     def __init__(self, value):
         self.value = value
@@ -1099,7 +1102,12 @@ class AppLog():
         """
         (re-)initialize with zip7Files
 
-        only outcome is lookUpDfZips (Attribute and H5-Persistence)
+        only persistent outcome is lookUpDfZips (Attribute and H5-Persistence)
+        lookUpdf is changed but not H5-stored   
+        (Re-)Init with AppLog(h5File=...) after using rebuildLookUpDfZips to obtain old lookUpdf   
+
+        main Usage of rebuildLookUpDfZips is to determine which zip7Files to add by i.e.:
+        zip7FilesToAdd=lx.lookUpDfZips[~(lx.lookUpDfZips['LastTime']<timeStartAusschnitt) & ~(lx.lookUpDfZips['FirstTime']>timeEndAusschnitt)].index.to_list()
         """ 
 
 

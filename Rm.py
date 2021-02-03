@@ -115,7 +115,7 @@ True
 ...    os.remove(plotFileName)
 """
 
-__version__='90.12.3.0.dev1'
+__version__='90.12.3.2.dev1'
 
 import warnings # 3.6
 #...\Anaconda3\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
@@ -475,11 +475,11 @@ SnkColorQ='orange'
 SnkColorsQ=pltMakeCategoricalColors(list(matplotlib.colors.to_rgb(SnkColorQ)),nOfSubColorsReq=4,reversedOrder=True)
 # letzte Farbe ist Original-Farbe
 
-attrsDct={   'p Src':{'color':SrcColorp,'lw':3.,'where':'post'}
-            ,'p Snk':{'color':SnkColorp,'lw':3.,'where':'post'}
+attrsDct={   'p Src':{'color':SrcColorp,'lw':4.5,'where':'post'}
+            ,'p Snk':{'color':SnkColorp,'lw':2.5,'where':'post'}
                                              
-            ,'Q Src':{'color':SrcColorQ,'lw':3.,'where':'post'}
-            ,'Q Snk':{'color':SnkColorQ,'lw':3.,'where':'post'}
+            ,'Q Src':{'color':SrcColorQ,'lw':4.5,'where':'post'}
+            ,'Q Snk':{'color':SnkColorQ,'lw':2.5,'where':'post'}
                     
             ,'Q Src RTTM':{'color':SrcColorQ,'ls':'dotted','where':'post'}
             ,'Q Snk RTTM':{'color':SnkColorQ,'ls':'dotted','where':'post'}        
@@ -1351,18 +1351,21 @@ def pltLDSErgVec(
     ,plotAC=True      
     ,plotACCLimits=True
 
-    ,highlightAreas=True # Phasen einfaerben
-    ,Seg_Highlight_Color='gray'
+    ,highlightAreas=True 
+
+    ,Seg_Highlight_Color='cyan'
     ,Seg_Highlight_Alpha=.1     
-    ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False   
-    ,Seg_HighlightError_Color='red'
+    ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False      
+    ,Seg_HighlightError_Color='peru'
+    ,Seg_Highlight_Alpha_Error=.3     
     ,Seg_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False   
 
-    ,Druck_Highlight_Color='gray'
-    ,Druck_Highlight_Alpha=.2
+    ,Druck_Highlight_Color='cyan'
+    ,Druck_Highlight_Alpha=.1
     ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
-    ,Druck_HighlightError_Color='red'
-    ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False  
+    ,Druck_HighlightError_Color='peru'
+    ,Druck_Highlight_Alpha_Error=.3
+    ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
            
     ):
     """
@@ -1431,7 +1434,7 @@ def pltLDSErgVec(
                     ax.axvspan(t1, t2, alpha=Seg_Highlight_Alpha, color=Seg_Highlight_Color)
                 tPairs=findAllTimeIntervalls(dfSegReprVec,Seg_HighlightError_Fct)
                 for t1,t2 in tPairs:                    
-                    ax.axvspan(t1, t2, alpha=Seg_Highlight_Alpha, color=Seg_HighlightError_Color)
+                    ax.axvspan(t1, t2, alpha=Seg_Highlight_Alpha_Error, color=Seg_HighlightError_Color)
 
             if not dfDruckReprVec.empty and highlightAreas:
                 tPairs=findAllTimeIntervalls(dfDruckReprVec,Druck_Highlight_Fct)
@@ -1439,7 +1442,7 @@ def pltLDSErgVec(
                     ax.axvspan(t1, t2, alpha=Druck_Highlight_Alpha, color=Druck_Highlight_Color)
                 tPairs=findAllTimeIntervalls(dfDruckReprVec,Druck_HighlightError_Fct)
                 for t1,t2 in tPairs:                    
-                    ax.axvspan(t1, t2, alpha=Druck_Highlight_Alpha, color=Druck_HighlightError_Color)
+                    ax.axvspan(t1, t2, alpha=Druck_Highlight_Alpha_Error, color=Druck_HighlightError_Color)
 
             if not dfSegReprVec.empty:
                 lines = pltLDSErgVecHelper(ax,dfSegReprVec,'AL_S',attrsDctLDS['Seg_AL_S_Attrs'])              
@@ -1809,16 +1812,19 @@ def plotTimespansLDS(
     ,plotACCLimits=True
 
     ,highlightAreas=True 
-    ,Seg_Highlight_Color='gray'
+
+    ,Seg_Highlight_Color='cyan'
     ,Seg_Highlight_Alpha=.1     
-    ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False   
-    ,Seg_HighlightError_Color='red'
+    ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False      
+    ,Seg_HighlightError_Color='peru'
+    ,Seg_Highlight_Alpha_Error=.3     
     ,Seg_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False   
 
-    ,Druck_Highlight_Color='gray'
-    ,Druck_Highlight_Alpha=.2
+    ,Druck_Highlight_Color='cyan'
+    ,Druck_Highlight_Alpha=.1
     ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
-    ,Druck_HighlightError_Color='red'
+    ,Druck_HighlightError_Color='peru'
+    ,Druck_Highlight_Alpha_Error=.3
     ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
      
 ):
@@ -1923,16 +1929,19 @@ def plotTimespansLDS(
                     ,plotACCLimits=plotACCLimits
 
                     ,highlightAreas=highlightAreas 
+
                     ,Seg_Highlight_Color=Seg_Highlight_Color
                     ,Seg_Highlight_Alpha=Seg_Highlight_Alpha     
                     ,Seg_Highlight_Fct=Seg_Highlight_Fct   
                     ,Seg_HighlightError_Color=Seg_HighlightError_Color
+                    ,Seg_Highlight_Alpha_Error=Seg_Highlight_Alpha_Error #     
                     ,Seg_HighlightError_Fct=Seg_HighlightError_Fct   
 
                     ,Druck_Highlight_Color=Druck_Highlight_Color
                     ,Druck_Highlight_Alpha=Druck_Highlight_Alpha
                     ,Druck_Highlight_Fct=Druck_Highlight_Fct  
                     ,Druck_HighlightError_Color=Druck_HighlightError_Color
+                    ,Druck_Highlight_Alpha_Error=Druck_Highlight_Alpha_Error #     
                     ,Druck_HighlightError_Fct=Druck_HighlightError_Fct              
             
                     )    
