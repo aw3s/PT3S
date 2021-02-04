@@ -473,7 +473,7 @@ def fGetIDSets(
         
     IDs_FBG_ESCHIEBER_Ohne_ZUST=[ID for ID in IDs_FBG_ESCHIEBER if re.search(pID,ID).group('E') != 'ZUST']
     IDs_FBG_ESCHIEBER_Ohne_ZUST=sorted(IDs_FBG_ESCHIEBER_Ohne_ZUST,key=lambda x: re.match(pID,x).group('C5'))    
-    IDSets['IDs_FBG_ESCHIEBER']=IDs_FBG_ESCHIEBER_Ohne_ZUST
+    IDSets['IDs_FBG_ESCHIEBER_Ohne_ZUST']=IDs_FBG_ESCHIEBER_Ohne_ZUST
 
 
 

@@ -486,9 +486,17 @@ attrsDct={   'p Src':{'color':SrcColorp,'lw':4.5,'where':'post'}
                     
             ,'p ISrc 1':{'color':SrcColorsp[-1],'ls':'dashdot','where':'post'}          
             ,'p ISrc 2':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     
+            ,'p ISrc 3':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     # ab hier selbe Farbe
+            ,'p ISrc 4':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     
+            ,'p ISrc 5':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     
+            ,'p ISrc 6':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     
           
             ,'p ISnk 1':{'color':SnkColorsp[0],'ls':'dashdot','where':'post'}          
             ,'p ISnk 2':{'color':SnkColorsp[1],'ls':'dashdot','where':'post'}        
+            ,'p ISnk 3':{'color':SnkColorsp[1],'ls':'dashdot','where':'post'}     # ab hier selbe Farbe   
+            ,'p ISnk 4':{'color':SnkColorsp[1],'ls':'dashdot','where':'post'}        
+            ,'p ISnk 5':{'color':SnkColorsp[1],'ls':'dashdot','where':'post'}        
+            ,'p ISnk 6':{'color':SnkColorsp[1],'ls':'dashdot','where':'post'}        
           
             ,'Q xSrc 1':{'color':SrcColorsQ[-1],'ls':'dashdot','where':'post'}          
             ,'Q xSrc 2':{'color':SrcColorsQ[-2],'ls':'dashdot','where':'post'}     
