@@ -34,7 +34,10 @@ import csv
 import glob
 
 # pd.set_option("max_rows", None)
+# pd.set_option("max_columns", None)
+
 # pd.reset_option('max_rows')
+# ...
 
 class LxError(Exception):
     def __init__(self, value):
