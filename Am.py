@@ -2,7 +2,7 @@
 
 """
 
-__version__='90.12.3.2.dev1'
+__version__='90.12.4.0.dev1'
 
 
 
@@ -71,22 +71,27 @@ class Am():
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
         
-        try: 
-
+        try:             
             if os.path.exists(accFile):  
                 if os.access(accFile,os.W_OK):
                     pass
                 else:
-                    logStrFinal="{:s}{:s}: Not writetable!".format(logStr,accFile)     
-                    raise XmError(logStrFinal)  
+                    logger.debug("{:s}accFile: {:s}: Not writable.".format(logStr,accFile)) 
+                    if os.access(accFile,os.R_OK):
+                        pass
+                    else:
+                        logStrFinal="{:s}accFile: {:s}: Not readable!".format(logStr,accFile)     
+                        raise AmError(logStrFinal)  
             else:
-                logStrFinal="{:s}{:s}: Not existing!".format(logStr,accFile)     
-                raise XmError(logStrFinal)  
+                logStrFinal="{:s}accFile: {:s}: Not existing!".format(logStr,accFile)     
+                raise AmError(logStrFinal)  
+          
+            logger.debug("{:s}accFile (abspath): {:s}".format(logStr,os.path.abspath(accFile))) 
 
             Driver=[x for x in pyodbc.drivers() if x.startswith('Microsoft Access Driver')]
             if Driver == []:
                 logStrFinal="{:s}{:s}: No Microsoft Access Driver!".format(logStr,accFile)     
-                raise XmError(logStrFinal)  
+                raise AmError(logStrFinal)  
 
             conStr=(
                 r'DRIVER={'+Driver[0]+'};'
@@ -102,13 +107,6 @@ class Am():
             logger.debug("{0:s}tableNames: {1:s}".format(logStr,str(tableNames))) 
             allTables=set(tableNames)
 
-            #pairTypes=['_BZ','_ROWS','_ROWT','_ROWD']
-            #tablePairsBVBZ=[(re.search('(?P<BV>[A-Z]+)('+pairType+')$',table_info.table_name).group('BV'),table_info.table_name) for table_info in cur.tables(tableType='TABLE') if re.search('(?P<BV>[A-Z]+)('+pairType+')$',table_info.table_name) != None]
-
-
-
-
-           
           
             self.dataFrames={}
 
@@ -122,24 +120,94 @@ class Am():
             pairViews_ROWT=set()
             pairViews_ROWD=set()
 
+            try:
+                dfViewModelle=pd.read_sql('select * from VIEW_MODELLE',con)
+            except pd.io.sql.DatabaseError as e:
+                logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                logger.error(logStrFinal) 
+                raise AmError(logStrFinal)
+            
+            try:
+                dfCONT=pd.read_sql('select * from CONT',con)
+            except pd.io.sql.DatabaseError as e:
+                logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                logger.error(logStrFinal) 
+                raise AmError(logStrFinal)   
+
             for pairType in ['_BZ','_ROWS','_ROWT','_ROWD']:
                 logger.debug("{0:s}pairType: {1:s}: ####".format(logStr,pairType)) 
                 tablePairsBVBZ=[(re.search('(?P<BV>[A-Z,1,2]+)('+pairType+')$',table_info.table_name).group('BV'),table_info.table_name) for table_info in cur.tables(tableType='TABLE') if re.search('(?P<BV>[A-Z,1,2]+)('+pairType+')$',table_info.table_name) != None]
                 for (BV,BZ) in tablePairsBVBZ:
-                    
-                    if BZ == 'PGRP_PUMP_BZ': # BV: PUMP BVZ: PGRP_PUMP_BZ V: V_PUMP - Falsch!
+
+                    if BV not in tableNames:
+                        logger.debug("{0:s}BV: {1:s}: Tabelle gibt es nicht. Falsche Paar-Ermittlung? Weiter. ".format(logStr,BV)) 
                         continue
+                    if BZ not in tableNames:
+                        logger.debug("{0:s}BZ: {1:s}: Tabelle gibt es nicht. Falsche Paar-Ermittlung? Weiter. ".format(logStr,BZ)) 
+                        continue
+                    
+                    if BZ == 'PGRP_PUMP_BZ': # BV: PUMP BVZ: PGRP_PUMP_BZ V: V_PUMP - Falsch!; wird unten ergaenzt
+                        continue
+                                        
+                    #sql='select * from '+BZ+' inner join '+BV+' on '+BZ+'.fk='+BV+'.pk'
+                    #try:
+                    #    df=pd.read_sql(sql,con)
+                    #except pd.io.sql.DatabaseError as e:
+                    #    logger.debug("{0:s}sql: {1:s}: Fehler?! Weiter. ".format(logStr,sql)) 
+                    #    continue
+                              
+                    sql='select * from '+BV
+                    try:
+                        dfBV=pd.read_sql(sql,con)
+                    except pd.io.sql.DatabaseError as e:
+                        logger.debug("{0:s}sql: {1:s}: Fehler?! Weiter. ".format(logStr,sql)) 
+                        continue
+
+                    sql='select * from '+BZ
+                    try:
+                        dfBZ=pd.read_sql(sql,con)
+                    except pd.io.sql.DatabaseError as e:
+                        logger.debug("{0:s}sql: {1:s}: Fehler?! Weiter. ".format(logStr,sql)) 
+                        continue
+
+                    df=pd.merge(dfBZ
+                               ,dfBV                                                          
+                               ,left_on=['fk']
+                               ,right_on=['pk']
+                               ,suffixes=('_BZ',''))                             
+
+                    newCols=df.columns.to_list()
+                    df=df.filter(items=[col for col in dfBV.columns.to_list()]+[col for col in newCols if col not in dfBV.columns.to_list()])
+
+                    if 'fkDE_BZ' in newCols:
+                        df=pd.merge(df
+                                   ,dfViewModelle                                                        
+                                   ,left_on=['fkDE_BZ']
+                                   ,right_on=['fkBZ']
+                                   ,suffixes=('','_VM'))   
+                    elif 'fkDE' in newCols:
+                        df=pd.merge(df
+                                   ,dfViewModelle                                                        
+                                   ,left_on=['fkDE']
+                                   ,right_on=['fkBZ']
+                                   ,suffixes=('','_VM'))   
+                   
+                    if 'fkCONT' in newCols:
+                        df=pd.merge(df
+                                   ,dfCONT                                                        
+                                  ,left_on=['fkCONT']
+                                  ,right_on=['pk']
+                                  ,suffixes=('','_CONT'))   
+                                                                                                         
+                    VName='V_BVZ_'+BV
+                    self.dataFrames[VName]=df
+                    logger.debug("{0:s}BV: {1:s} BVZ: {2:s} V: {3:s}".format(logStr,BV,BZ,VName))                     
 
                     pairTables.add(BV)
                     pairTables.add(BZ)
-                                        
-                    sql='select * from '+BZ+' inner join '+BV+' on '+BZ+'.fk='+BV+'.pk'
-                    df=pd.read_sql(sql,con)
-                    VName='V_BVZ_'+BV
-                    logger.debug("{0:s}BV: {1:s} BVZ: {2:s} V: {3:s}".format(logStr,BV,BZ,VName)) 
-                    self.dataFrames[VName]=df
-
+                    
                     pairViews.add(VName)
+
                     if pairType=='_BZ':
                         pairViews_BZ.add(VName)
                     elif pairType=='_ROWS':
@@ -151,57 +219,91 @@ class Am():
 
             for (BV,BZ) in [('PGRP_PUMP','PGRP_PUMP_BZ')]:
                                        
-                    pairTables.add(BV)
-                    pairTables.add(BZ)
+
                                         
                     sql='select * from '+BZ+' inner join '+BV+' on '+BZ+'.fk='+BV+'.pk'
-                    df=pd.read_sql(sql,con)
-                    VName='V_BVZ_'+BV
-                    logger.debug("{0:s}BV: {1:s} BVZ: {2:s} V: {3:s}".format(logStr,BV,BZ,VName)) 
+                    try:
+                        df=pd.read_sql(sql,con)
+                    except pd.io.sql.DatabaseError as e:
+                        logger.debug("{0:s}sql: {1:s}: Fehler?! Weiter. ".format(logStr,sql)) 
+                        continue
+
+                                      
+                    VName='V_BVZ_'+BV                    
                     self.dataFrames[VName]=df
+                    logger.debug("{0:s}BV: {1:s} BVZ: {2:s} V: {3:s}".format(logStr,BV,BZ,VName)) 
+
+                    pairTables.add(BV)
+                    pairTables.add(BZ)
 
                     pairViews.add(VName)
                     pairViews_BZ.add(VName)
 
             
-            notInPairTables=sorted(allTables-pairTables)
-            logger.debug("{0:s}not in  pairTables: {1:s}".format(logStr,str(notInPairTables))) 
- 
-            notInPairTables=[
-               'AB_DEF', 'AGSN', 'ARRW', 'ATMO'
-              ,'BENUTZER', 'BREF'
-             , 'CIRC', 'CONT', 'CRGL'
-             , 'DATENEBENE', 'DPGR_DPKT', 'DPKT', 'DRNP'
-             , 'ELEMENTQUERY'
-             , 'FSTF', 'FWBZ'
-             , 'GKMP', 'GMIX', 'GRAV', 'GTXT'
-             , 'HAUS'
-             , 'LAYR', 'LTGR'
-             , 'MODELL', 'MWKA'
-             , 'NRCV'
-             , 'OVAL'
-             , 'PARV', 'PGPR', 'PLYG', 'POLY', 'PROZESSE', 'PZON'
-             , 'RCON', 'RECT', 'REGP', 'RMES_DPTS', 'ROHR_VRTX', 'RPFL', 'RRCT'
-             , 'SIRGRAF', 'SOKO', 'SPLZ', 'STRASSE', 'SYSTEMKONFIG'
-             , 'TIMD', 'TRVA'
-             , 'UTMP'
-             , 'VARA', 'VARA_CSIT', 'VARA_WSIT'
-             , 'VERB', 'VKNO', 'VRCT'
-             , 'WBLZ']
+            notInPairTables=sorted(allTables-pairTables)           
+            notInPairTablesW=[
+                'AB_DEF', 'AGSN', 'ARRW', 'ATMO'
+               ,'BENUTZER', 'BREF'
+               ,'CIRC', 'CONT', 'CRGL'
+               ,'DATENEBENE', 'DPGR_DPKT', 'DRNP'
+               ,'ELEMENTQUERY'
+               ,'FSTF', 'FWBZ'
+               ,'GEOMETRY_COLUMNS' # 90-12
+               ,'GKMP', 'GMIX', 'GRAV', 'GTXT'
+               ,'HAUS'
+               ,'LAYR', 'LTGR'
+               ,'MODELL'
+               ,'MWKA' # nicht 90-12
+               ,'NRCV'
+               ,'OVAL'
+               ,'PARV', 'PGPR', 'PLYG', 'POLY', 'PROZESSE', 'PZON'
+               ,'RCON', 'RECT', 'REGP', 'RMES_DPTS', 'RMES_DPTS_BZ', 'ROHR_VRTX', 'RPFL', 'RRCT'
+               ,'SIRGRAF', 'SOKO', 'SPLZ', 'STRASSE', 'SYSTEMKONFIG'
+               ,'TIMD', 'TRVA'
+               ,'UTMP'
+               ,'VARA', 'VARA_CSIT', 'VARA_WSIT', 'VERB', 'VKNO', 'VRCT'
+               ,'WBLZ']
+
+            # process Not in pairTables W
+            notPairViews=set()            
+            for tableName in  notInPairTablesW:
 
 
-            # process Not pairTables
-            notPairViews=set()
-            for tableName in  notInPairTables:
+                 if tableName not in tableNames:
+                        logger.debug("{0:s}tableName: {1:s}: Tabelle gibt es nicht - falsche Annahme bzgl. der existierenden Tabellen? Weiter. ".format(logStr,tableName)) 
+                        continue
 
                  sql='select * from '+tableName 
-                 df=pd.read_sql(sql,con)
+                 try:
+                        df=pd.read_sql(sql,con)
+                 except pd.io.sql.DatabaseError as e:
+                        logger.info("{0:s}sql: {1:s}: Fehler?! Weiter. ".format(logStr,sql)) 
+                        continue
+                 
                  VName='V_'+tableName
-                 logger.debug("{0:s}V: {1:s}".format(logStr,BV,BZ,VName)) 
+                 logger.debug("{0:s}V: {1:s}".format(logStr,VName)) 
                  self.dataFrames[VName]=df
 
                  notPairViews.add(VName)
 
+            # process Not in pairTables Rest
+            notPairViewsProbablyNotSir3sTables=set()         
+            for tableName in  set(notInPairTables)-set(notInPairTablesW):
+
+                 logger.debug("{0:s}tableName: {1:s}: Tabelle keine SIR 3S Tabelle? Trotzdem lesen. ".format(logStr,tableName)) 
+
+                 sql='select * from '+tableName 
+                 try:
+                        df=pd.read_sql(sql,con)
+                 except pd.io.sql.DatabaseError as e:
+                        logger.info("{0:s}sql: {1:s}: Fehler?! Weiter. ".format(logStr,sql)) 
+                        continue
+                 
+                 VName='V_'+tableName
+                 logger.debug("{0:s}V: {1:s}".format(logStr,VName)) 
+                 self.dataFrames[VName]=df
+
+                 notPairViewsProbablyNotSir3sTables.add(VName)
 
             self.viewSets={}
 
@@ -211,15 +313,7 @@ class Am():
             self.viewSets['pairViews_ROWT']=sorted(pairViews_ROWT)
             self.viewSets['pairViews_ROWD']=sorted(pairViews_ROWD)
             self.viewSets['notPairViews']=sorted(notPairViews)
-
-
-
-
-
-
-
-
-           
+            self.viewSets['notPairViewsProbablyNotSir3sTables']=sorted(notPairViewsProbablyNotSir3sTables)
                           
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
