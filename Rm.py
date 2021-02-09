@@ -531,6 +531,23 @@ attrsDctLDS={
     ,'Druck_ACC_Limits_Attrs':{'color':'indigo','ls':linestyle_tuple[8][1]}
     }
 
+
+pSIDEvents=re.compile('(?P<Prae>IMDI\.)?Objects\.(?P<colRegExMiddle>3S_FBG_ESCHIEBER|FBG_ESCHIEBER{1})\.(3S_)?(?P<colRegExSchieberID>[a-z,A-Z,0-9,_]+)\.(?P<colRegExEventID>(In\.ZUST|In\.LAEUFT|In\.LAEUFT_NICHT|In\.STOER|Out\.AUF|Out\.HALT|Out\.ZU)$)')
+# ausgewertet werden: colRegExSchieberID (um welchen Schieber geht es), colRegExMiddle (Befehl oder Zustand) und colRegExEventID (welcher Befehl bzw. Zustand) 
+# die Befehle bzw. Zustaende (die Auspraegungen von colRegExEventID) muessen nachf. def. sein um den Marker (des Befehls bzw. des Zustandes) zu definieren
+
+eventCCmds={ 'Out.AUF':0
+                 ,'Out.ZU':1
+                 ,'Out.HALT':2}
+eventCStats={'In.LAEUFT':3
+                 ,'In.LAEUFT_NICHT':4
+                 ,'In.ZUST':5
+                 ,'Out.AUF':6
+                 ,'Out.ZU':7
+                 ,'Out.HALT':8            
+                 ,'In.STOER':9}
+valRegExMiddleCmds='3S_FBG_ESCHIEBER' # colRegExMiddle-Auspraegung fuer Befehle (==> eventCCmds)
+
 class RmError(Exception):
     def __init__(self, value):
         self.value = value
@@ -694,6 +711,257 @@ markerDefSchieber=[ # Schiebersymobole
                                         ,'x'        # 9 Stoer
                     ]          
 
+
+
+
+
+def plotTimespans(
+     
+    xlims # list of sections 
+   ,orientation='landscape' # 'portrait'
+    
+   ,dateFormat='%d.%m.%y: %H:%M:%S' # can be a list
+   ,bysecond=[0,15,30,45] # can be a list
+   ,byminute=None # can be a list    
+
+   ,figTitle='' #!
+   ,figSave=False #!
+    
+   ,sectionTitles=[] #  list of section titles to be used    
+   ,sectionTexts=[] #  list of section texts to be used    
+   ,vLinesX=[] # plotted in each section if X-time fits
+   ,hLinesY=[] # plotted in each section 
+   ,vAreasX=[] # for each section a list of areas to highlight i.e. [[(timeStartAusschnittDruck,timeEndAusschnittDruck),...],...]
+
+   ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
+   ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche    
+    
+   ,ySpanMin=0.9     
+    
+   ,plotLegend=True # interpretiert fuer diese Funktion; Inverse gilt fuer pltLDSErgVec selbst
+   ,legendLoc='best'
+   ,legendFramealpha=.2
+   ,legendFacecolor='white'     
+        
+   # --- Args Fct. HYD ---:
+   ,dfTCsLDSIn=pd.DataFrame() # es werden nur die aDct-definierten geplottet
+   ,dfTCsOPC=pd.DataFrame() # es werden nur die aDctOPC-definierten geplottet
+   # der Schluessel in den vorstehenden Dcts ist die ID (der Spaltenname) in den TCs
+   ,dfTCsOPCScenTimeShift=pd.Timedelta('1 hour') 
+   ,dfTCsSIDEvents=pd.DataFrame() # es werden alle Schieberevents geplottet    
+   ,dfTCsSIDEventsTimeShift=pd.Timedelta('1 hour') 
+   ,dfTCsSIDEventsInXlimOnly=True # es werden nur die Spalten geplottet, die in xlim vorkommen (in xlim mindestens 1x nicht Null sind)
+   ,dfTCsSIDEventsyOffset=.05 # die y-Werte werden ab dem 1. Schieber um je dfTCsSIDEventsyOffset erhöht (damit zeitgleiche Events besser sichtbar werden)
+   
+   ,QDct={}    
+   ,pDct={} 
+   ,QDctOPC={} 
+   ,pDctOPC={}    
+   ,IDPltKey='IDPlt' # Schluesselbezeichner in den vorstehenden 4 Dcts; Wert ist Referenz auf das folgende Layout-Dct und das folgende Fcts-Dct; Werte muessen eindeutig sein
+   
+   ,attrsDct=attrsDct
+   
+   ,fctsDct={} 
+         
+   # p y-Achse
+   ,ylimp=(0,100)  #wenn undef., dann min/max 
+   ,ylimpxlim=False #wenn Wahr und ylim undef., dann wird xlim beruecksichtigt bei min/max 
+   ,yticksp=[0,50,100] #wenn undef., dann aus ylimp
+   ,ylabelp='[bar]'
+   
+   # Q y-Achse
+   ,ylimQ=(0,250) 
+   ,ylimQxlim=False 
+   ,yticksQ=[0,50,100,150,200,250]  
+   ,ylabelQ='[Nm³/h]'
+
+    # 3. Achse
+   ,ylim3rd=(-1,3)
+   ,yticks3rd=[0,1,2,3]
+   
+   ,yGridSteps=0 # 0: das y-Gitter besteht dann bei ylimp=ylimQ=yticksp=yticksQ None nur aus min/max (also 1 Gitterabschnitt)     
+
+   # SchieberEvents
+
+   ,pSIDEvents=pSIDEvents
+   # ausgewertet werden: colRegExSchieberID (um welchen Schieber geht es), colRegExMiddle (Befehl oder Zustand) und colRegExEventID (welcher Befehl bzw. Zustand) 
+   # die Befehle bzw. Zustaende (die Auspraegungen von colRegExEventID) muessen nachf. def. sein um den Marker (des Befehls bzw. des Zustandes) zu definieren
+   ,eventCCmds=eventCCmds
+   ,eventCStats=eventCStats
+   ,valRegExMiddleCmds=valRegExMiddleCmds
+  
+   # es muessen soviele Farben definiert sein wie Schieber
+   ,baseColorsDef=baseColorsSchieber                                                             
+   ,markerDef=markerDefSchieber     
+    
+   # --- Args Fct. LDS ---:    
+    
+   ,dfSegReprVec=pd.DataFrame() 
+   ,dfDruckReprVec=pd.DataFrame() 
+        
+   ,ylimAL=(0,40)
+   ,yticksAL=[0,10,20,30,40]
+
+   ,ylimR=None 
+   ,ylimRxlim=False # can be a list
+   ,yticksR=[0,2,4,10,15,30,45]
+   # dito Beschl.
+   ,ylimAC=None 
+   ,ylimACxlim=False 
+   ,yticksAC=None 
+
+   ,attrsDctLDS=attrsDctLDS
+
+   ,plotLPRate=True
+   ,plotR2FillSeg=True 
+   ,plotR2FillDruck=True 
+   ,plotAC=True
+   ,plotACCLimits=True
+
+   ,highlightAreas=True 
+
+   ,Seg_Highlight_Color='cyan'
+   ,Seg_Highlight_Alpha=.1     
+   ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False      
+   ,Seg_HighlightError_Color='peru'
+   ,Seg_Highlight_Alpha_Error=.3     
+   ,Seg_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False   
+
+   ,Druck_Highlight_Color='cyan'
+   ,Druck_Highlight_Alpha=.1
+   ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
+   ,Druck_HighlightError_Color='peru'
+   ,Druck_Highlight_Alpha_Error=.3
+   ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False          
+    
+):
+    
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:
+
+        fig=plt.gcf()
+
+        if orientation=='landscape':
+            # oben HYD unten LDS
+            gsHYD = gridspec.GridSpec(1,len(xlims),figure=fig)
+            axLstHYD=[fig.add_subplot(gsHYD[idx]) for idx in np.arange(gsHYD.ncols)]    
+        
+            gsLDS = gridspec.GridSpec(1,len(xlims),figure=fig)
+            axLstLDS=[fig.add_subplot(gsLDS[idx]) for idx in np.arange(gsLDS.ncols)]            
+        
+        else:
+            # links HYD rechts LDS
+            gsHYD = gridspec.GridSpec(len(xlims),1,figure=fig)
+            axLstHYD=[fig.add_subplot(gsHYD[idx]) for idx in np.arange(gsHYD.nrows)]     
+        
+            gsLDS = gridspec.GridSpec(len(xlims),1,figure=fig)
+            axLstLDS=[fig.add_subplot(gsLDS[idx]) for idx in np.arange(gsLDS.nrows)]     
+        
+        pltLDSpQAndEventsResults=Rm.plotTimespansHYD(               
+                axLst=axLstHYD
+               ,xlims=xlims
+
+               ,figTitle=figTitle # ''
+               ,figSave=figSave # False     
+
+               ,sectionTitles=sectionTitles
+               ,sectionTexts=sectionTexts
+
+               ,vLinesX=vLinesX 
+               ,hLinesY=hLinesY     
+               ,vAreasX=vAreasX
+
+               # --- Args Fct. ---:
+
+               ,dfTCsLDSIn=TCsLDSIn     
+               ,dfTCsOPC=TCsOPC
+
+               ,dfTCsSIDEvents=dfTCsSIDEvents
+               ,dfTCsSIDEventsTimeShift=dfTCsSIDEventsTimeShift
+               ,dfTCsSIDEventsInXlimOnly=dfTCsSIDEventsInXlimOnly
+
+               ,QDct=QDct
+               ,pDct=pDct
+               ,QDctOPC=QDctOPC
+               ,pDctOPC=pDctOPC 
+               ,attrsDct=attrsDct  
+
+               ,fctsDct=fctsDct
+
+               ,dateFormat=dateFormat
+               ,bysecond=bysecond
+               ,byminute=byminute
+
+               ,ylimp=ylimp
+               ,ylabelp=ylabelp
+               ,yticksp=yticksp
+
+               ,ylimQ=ylimQ
+               ,yticksQ=yticksQ
+
+               ,yGridSteps=yGridSteps
+
+            )
+    
+        if orientation=='landscape':
+            # oben HYD unten LDS
+            gsHYD.tight_layout(fig, pad=5.,h_pad=2.,w_pad=2., rect=[0, .5, 1, 1]) 
+        else:
+            # links HYD rechts LDS
+            gsHYD.tight_layout(fig, pad=2., rect=[0, 0, 0.5, 1]) 
+
+    
+        pltLDSErgVecResults=Rm.plotTimespansLDS(    
+            
+                axLst=axLstLDS         
+               ,xlims=xlims
+
+               ,figTitle=figTitle # ''
+               ,figSave=figSave # False     
+
+               ,sectionTitles=sectionTitles
+
+               ,vLinesX=vLinesX        
+               ,vAreasX=vAreasX
+
+               # --- Args Fct. ---:
+
+               ,dfSegReprVec=dfSegReprVec 
+               ,dfDruckReprVec=dfDruckReprVec   
+
+               ,dateFormat=dateFormat
+               ,bysecond=bysecond
+               ,byminute=byminute
+
+               ,ylimR=ylimR 
+               ,ylimAC=ylimAC 
+        )  
+    
+    
+        if orientation=='landscape':
+            # oben HYD unten LDS
+            gsLDS.tight_layout(fig, pad=5.,h_pad=2.,w_pad=2., rect=[0, 0, 1, .5])#(fig, pad=5.,h_pad=2.,w_pad=2., rect=[0, .5, 1, 1]) 
+        else:
+            # links HYD rechts LDS
+            gsLDS.tight_layout(fig, pad=2., rect=[0.5, 0, 1, 1])#(fig, pad=2., rect=[0, 0, 0.5, 1])     
+        
+
+
+
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return gsHYD,gsLDS,pltLDSpQAndEventsResults,pltLDSErgVecResults
+
+   
+
 def plotTimespansHYD(    
     axLst # list of axes to be used    
    ,xlims # list of sections    
@@ -740,8 +1008,7 @@ def plotTimespansHYD(
    ,attrsDct=attrsDct 
    
    ,fctsDct={} # a Dct with Fcts
-       
-   ,xlim=None    
+          
    ,dateFormat='%d.%m.%y: %H:%M:%S' # can be a list
    ,bysecond=[0,15,30,45] # can be a list
    ,byminute=None # can be a list
@@ -765,34 +1032,25 @@ def plotTimespansHYD(
     ,ylim3rd=(-1,3)
     ,yticks3rd=[0,1,2,3]
    
-   ,yGridSteps=0 # 0: das y-Gitter besteht dann bei ylimp=ylimQ=yticksp=yticksQ None nur aus min/max (also 1 Gitterabschnitt)     
-   ,ySpanMin=0.9 # wenn ylim undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
+    ,yGridSteps=0 # 0: das y-Gitter besteht dann bei ylimp=ylimQ=yticksp=yticksQ None nur aus min/max (also 1 Gitterabschnitt)     
+    ,ySpanMin=0.9 # wenn ylim undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
 
-   ,plotLegend=True # interpretiert fuer diese Funktion; Inverse gilt fuer pltLDSpQAndEvents selbst
-   ,legendLoc='best'
-   ,legendFramealpha=.2
-   ,legendFacecolor='white' 
+    ,plotLegend=True # interpretiert fuer diese Funktion; Inverse gilt fuer pltLDSpQAndEvents selbst
+    ,legendLoc='best'
+    ,legendFramealpha=.2
+    ,legendFacecolor='white' 
 
-   # SchieberEvents
+    # SchieberEvents
 
-   ,pSIDEvents=re.compile('(?P<Prae>IMDI\.)?Objects\.(?P<colRegExMiddle>3S_FBG_ESCHIEBER|FBG_ESCHIEBER{1})\.(3S_)?(?P<colRegExSchieberID>[a-z,A-Z,0-9,_]+)\.(?P<colRegExEventID>(In\.ZUST|In\.LAEUFT|In\.LAEUFT_NICHT|In\.STOER|Out\.AUF|Out\.HALT|Out\.ZU)$)')#re.compile('(?P<Prae>IMDI\.)?Objects\.(?P<colRegExMiddle>3S_FBG_ESCHIEBER\.|3S_FBG_ESCHIEBER\.3S_|FBG_ESCHIEBER\.{1})(?P<colRegExSchieberID>[a-z,A-Z,0-9,_]+)\.(?P<colRegExEventID>(In\.ZUST|In\.LAEUFT|In\.LAEUFT_NICHT|In\.STOER|Out\.AUF|Out\.HALT|Out\.ZU)$)')#re.compile('(?P<Prae>IMDI\.)?Objects\.(?P<C1>[a-z,A-Z,0-9]+)(?P<colRegExMiddle>_FBG_ESCHIEBER\.3S_|_ESCHIEBER\.)+(?P<colRegExSchieberID>[a-z,A-Z,0-9,_,.]+)\.(?P<colRegExEventID>(In\.ZUST|In\.LAEUFT|In\.STOER|Out\.AUF,|Out\.HALT|Out\.ZU)$)')
-   # ausgewertet werden: colRegExSchieberID (um welchen Schieber geht es), colRegExMiddle (Befehl oder Zustand) und colRegExEventID (welcher Befehl bzw. Zustand) 
-   # die Befehle bzw. Zustaende (die Auspraegungen von colRegExEventID) muessen nachf. def. sein um den Marker (des Befehls bzw. des Zustandes) zu definieren
-   ,eventCCmds={ 'Out.AUF':0
-                ,'Out.ZU':1
-                ,'Out.HALT':2}
-   ,eventCStats={'In.LAEUFT':3
-                ,'In.LAEUFT_NICHT':4
-                ,'In.ZUST':5
-                ,'Out.AUF':6
-                ,'Out.ZU':7
-                ,'Out.HALT':8            
-                ,'In.STOER':9}
-   ,valRegExMiddleCmds='3S_FBG_ESCHIEBER' # colRegExMiddle-Auspraegung fuer Befehle (==> eventCCmds)
-   # es muessen soviele Farben definiert sein wie Schieber
-   ,baseColorsDef=baseColorsSchieber                                                             
-   ,markerDef=markerDefSchieber 
-   
+    ,pSIDEvents=pSIDEvents
+    # ausgewertet werden: colRegExSchieberID (um welchen Schieber geht es), colRegExMiddle (Befehl oder Zustand) und colRegExEventID (welcher Befehl bzw. Zustand) 
+    # die Befehle bzw. Zustaende (die Auspraegungen von colRegExEventID) muessen nachf. def. sein um den Marker (des Befehls bzw. des Zustandes) zu definieren
+    ,eventCCmds=eventCCmds
+    ,eventCStats=eventCStats
+    ,valRegExMiddleCmds=valRegExMiddleCmds # colRegExMiddle-Auspraegung fuer Befehle (==> eventCCmds)
+    # es muessen soviele Farben definiert sein wie Schieber
+    ,baseColorsDef=baseColorsSchieber                                                             
+    ,markerDef=markerDefSchieber    
    ):
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
@@ -2292,20 +2550,14 @@ def pltLDSpQAndEvents(
 
     # SchieberEvents
 
-    ,pSIDEvents=re.compile('(?P<Prae>IMDI\.)?Objects\.(?P<colRegExMiddle>3S_FBG_ESCHIEBER|FBG_ESCHIEBER{1})\.(3S_)?(?P<colRegExSchieberID>[a-z,A-Z,0-9,_]+)\.(?P<colRegExEventID>(In\.ZUST|In\.LAEUFT|In\.LAEUFT_NICHT|In\.STOER|Out\.AUF|Out\.HALT|Out\.ZU)$)')#re.compile('(?P<Prae>IMDI\.)?Objects\.(?P<colRegExMiddle>3S_FBG_ESCHIEBER\.|3S_FBG_ESCHIEBER\.3S_|FBG_ESCHIEBER\.{1})(?P<colRegExSchieberID>[a-z,A-Z,0-9,_]+)\.(?P<colRegExEventID>(In\.ZUST|In\.LAEUFT|In\.LAEUFT_NICHT|In\.STOER|Out\.AUF|Out\.HALT|Out\.ZU)$)')#re.compile('(?P<Prae>IMDI\.)?Objects\.(?P<C1>[a-z,A-Z,0-9]+)(?P<colRegExMiddle>_FBG_ESCHIEBER\.3S_|_ESCHIEBER\.)+(?P<colRegExSchieberID>[a-z,A-Z,0-9,_,.]+)\.(?P<colRegExEventID>(In\.ZUST|In\.LAEUFT|In\.STOER|Out\.AUF,|Out\.HALT|Out\.ZU)$)')
+    ,pSIDEvents=pSIDEvents
     # ausgewertet werden: colRegExSchieberID (um welchen Schieber geht es), colRegExMiddle (Befehl oder Zustand) und colRegExEventID (welcher Befehl bzw. Zustand) 
     # die Befehle bzw. Zustaende (die Auspraegungen von colRegExEventID) muessen nachf. def. sein um den Marker (des Befehls bzw. des Zustandes) zu definieren
-    ,eventCCmds={ 'Out.AUF':0
-                 ,'Out.ZU':1
-                 ,'Out.HALT':2}
-    ,eventCStats={'In.LAEUFT':3
-                 ,'In.LAEUFT_NICHT':4
-                 ,'In.ZUST':5
-                 ,'Out.AUF':6
-                 ,'Out.ZU':7
-                 ,'Out.HALT':8            
-                 ,'In.STOER':9}
-    ,valRegExMiddleCmds='3S_FBG_ESCHIEBER' # colRegExMiddle-Auspraegung fuer Befehle (==> eventCCmds)
+
+    ,eventCCmds=eventCCmds
+    ,eventCStats=eventCStats
+    ,valRegExMiddleCmds=valRegExMiddleCmds # colRegExMiddle-Auspraegung fuer Befehle (==> eventCCmds)
+
     # es muessen soviele Farben definiert sein wie Schieber
     ,baseColorsDef=baseColorsSchieber                                                             
     ,markerDef=markerDefSchieber 

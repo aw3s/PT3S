@@ -31,6 +31,10 @@ import math
 
 import pyodbc
 
+import argparse
+import unittest
+import doctest
+
 # ---
 # --- PT3S Imports
 # ---
@@ -40,12 +44,11 @@ if __name__ == "__main__":
 else:
     logger.debug("{0:s}{1:s}{2:s}{3:s}".format('in MODULEFILE: Not __main__ Context: ','__name__: ',__name__," .")) 
 
-# ---
-# --- main Imports
-# ---
-import argparse
-import unittest
-import doctest
+try:
+    from PT3S import Dm
+except ImportError:
+    logger.debug("{0:s}{1:s}".format('ImportError: ','from PT3S import Dm - trying import Dm instead ... maybe pip install -e . is active ...')) 
+    import Dm
    
 class AmError(Exception):
     def __init__(self, value):
@@ -149,56 +152,14 @@ class Am():
                     if BZ == 'PGRP_PUMP_BZ': # BV: PUMP BVZ: PGRP_PUMP_BZ V: V_PUMP - Falsch!; wird unten ergaenzt
                         continue
                                         
-                    #sql='select * from '+BZ+' inner join '+BV+' on '+BZ+'.fk='+BV+'.pk'
-                    #try:
-                    #    df=pd.read_sql(sql,con)
-                    #except pd.io.sql.DatabaseError as e:
-                    #    logger.debug("{0:s}sql: {1:s}: Fehler?! Weiter. ".format(logStr,sql)) 
-                    #    continue
-                              
-                    sql='select * from '+BV
-                    try:
-                        dfBV=pd.read_sql(sql,con)
-                    except pd.io.sql.DatabaseError as e:
-                        logger.debug("{0:s}sql: {1:s}: Fehler?! Weiter. ".format(logStr,sql)) 
-                        continue
-
-                    sql='select * from '+BZ
-                    try:
-                        dfBZ=pd.read_sql(sql,con)
-                    except pd.io.sql.DatabaseError as e:
-                        logger.debug("{0:s}sql: {1:s}: Fehler?! Weiter. ".format(logStr,sql)) 
-                        continue
-
-                    df=pd.merge(dfBZ
-                               ,dfBV                                                          
-                               ,left_on=['fk']
-                               ,right_on=['pk']
-                               ,suffixes=('_BZ',''))                             
-
-                    newCols=df.columns.to_list()
-                    df=df.filter(items=[col for col in dfBV.columns.to_list()]+[col for col in newCols if col not in dfBV.columns.to_list()])
-
-                    if 'fkDE_BZ' in newCols:
-                        df=pd.merge(df
-                                   ,dfViewModelle                                                        
-                                   ,left_on=['fkDE_BZ']
-                                   ,right_on=['fkBZ']
-                                   ,suffixes=('','_VM'))   
-                    elif 'fkDE' in newCols:
-                        df=pd.merge(df
-                                   ,dfViewModelle                                                        
-                                   ,left_on=['fkDE']
-                                   ,right_on=['fkBZ']
-                                   ,suffixes=('','_VM'))   
-                   
-                    if 'fkCONT' in newCols:
-                        df=pd.merge(df
-                                   ,dfCONT                                                        
-                                  ,left_on=['fkCONT']
-                                  ,right_on=['pk']
-                                  ,suffixes=('','_CONT'))   
-                                                                                                         
+                    df=Dm.f_HelperBVBZ(
+                                    con
+                                   ,BV
+                                   ,BZ 
+                                   ,dfViewModelle 
+                                   ,dfCONT
+                                    )
+                                                                                                                                                        
                     VName='V_BVZ_'+BV
                     self.dataFrames[VName]=df
                     logger.debug("{0:s}BV: {1:s} BVZ: {2:s} V: {3:s}".format(logStr,BV,BZ,VName))                     
@@ -219,16 +180,14 @@ class Am():
 
             for (BV,BZ) in [('PGRP_PUMP','PGRP_PUMP_BZ')]:
                                        
-
-                                        
-                    sql='select * from '+BZ+' inner join '+BV+' on '+BZ+'.fk='+BV+'.pk'
-                    try:
-                        df=pd.read_sql(sql,con)
-                    except pd.io.sql.DatabaseError as e:
-                        logger.debug("{0:s}sql: {1:s}: Fehler?! Weiter. ".format(logStr,sql)) 
-                        continue
-
-                                      
+                    df=Dm.f_HelperBVBZ(
+                                    con
+                                   ,BV
+                                   ,BZ 
+                                   ,dfViewModelle 
+                                   ,dfCONT
+                                    )                              
+                                                   
                     VName='V_BVZ_'+BV                    
                     self.dataFrames[VName]=df
                     logger.debug("{0:s}BV: {1:s} BVZ: {2:s} V: {3:s}".format(logStr,BV,BZ,VName)) 
