@@ -907,6 +907,9 @@ def plotTimespans(
 
                ,yGridSteps=yGridSteps
 
+               ,ylim3rd=ylim3rd
+               ,yticks3rd=yticks3rd
+
             )
     
         if orientation=='landscape':
