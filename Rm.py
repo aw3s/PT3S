@@ -859,7 +859,7 @@ def plotTimespans(
             gsLDS = gridspec.GridSpec(len(xlims),1,figure=fig)
             axLstLDS=[fig.add_subplot(gsLDS[idx]) for idx in np.arange(gsLDS.nrows)]     
         
-        pltLDSpQAndEventsResults=Rm.plotTimespansHYD(               
+        pltLDSpQAndEventsResults=plotTimespansHYD(               
                 axLst=axLstHYD
                ,xlims=xlims
 
@@ -875,8 +875,8 @@ def plotTimespans(
 
                # --- Args Fct. ---:
 
-               ,dfTCsLDSIn=TCsLDSIn     
-               ,dfTCsOPC=TCsOPC
+               ,dfTCsLDSIn=dfTCsLDSIn
+               ,dfTCsOPC=dfTCsOPC
 
                ,dfTCsSIDEvents=dfTCsSIDEvents
                ,dfTCsSIDEventsTimeShift=dfTCsSIDEventsTimeShift
@@ -913,7 +913,7 @@ def plotTimespans(
             gsHYD.tight_layout(fig, pad=2., rect=[0, 0, 0.5, 1]) 
 
     
-        pltLDSErgVecResults=Rm.plotTimespansLDS(    
+        pltLDSErgVecResults=plotTimespansLDS(    
             
                 axLst=axLstLDS         
                ,xlims=xlims
@@ -942,10 +942,10 @@ def plotTimespans(
     
         if orientation=='landscape':
             # oben HYD unten LDS
-            gsLDS.tight_layout(fig, pad=5.,h_pad=2.,w_pad=2., rect=[0, 0, 1, .5])#(fig, pad=5.,h_pad=2.,w_pad=2., rect=[0, .5, 1, 1]) 
+            gsLDS.tight_layout(fig, pad=5.,h_pad=2.,w_pad=2., rect=[0, 0, 1, .5])
         else:
             # links HYD rechts LDS
-            gsLDS.tight_layout(fig, pad=2., rect=[0.5, 0, 1, 1])#(fig, pad=2., rect=[0, 0, 0.5, 1])     
+            gsLDS.tight_layout(fig, pad=2., rect=[0.5, 0, 1, 1])
         
 
 
