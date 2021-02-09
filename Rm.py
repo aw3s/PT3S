@@ -739,6 +739,8 @@ def plotTimespans(
    ,ySpanMin=0.9     
     
    ,plotLegend=True # interpretiert fuer diese Funktion; Inverse gilt fuer pltLDSErgVec selbst
+   ,plotLegend1stOnly=True
+
    ,legendLoc='best'
    ,legendFramealpha=.2
    ,legendFacecolor='white'     
@@ -873,6 +875,8 @@ def plotTimespans(
                ,hLinesY=hLinesY     
                ,vAreasX=vAreasX
 
+               ,plotLegend1stOnly=plotLegend1stOnly
+
                # --- Args Fct. ---:
 
                ,dfTCsLDSIn=dfTCsLDSIn
@@ -925,6 +929,8 @@ def plotTimespans(
 
                ,vLinesX=vLinesX        
                ,vAreasX=vAreasX
+
+               ,plotLegend1stOnly=plotLegend1stOnly
 
                # --- Args Fct. ---:
 
@@ -1036,6 +1042,7 @@ def plotTimespansHYD(
     ,ySpanMin=0.9 # wenn ylim undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
 
     ,plotLegend=True # interpretiert fuer diese Funktion; Inverse gilt fuer pltLDSpQAndEvents selbst
+    ,plotLegend1stOnly=True # diese Funktion plottet wenn plotLegend=True die Legende nur im ersten Plot
     ,legendLoc='best'
     ,legendFramealpha=.2
     ,legendFacecolor='white' 
@@ -1192,56 +1199,59 @@ def plotTimespansHYD(
                     elif idx in [1,3,5]: # Abfahren ...
                         legendHorizontalPos='left'   
 
-                patterBCp='^p S[rc|nk]'
-                patterBCQ='^Q S[rc|nk]'
-                patterBCpQ='^[p|Q] S[rc|nk]'
-                axes['p'].add_artist(axes['p'].legend(
-                                tuple([lines[line] for line in lines if re.search(patterBCp,line) != None]) 
-                                ,tuple([line for line in lines if re.search(patterBCp,line) != None]) 
-                                ,loc='upper '+legendHorizontalPos
-                                ,framealpha=legendFramealpha
-                                ,facecolor=legendFacecolor
-                                ))
-                axes['p'].add_artist(axes['p'].legend(
-                                tuple([lines[line] for line in lines if re.search(patterBCQ,line) != None]) 
-                                ,tuple([line for line in lines if re.search(patterBCQ,line) != None]) 
-                                ,loc='lower '+legendHorizontalPos
-                                ,framealpha=legendFramealpha
-                                ,facecolor=legendFacecolor
-                                ))
-
-
-                moreLines=[line for line in lines if re.search(patterBCpQ,line) == None]
-                if len(moreLines) > 0:
-                    opposite={'right':'left','left':'right','center':'left'}
-                    moreLinesp=[line for line in moreLines if re.search('^p',line) != None]
-                    if len(moreLinesp)>0:
-                        axes['p'].add_artist(axes['p'].legend(
-                                    tuple([lines[line] for line in moreLinesp]) 
-                                    ,tuple(moreLinesp) 
-                                    ,loc='upper '+opposite[legendHorizontalPos]
+                if plotLegend1stOnly and idx>0:
+                    pass
+                else:   
+                    patterBCp='^p S[rc|nk]'
+                    patterBCQ='^Q S[rc|nk]'
+                    patterBCpQ='^[p|Q] S[rc|nk]'
+                    axes['p'].add_artist(axes['p'].legend(
+                                    tuple([lines[line] for line in lines if re.search(patterBCp,line) != None]) 
+                                    ,tuple([line for line in lines if re.search(patterBCp,line) != None]) 
+                                    ,loc='upper '+legendHorizontalPos
                                     ,framealpha=legendFramealpha
                                     ,facecolor=legendFacecolor
                                     ))
-                    moreLinesQ=[line for line in moreLines if re.search('^Q',line) != None]
-                    if len(moreLinesQ)>0:
-                        axes['p'].add_artist(axes['p'].legend(
-                                    tuple([lines[line] for line in moreLinesQ]) 
-                                    ,tuple(moreLinesQ) 
-                                    ,loc='lower '+opposite[legendHorizontalPos]
+                    axes['p'].add_artist(axes['p'].legend(
+                                    tuple([lines[line] for line in lines if re.search(patterBCQ,line) != None]) 
+                                    ,tuple([line for line in lines if re.search(patterBCQ,line) != None]) 
+                                    ,loc='lower '+legendHorizontalPos
                                     ,framealpha=legendFramealpha
                                     ,facecolor=legendFacecolor
                                     ))
 
 
-                if 'SID' in axes.keys():
-                        if legendHorizontalPos == 'center':
-                            legendHorizontalPosAct=''
-                        else:
-                            legendHorizontalPosAct=' '+legendHorizontalPos
-                        axes['SID'].legend(loc='center'+legendHorizontalPosAct
-                                ,framealpha=legendFramealpha
-                                ,facecolor=legendFacecolor)        
+                    moreLines=[line for line in lines if re.search(patterBCpQ,line) == None]
+                    if len(moreLines) > 0:
+                        opposite={'right':'left','left':'right','center':'left'}
+                        moreLinesp=[line for line in moreLines if re.search('^p',line) != None]
+                        if len(moreLinesp)>0:
+                            axes['p'].add_artist(axes['p'].legend(
+                                        tuple([lines[line] for line in moreLinesp]) 
+                                        ,tuple(moreLinesp) 
+                                        ,loc='upper '+opposite[legendHorizontalPos]
+                                        ,framealpha=legendFramealpha
+                                        ,facecolor=legendFacecolor
+                                        ))
+                        moreLinesQ=[line for line in moreLines if re.search('^Q',line) != None]
+                        if len(moreLinesQ)>0:
+                            axes['p'].add_artist(axes['p'].legend(
+                                        tuple([lines[line] for line in moreLinesQ]) 
+                                        ,tuple(moreLinesQ) 
+                                        ,loc='lower '+opposite[legendHorizontalPos]
+                                        ,framealpha=legendFramealpha
+                                        ,facecolor=legendFacecolor
+                                        ))
+
+
+                    if 'SID' in axes.keys():
+                            if legendHorizontalPos == 'center':
+                                legendHorizontalPosAct=''
+                            else:
+                                legendHorizontalPosAct=' '+legendHorizontalPos
+                            axes['SID'].legend(loc='center'+legendHorizontalPosAct
+                                    ,framealpha=legendFramealpha
+                                    ,facecolor=legendFacecolor)        
                         
         # Titel
         tMin=xlims[0][0]
@@ -1604,7 +1614,7 @@ def pltLDSErgVec(
 
     ,ySpanMin=0.9 # wenn ylim R/AC undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
 
-    ,plotLegend=True
+    ,plotLegend=True    
     ,legendLoc='best'
     ,legendFramealpha=.2
     ,legendFacecolor='white' 
@@ -2065,6 +2075,8 @@ def plotTimespansLDS(
     ,ySpanMin=0.9 
 
     ,plotLegend=True # interpretiert fuer diese Funktion; Inverse gilt fuer pltLDSErgVec selbst
+    ,plotLegend1stOnly=True # diese Funktion plottet wenn plotLegend=True die Legende nur im ersten Plot
+
     ,legendLoc='best'
     ,legendFramealpha=.2
     ,legendFacecolor='white' 
@@ -2247,25 +2259,28 @@ def plotTimespansLDS(
                         legendHorizontalPos='right'
                     elif idx in [1,3,5]: # Abfahren ...
                         legendHorizontalPos='left'                    
-                
-                if not dfSegReprVec.empty:
-                    patternSeg='Seg$'
-                    axes['A'].add_artist(axes['A'].legend(
-                                tuple([lines[line] for line in lines if re.search(patternSeg,line) != None]) 
-                               ,tuple([line for line in lines if re.search(patternSeg,line) != None]) 
-                               ,loc='upper '+legendHorizontalPos
-                               ,framealpha=legendFramealpha
-                               ,facecolor=legendFacecolor
-                                ))         
-                if not dfDruckReprVec.empty:
-                    patternDruck='Drk$'
-                    axes['A'].add_artist(axes['A'].legend(
-                                tuple([lines[line] for line in lines if re.search(patternDruck,line) != None]) 
-                               ,tuple([line for line in lines if re.search(patternDruck,line) != None]) 
-                               ,loc='lower '+legendHorizontalPos
-                               ,framealpha=legendFramealpha
-                               ,facecolor=legendFacecolor
-                                ))                   
+
+                if plotLegend1stOnly and idx>0:
+                    pass
+                else:                
+                    if not dfSegReprVec.empty:
+                        patternSeg='Seg$'
+                        axes['A'].add_artist(axes['A'].legend(
+                                    tuple([lines[line] for line in lines if re.search(patternSeg,line) != None]) 
+                                   ,tuple([line for line in lines if re.search(patternSeg,line) != None]) 
+                                   ,loc='upper '+legendHorizontalPos
+                                   ,framealpha=legendFramealpha
+                                   ,facecolor=legendFacecolor
+                                    ))         
+                    if not dfDruckReprVec.empty:
+                        patternDruck='Drk$'
+                        axes['A'].add_artist(axes['A'].legend(
+                                    tuple([lines[line] for line in lines if re.search(patternDruck,line) != None]) 
+                                   ,tuple([line for line in lines if re.search(patternDruck,line) != None]) 
+                                   ,loc='lower '+legendHorizontalPos
+                                   ,framealpha=legendFramealpha
+                                   ,facecolor=legendFacecolor
+                                    ))                   
         
         # Titel
         tMin=xlims[0][0]
@@ -2461,11 +2476,13 @@ def pltLDSSIDHelper(
                             
             colors=[c for idx in range(len(dfTCsSIDEvents.index))] # aller Ereignisse (der Spalte) haben dieselbe Farbe
             label=col   # alle Ereignisse (der Spalte) haben dasselbe Label
+            sDefault=plt.rcParams['lines.markersize']**2 
             scatter = ax.scatter(dfTCsSIDEvents.index.values+dfTCsScenTimeShift
                         ,dfTCsSIDEvents[col].values+idxSchieberLfd*dfTCsSIDEventsyOffset
                         ,c=colors
                         ,marker=m
                         ,label=label
+                        ,s=sDefault
                         )     
             # scatter ist eine PathCollection; Attribut u.a. get_label(): Return the label used for this artist in the legend
             labels.append(label)
