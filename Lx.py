@@ -2,7 +2,7 @@
 SIR 3S Logfile Utilities (short: Lx)
 """
 
-__version__='90.12.3.0.dev1'
+__version__='90.12.4.0.dev1'
 
 import os
 import sys
@@ -38,6 +38,15 @@ import glob
 
 # pd.reset_option('max_rows')
 # ...
+
+
+# 453	20210126_100917_j.7z	20210126_0002355.log	NaT	NaT
+
+#20210126_100917_j.7z
+#c:\program files (x86)\microsoft visual studio\shared\python37_64\lib\site-packages\IPython\core\interactiveshell.py:3417: DtypeWarning: Columns (6) have mixed types.Specify dtype option on import or set low_memory=False.
+#  exec(code_obj, self.user_global_ns, self.user_ns)
+#20210126_100917_k.7z
+
 
 class LxError(Exception):
     def __init__(self, value):
@@ -580,7 +589,7 @@ class AppLog():
                 TCsdfLDSRes2=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->')) & (df['B'].str.contains('^3S_FBG_DRUCK'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value',aggfunc='last')                      
             else:                   
                 logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes ...'))  
-                TCsdfLDSRes=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value')  
+                TCsdfLDSRes=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^->'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value',aggfunc='last')  
                                                          
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -594,12 +603,13 @@ class AppLog():
                 return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes
 
     def fValueFct(x):
-        if x == 'true':
-            return pd.to_numeric(1,errors='coerce')
-        elif x == 'false':
-            return pd.to_numeric(0,errors='coerce')
+        # values koennten auch strings sein ... (kann theoretisch bei jeder ID vorkommen; adHoc keinen Ansatz wann oder wo das vorkommt)
+        if x in ['true','True']:
+            return pd.to_numeric(1,errors='coerce',downcast='float')
+        elif x in ['false','False']:
+            return pd.to_numeric(0,errors='coerce',downcast='float')
         else:
-            return pd.to_numeric(x,errors='coerce')
+            return pd.to_numeric(x,errors='coerce',downcast='float')
 
     def __init__(self,logFile=None,zip7File=None,h5File=None,h5FileName=None,readWithDictReader=False,nRows=None):
         """
