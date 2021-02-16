@@ -804,9 +804,9 @@ def plotTimespans(
    ,ylimAL=(0,40)
    ,yticksAL=[0,10,20,30,40]
 
-   ,ylimR=None 
+   ,ylimR=None # can be a list
    ,ylimRxlim=False # can be a list
-   ,yticksR=[0,2,4,10,15,30,45]
+   ,yticksR=[0,2,4,10,15,30,45] # can be a list of lists
    # dito Beschl.
    ,ylimAC=None 
    ,ylimACxlim=False 
@@ -945,6 +945,9 @@ def plotTimespans(
                ,byminute=byminute
 
                ,ylimR=ylimR 
+               ,ylimRxlim=ylimRxlim
+               ,yticksR=yticksR
+
                ,ylimAC=ylimAC 
         )  
     
@@ -1607,8 +1610,8 @@ def pltLDSErgVec(
     ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
 
     ,ylimR=None #(-10,10) #wenn undef., dann min/max dfSegReprVec
-    ,ylimRxlim=False #wenn Wahr und ylimR undef., dann wird xlim beruecksichtigt bei min/max dfSegReprVec
-    ,yticksR=[0,2,4,10,15,30,45]  #wenn undef., dann aus ylimR 
+    ,ylimRxlim=False #wenn Wahr und ylimR undef. (None), dann wird xlim beruecksichtigt bei min/max dfSegReprVec
+    ,yticksR=[0,2,4,10,15,30,45]  #wenn undef. (None), dann aus ylimR 
 
     # dito Beschl.
     ,ylimAC=None 
@@ -2067,9 +2070,9 @@ def plotTimespansLDS(
     ,yTwinedAxesPosDeltaHPStart=-0.0125 
     ,yTwinedAxesPosDeltaHP=-0.075 
 
-    ,ylimR=None 
+    ,ylimR=None # can be a list
     ,ylimRxlim=False # can be a list
-    ,yticksR=[0,2,4,10,15,30,45]
+    ,yticksR=[0,2,4,10,15,30,45] # can be a list
     # dito Beschl.
     ,ylimAC=None 
     ,ylimACxlim=False 
@@ -2166,9 +2169,19 @@ def plotTimespansLDS(
                 if any(isinstance(el, list) for el in byminute):              
                     byminuteIdx=byminute[idx]      
             
+            ylimRIdx=ylimR
+            if isinstance(ylimR, list):
+                ylimRIdx=ylimR[idx]
+
             ylimRxlimIdx=ylimRxlim
             if isinstance(ylimRxlim, list):
                 ylimRxlimIdx=ylimRxlim[idx]
+
+            yticksRIdx=yticksR
+            if isinstance(yticksR, list):
+                if any(isinstance(el, list) for el in yticksR):               
+                    yticksRIdx=yticksR[idx]                  
+
         
             (axes,lines)=pltLDSErgVec(
                      ax
@@ -2186,9 +2199,9 @@ def plotTimespansLDS(
                     ,yTwinedAxesPosDeltaHPStart=yTwinedAxesPosDeltaHPStart
                     ,yTwinedAxesPosDeltaHP=yTwinedAxesPosDeltaHP
 
-                    ,ylimR=ylimR
+                    ,ylimR=ylimRIdx
                     ,ylimRxlim=ylimRxlimIdx
-                    ,yticksR=yticksR
+                    ,yticksR=yticksRIdx
                 
                     ,ylimAC=ylimAC 
                     ,ylimACxlim=ylimACxlim 
