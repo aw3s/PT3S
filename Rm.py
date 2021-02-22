@@ -477,12 +477,23 @@ SnkColorsQ=pltMakeCategoricalColors(list(matplotlib.colors.to_rgb(SnkColorQ)),nO
 
 attrsDct={   'p Src':{'color':SrcColorp,'lw':4.5,'where':'post'}
             ,'p Snk':{'color':SnkColorp,'lw':2.5,'where':'post'}
+            ,'p Snk 2':{'color':'mediumorchid','where':'post'}
+            ,'p Snk 3':{'color':'darkviolet','where':'post'}
                                              
             ,'Q Src':{'color':SrcColorQ,'lw':4.5,'where':'post'}
             ,'Q Snk':{'color':SnkColorQ,'lw':2.5,'where':'post'}
+            ,'Q Snk 2':{'color':'indianred','where':'post'}
+            ,'Q Snk 3':{'color':'coral','where':'post'}
+
                     
             ,'Q Src RTTM':{'color':SrcColorQ,'ls':'dotted','where':'post'}
             ,'Q Snk RTTM':{'color':SnkColorQ,'ls':'dotted','where':'post'}        
+            ,'Q Snk 2 RTTM':{'color':'indianred','ls':'dotted','where':'post'}        
+            ,'Q Snk 3 RTTM':{'color':'coral','ls':'dotted','where':'post'}        
+
+
+
+
                     
             ,'p ISrc 1':{'color':SrcColorsp[-1],'ls':'dashdot','where':'post'}          
             ,'p ISrc 2':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     
@@ -500,9 +511,11 @@ attrsDct={   'p Src':{'color':SrcColorp,'lw':4.5,'where':'post'}
           
             ,'Q xSrc 1':{'color':SrcColorsQ[-1],'ls':'dashdot','where':'post'}          
             ,'Q xSrc 2':{'color':SrcColorsQ[-2],'ls':'dashdot','where':'post'}     
+            ,'Q xSrc 3':{'color':SrcColorsQ[-3],'ls':'dashdot','where':'post'}     
           
             ,'Q xSnk 1':{'color':SnkColorsQ[0],'ls':'dashdot','where':'post'}          
-            ,'Q xSnk 2':{'color':SnkColorsQ[1],'ls':'dashdot','where':'post'}             
+            ,'Q xSnk 2':{'color':SnkColorsQ[1],'ls':'dashdot','where':'post'}        
+            ,'Q xSnk 3':{'color':SnkColorsQ[2],'ls':'dashdot','where':'post'}                    
                     
           }
 
@@ -2250,7 +2263,7 @@ def plotTimespansLDS(
             )
         
             (timeStart,timeEnd)=xlim                
-            sectionTitleSingle="{:s}: Plot Nr. {:d} - Zeitspanne: ({:s})".format(sectionTitles[idx],idx+1,str(timeEnd-timeStart)).replace('days','Tage')  
+            sectionTitleSingle="{:s}: Plot Nr. {:d} - Zeitspanne: {:s}".format(sectionTitles[idx],idx+1,str(timeEnd-timeStart)).replace('days','Tage')  
             ax.set_title(sectionTitleSingle)         
         
             for vLineX in vLinesX:        
