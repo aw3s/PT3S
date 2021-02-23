@@ -542,6 +542,13 @@ attrsDctLDS={
 
     ,'Seg_ACC_Limits_Attrs':{'color':'indigo','ls':linestyle_tuple[2][1]}
     ,'Druck_ACC_Limits_Attrs':{'color':'indigo','ls':linestyle_tuple[8][1]}
+
+    ,'Seg_TIMER_AV_Attrs':{'color':'chartreuse','where':'post'}
+    ,'Druck_TIMER_AV_Attrs':{'color':'chartreuse','ls':'dashed','where':'post'}      
+
+    ,'Seg_AM_AV_Attrs':{'color':'chocolate','where':'post'}
+    ,'Druck_AM_AV_Attrs':{'color':'chocolate','ls':'dashed','where':'post'}      
+
     }
 
 
@@ -848,6 +855,13 @@ def plotTimespans(
    ,Druck_HighlightError_Color='peru'
    ,Druck_Highlight_Alpha_Error=.3
    ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False          
+
+   ,plotTV=False
+   ,plotTVTimerFct=None 
+   ,plotTVAmFct=lambda x: x*100 
+   ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
+   ,ylimTV=(0,300)
+   ,yticksTV=[0,100,200,300]
     
 ):
     
@@ -962,6 +976,13 @@ def plotTimespans(
                ,yticksR=yticksR
 
                ,ylimAC=ylimAC 
+
+               ,plotTV=plotTV
+               ,plotTVTimerFct=plotTVTimerFct 
+               ,plotTVAmFct=plotTVAmFct 
+               ,plotTVAmLabel=plotTVAmLabel
+               ,ylimTV=ylimTV
+               ,yticksTV=yticksTV    
         )  
     
     
@@ -1643,11 +1664,11 @@ def pltLDSErgVec(
     ,plotLPRate=True
     ,plotR2FillSeg=True 
     ,plotR2FillDruck=True         
+
     ,plotAC=True      
     ,plotACCLimits=True
 
     ,highlightAreas=True 
-
     ,Seg_Highlight_Color='cyan'
     ,Seg_Highlight_Alpha=.1     
     ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False      
@@ -1661,6 +1682,13 @@ def pltLDSErgVec(
     ,Druck_HighlightError_Color='peru'
     ,Druck_Highlight_Alpha_Error=.3
     ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
+
+    ,plotTV=True
+    ,plotTVTimerFct=None 
+    ,plotTVAmFct=lambda x: x*100 
+    ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
+    ,ylimTV=(0,300)
+    ,yticksTV=[0,100,200,300]
            
     ):
     """
@@ -1694,7 +1722,7 @@ def pltLDSErgVec(
                 # keine doppelten Indices
                 dfDruckReprVec=dfDruckReprVec.groupby(dfDruckReprVec.index).last()
 
-            axes['A']=ax #axLst.append(ax)
+            axes['A']=ax 
 
             # x-Achse ----------------
             if xlim == None:
@@ -1771,8 +1799,7 @@ def pltLDSErgVec(
     
             # 2. y-Achse Fluss ----------------------------------------
             ax2 = ax.twinx()
-            axes['R']=ax2
-            #axLst.append(ax2)
+            axes['R']=ax2            
     
             pltHelperX(
              ax2
@@ -1926,13 +1953,13 @@ def pltLDSErgVec(
             ax2.grid()  
     
             ax2.set_ylabel('R1, R2, NG, LP (R1-R2) [Nm³/h]')
-    
+
+            # 3. y-Achse Beschleunigung ----------------------------------------    
             if plotAC:
     
                 # 3. y-Achse Beschleunigung -------------------------------------------------
                 ax3 = ax.twinx()
-                axes['a']=ax3
-                #axLst.append(ax3)
+                axes['a']=ax3               
     
                 pltHelperX(
                  ax3
@@ -1944,18 +1971,12 @@ def pltLDSErgVec(
                 pltLDSHelperY(ax3)
         
                 if not dfSegReprVec.empty:
-                    lines = pltLDSErgVecHelper(ax3,dfSegReprVec,'AC_AV',attrsDctLDS['Seg_AC_AV_Attrs'])
-                    #lines=ax3.plot(dfSegReprVec.index.values,dfSegReprVec['AC_AV'].values)
-                    yLines['AC_AV Seg']=lines[0]
-                    #for prop,value in Seg_AC_AV_Attrs.items():               
-                    #    plt.setp(lines[0],"{:s}".format(prop),value)         
+                    lines = pltLDSErgVecHelper(ax3,dfSegReprVec,'AC_AV',attrsDctLDS['Seg_AC_AV_Attrs'])                    
+                    yLines['AC_AV Seg']=lines[0]                        
     
                 if not dfDruckReprVec.empty:
-                    lines = pltLDSErgVecHelper(ax3,dfDruckReprVec,'AC_AV',attrsDctLDS['Druck_AC_AV_Attrs'])
-                    #lines=ax3.plot(dfDruckReprVec.index.values,dfDruckReprVec['AC_AV'].values)
-                    yLines['AC_AV Drk']=lines[0]
-                    #for prop,value in Druck_AC_AV_Attrs.items():               
-                    #    plt.setp(lines[0],"{:s}".format(prop),value)      
+                    lines = pltLDSErgVecHelper(ax3,dfDruckReprVec,'AC_AV',attrsDctLDS['Druck_AC_AV_Attrs'])                   
+                    yLines['AC_AV Drk']=lines[0]                 
 
                 # ACC Limits
                 if plotACCLimits:
@@ -2036,7 +2057,56 @@ def pltLDSErgVec(
     
                 ax3.set_ylabel('a [mm/s²]')    
 
+            # 4. y-Achse Timer und Volumen  ----------------------------------------    
+            if plotTV:
+    
+                # 4. y-Achse Timer und Volumen  ----------------------------------------    
+                ax4 = ax.twinx()
+                axes['TV']=ax4               
+    
+                yPos=yTwinedAxesPosDeltaHPStart+2*yTwinedAxesPosDeltaHP
+                if plotAC:
+                    yPos=yPos+yTwinedAxesPosDeltaHP
+                                 
+                pltHelperX(
+                 ax4
+                ,dateFormat=dateFormat
+                ,bysecond=bysecond
+                ,byminute=byminute
+                ,yPos=yPos
+                )           
+                pltLDSHelperY(ax4)
+        
+                if not dfSegReprVec.empty:
 
+                    # TIMER_AV	
+                    lines = pltLDSErgVecHelper(ax4,dfSegReprVec,'TIMER_AV',attrsDctLDS['Seg_TIMER_AV_Attrs'],fct=plotTVTimerFct)                    
+                    yLines['TIMER_AV Seg']=lines[0]      
+                    
+                    # AM_AV
+                    lines = pltLDSErgVecHelper(ax4,dfSegReprVec,'AM_AV',attrsDctLDS['Seg_AM_AV_Attrs'],fct=plotTVAmFct)                    
+                    yLines['AM_AV Seg']=lines[0]      
+
+                if not dfSegReprVec.empty or not dfDruckReprVec.empty:
+                    ax4.set_ylim(ylimTV)
+                    ax4.set_yticks(yticksTV)        
+                    ax4.set_ylabel(plotTVAmLabel)    
+    
+                if not dfDruckReprVec.empty:
+
+                    # TIMER_AV	
+                    lines = pltLDSErgVecHelper(ax4,dfDruckReprVec,'TIMER_AV',attrsDctLDS['Druck_TIMER_AV_Attrs'],fct=plotTVTimerFct)                    
+                    yLines['TIMER_AV Drk']=lines[0]      
+                    
+                    # AM_AV
+                    lines = pltLDSErgVecHelper(ax4,dfDruckReprVec,'AM_AV',attrsDctLDS['Druck_AM_AV_Attrs'],fct=plotTVAmFct)                    
+                    yLines['AM_AV Drk']=lines[0]      
+
+                if not dfSegReprVec.empty or not dfDruckReprVec.empty:
+                    ax4.set_ylim(ylimTV)
+                    ax4.set_yticks(yticksTV)        
+                    ax4.set_ylabel(plotTVAmLabel)  
+   
             if plotLegend:
                 ax.legend(
                  tuple([yLines[yline] for yline in yLines])
@@ -2123,6 +2193,14 @@ def plotTimespansLDS(
     ,Druck_HighlightError_Color='peru'
     ,Druck_Highlight_Alpha_Error=.3
     ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
+
+    ,plotTV=False
+    ,plotTVTimerFct=None 
+    ,plotTVAmFct=lambda x: x*100 
+    ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
+    ,ylimTV=(0,300)
+    ,yticksTV=[0,100,200,300]
+
      
 ):
 
@@ -2249,8 +2327,14 @@ def plotTimespansLDS(
                     ,Druck_Highlight_Fct=Druck_Highlight_Fct  
                     ,Druck_HighlightError_Color=Druck_HighlightError_Color
                     ,Druck_Highlight_Alpha_Error=Druck_Highlight_Alpha_Error #     
-                    ,Druck_HighlightError_Fct=Druck_HighlightError_Fct              
-            
+                    ,Druck_HighlightError_Fct=Druck_HighlightError_Fct        
+                    
+                    ,plotTV=plotTV
+                    ,plotTVTimerFct=plotTVTimerFct 
+                    ,plotTVAmFct=plotTVAmFct 
+                    ,plotTVAmLabel=plotTVAmLabel
+                    ,ylimTV=ylimTV
+                    ,yticksTV=yticksTV            
                     )    
             pltLDSErgVecResults.append((axes,lines))
 
