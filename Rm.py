@@ -115,7 +115,7 @@ True
 ...    os.remove(plotFileName)
 """
 
-__version__='90.12.4.0.dev1'
+__version__='90.12.4.1.dev1'
 
 import warnings # 3.6
 #...\Anaconda3\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
@@ -1302,10 +1302,11 @@ def plotTimespansHYD(
                 tMin=t1
             if t2>tMax:
                 tMax=t2
-                    
-        figTitle="{:s} - {:s} - {:s}".format(figTitle,str(tMin),str(tMax)).replace(':',' ')
-        fig=plt.gcf()
-        fig.suptitle(figTitle)   
+
+        if figTitle not in ['',None]:                      
+            figTitle="{:s} - {:s} - {:s}".format(figTitle,str(tMin),str(tMax)).replace(':',' ')
+            fig=plt.gcf()
+            fig.suptitle(figTitle)   
 
         # speichern?!
         if figSave:
@@ -2198,8 +2199,8 @@ def plotTimespansLDS(
     ,plotTVTimerFct=None 
     ,plotTVAmFct=lambda x: x*100 
     ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
-    ,ylimTV=(0,300)
-    ,yticksTV=[0,100,200,300]
+    ,ylimTV=(0,400)
+    ,yticksTV=[0,100,180,200,270,300,400]
 
      
 ):
@@ -2404,10 +2405,11 @@ def plotTimespansLDS(
                 tMin=t1
             if t2>tMax:
                 tMax=t2
-                    
-        figTitle="{:s} - {:s} - {:s}".format(figTitle,str(tMin),str(tMax)).replace(':',' ')
-        fig=plt.gcf()
-        fig.suptitle(figTitle)   
+
+        if figTitle not in ['',None]:                     
+            figTitle="{:s} - {:s} - {:s}".format(figTitle,str(tMin),str(tMax)).replace(':',' ')
+            fig=plt.gcf()
+            fig.suptitle(figTitle)   
 
         # speichern?!
         if figSave:
