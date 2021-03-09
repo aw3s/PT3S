@@ -45,8 +45,8 @@
 >>> am=Am.Am(accFile=accFile)
 >>> accFile2=r'C:\\3s\\Projekte\\19.137 - Actemium - FBG LDS AP13\\04 - Versionen\\Version80_installiert_IO_20201216\\MDBDOC\\FBG.mdb'
 >>> am2=Am.Am(accFile=accFile2)
->>> accFile3=r'c:\\3s\\Projekte\\20.175 - SWM Geomare\\08 Bearbeitung Freimann\\Freimann.mdb'
->>> am3=Am.Am(accFile=accFile3)
+>>> #accFile3=r'c:\\3s\\Projekte\\20.175 - SWM Geomare\\08 Bearbeitung Freimann\\Freimann.mdb'
+>>> #am3=Am.Am(accFile=accFile3)
 """
 
 __version__='90.12.4.0.dev1'
@@ -98,9 +98,7 @@ class DmError(Exception):
 def f_HelperBVBZ(
     con
    ,BV
-   ,BZ 
-   ,dfViewModelle 
-   ,dfCONT
+   ,BZ   
     ):
     """
     Returns:
@@ -136,27 +134,6 @@ def f_HelperBVBZ(
 
         newCols=df.columns.to_list()
         df=df.filter(items=[col for col in dfBV.columns.to_list()]+[col for col in newCols if col not in dfBV.columns.to_list()])
-
-        if 'fkDE_BZ' in newCols:
-            df=pd.merge(df
-                        ,dfViewModelle                                                        
-                        ,left_on=['fkDE_BZ']
-                        ,right_on=['fkBZ']
-                        ,suffixes=('','_VM'))   
-        elif 'fkDE' in newCols:
-            df=pd.merge(df
-                        ,dfViewModelle                                                        
-                        ,left_on=['fkDE']
-                        ,right_on=['fkBZ']
-                        ,suffixes=('','_VM'))   
-                   
-        if 'fkCONT' in newCols:
-            df=pd.merge(df
-                        ,dfCONT                                                        
-                        ,left_on=['fkCONT']
-                        ,right_on=['pk']
-                        ,suffixes=('','_CONT'))   
-        
                                                                                                                   
     except DmError:
         raise            
@@ -167,7 +144,84 @@ def f_HelperBVBZ(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
         return df
-    
+
+def f_HelperDECONT(   
+    df
+   ,dfViewModelle 
+   ,dfCONT
+    ):
+    """
+    Returns:
+        df
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:   
+               
+        cols=df.columns.to_list()
+        
+        if 'fkDE_BZ' in cols:
+            df=pd.merge(df
+                        ,dfViewModelle                                                        
+                        ,left_on=['fkDE_BZ']
+                        ,right_on=['fkBZ']
+                        ,suffixes=('','_VMBZ'))   
+        elif 'fkDE' in cols:
+            df=pd.merge(df
+                        ,dfViewModelle                                                        
+                        ,left_on=['fkDE']
+                        ,right_on=['fkBASIS']
+                        ,suffixes=('','_VMBASIS')
+                        ,how='left')         
+            df=pd.merge(df
+                        ,dfViewModelle                                                        
+                        ,left_on=['fkDE']
+                        ,right_on=['fkVARIANTE']
+                        ,suffixes=('','_VMVARIANTE')
+                        ,how='left')               
+        if 'fkCONT' in cols:
+            df=pd.merge(df
+                        ,dfCONT                                                        
+                        ,left_on=['fkCONT']
+                        ,right_on=['pk']
+                        ,suffixes=('','_CONT'))   
+                                                                                                                          
+    except DmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise DmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return df
+
+def f_HelperVKNO(   
+    dfKNOT
+   ,dfVKNO   
+    ):
+    """
+    Returns:
+        df
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:                          
+        df=pd.merge(dfKNOT,dfVKNO,left_on='pk',right_on='fkKNOT',how='left',suffixes=('','_VKNO'))
+                                                                                                                          
+    except DmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise DmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return df
    
 
 class Dm():

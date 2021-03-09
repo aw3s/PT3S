@@ -452,6 +452,18 @@ def fGetIDSets(
     IDsStatDruck=[ID for ID in IDsStat if re.search(pID,ID).group('C5') == 'PTI']
     IDSets['IDsStatDruck']=IDsStatDruck
 
+    ###
+
+    IDsSb=[ID for ID in IDs if re.search(pID,ID).group('E') == 'SB_S']
+    IDSets['IDsSb']=IDsSb
+
+    IDsSbSEG=[ID for ID in IDsSb if re.search(pID,ID).group('C5') != 'PTI']    
+    IDSets['IDsSbSEG']=IDsSbSEG
+    IDsSbDruck=[ID for ID in IDsSb if re.search(pID,ID).group('C5') == 'PTI']
+    IDSets['IDsSbDruck']=IDsSbDruck
+
+    ###
+
     IDsZHK=[ID for ID in IDs if re.search(pID,ID).group('E') == 'ZHKNR_S']
     IDSets['IDsZHK']=IDsZHK
 
@@ -657,9 +669,9 @@ class AppLog():
              elif h5File != None and zip7File != None:
                 logger.debug("{0:s}{1:s}".format(logStr,'2 Files (h5File and zip7File) specified.')) 
              elif  logFile != None:                 
-                 self.__initlogFile(logFile,h5FileName=h5FileName)
+                 self.__initlogFile(logFile,h5FileName=h5FileName,readWithDictReader=readWithDictReader)
              elif zip7File != None:
-                 self.__initzip7File(zip7File,h5FileName=h5FileName)            
+                 self.__initzip7File(zip7File,h5FileName=h5FileName,readWithDictReader=readWithDictReader)            
              elif h5File != None:
                  self.__initWithH5File(h5File)
              else:                 
@@ -672,7 +684,7 @@ class AppLog():
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
              
-    def __initlogFile(self,logFile,h5FileName=None):
+    def __initlogFile(self,logFile,h5FileName=None,readWithDictReader=False):
         """
         (re-)initialize with logFile
         """ 
@@ -685,7 +697,7 @@ class AppLog():
              if not os.path.exists(logFile):                                      
                 logger.debug("{0:s}logFile {1:s} not existing.".format(logStr,logFile))    
              else:
-                df = self.__processALogFile(logFile=logFile)    
+                df = self.__processALogFile(logFile=logFile,readWithDictReader=readWithDictReader)    
                 self.__initH5File(logFile,df,h5FileName=h5FileName)
          
         except Exception as e:
@@ -1111,7 +1123,7 @@ class AppLog():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
 
 
-    def rebuildLookUpDfZips(self,zip7Files):#,h5FileName=None):
+    def rebuildLookUpDfZips(self,zip7Files,readWithDictReader=True):#,h5FileName=None):
         """
         (re-)initialize with zip7Files
 
@@ -1133,7 +1145,7 @@ class AppLog():
                 #self.__initzip7File(zip7File=zip7Files[0],h5FileName=h5FileName,nRows=1,readWithDictReader=True)
             
                 for zip7File in zip7Files:
-                    self.addZip7File(zip7File,firstsAndLastsLogsOnly=True,nRows=1,readWithDictReader=True,noDfStorage=True)
+                    self.addZip7File(zip7File,firstsAndLastsLogsOnly=True,nRows=1,readWithDictReader=readWithDictReader,noDfStorage=True)
 
                 df=self.lookUpDf.groupby(by='zipName').agg(['min', 'max'])
                 minTime=df.loc[:,('FirstTime','min')]
@@ -1266,7 +1278,7 @@ class AppLog():
                      
                      dcts = [dct for dct in reader] # alle Zeilen lesen  
 
-                logger.debug("{0:s}{1:s} csv.DictReader processed.".format(logStr,logFileTail)) 
+                logger.debug("{0:s}{1:s} csv.DictReader-Ergebnis processed.".format(logStr,logFileTail)) 
                 if nRows!=None:
                     dcts=dcts[0:nRows]+[dcts[-1]]
              
@@ -1766,7 +1778,7 @@ class AppLog():
             return df
 
 
-    def getFromZips(self,timeStart=None,timeEnd=None,filter_fct=None,filterAfter=True):
+    def getFromZips(self,timeStart=None,timeEnd=None,filter_fct=None,filterAfter=True,readWithDictReader=False):
         """
         returns df from Zips
 
@@ -1881,7 +1893,7 @@ class AppLog():
 
                                 # ...
                                 if os.path.isfile(logFile):                                                  
-                                    df = self.__processALogFile(logFile=logFile) 
+                                    df = self.__processALogFile(logFile=logFile,readWithDictReader=readWithDictReader) 
                                     if df is None:      
                                         logger.warning("{0:s}idx: {1:d} Log: {2:s} NOT processed?! Continue with next Name in 7Zip.".format(logStr,idx,logFileTail))  
                                         # nichts zu prozessieren ...

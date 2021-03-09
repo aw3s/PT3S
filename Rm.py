@@ -1543,27 +1543,33 @@ def findAllTimeIntervalls(
             row1Value=fct(row1)
             row2Value=fct(row2)
 
-            # wenn 1 nicht x und 2       x tEin=t2
+            # wenn 1 nicht x und 2       x tEin=t2 "geht Ein"
             if not row1Value and row2Value:
                 tEin=i2
 
-            # wenn 1       x und 2 nicht x tAus=t1
-            if row1Value and not row2Value:
+            # wenn 1       x und 2 nicht x tAus=t2 "geht Aus"
+            elif row1Value and not row2Value:
                 if tEin != None:
                     # Paar speichern
-                    tAus=i1
-                    tPair=(tEin,tAus)
+                    #tAus=i1
+                    tPair=(tEin,i1)
                     tPairs.append(tPair)            
                 else:
                     pass # sonst: # im ersten Wertepaar geht der Bereich Aus
 
             # wenn 1       x und 2       x
-            if row1Value and not row2Value:
+            elif row1Value and row2Value: 
                 if tEin != None:
                     pass
                 else:
                     # im ersten Wertepaar ist der Bereich Ein
                     tEin=i1
+
+        # letztes Paar
+        if row1Value and row2Value: 
+                if tEin != None:
+                    tPair=(tEin,i2)
+                    tPairs.append(tPair)    
 
     except RmError:
         raise            
@@ -1574,6 +1580,101 @@ def findAllTimeIntervalls(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
         return tPairs
+
+def findAllTimeIntervallsSeries(
+ s
+,fct=lambda x: True if x == 46 else False
+,tdAllowed=None # if not None all subsequent TimePairs with TimeDifference <= tdAllowed are combined to one TimePair
+):
+# alle [Zeitbereiche] finden fuer die fct Wahr ist
+# returns array of Time-Pair-Tuples
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    tPairs=[]
+
+    try:
+        tEin=None
+        # paarweise über alle Zeilen
+        for (i1, s1), (i2, s2) in pairwise(s.iteritems()):    
+            s1Value=fct(s1)
+            s2Value=fct(s2)
+
+            # wenn 1 nicht x und 2       x tEin=t2 "geht Ein"
+            if not s1Value and s2Value:
+                tEin=i2
+
+            # wenn 1       x und 2 nicht x tAus=t2 "geht Aus"
+            elif s1Value and not s2Value:
+                if tEin != None:
+                    # Paar speichern
+                    #tAus=i1
+                    tPair=(tEin,i1)
+                    tPairs.append(tPair)            
+                else:
+                    pass # sonst: # im ersten Wertepaar geht der Bereich Aus
+
+            # wenn 1       x und 2       x
+            elif s1Value and s2Value: 
+                if tEin != None:
+                    pass
+                else:
+                    # im ersten Wertepaar ist der Bereich Ein
+                    tEin=i1
+        # letztes Paar
+        if s1Value and s2Value: 
+                if tEin != None:
+                    tPair=(tEin,i2)
+                    tPairs.append(tPair)      
+
+        if tdAllowed != None:            
+            tPairs=fCombineSubsequenttPairs(tPairs,tdAllowed)
+
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return tPairs
+
+def fCombineSubsequenttPairs(
+ tPairs
+,tdAllowed=pd.Timedelta('1 second') # all subsequent TimePairs with TimeDifference <= tdAllowed are combined to one TimePair
+):
+# returns tPairs 
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:
+
+        for idx,(tp1,tp2) in enumerate(pairwise(tPairs)):
+            if idx > 1:
+                break # es werden pro Aufruf immer nur die ersten beiden Paare zusammengefasst
+            
+            t1Ende=tp1[1]
+            t2Start=tp2[0]
+
+            if t2Start-t1Ende <= tdAllowed:
+                # print(t1Ende,t2Start)
+                tPairs[idx]=(tp1[0],tp2[1]) # Folgepaar in vorheriges Paar integrieren
+                tPairs.remove(tp2) # Folgepaar löschen
+                tPairs=fCombineSubsequenttPairs(tPairs,tdAllowed) # Rekursion       
+
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return tPairs
+
 
 def pltLDSErgVecHelper(
     ax    
