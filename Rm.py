@@ -1527,6 +1527,7 @@ def pltLDSpQHelperYLimAndTicks(
 def findAllTimeIntervalls(
  df
 ,fct=lambda row: True if row['col'] == 46 else False
+,tdAllowed=None # if not None all subsequent TimePairs with TimeDifference <= tdAllowed are combined to one TimePair
 ):
 # alle [Zeitbereiche] finden fuer die fct Wahr ist
 # returns array of Time-Pair-Tuples
@@ -1570,6 +1571,9 @@ def findAllTimeIntervalls(
                 if tEin != None:
                     tPair=(tEin,i2)
                     tPairs.append(tPair)    
+
+        if tdAllowed != None:            
+            tPairs=fCombineSubsequenttPairs(tPairs,tdAllowed)
 
     except RmError:
         raise            
@@ -1652,9 +1656,7 @@ def fCombineSubsequenttPairs(
 
     try:
 
-        for idx,(tp1,tp2) in enumerate(pairwise(tPairs)):
-            if idx > 1:
-                break # es werden pro Aufruf immer nur die ersten beiden Paare zusammengefasst
+        for idx,(tp1,tp2) in enumerate(pairwise(tPairs)):            
             
             t1Ende=tp1[1]
             t2Start=tp2[0]
