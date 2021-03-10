@@ -1731,11 +1731,11 @@ def pltLDSErgVecHelper(
 
 
 def pltLDSErgVec(
-     ax
+     ax #! Axes auf die geplottet werden soll (und aus der neue axes ge-twinx-ed werden; plt.gcf().gca() wenn undef.
     ,dfSegReprVec=pd.DataFrame() # Ergebnisvektor SEG; pass empty Df if Druck only    
     ,dfDruckReprVec=pd.DataFrame() # Ergebnisvektor DRUCK; pass empty Df if Seg only    
 
-    ,xlim=None    
+    ,xlim=None #! tuple (xmin,xmax); wenn undef. gelten min/max aus vorgenannten Daten als xlim   
 
     ,dateFormat='%d.%m.%y: %H:%M:%S'
     ,bysecond=[0,15,30,45]
@@ -1747,9 +1747,9 @@ def pltLDSErgVec(
     ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
     ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
 
-    ,ylimR=None #(-10,10) #wenn undef., dann min/max dfSegReprVec
+    ,ylimR=None #!(-10,10) #wenn undef., dann min/max dfSegReprVec bzw. yticksR
     ,ylimRxlim=False #wenn Wahr und ylimR undef. (None), dann wird xlim beruecksichtigt bei min/max dfSegReprVec
-    ,yticksR=[0,2,4,10,15,30,45]  #wenn undef. (None), dann aus ylimR 
+    ,yticksR=[0,2,4,10,15,30,40]  #wenn undef. (None), dann aus ylimR 
 
     # dito Beschl.
     ,ylimAC=None 
@@ -1792,14 +1792,18 @@ def pltLDSErgVec(
     ,plotTVAmFct=lambda x: x*100 
     ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
     ,ylimTV=(0,300)
-    ,yticksTV=[0,100,200,300]
+    ,yticksTV=[0,100,180,200,300]
            
     ):
     """
     zeichnet Zeitkurven von App LDS Ergebnisvektoren auf ax
 
     return: axes (Dct der Achsen), yLines (Dct der Linien) 
-    Dct der Achsen: 'A': Alarm etc.; 'R': m3/h; 'a': ACC
+    Dct der Achsen: 'A': Alarm etc.; 'R': m3/h; 'a': ACC; 'TV': Timer und Leckvolumen
+
+
+    #! Lücken (nicht plotten) wenn keine Zeiten
+    #! timepairs series
     """
    
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
