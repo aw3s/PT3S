@@ -1551,12 +1551,12 @@ def findAllTimeIntervalls(
             # wenn 1       x und 2 nicht x tAus=t2 "geht Aus"
             elif row1Value and not row2Value:
                 if tEin != None:
-                    # Paar speichern
-                    #tAus=i1
+                    # Paar speichern                    
                     tPair=(tEin,i1)
                     tPairs.append(tPair)            
                 else:
-                    pass # sonst: # im ersten Wertepaar geht der Bereich Aus
+                    pass # sonst: Bed. ist jetzt Aus und war nicht Ein
+                    # Bed. kann nur im ersten Fall Ein gehen
 
             # wenn 1       x und 2       x
             elif row1Value and row2Value: 
@@ -1590,7 +1590,13 @@ def findAllTimeIntervallsSeries(
 ,fct=lambda x: True if x == 46 else False
 ,tdAllowed=None # if not None all subsequent TimePairs with TimeDifference <= tdAllowed are combined to one TimePair
 ):
-# alle [Zeitbereiche] finden fuer die fct Wahr ist
+# alle [Zeitbereiche] finden fuer die fct Wahr ist; diese Zeitbereiche werden geliefert
+
+# if fct None: in [Zeitbereiche] zerlegen, die nicht mehr als tdAllowed auseinander liegen; diese Zeitbereiche werden geliefert
+#    1. Wert ZeitGap 2. Wert: 1. Intervall (enthält >=2 Werte und) beinhaltet dieses 1. ZeitGap 
+#    -2 Wert ZeitGap -1 Wert: letztes Intervall (enthält >=3 Werte und) beinhaltet dieses letzte ZeitGap 
+#   generell ist jeder Zeitbereich >=2, auch dann, wenn er dadurch ein ZeitGap enthalten muss
+
 # returns array of Time-Pair-Tuples
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
@@ -1600,40 +1606,82 @@ def findAllTimeIntervallsSeries(
 
     try:
         tEin=None
-        # paarweise über alle Zeilen
-        for (i1, s1), (i2, s2) in pairwise(s.iteritems()):    
-            s1Value=fct(s1)
-            s2Value=fct(s2)
+        
+        if fct != None:
+            # paarweise über alle Zeilen
+            for (i1, s1), (i2, s2) in pairwise(s.iteritems()):    
+                s1Value=fct(s1)
+                s2Value=fct(s2)
 
-            # wenn 1 nicht x und 2       x tEin=t2 "geht Ein"
-            if not s1Value and s2Value:
-                tEin=i2
+                # wenn 1 nicht x und 2       x tEin=t2 "geht Ein"
+                if not s1Value and s2Value:
+                    tEin=i2
 
-            # wenn 1       x und 2 nicht x tAus=t2 "geht Aus"
-            elif s1Value and not s2Value:
-                if tEin != None:
-                    # Paar speichern
-                    #tAus=i1
-                    tPair=(tEin,i1)
-                    tPairs.append(tPair)            
-                else:
-                    pass # sonst: # im ersten Wertepaar geht der Bereich Aus
+                # wenn 1       x und 2 nicht x tAus=t2 "geht Aus"
+                elif s1Value and not s2Value:
+                    if tEin != None:
+                        # Paar speichern                        
+                        tPair=(tEin,i1)
+                        tPairs.append(tPair)            
+                    else:
+                        pass # sonst: Bed. ist jetzt Aus und war nicht Ein
+                    # Bed. kann nur im ersten Fall Ein gehen
 
-            # wenn 1       x und 2       x
-            elif s1Value and s2Value: 
-                if tEin != None:
-                    pass
-                else:
-                    # im ersten Wertepaar ist der Bereich Ein
-                    tEin=i1
-        # letztes Paar
-        if s1Value and s2Value: 
+                # wenn 1       x und 2       x
+                elif s1Value and s2Value: 
+                    if tEin != None:
+                        pass
+                    else:
+                        # im ersten Wertepaar ist der Bereich Ein
+                        tEin=i1
+            # letztes Paar
+            if s1Value and s2Value: 
                 if tEin != None:
                     tPair=(tEin,i2)
                     tPairs.append(tPair)      
 
-        if tdAllowed != None:            
-            tPairs=fCombineSubsequenttPairs(tPairs,tdAllowed)
+            if tdAllowed != None:            
+                tPairs=fCombineSubsequenttPairs(tPairs,tdAllowed)
+        else:            
+            # paarweise über alle Zeilen
+            # neues Paar beginnen
+            anzInPair=1 
+            for (i1, s1), (i2, s2) in pairwise(s.iteritems()):    
+                td=i2-i1
+                if td > tdAllowed:
+                    if tEin==None:
+                        # erstes Paar liegt bereits zu weit auseinander
+                        # Paarabschluss wird ignoriert, denn sonst nur 1 Wert am Anfang
+                        # aktuelles Paar beginnt beim 1. Wert und geht über diese Schwelle
+                        tEin=i1
+                        anzInPair=2
+                    else:                    
+                        if anzInPair>=2:
+                            # Paar abschließen                            
+                            tPair=(tEin,i1)
+                            tPairs.append(tPair)      
+                            # neues Paar beginnen
+                            tEin=i2
+                            anzInPair=1
+                        else:
+                            # Paarabschluss wird ignoriert, denn sonst nur 1 Wert
+                            anzInPair=2
+                else:
+                    if tEin==None:
+                        tEin=i1
+                    anzInPair=anzInPair+1
+                    
+            # letztes Paar
+            if anzInPair>=2:
+                tPair=(tEin,i2)
+                tPairs.append(tPair)                                  
+            else:                
+                # ein letzter Wert wuere ueber bleiben ... 
+                tPair=tPairs[-1]
+                tPair=(tPair[0],i2)
+                tPairs[-1]=tPair  
+                
+            
 
     except RmError:
         raise            
@@ -1749,7 +1797,7 @@ def pltLDSErgVec(
 
     ,ylimR=None #(-10,10) #wenn undef., dann min/max dfSegReprVec 
     ,ylimRxlim=False #wenn Wahr und ylimR undef. (None), dann wird xlim beruecksichtigt bei min/max dfSegReprVec
-    ,yticksR=[0,2,4,10,15,30,40]  #wenn undef. (None), dann aus ylimR; matplotlib "ueberschreibt" matplotlib mit dem Setzen von yTicks ein gesetztes ylim 
+    ,yticksR=[0,2,4,10,15,30,40]  #wenn undef. (None), dann aus ylimR; matplotlib "vergrößert" mit dem Setzen von yTicks ein ebenfalls gesetztes ylim wenn die Ticks außerhalb des ylims liegen
 
     # dito Beschl.
     ,ylimAC=None 
@@ -1801,9 +1849,7 @@ def pltLDSErgVec(
     return: axes (Dct der Achsen), yLines (Dct der Linien) 
     Dct der Achsen: 'A': Alarm etc.; 'R': m3/h; 'a': ACC; 'TV': Timer und Leckvolumen
 
-
     #! Lücken (nicht plotten) wenn keine Zeiten
-    #! timepairs series
     """
    
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
@@ -1822,13 +1868,13 @@ def pltLDSErgVec(
                 # keine komplett leeren Zeilen
                 dfSegReprVec=dfSegReprVec[~dfSegReprVec.isnull().all(1)]
                 # keine doppelten Indices
-                dfSegReprVec=dfSegReprVec.groupby(dfSegReprVec.index).last() # df[~df.index.duplicated(keep='first')]
+                dfSegReprVec=dfSegReprVec[~dfSegReprVec.index.duplicated(keep='last')] # dfSegReprVec.groupby(dfSegReprVec.index).last() # df[~df.index.duplicated(keep='last')]
 
             if not dfDruckReprVec.empty: 
                 # keine komplett leeren Zeilen
                 dfDruckReprVec=dfDruckReprVec[~dfDruckReprVec.isnull().all(1)]
                 # keine doppelten Indices
-                dfDruckReprVec=dfDruckReprVec.groupby(dfDruckReprVec.index).last() # df[~df.index.duplicated(keep='first')]
+                dfDruckReprVec=dfDruckReprVec[~dfDruckReprVec.index.duplicated(keep='last')] # dfDruckReprVec.groupby(dfDruckReprVec.index).last() # df[~df.index.duplicated(keep='last')]
 
             if ax==None:
                 ax=plt.gcf().gca()

@@ -145,8 +145,9 @@ def getDfFromODI(ODIFile,pID=pID):
 
         dfID['ID']=s
 
-        dfC=dfID['C1']+'_'+dfID['C2']+'_'+dfID['C3']+'_'+dfID['C4']+'_'+dfID['C5']+'_'+dfID['C6']+'_'+dfID['C7']
+        dfC=dfID['C1']+'_'+dfID['C2']+'_'+dfID['C3']+'_'+dfID['C4']+'_'+dfID['C5']+'_'+dfID['C6']#+'_'+dfID['C7']
         dfID.loc[:,'C']=dfC.values
+        dfID['C']=dfID.apply(lambda row: row['C']+'_'+row['C7'] if not pd.isnull(row['C7']) else row['C'],axis=1)
 
         dfID=dfID[['ID','Prae','A','B','C','C1','C2','C3','C4','C5','C6','C7','D','E','Post']]
 
