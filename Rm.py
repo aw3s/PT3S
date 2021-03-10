@@ -1369,7 +1369,7 @@ def pltLDSErgVecHelperYLimAndTicks(
      dfReprVec
     ,dfReprVecCol
     ,ylim=None #(-10,10) # wenn undef., dann min/max dfReprVec    
-    ,yticks=None #[-10,0,10] # wenn undef., dann aus ylim
+    ,yticks=None #[-10,0,10] # wenn undef., dann aus dem Ergebnis von ylim
     
     ,ylimxlim=False #wenn Wahr und ylim undef., dann wird nachf. xlim beruecksichtigt bei min/max dfReprVec    
     ,xlim=None     
@@ -1731,11 +1731,11 @@ def pltLDSErgVecHelper(
 
 
 def pltLDSErgVec(
-     ax #! Axes auf die geplottet werden soll (und aus der neue axes ge-twinx-ed werden; plt.gcf().gca() wenn undef.
+     ax=None # Axes auf die geplottet werden soll (und aus der neue axes ge-twinx-ed werden; plt.gcf().gca() wenn undef.
     ,dfSegReprVec=pd.DataFrame() # Ergebnisvektor SEG; pass empty Df if Druck only    
     ,dfDruckReprVec=pd.DataFrame() # Ergebnisvektor DRUCK; pass empty Df if Seg only    
 
-    ,xlim=None #! tuple (xmin,xmax); wenn undef. gelten min/max aus vorgenannten Daten als xlim   
+    ,xlim=None # tuple (xmin,xmax); wenn undef. gelten min/max aus vorgenannten Daten als xlim; wenn Seg angegeben, gilt Seg   
 
     ,dateFormat='%d.%m.%y: %H:%M:%S'
     ,bysecond=[0,15,30,45]
@@ -1747,9 +1747,9 @@ def pltLDSErgVec(
     ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
     ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
 
-    ,ylimR=None #!(-10,10) #wenn undef., dann min/max dfSegReprVec bzw. yticksR
+    ,ylimR=None #(-10,10) #wenn undef., dann min/max dfSegReprVec 
     ,ylimRxlim=False #wenn Wahr und ylimR undef. (None), dann wird xlim beruecksichtigt bei min/max dfSegReprVec
-    ,yticksR=[0,2,4,10,15,30,40]  #wenn undef. (None), dann aus ylimR 
+    ,yticksR=[0,2,4,10,15,30,40]  #wenn undef. (None), dann aus ylimR; matplotlib "ueberschreibt" matplotlib mit dem Setzen von yTicks ein gesetztes ylim 
 
     # dito Beschl.
     ,ylimAC=None 
@@ -1822,14 +1822,16 @@ def pltLDSErgVec(
                 # keine komplett leeren Zeilen
                 dfSegReprVec=dfSegReprVec[~dfSegReprVec.isnull().all(1)]
                 # keine doppelten Indices
-                dfSegReprVec=dfSegReprVec.groupby(dfSegReprVec.index).last()
+                dfSegReprVec=dfSegReprVec.groupby(dfSegReprVec.index).last() # df[~df.index.duplicated(keep='first')]
 
             if not dfDruckReprVec.empty: 
                 # keine komplett leeren Zeilen
                 dfDruckReprVec=dfDruckReprVec[~dfDruckReprVec.isnull().all(1)]
                 # keine doppelten Indices
-                dfDruckReprVec=dfDruckReprVec.groupby(dfDruckReprVec.index).last()
+                dfDruckReprVec=dfDruckReprVec.groupby(dfDruckReprVec.index).last() # df[~df.index.duplicated(keep='first')]
 
+            if ax==None:
+                ax=plt.gcf().gca()
             axes['A']=ax 
 
             # x-Achse ----------------
@@ -2023,7 +2025,6 @@ def pltLDSErgVec(
 
             ylimSeg,yticksSeg=pltLDSErgVecHelperYLimAndTicks(
              dfSegReprVec
-
             ,'LR_AV'
             ,ylim=ylimR   
             ,yticks=yticksR 
@@ -2036,7 +2037,6 @@ def pltLDSErgVec(
 
             ylimDrk,yticksDrk=pltLDSErgVecHelperYLimAndTicks(
              dfDruckReprVec
-
             ,'LR_AV'
             ,ylim=ylimR   
             ,yticks=yticksR 
