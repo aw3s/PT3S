@@ -157,20 +157,20 @@ def getDfFromODI(ODIFile,pID=pID):
         dfID.sort_values(by=['ID'], axis=0,ignore_index=True,inplace=True)
         dfID.set_index('ID',verify_integrity=True,inplace=True)
 
-        dfID.loc['Objects.3S_FBG_PUMPE.3S_FBG_GSI_01.Out.EIN','Post']='.EIN'
-        dfID.loc['Objects.3S_FBG_PUMPE.3S_FBG_GSI_01.Out.EIN','A']='Objects'
-        dfID.loc['Objects.3S_FBG_PUMPE.3S_FBG_GSI_01.Out.EIN','B']='3S_FBG_PUMPE'
-        dfID.loc['Objects.3S_FBG_PUMPE.3S_FBG_GSI_01.Out.EIN','C']='3S_FBG_GSI_01'
-        dfID.loc['Objects.3S_FBG_PUMPE.3S_FBG_GSI_01.Out.EIN','D']='Out'
-        #dfID.loc['Objects.3S_FBG_PUMPE.3S_FBG_GSI_01.Out.EIN',:]
+        dfID.loc['Objects.3S_XYZ_PUMPE.3S_XYZ_GSI_01.Out.EIN','Post']='.EIN'
+        dfID.loc['Objects.3S_XYZ_PUMPE.3S_XYZ_GSI_01.Out.EIN','A']='Objects'
+        dfID.loc['Objects.3S_XYZ_PUMPE.3S_XYZ_GSI_01.Out.EIN','B']='3S_XYZ_PUMPE'
+        dfID.loc['Objects.3S_XYZ_PUMPE.3S_XYZ_GSI_01.Out.EIN','C']='3S_XYZ_GSI_01'
+        dfID.loc['Objects.3S_XYZ_PUMPE.3S_XYZ_GSI_01.Out.EIN','D']='Out'
+        #dfID.loc['Objects.3S_XYZ_PUMPE.3S_XYZ_GSI_01.Out.EIN',:]
 
 
-        dfID.loc['Objects.3S_FBG_RSCHIEBER.3S_FBG_PCV_01.Out.SOLLW','Post']='.SOLLW'
-        dfID.loc['Objects.3S_FBG_RSCHIEBER.3S_FBG_PCV_01.Out.SOLLW','A']='Objects'
-        dfID.loc['Objects.3S_FBG_RSCHIEBER.3S_FBG_PCV_01.Out.SOLLW','B']='3S_FBG_RSCHIEBER'
-        dfID.loc['Objects.3S_FBG_RSCHIEBER.3S_FBG_PCV_01.Out.SOLLW','C']='3S_FBG_PCV_01'
-        dfID.loc['Objects.3S_FBG_RSCHIEBER.3S_FBG_PCV_01.Out.SOLLW','D']='Out'
-        #dfID.loc['Objects.3S_FBG_RSCHIEBER.3S_FBG_PCV_01.Out.SOLLW',:]
+        dfID.loc['Objects.3S_XYZ_RSCHIEBER.3S_XYZ_PCV_01.Out.SOLLW','Post']='.SOLLW'
+        dfID.loc['Objects.3S_XYZ_RSCHIEBER.3S_XYZ_PCV_01.Out.SOLLW','A']='Objects'
+        dfID.loc['Objects.3S_XYZ_RSCHIEBER.3S_XYZ_PCV_01.Out.SOLLW','B']='3S_XYZ_RSCHIEBER'
+        dfID.loc['Objects.3S_XYZ_RSCHIEBER.3S_XYZ_PCV_01.Out.SOLLW','C']='3S_XYZ_PCV_01'
+        dfID.loc['Objects.3S_XYZ_RSCHIEBER.3S_XYZ_PCV_01.Out.SOLLW','D']='Out'
+        #dfID.loc['Objects.3S_XYZ_RSCHIEBER.3S_XYZ_PCV_01.Out.SOLLW',:]
 
         dfID['yUnit']=dfID.apply(lambda row: getDfFromODIHelperyUnit(row),axis=1)
         dfID['yDesc']=dfID.apply(lambda row: getDfFromODIHelperyDesc(row),axis=1)
@@ -322,7 +322,7 @@ def getDfIDUniqueCols(dfID):
         #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
         return dfIDUniqueCols
 
-def getIDsFromID(ID='Objects.3S_FBG_SEG_INFO.3S_L_6_KED_39_EL1.In.AL_S',dfID=None,matchCols=['B','C1','C2','C3','C4','C5','D'],any=False):
+def getIDsFromID(ID='Objects.3S_XYZ_SEG_INFO.3S_L_6_KED_39_EL1.In.AL_S',dfID=None,matchCols=['B','C1','C2','C3','C4','C5','D'],any=False):
     """
     returns IDs matching ID  
     """
@@ -354,7 +354,7 @@ def getIDsFromID(ID='Objects.3S_FBG_SEG_INFO.3S_L_6_KED_39_EL1.In.AL_S',dfID=Non
         return sorted(IDsMatching)
 
 def getLDSResVecDf(
-     ID # ResVec-Defining-Channel; i.e. for Segs Objects.3S_FBG_SEG_INFO.3S_L_6_EL1_39_TUD.In.AL_S / i.e. for Drks Objects.3S_FBG_DRUCK.3S_6_EL1_39_PTI_02_E.In.AL_S 
+     ID # ResVec-Defining-Channel; i.e. for Segs Objects.3S_XYZ_SEG_INFO.3S_L_6_EL1_39_TUD.In.AL_S / i.e. for Drks Objects.3S_XYZ_DRUCK.3S_6_EL1_39_PTI_02_E.In.AL_S 
     ,dfID
     ,TCsLDSResDf 
     ,matchCols # i.e. ['B','C1','C2','C3','C4','C5','C6','D'] for Segs; i.e. ['B','C','D'] for Drks
@@ -488,22 +488,22 @@ def fGetIDSets(
     IDsZUST=sorted(IDsZUST,key=lambda x: re.match(pID,x).group('C5'))   
     IDSets['IDsZUST']=IDsZUST
     
-    IDs_3S_FBG_ESCHIEBER=[ID for ID in IDs if re.search(pID,ID).group('B') == '3S_FBG_ESCHIEBER']
-    IDs_3S_FBG_ESCHIEBER=sorted(IDs_3S_FBG_ESCHIEBER,key=lambda x: re.match(pID,x).group('C6'))    
-    IDSets['IDs_3S_FBG_ESCHIEBER']=IDs_3S_FBG_ESCHIEBER
+    IDs_3S_XYZ_ESCHIEBER=[ID for ID in IDs if re.search(pID,ID).group('B') == '3S_FBG_ESCHIEBER']
+    IDs_3S_XYZ_ESCHIEBER=sorted(IDs_3S_XYZ_ESCHIEBER,key=lambda x: re.match(pID,x).group('C6'))    
+    IDSets['IDs_3S_XYZ_ESCHIEBER']=IDs_3S_XYZ_ESCHIEBER
     
-    IDs_FBG_ESCHIEBER=[ID for ID in IDs if re.search(pID,ID).group('B') == 'FBG_ESCHIEBER']
-    IDs_FBG_ESCHIEBER=sorted(IDs_FBG_ESCHIEBER,key=lambda x: re.match(pID,x).group('C5'))    #
-    IDSets['IDs_FBG_ESCHIEBER']=IDs_FBG_ESCHIEBER    
+    IDs_XYZ_ESCHIEBER=[ID for ID in IDs if re.search(pID,ID).group('B') == 'FBG_ESCHIEBER']
+    IDs_XYZ_ESCHIEBER=sorted(IDs_XYZ_ESCHIEBER,key=lambda x: re.match(pID,x).group('C5'))    #
+    IDSets['IDs_XYZ_ESCHIEBER']=IDs_XYZ_ESCHIEBER    
         
-    IDs_FBG_ESCHIEBER_Ohne_ZUST=[ID for ID in IDs_FBG_ESCHIEBER if re.search(pID,ID).group('E') != 'ZUST']
-    IDs_FBG_ESCHIEBER_Ohne_ZUST=sorted(IDs_FBG_ESCHIEBER_Ohne_ZUST,key=lambda x: re.match(pID,x).group('C5'))    
-    IDSets['IDs_FBG_ESCHIEBER_Ohne_ZUST']=IDs_FBG_ESCHIEBER_Ohne_ZUST
+    IDs_XYZ_ESCHIEBER_Ohne_ZUST=[ID for ID in IDs_XYZ_ESCHIEBER if re.search(pID,ID).group('E') != 'ZUST']
+    IDs_XYZ_ESCHIEBER_Ohne_ZUST=sorted(IDs_XYZ_ESCHIEBER_Ohne_ZUST,key=lambda x: re.match(pID,x).group('C5'))    
+    IDSets['IDs_XYZ_ESCHIEBER_Ohne_ZUST']=IDs_XYZ_ESCHIEBER_Ohne_ZUST
 
 
 
     
-    IDsSchieberAlle=IDsZUST+IDs_FBG_ESCHIEBER_Ohne_ZUST+IDs_3S_FBG_ESCHIEBER  
+    IDsSchieberAlle=IDsZUST+IDs_XYZ_ESCHIEBER_Ohne_ZUST+IDs_3S_XYZ_ESCHIEBER  
     IDSets['IDsSchieberAlle']=IDsSchieberAlle
     
     IDsSchieberAlleOhneLAEUFT=[ID for ID in IDsSchieberAlle if re.search('LAEUFT$',ID) == None]
