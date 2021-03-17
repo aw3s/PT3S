@@ -1619,9 +1619,22 @@ class AppLog():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return
 
-    def getTCsFromH5s(self,timeStart=None,timeEnd=None):
+    def getTCsFromH5s(self,timeStart=None,timeEnd=None, LDSResOnly=False, LDSResColsSpecified=None):
         """
-        returns several TC-dfs from TC-H5s            
+        returns several TC-dfs from TC-H5s:
+            TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2
+            or
+            TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes        
+
+            LDSResOnly:
+            TCsdfLDSRes1,TCsdfLDSRes2
+            or
+            TCsdfLDSRes       
+            
+            LDSResColsSpecified:
+            return in LDSRes dfs only the specified cols
+            all cols are returned otherwise
+        
         """ 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -1664,15 +1677,17 @@ class AppLog():
             h5KeysAll=zip(h5Keys,h5KeysOPC,h5KeysSirCalc,h5KeysLDSIn,h5KeysLDSRes1,h5KeysLDSRes2,h5KeysLDSRes)
             
             for idx,(h5Key,h5KeyOPC,h5KeySirCalc,h5KeyLDSIn,h5KeyLDSRes1,h5KeyLDSRes2,h5KeyLDSRes) in enumerate(h5KeysAll):
+
+                if not LDSResOnly:
                                                            
-                logger.debug("{0:s}{1:s}".format(logStr,'TCsdfOPC ...'))                    
-                TCsdfOPC=pd.read_hdf(self.h5FileOPC,h5KeyOPC)
+                    logger.debug("{0:s}{1:s}".format(logStr,'TCsdfOPC ...'))                    
+                    TCsdfOPC=pd.read_hdf(self.h5FileOPC,h5KeyOPC)
 
-                logger.debug("{0:s}{1:s}".format(logStr,'TCsdfSirCalc ...'))                                           
-                TCsdfSirCalc=pd.read_hdf(self.h5FileSirCalc,h5KeySirCalc)
+                    logger.debug("{0:s}{1:s}".format(logStr,'TCsdfSirCalc ...'))                                           
+                    TCsdfSirCalc=pd.read_hdf(self.h5FileSirCalc,h5KeySirCalc)
 
-                logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSIn ...'))                      
-                TCsdfLDSIn=pd.read_hdf(self.h5FileLDSIn,h5KeyLDSIn)
+                    logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSIn ...'))                      
+                    TCsdfLDSIn=pd.read_hdf(self.h5FileLDSIn,h5KeyLDSIn)
 
                 if Res2:
                     logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes1 ...'))                      
@@ -1683,10 +1698,23 @@ class AppLog():
                     logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes ...'))                    
                     TCsdfLDSRes=pd.read_hdf(self.h5FileLDSRes,h5KeyLDSRes)
 
+                if LDSResColsSpecified != None:
+                    pass
+                    if Res2:
+                        logger.debug("{0:s}{1:s} {2:s}".format(logStr,'TCsdfLDSRes1 Filter ...',str(LDSResColsSpecified)))                      
+                        TCsdfLDSRes1=TCsdfLDSRes1.filter(items=LDSResColsSpecified)
+                        logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2 Filter ...'))                      
+                        TCsdfLDSRes2=TCsdfLDSRes2.filter(items=LDSResColsSpecified)
+                    else:                   
+                        logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes Filter ...'))                    
+                        TCsdfLDSRes=TCsdfLDSRes.filter(items=LDSResColsSpecified)
+
+
                 if idx==0:
-                    TCsdfOPCLst=[]
-                    TCsdfSirCalcLst=[]
-                    TCsdfLDSInLst=[]
+                    if not LDSResOnly:
+                        TCsdfOPCLst=[]
+                        TCsdfSirCalcLst=[]
+                        TCsdfLDSInLst=[]
                     if Res2:
                         TCsdfLDSRes1Lst=[]
                         TCsdfLDSRes2Lst=[]
@@ -1696,9 +1724,10 @@ class AppLog():
                     
                 logger.debug("{0:s}Append ...".format(logStr)) 
 
-                TCsdfOPCLst.append(TCsdfOPC)
-                TCsdfSirCalcLst.append(TCsdfSirCalc)
-                TCsdfLDSInLst.append(TCsdfLDSIn)
+                if not LDSResOnly:
+                    TCsdfOPCLst.append(TCsdfOPC)
+                    TCsdfSirCalcLst.append(TCsdfSirCalc)
+                    TCsdfLDSInLst.append(TCsdfLDSIn)
                 if Res2:
                     TCsdfLDSRes1Lst.append(TCsdfLDSRes1)
                     TCsdfLDSRes2Lst.append(TCsdfLDSRes2)
@@ -1707,15 +1736,15 @@ class AppLog():
 
             logger.debug("{0:s}Concat ...".format(logStr)) 
 
-            TCsdfOPC=pd.concat(TCsdfOPCLst)
-            TCsdfSirCalc=pd.concat(TCsdfSirCalcLst)
-            TCsdfLDSIn=pd.concat(TCsdfLDSInLst)
+            if not LDSResOnly:
+                TCsdfOPC=pd.concat(TCsdfOPCLst)
+                TCsdfSirCalc=pd.concat(TCsdfSirCalcLst)
+                TCsdfLDSIn=pd.concat(TCsdfLDSInLst)
             if Res2:
                 TCsdfLDSRes1=pd.concat(TCsdfLDSRes1Lst)
                 TCsdfLDSRes2=pd.concat(TCsdfLDSRes2Lst)
             else:
                 TCsdfLDSRes=pd.concat(TCsdfLDSResLst)
-
                                                                     
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -1723,10 +1752,16 @@ class AppLog():
             raise LxError(logStrFinal)                       
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
-            if Res2:
-                return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2
+            if not LDSResOnly:
+                if Res2:
+                    return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2
+                else:
+                    return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes
             else:
-                return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes
+                if Res2:
+                    return TCsdfLDSRes1,TCsdfLDSRes2
+                else:
+                    return TCsdfLDSRes
 
 
     def getTCsSpecified(self,dfID=pd.DataFrame(),timeStart=None,timeEnd=None,f=lambda row: True if row['E'] == 'AL_S' else False):
