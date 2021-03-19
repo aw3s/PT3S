@@ -929,6 +929,7 @@ def plotDfAlarmStatistikReportsSEGErgs(
     ,byhour=[0,3,6,9,12,15,18,21]
     ,byminute=None
     ,bysecond=None  
+    ,timeFloorCeilStr='1H'
     ):
     """
     Returns 
@@ -943,9 +944,9 @@ def plotDfAlarmStatistikReportsSEGErgs(
 
         firstTime,lastTime,tdTotalGross,tdTotal,tdBetweenFilesTotal=lx.getTotalLogTime()
         if timeStart==None:
-            timeStart = firstTime.floor(freq='1H') # https://stackoverflow.com/questions/35339139/where-is-the-documentation-on-pandas-freq-tags
+            timeStart = firstTime.floor(freq=timeFloorCeilStr) # https://stackoverflow.com/questions/35339139/where-is-the-documentation-on-pandas-freq-tags
         if timeEnd==None:
-            timeEnd = lastTime.ceil(freq='1H') 
+            timeEnd = lastTime.ceil(freq=timeFloorCeilStr) 
 
         logger.debug("{0:s}timeStart: {1:s} timeEnd: {2:s}".format(logStr,str(timeStart),str(timeEnd)))         
 
@@ -1074,6 +1075,173 @@ def plotDfAlarmStatistikReportsSEGErgs(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
         return 
+
+def plotDfAlarmStatistikReportsDruckErgs( 
+     h5File='a.h5'   
+    ,dfAlarmStatistik=pd.DataFrame()    
+    ,dfSegsNodesNDataDpkt=pd.DataFrame()    
+    ,timeStart=None,timeEnd=None
+    ,DruckErgsFile='DruckErgs.pdf'
+    ,stopAtDruckNr=None
+    ,dateFormat='%y.%m.%d: %H:%M:%S'
+    ,byhour=[0,3,6,9,12,15,18,21]
+    ,byminute=None
+    ,bysecond=None  
+    ,timeFloorCeilStr='1H'
+    ):
+    """
+    Returns 
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    try:   
+        
+
+        # eff. Messstellen aus Kantenzügen
+        df=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['DruckErgIDBase'].notnull()]
+        #df.shape
+        df2=pd.merge(df,dfAlarmStatistik,left_on='SEGName',right_on='SEGName',suffixes=('','_Statistik'))
+        #df2.shape
+
+        lx=Lx.AppLog(h5File=h5File)  
+
+        firstTime,lastTime,tdTotalGross,tdTotal,tdBetweenFilesTotal=lx.getTotalLogTime()
+        if timeStart==None:
+            timeStart = firstTime.floor(freq=timeFloorCeilStr) # https://stackoverflow.com/questions/35339139/where-is-the-documentation-on-pandas-freq-tags
+        if timeEnd==None:
+            timeEnd = lastTime.ceil(freq=timeFloorCeilStr) 
+
+        logger.debug("{0:s}timeStart: {1:s} timeEnd: {2:s}".format(logStr,str(timeStart),str(timeEnd)))         
+
+        with PdfPages(DruckErgsFile) as pdf:
+    
+            for idx,(index,row) in enumerate(df2.iterrows()):
+
+                if stopAtDruckNr != None:
+                    if idx>=stopAtDruckNr:                        
+                        break
+
+                # Erg lesen
+                ErgIDBase=row['DruckErgIDBase']               
+                dfDruckReprVec=getLDSResVecDf(ErgIDBase=ErgIDBase,LDSResType='Druck',lx=lx,timeStart=timeStart,timeEnd=timeEnd)
+
+                ID='AL_S'
+                if ID not in dfDruckReprVec.keys():
+                    continue # keine leeren Seiten drucken
+                        # -----------------------------------------------------
+                        #fig=plt.figure(figsize=DINA4q,dpi=dpiSize) 
+                        #ax=fig.gca()              
+                        #ax.set_title("Nr. {:2d} - {:s}: {:s}: AL_S: nicht in Datenbasis (ggf. kein Förderbetrieb)".format(idx+1
+                        #              ,row['SEGName']                          
+                        #              ,row['SEGErgIDBase'])
+                        #              ,loc='left') 
+                        #fig.tight_layout(pad=2.) 
+                        #pdf.savefig()  
+                        #plt.close()
+                        # -----------------------------------------------------
+            
+            
+                # -----------------------------------------------------
+                fig=plt.figure(figsize=DINA4q,dpi=dpiSize) 
+                ax=fig.gca()          
+
+                pltLDSErgVec(
+                 ax
+                ,dfSegReprVec=pd.DataFrame() # Ergebnisvektor SEG; pass empty Df if Druck only    
+                ,dfDruckReprVec=dfDruckReprVec  # Ergebnisvektor DRUCK; pass empty Df if Seg only    
+
+                ,xlim=(timeStart,timeEnd)   
+            
+                ,dateFormat=dateFormat
+                ,byhour=byhour 
+                ,byminute=byminute
+                ,bysecond=bysecond
+
+                ,ylimAL=(0,40)
+                ,yticksAL=[0,10,20,30,40]
+
+                ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
+                ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
+
+                ,ylimR=(-45,45) 
+                ,ylimRxlim=False 
+                ,yticksR=[0,2,4,10,15,30,45] 
+
+                # dito Beschl.
+                ,ylimAC=(-5,5)
+                ,ylimACxlim=False 
+                ,yticksAC=[-5,0,5] 
+
+                ,ySpanMin=0.9 # wenn ylim R/AC undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
+
+                ,plotLegend=True    
+                ,legendLoc='best'
+                ,legendFramealpha=.2
+                ,legendFacecolor='white' 
+
+                #,attrsDctLDS=attrsDctLDS         
+
+                ,plotLPRate=True
+                ,plotR2FillSeg=True 
+                ,plotR2FillDruck=True         
+
+                ,plotAC=True      
+                ,plotACCLimits=True
+
+                ,highlightAreas=True 
+                ,Seg_Highlight_Color='cyan'
+                ,Seg_Highlight_Alpha=.1     
+                ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False      
+                ,Seg_HighlightError_Color='peru'
+                ,Seg_Highlight_Alpha_Error=.3     
+                ,Seg_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False   
+
+                ,Druck_Highlight_Color='cyan'
+                ,Druck_Highlight_Alpha=.1
+                ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
+                ,Druck_HighlightError_Color='peru'
+                ,Druck_Highlight_Alpha_Error=.3
+                ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
+
+                ,plotTV=True
+                ,plotTVTimerFct=None 
+                ,plotTVAmFct=lambda x: x*100 
+                ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
+                ,ylimTV=(0,300)
+                ,yticksTV=[0,100,180,200,300]    
+                )    
+        
+                txt="SEG: RuheZeitenAlAnz: {:d}".format(row['RuheZeitenAlAnz'])        
+                ax.text(.98, .1,txt,
+                horizontalalignment='right',
+                verticalalignment='center',
+                transform=ax.transAxes)
+        
+
+                ax.set_title( "Nr. {:2d} - {:s}: {:s}".format(idx+1
+                              ,row['SEGName']                      
+                              ,row['DruckErgIDBase'])                     
+                              ,loc='left'
+                            ) 
+                fig.tight_layout(pad=2.) 
+                pdf.savefig()  
+                plt.close()        
+      
+       
+                                                                                                                   
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return 
+
+
 
 from itertools import tee
 def pairwise(iterable):
