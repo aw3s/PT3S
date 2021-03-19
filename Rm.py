@@ -160,6 +160,9 @@ import matplotlib.gridspec as gridspec
 import matplotlib.dates as mdates
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+from matplotlib.backends.backend_pdf import PdfPages
+
 import numpy as np
 import scipy
 import networkx as nx
@@ -189,6 +192,18 @@ try:
 except ImportError:
     logger.debug("{0:s}{1:s}".format('ImportError: ','from PT3S import Xm - trying import Xm instead ... maybe pip install -e . is active ...')) 
     import Xm
+
+try:
+    from PT3S import Am
+except ImportError:
+    logger.debug("{0:s}{1:s}".format('ImportError: ','from PT3S import Am - trying import Am instead ... maybe pip install -e . is active ...')) 
+    import Am
+
+try:
+    from PT3S import Lx
+except ImportError:
+    logger.debug("{0:s}{1:s}".format('ImportError: ','from PT3S import Lx - trying import Lx instead ... maybe pip install -e . is active ...')) 
+    import Lx
 
 # ---
 # --- main Imports
@@ -239,6 +254,813 @@ linestyle_tuple = [
      ('dashdotdotted',         (0, (3, 5, 1, 5, 1, 5))),
      ('loosely dashdotdotted', (0, (3, 10, 1, 10, 1, 10))),
      ('densely dashdotdotted', (0, (3, 1, 1, 1, 1, 1)))]
+
+
+def fSEGNameFromSWVTBeschr(Beschr):
+    m=re.search(Lx.pID,Beschr)
+    return m.group('C2')+'_'+m.group('C3')+'_'+m.group('C4')+'_'+m.group('C5')
+
+def getNamesFromOPCITEM_ID(dfSegsNodesNDataDpkt
+                            ,OPCITEM_ID):
+    """
+    Returns tuple (DIVPipelineName,SEGName) from OPCITEM_ID PH
+    """    
+    df=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['OPCITEM_ID']==OPCITEM_ID]
+    if not df.empty:
+        return (df['DIVPipelineName'].iloc[0],df['SEGName'].iloc[0])
+
+def fGetBaseIDFromErgID(
+    ID='Objects.3S_XXX_DRUCK.3S_6_BNV_01_PTI_01.In.MW.value'
+):
+    """
+    Returns 'Objects.3S_XXX_DRUCK.3S_6_BNV_01_PTI_01.In.' 
+    funktioniert fuer SEG- und Druck-Ergs: jede Erg-PV eines Vektors liefert die Basis gueltig fuer alle Erg-PVs des Vektors
+    d.h. die Erg-PVs eines Vektors unterscheiden sich nur hinten
+    """    
+    
+    if pd.isnull(ID):
+        return None
+    
+    m=re.search(Lx.pID,ID)
+    
+    if m == None:
+        return None
+            
+    base=m.group('A')+'.'+m.group('B')\
+        +'.'+m.group('C1')\
+        +'_'+m.group('C2')\
+        +'_'+m.group('C3')\
+        +'_'+m.group('C4')\
+        +'_'+m.group('C5')\
+        +m.group('C6')
+    
+    #print(m.groups())
+    #print(m.groupdict())
+    
+    if 'C7' in m.groupdict().keys():
+        if m.group('C7') != None:
+            base=base+m.group('C7')
+    
+    base=base+'.'+m.group('D')\
+        +'.'
+    
+    #print(base)
+    return base
+
+def getNamesFromSEGErgIDBase(dfSegsNodesNDataDpkt
+                            ,SEGErgIDBase):
+    """
+    Returns tuple (DIVPipelineName,SEGName) from SEGErgIDBase
+    """    
+    df=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['SEGErgIDBase']==SEGErgIDBase]
+    if not df.empty:
+        return (df['DIVPipelineName'].iloc[0],df['SEGName'].iloc[0])
+
+def getNamesFromDruckErgIDBase(dfSegsNodesNDataDpkt
+                            ,DruckErgIDBase):
+    """
+    Returns tuple (DIVPipelineName,SEGName,SEGErgIDBase) from DruckErgIDBase
+    """    
+    df=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['DruckErgIDBase']==DruckErgIDBase]
+    if not df.empty:
+        #return (df['DIVPipelineName'].iloc[0],df['SEGName'].iloc[0],df['SEGErgIDBase'].iloc[0])
+        tripleLst=[]
+        for index,row in df.iterrows():
+            triple=(row['DIVPipelineName'],row['SEGName'],row['SEGErgIDBase'])
+            tripleLst.append(triple)    
+        return tripleLst
+    else:
+        return []
+
+def dfSegsNodesNDataDpkt(
+     VersionDir=r"C:\3s\Projekte\Projekt\04 - Versionen\Version82.3"
+    ,Model=r"MDBDOC\FBG.mdb" # a Access Model
+    ,
+    ):
+    """
+
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    dfSegsNodesNDataDpkt=pd.DataFrame()
+
+    try:             
+        # --- Einlesen Modell    
+        accFile=os.path.join(VersionDir,Model)
+        logger.debug("{:s}Access Model: {:s}".format(logStr,accFile)) 
+        am=Am.Am(accFile=accFile)
+
+        V_BVZ_RSLW=am.dataFrames['V_BVZ_RSLW']
+        V_BVZ_SWVT=am.dataFrames['V_BVZ_SWVT']
+        V3_KNOT=am.dataFrames['V3_KNOT']
+        V3_VBEL=am.dataFrames['V3_VBEL']
+        V3_DPKT=am.dataFrames['V3_DPKT']
+
+        # --- Segmente ermitteln
+        dfSegDefs=V_BVZ_RSLW[V_BVZ_RSLW['NAME']=='Segmentfoerderrichtung']
+        dfSegDefs=dfSegDefs[~dfSegDefs['BESCHREIBUNG'].isin([None
+                                                        ,'globale Vorgabe zu OfflineTest-Zwecken'
+                                                        ,'O_FoerderR_S - globale Vorgabe zu OfflineTest-Zwecken'
+                                                        ])]
+        dfSegDefs=dfSegDefs.sort_values(by=['BESCHREIBUNG'])[['pk','INDSLW','fkSWVT','BESCHREIBUNG']]
+        dfSegDefs[['SEG_Ki','SEG_Kk']]=dfSegDefs['BESCHREIBUNG'].str.split('~',expand=True)
+
+        dfSegDefsSwvt=pd.merge(dfSegDefs,V_BVZ_SWVT,left_on='fkSWVT',right_on='pk'
+                       ,how='left'
+                       ,suffixes=('','_SWVT'))
+        dfSegDefsSwvt=dfSegDefsSwvt[dfSegDefsSwvt['ZEIT'].isin([0,None])]
+
+        dfSegDefsSwvt=dfSegDefsSwvt[[
+                                 'pk'
+                                 #,'INDSLW'
+                                 #,'BESCHREIBUNG'
+                                 ,'SEG_Ki','SEG_Kk'
+                                 ### SWVT
+                                 ,'NAME','BESCHREIBUNG_SWVT'
+                                 #,'ZEIT'
+                               ]]
+        dfSegDefsSwvt=dfSegDefsSwvt.sort_values(by=['BESCHREIBUNG_SWVT']).reset_index(drop=True)
+        dfSegDefsSwvt['SEGName']=dfSegDefsSwvt['BESCHREIBUNG_SWVT'].apply(lambda x: fSEGNameFromSWVTBeschr(x))
+
+        # --- Segmentkantenzuege ermitteln
+        dfSegsNodeLst={} # nur zu Kontrollzwecken
+        dfSegsNode=[]
+        for index,row in dfSegDefsSwvt[~dfSegDefsSwvt['SEG_Kk'].isnull()].iterrows():        
+            df=Xm.Xm.constructShortestPathFromNodeList(df=V3_VBEL.reset_index()
+                                                    ,sourceCol='NAME_i'
+                                                    ,targetCol='NAME_k'
+                                                    ,nl=[row['SEG_Ki'],row['SEG_Kk']]
+                                                    ,weight=None,query=None,fmask=None,filterNonQ0Rows=True)    
+    
+            s=pd.concat([pd.Series([row['SEG_Ki']]),df['nextNODE']])
+            s.name=row['SEGName']
+    
+            dfSegsNodeLst[row['SEGName']]=s.reset_index(drop=True)
+    
+            df2=pd.DataFrame(s.reset_index(drop=True)).rename(columns={s.name:'NODEs'})
+            df2['SEGName']=s.name
+            df2=df2[['SEGName','NODEs']]
+    
+            sObj=pd.concat([pd.Series(['None']),df['OBJTYPE']])
+            sObj.name='OBJTYPE'    
+    
+            df3=pd.concat([df2,pd.DataFrame(sObj.reset_index(drop=True))],axis=1)
+    
+            df4=df3.reset_index().rename(columns={'index':'NODEsLfdNr','NODEs':'NODEsName'})[['SEGName','NODEsLfdNr','NODEsName','OBJTYPE']]
+            df4['NODEsType']=df4.apply(lambda row: row['NODEsLfdNr'] if row['NODEsLfdNr'] < df4.index[-1] else -1, axis=1)
+            df4=df4[['SEGName','NODEsLfdNr','NODEsType','NODEsName','OBJTYPE']]
+    
+            dfSegsNode.append(df4)        
+        dfSegsNodes=pd.concat(dfSegsNode).reset_index(drop=True)
+        dfSegsNodes['NODEsRef']=dfSegsNodes.sort_values(
+            by=['NODEsName','NODEsType','SEGName']
+            ,ascending=[True,False,True]).groupby(['NODEsName']).cumcount() + 1
+        dfSegsNodes=pd.merge(dfSegsNodes,dfSegsNodes.groupby(['NODEsName']).max(),left_on='NODEsName',right_index=True,suffixes=('','_max'))
+        dfSegsNodes=dfSegsNodes[['SEGName','NODEsRef_max','NODEsLfdNr','NODEsType','NODEsName','OBJTYPE']]
+        dfSegsNodes=dfSegsNodes.rename(columns={'NODEsLfdNr':'NODEsSEGLfdNr','NODEsType':'NODEsSEGLfdNrType'})
+
+        # --- Knotendaten ergaenzen
+        dfSegsNodesNData=pd.merge(dfSegsNodes,V3_KNOT, left_on='NODEsName',right_on='NAME',suffixes=('','KNOT'))
+        dfSegsNodesNData=dfSegsNodesNData.filter(items=dfSegsNodes.columns.to_list()+['ZKOR','NAME_CONT','NAME_VKNO','pk'])
+        dfSegsNodesNData=dfSegsNodesNData.rename(columns={'NAME_CONT':'Blockname','NAME_VKNO':'Bl.Kn. fuer Block'})
+
+        # --- Knotendatenpunktdaten ergänzen
+        V3_DPKT_KNOT=pd.merge(V3_DPKT,V3_KNOT,left_on='fkOBJTYPE',right_on='pk',suffixes=('','_KNOT'))
+        V3_DPKT_KNOT_PH=V3_DPKT_KNOT[V3_DPKT_KNOT['ATTRTYPE'].isin(['PH'])]
+
+        # Mehrfacheintraege sollte es nicht geben ...
+        # V3_DPKT_KNOT_PH[V3_DPKT_KNOT_PH.duplicated(subset=['fkOBJTYPE'])]
+
+        df=pd.merge(dfSegsNodesNData,V3_DPKT_KNOT_PH,left_on='pk',right_on='fkOBJTYPE',suffixes=('','_DPKT'),how='left')
+        cols=dfSegsNodesNData.columns.to_list()
+        cols.remove('pk')
+        df=df.filter(items=cols+['ATTRTYPE','CLIENT_ID','OPCITEM_ID','NAME'])
+        dfSegsNodesNDataDpkt=df
+        dfSegsNodesNDataDpkt
+
+
+        # ---
+        colList=dfSegsNodesNDataDpkt.columns.to_list()
+        dfSegsNodesNDataDpkt['DIVPipelineName']=dfSegsNodesNDataDpkt['SEGName'].apply(lambda x: re.search('(\d+)_(\w+)_(\w+)_(\w+)',x).group(1)+'_'+re.search('(\d+)_(\w+)_(\w+)_(\w+)',x).group(3) )
+        dfSegsNodesNDataDpkt=dfSegsNodesNDataDpkt.filter(items=['DIVPipelineName']+colList)
+
+        dfSegsNodesNDataDpkt=dfSegsNodesNDataDpkt.sort_values(by=['DIVPipelineName','SEGName','NODEsSEGLfdNr']).reset_index(drop=True)
+
+        dfSegsNodesNDataDpkt['DruckErgIDBase']=dfSegsNodesNDataDpkt['OPCITEM_ID'].apply(lambda x: fGetBaseIDFromErgID(x) )
+        dfSegsNodesNDataDpkt['SEGErgIDBase']=dfSegsNodesNDataDpkt['SEGName'].apply(lambda x: 'Objects.3S_FBG_SEG_INFO.3S_L_'+x+'.In.')
+
+
+                                                                                                                   
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return dfSegsNodesNDataDpkt
+
+
+def fErgValidSeriesSTAT_S(x): # STAT_S
+    if pd.isnull(x)==False:
+        if x >=0:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+def fErgValidSeriesAL_S(x,value=20): # AL_S
+    if pd.isnull(x)==False:
+        if x==value:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+def fErgValidSeriesAL_S10(x): 
+    return fErgValidSeriesAL_S(x,value=10)
+def fErgValidSeriesAL_S4(x): 
+    return fErgValidSeriesAL_S(x,value=4)
+def fErgValidSeriesAL_S3(x): 
+    return fErgValidSeriesAL_S(x,value=3)
+    
+fErgValidSeriesDct={}
+fErgValidSeriesDct['STAT_S']=fErgValidSeriesSTAT_S
+fErgValidSeriesDct['AL_S']=fErgValidSeriesAL_S
+fErgValidSeriesDct['AL_S10']=fErgValidSeriesAL_S10
+fErgValidSeriesDct['AL_S4']=fErgValidSeriesAL_S4
+fErgValidSeriesDct['AL_S3']=fErgValidSeriesAL_S3
+
+exts=['STAT_S','AL_S','AL_S10','AL_S4','AL_S3'] # Erg-Kanaele und abgeleitete Erg-Kanäle fuer Statistik
+# (fast) alle verfuegbaren Erg-Kanaele
+extsAll=['AL_S','STAT_S','SB_S','MZ_AV','LR_AV','NG_AV','LP_AV','AC_AV','ACCST_AV','ACCTR_AV','ACF_AV','TIMER_AV','AM_AV','DNTD_AV','DNTP_AV','DPDT_AV','DPDT_REF_AV','QM_AV','ZHKNR_S']
+
+def fGetErgs(
+    ErgIDBases
+   ,df
+   ,exts=exts
+   ,fErgValidSeriesDct=fErgValidSeriesDct
+):
+    """
+    Return: dct mit ErgIDBases als Schluessel
+            value: dct mit den geforderten Schluesseln exts; values: Liste mit Zeitpaaren oder leere Liste
+    """
+    ErgsDct={}
+    for ErgIDBase in ErgIDBases:
+        tPairsDct={}
+
+        for ext in exts:
+
+            ID=ErgIDBase+ext
+
+            if ID in df:     
+                #print("{:s} in Ergliste".format(ID))
+                tPairs=findAllTimeIntervallsSeries(
+                            s=df[ID].dropna()  #!                             
+                           ,fct=fErgValidSeriesDct[ext]                           
+                           ,tdAllowed=pd.Timedelta('1 second')
+                                        )                            
+            else:
+                #print("{:s} nicht in Ergliste".format(ID))
+                tPairs=[]
+            tPairsDct[ext]=tPairs
+
+        ErgsDct[ErgIDBase]=tPairsDct
+    return ErgsDct
+
+def fTotalTimeFromPairs(
+     x
+    ,denominator=None # i.e. pd.Timedelta('1 minute') for totalTime in Minutes
+    ,roundToInt=True # round to and return as int if denominator is specified; else td is rounded by 2
+):
+    tdTotal=pd.Timedelta('0 seconds')
+    for idx,tPairs in enumerate(x):
+
+        t1,t2=tPairs
+        if idx==0:
+            tLast=t2                
+        else:
+            if t1 <= tLast:
+                print("Zeitpaar überlappt?!")        
+        td=t2-t1
+        if td < pd.Timedelta('1 seconds'):
+            print("Zeitpaar < als 1 Sekunde?!")     
+        
+        
+        tdTotal=tdTotal+td
+    if denominator==None:
+        return tdTotal
+    else:
+        td=tdTotal / denominator
+        if roundToInt:
+            td=int(round(td,0))
+        else:
+            td=round(td,2)
+        return td
+
+def getAlarmStatistikData(    
+     h5File='a.h5'   
+    ,dfSegsNodesNDataDpkt=pd.DataFrame()     
+    ):
+    """
+    Returns TCsLDSRes1,TCsLDSRes2
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    TCsLDSRes1=pd.DataFrame()
+    TCsLDSRes2=pd.DataFrame()
+
+    try:             
+        # "connect" to the App Logs  
+        lx=Lx.AppLog(h5File=h5File) 
+
+        if hasattr(lx, 'h5FileLDSRes'):
+            logger.error("{0:s}{1:s}".format(logStr,'In den TCs nur Res und nicht Res1 und Res2?!')) 
+            raise RmError
+       
+        # zu lesende Daten ermitteln
+        l=dfSegsNodesNDataDpkt['DruckErgIDBase'].unique()
+        l = l[~pd.isnull(l)]
+        DruckErgIDs=[*[ID+'AL_S' for ID in l],*[ID+'STAT_S' for ID in l],*[ID+'SB_S' for ID in l]]
+        #
+        l=dfSegsNodesNDataDpkt['SEGErgIDBase'].unique()
+        l = l[~pd.isnull(l)]
+        SEGErgIDs=[*[ID+'AL_S' for ID in l],*[ID+'STAT_S' for ID in l],*[ID+'SB_S' for ID in l]]
+        ErgIDs=[*DruckErgIDs,*SEGErgIDs]
+        
+        # Daten lesen
+        TCsLDSRes1,TCsLDSRes2=lx.getTCsFromH5s(LDSResOnly=True,LDSResColsSpecified=ErgIDs) 
+
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return TCsLDSRes1,TCsLDSRes2
+
+def getAlarmStatistikAlarms(    
+     TCsLDSRes1=pd.DataFrame()
+    ,TCsLDSRes2=pd.DataFrame()
+    ,dfSegsNodesNDataDpkt=pd.DataFrame()
+    
+    ):
+    """
+
+    Returns: SEGErgsDct,DruckErgsDct,SEGDruckErgsDct
+
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:             
+      
+        # noch zu klaeren
+        TCsLDSRes1NonDup=TCsLDSRes1[~TCsLDSRes1.index.duplicated(keep='first')]
+        TCsLDSRes2NonDup=TCsLDSRes2[~TCsLDSRes2.index.duplicated(keep='first')]
+
+        # Zeiten SEGErgs mit zustaendig und Alarm
+        SEGErgsDct=fGetErgs(dfSegsNodesNDataDpkt['SEGErgIDBase'].unique(),TCsLDSRes1)
+        # verschiedene Auspraegungen SB_S pro Alarmzeit ermitteln
+        for idx,(ID,tPairsDct) in enumerate(SEGErgsDct.items()):            
+            tPairs=tPairsDct['AL_S']
+            SB_S_tPairs=[]           
+            if tPairs != []:        
+                for tPair in tPairs:                    
+                    col=ID+'SB_S'                    
+                    SB_S_tPair=TCsLDSRes1NonDup.loc[tPair[0]:tPair[1],col].unique()
+                    SB_S_tPair=[int(x) for x in SB_S_tPair if pd.isnull(x)==False]
+                    SB_S_tPairs.append(sorted(SB_S_tPair))
+            tPairsDct['AL_S_SB_S']=SB_S_tPairs    
+            SEGErgsDct[ID]=tPairsDct
+
+        logger.debug("{:s}SEGErgsDct: {!s:s}".format(logStr,SEGErgsDct))
+
+        # Zeiten DruckErgs mit zustaendig und Alarm
+        l=dfSegsNodesNDataDpkt['DruckErgIDBase'].unique()
+        DruckErgsDct=fGetErgs(l[l != np.array(None)],TCsLDSRes2)
+
+        # Zeiten der Druckergs zu SEG-Zeiten zusammenfassen
+        # dabei keine identischen Zeiten mehrfach zaehlen
+        # SEGDruckErgsDct enthaelt fuer ein SEG bzgl. Ruhebetrieb das, was SEGErgsDct für Foerderbetrieb enthaelt
+        # allerdings enthaelt SEGDruckErgsDct nicht notwendig alle SEGs sondern nur die, von denen auf DruckErgs verwiesen wird
+        # und von den "exts" sind auch nur die in den DruckErgs vorhandenen verfuegbar
+
+        SEGDruckErgsDct={}
+
+        # über alle DruckErgs
+        for idx,(ID,tPairsDct) in enumerate(DruckErgsDct.items()):
+    
+            # SEG ermitteln
+    
+            # ein DruckErg kann zu mehreren SEGs gehoeren z.B. gehoert ein Verzweigungsknoten i.d.R. zu 3 versch. SEGs
+            tripleLst=getNamesFromDruckErgIDBase(dfSegsNodesNDataDpkt,ID)            
+     
+            for (DIVPipelineName,SEGName,SEGErgIDBase) in tripleLst:      
+                if SEGErgIDBase not in SEGDruckErgsDct.keys():
+                    # auf dieses SEG wurde noch nie verwiesen
+                    SEGDruckErgsDct[SEGErgIDBase]=tPairsDct # alle Druckergs haben dieselbe Menge an exts; es koennnen also beim Ergaenzen keine fehlen
+                else:
+                    for idx2,ext in enumerate(exts):
+                        tPairs=tPairsDct[ext]
+                        for idx3,tPair in enumerate(tPairs):            
+                            if tPair not in SEGDruckErgsDct[SEGErgIDBase][ext]: #  keine identischen Zeiten mehrfach zaehlen
+                                SEGDruckErgsDct[SEGErgIDBase][ext].append(tPair)
+
+        # Ergebnis: sortieren und dann angrenzende oder ueberlappende Zeiten zusammenfassen
+        for idx,(ID,tPairsDct) in enumerate(SEGDruckErgsDct.items()):
+            for idx2,ext in enumerate(tPairsDct.keys()):        
+                tPairs=tPairsDct[ext]
+                tPairs=sorted(tPairs,key=lambda tup: tup[0])
+                tPairs=fCombineSubsequenttPairs(tPairs)
+                SEGDruckErgsDct[ID][ext]=tPairs
+
+        # verschiedene Auspraegungen SB_S pro Alarmzeit ermitteln
+        for idx,(ID,tPairsDct) in enumerate(SEGDruckErgsDct.items()):
+    
+            #DruckErgPVs zum SEG ermitteln
+            lDruckSBS=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['SEGErgIDBase']==ID]['DruckErgIDBase'].unique()
+            lDruckSBS=lDruckSBS[lDruckSBS != np.array(None)]
+            lDruckSBS=[x+'SB_S' for x in lDruckSBS]           
+    
+            for DruckSBS in lDruckSBS:
+                if DruckSBS not in TCsLDSRes2NonDup.columns.to_list():
+                    lDruckSBS.remove(DruckSBS)
+                    logger.warning("{:s}SEG: {:s}: zugeh. Druck-PV: {:s} taucht gar nicht in den Ergebnissen auf?! Nur Foerderbetrieb?!".format(logStr,ID,DruckSBS))                    
+            
+            # verschiedene Auspraegungen SB_S pro Alarmzeit ermitteln
+            tPairs=tPairsDct['AL_S']
+            SB_S_tPairs=[]            
+            if tPairs != []:        
+                for tPair in tPairs:
+                    #print(tPair)
+                    df=TCsLDSRes2NonDup.loc[tPair[0]:tPair[1],lDruckSBS]
+                    l=pd.unique(df.values.ravel('K'))
+                    l = l[~np.isnan(l)]
+                    l=sorted([int(x) for x in l])
+                    SB_S_tPairs.append(l)
+            tPairsDct['AL_S_SB_S']=SB_S_tPairs  
+            SEGDruckErgsDct[ID]=tPairsDct 
+
+        logger.debug("{:s}SEGDruckErgsDct: {!s:s}".format(logStr,SEGDruckErgsDct))
+                                                                                                                   
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return SEGErgsDct,DruckErgsDct,SEGDruckErgsDct
+
+
+def dfAlarmStatistik(    
+     TCsLDSRes1=pd.DataFrame()
+    ,TCsLDSRes2=pd.DataFrame()
+    ,dfSegsNodesNDataDpkt=pd.DataFrame()
+    
+    ):
+    """
+
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    dfAlarmStatistik=pd.DataFrame()
+
+    try:             
+
+        SEGErgsDct,DruckErgsDct,SEGDruckErgsDct=getAlarmStatistikAlarms(    
+         TCsLDSRes1
+        ,TCsLDSRes2
+        ,dfSegsNodesNDataDpkt    
+        )
+
+        # Alarmstatistik bilden
+        dfAlarmStatistik=dfSegsNodesNDataDpkt[['DIVPipelineName','SEGName','SEGErgIDBase']].drop_duplicates(keep='first').reset_index(drop=True)
+
+        dfAlarmStatistik['FörderZeiten']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['STAT_S'])
+        dfAlarmStatistik['FörderZeitenAl']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S'])
+
+        dfAlarmStatistik['FörderZeitenAl10']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S10'])
+        dfAlarmStatistik['FörderZeitenAl4']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S4'])
+        dfAlarmStatistik['FörderZeitenAl3']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S3'])
+
+        dfAlarmStatistik['FörderZeitenAlAnz']=dfAlarmStatistik['FörderZeitenAl'].apply(lambda x: len(x))
+        dfAlarmStatistik['FörderZeitenAlSbs']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S_SB_S'])
+
+        dfAlarmStatistik['RuheZeiten']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['STAT_S'] if x in SEGDruckErgsDct.keys() else [])
+        dfAlarmStatistik['RuheZeitenAl']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S'] if x in SEGDruckErgsDct.keys() else [])
+
+        dfAlarmStatistik['RuheZeitenAl10']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S10'] if x in SEGDruckErgsDct.keys() else [])
+        dfAlarmStatistik['RuheZeitenAl4']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S4'] if x in SEGDruckErgsDct.keys() else [])
+        dfAlarmStatistik['RuheZeitenAl3']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S3'] if x in SEGDruckErgsDct.keys() else [])
+
+        dfAlarmStatistik['RuheZeitenAlAnz']=dfAlarmStatistik['RuheZeitenAl'].apply(lambda x: len(x))
+        dfAlarmStatistik['RuheZeitenAlSbs']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S_SB_S'] if x in SEGDruckErgsDct.keys() else [])
+
+        dfAlarmStatistik['FörderZeit']=dfAlarmStatistik['FörderZeiten'].apply(lambda x: fTotalTimeFromPairs(x,pd.Timedelta('1 minute'),False))
+        dfAlarmStatistik['RuheZeit']=dfAlarmStatistik['RuheZeiten'].apply(lambda x: fTotalTimeFromPairs(x,pd.Timedelta('1 minute'),False))
+        dfAlarmStatistik['FörderZeitAl']=dfAlarmStatistik['FörderZeitenAl'].apply(lambda x: fTotalTimeFromPairs(x,pd.Timedelta('1 minute'),False))
+        dfAlarmStatistik['RuheZeitAl']=dfAlarmStatistik['RuheZeitenAl'].apply(lambda x: fTotalTimeFromPairs(x,pd.Timedelta('1 minute'),False))        
+                                                                                                                   
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return dfAlarmStatistik
+
+def plotDfAlarmStatistik(    
+     dfAlarmStatistik=pd.DataFrame()    
+    ):
+    """
+    Returns the plt.table
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    df=dfAlarmStatistik[[
+        'DIVPipelineName'
+       ,'SEGName'
+
+       ,'FörderZeit'
+       ,'FörderZeitenAlAnz'
+       ,'FörderZeitAl'
+
+       ,'RuheZeit'
+       ,'RuheZeitenAlAnz'
+       ,'RuheZeitAl'       
+        ]]
+
+    try:             
+      
+        t=plt.table(cellText=df.values, colLabels=df.columns, loc='center')    
+
+        cols=df.columns.to_list()
+        colIdxFoerderZeit=cols.index('FörderZeit')
+        colIdxFoerderZeitenAlAnz=cols.index('FörderZeitenAlAnz')
+        colIdxRuheZeit=cols.index('RuheZeit')
+        colIdxRuheZeitenAlAnz=cols.index('RuheZeitenAlAnz')
+        cells = t.properties()["celld"]
+        for cellTup,cellObj in cells.items():
+            cellObj.set_text_props(ha='left')
+    
+            row,col=cellTup # row: 0 fuer Ueberschrift bei Ueberschrift; col mit 0
+    
+            if col == colIdxFoerderZeit:
+        
+                if row==0:
+                    continue
+        
+                if df.loc[row-1,'FörderZeit']==0:
+                    pass
+                    #cellObj.set_text_props(backgroundcolor='lightgrey')
+                
+            if col == colIdxFoerderZeitenAlAnz:
+        
+                if row==0:
+                    continue
+        
+                if df.loc[row-1,'FörderZeit']==0:
+                    cellObj.set_text_props(backgroundcolor='lightgrey')               
+                else: # hat Förderzeit
+                    if df.loc[row-1,'FörderZeitenAlAnz']==0:
+                        cellObj.set_text_props(backgroundcolor='springgreen')       
+                    else:
+                        pass
+                        cellObj.set_text_props(ha='center')
+                        cellObj.set_text_props(backgroundcolor='navajowhite')       
+                
+            if col == colIdxRuheZeitenAlAnz:
+        
+                if row==0:
+                    continue
+        
+                if df.loc[row-1,'RuheZeit']==0:
+                    cellObj.set_text_props(backgroundcolor='lightgrey')               
+                else: # hat Ruhezeit
+                    if df.loc[row-1,'RuheZeitenAlAnz']==0:
+                        cellObj.set_text_props(backgroundcolor='springgreen')       
+                    else:
+                        pass
+                        cellObj.set_text_props(ha='center')
+                        cellObj.set_text_props(backgroundcolor='navajowhite')                    
+                
+            
+    
+    
+
+        plt.axis('off')       
+                                                                                                                   
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return t
+
+def getLDSResVecDf(
+     ErgIDBase='ID.' # ErgVec-Defining-Channel; i.e. for Segs Objects.3S_XYZ_SEG_INFO.3S_L_6_EL1_39_TUD.In. / i.e. for Drks Objects.3S_XYZ_DRUCK.3S_6_EL1_39_PTI_02_E.In.
+    ,LDSResType='SEG' # Druck
+    ,lx=None
+    ,timeStart=None,timeEnd=None
+    ,exts=extsAll
+    ):
+    """
+    returns a df with LDSResChannels as columns (AL_S, ...)
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    dfResVec=pd.DataFrame()
+    try:
+
+        # zu lesende IDs basierend auf ErgIDBase bestimmen 
+        ErgIDs=[ErgIDBase+ext for ext in exts]
+        IMDIErgIDs=['IMDI.'+ID for ID in ErgIDs]
+        ErgIDsAll=[*ErgIDs,*IMDIErgIDs]
+        
+        # Daten lesen
+        dfFiltered=lx.getTCsFromH5s(timeStart=timeStart,timeEnd=timeEnd,LDSResOnly=True,LDSResColsSpecified=ErgIDsAll,LDSResTypeSpecified=LDSResType) 
+        
+        colDct={}
+        for col in dfFiltered.columns:            
+            m=re.search(Lx.pID,col)
+            colDct[col]=m.group('E')
+        dfResVec=dfFiltered.rename(columns=colDct)        
+
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)     
+        
+    finally:
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+        return dfResVec
+
+def plotDfAlarmStatistikReportsSEGErgs( 
+     h5File='a.h5'   
+    ,dfAlarmStatistik=pd.DataFrame()    
+    ,timeStart=None,timeEnd=None
+    ,SEGErgsFile='SEGErgs.pdf'
+    ,stopAtSEGNr=None
+    ):
+    """
+    Returns 
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    try:   
+        
+        lx=Lx.AppLog(h5File=h5File)  
+
+        with PdfPages(SEGErgsFile) as pdf:
+    
+            for idx,(index,row) in enumerate(dfAlarmStatistik.iterrows()):
+
+                if stopAtSEGNr != None:
+                    if idx>=stopAtSEGNr:                        
+                        break
+
+                # Erg lesen
+                ErgIDBase=row['SEGErgIDBase']               
+                dfSegReprVec=getLDSResVecDf(ErgIDBase=ErgIDBase,LDSResType='SEG',lx=lx,timeStart=timeStart,timeEnd=timeEnd)
+
+                ID='AL_S'
+                if ID not in dfSegReprVec.keys():
+                    continue # keine leeren Seiten drucken
+                        # -----------------------------------------------------
+                        #fig=plt.figure(figsize=DINA4q,dpi=dpiSize) 
+                        #ax=fig.gca()              
+                        #ax.set_title("Nr. {:2d} - {:s}: {:s}: AL_S: nicht in Datenbasis (ggf. kein Förderbetrieb)".format(idx+1
+                        #              ,row['SEGName']                          
+                        #              ,row['SEGErgIDBase'])
+                        #              ,loc='left') 
+                        #fig.tight_layout(pad=2.) 
+                        #pdf.savefig()  
+                        #plt.close()
+                        # -----------------------------------------------------
+            
+            
+                # -----------------------------------------------------
+                fig=plt.figure(figsize=DINA4q,dpi=dpiSize) 
+                ax=fig.gca()          
+
+                pltLDSErgVec(
+                 ax
+                ,dfSegReprVec=dfSegReprVec # Ergebnisvektor SEG; pass empty Df if Druck only    
+                ,dfDruckReprVec=pd.DataFrame() # Ergebnisvektor DRUCK; pass empty Df if Seg only    
+
+                ,xlim=(timeStart,timeEnd)   
+            
+                ,dateFormat='%d.%m.%y: %H:%M'#:%S'
+                ,bysecond=None#[0,15,30,45]
+                ,byminute=[0,30]
+
+                ,ylimAL=(0,40)
+                ,yticksAL=[0,10,20,30,40]
+
+                ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
+                ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
+
+                ,ylimR=(-45,45) 
+                ,ylimRxlim=False 
+                ,yticksR=[0,2,4,10,15,30,45] 
+
+                # dito Beschl.
+                ,ylimAC=(-5,5)
+                ,ylimACxlim=False 
+                ,yticksAC=[-5,0,5] 
+
+                ,ySpanMin=0.9 # wenn ylim R/AC undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
+
+                ,plotLegend=True    
+                ,legendLoc='best'
+                ,legendFramealpha=.2
+                ,legendFacecolor='white' 
+
+                #,attrsDctLDS=attrsDctLDS         
+
+                ,plotLPRate=True
+                ,plotR2FillSeg=True 
+                ,plotR2FillDruck=True         
+
+                ,plotAC=True      
+                ,plotACCLimits=True
+
+                ,highlightAreas=True 
+                ,Seg_Highlight_Color='cyan'
+                ,Seg_Highlight_Alpha=.1     
+                ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False      
+                ,Seg_HighlightError_Color='peru'
+                ,Seg_Highlight_Alpha_Error=.3     
+                ,Seg_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False   
+
+                ,Druck_Highlight_Color='cyan'
+                ,Druck_Highlight_Alpha=.1
+                ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
+                ,Druck_HighlightError_Color='peru'
+                ,Druck_Highlight_Alpha_Error=.3
+                ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
+
+                ,plotTV=True
+                ,plotTVTimerFct=None 
+                ,plotTVAmFct=lambda x: x*100 
+                ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
+                ,ylimTV=(0,300)
+                ,yticksTV=[0,100,180,200,300]    
+                )    
+        
+                txt="SEG: FörderZeitenAlAnz: {:d}".format(row['FörderZeitenAlAnz'])        
+                ax.text(.98, .1,txt,
+                horizontalalignment='right',
+                verticalalignment='center',
+                transform=ax.transAxes)
+        
+
+                ax.set_title( "Nr. {:2d} - {:s}: {:s}".format(idx+1
+                              ,row['SEGName']                      
+                              ,row['SEGErgIDBase'])                     
+                              ,loc='left'
+                            ) 
+                fig.tight_layout(pad=2.) 
+                pdf.savefig()  
+                plt.close()        
+      
+       
+                                                                                                                   
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return 
 
 from itertools import tee
 def pairwise(iterable):
@@ -1600,7 +2422,7 @@ def findAllTimeIntervallsSeries(
 # returns array of Time-Pair-Tuples
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
     tPairs=[]
 
@@ -1690,7 +2512,7 @@ def findAllTimeIntervallsSeries(
         logger.error(logStrFinal) 
         raise RmError(logStrFinal)                       
     finally:       
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
         return tPairs
 
 def fCombineSubsequenttPairs(
@@ -1700,7 +2522,7 @@ def fCombineSubsequenttPairs(
 # returns tPairs 
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
     try:
 
@@ -1722,7 +2544,7 @@ def fCombineSubsequenttPairs(
         logger.error(logStrFinal) 
         raise RmError(logStrFinal)                       
     finally:       
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
         return tPairs
 
 

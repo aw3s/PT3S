@@ -54,7 +54,6 @@ class LxError(Exception):
     def __str__(self):
         return repr(self.value)
 
-
 def getTCsOPCDerivative(TCsOPC,col,shiftSize,windowSize,fct=None):
     """
     returns a df
@@ -830,6 +829,68 @@ class AppLog():
             raise LxError(logStrFinal)                       
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+
+
+    def getTotalLogTime(self):
+        """       
+        Returns Tuple: firstTime,lastTime,tdTotalGross,tdTotal,tdBetweenFilesTotal # Brutto-Logzeit, Netto-Logzeit, Summe aller Zeiten zwischen 2 Logdateien (sollte = Brutto-Netto sein)
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:  
+
+            # Inhalt der Logs
+            tdTotal=pd.Timedelta('0 Seconds')
+            tdBetweenFilesTotal=pd.Timedelta('0 Seconds')
+            for idx,(index,row) in enumerate(self.lookUpDf.iterrows()):               
+                if idx > 0:
+        
+                    tdBetweenFiles=row["FirstTime"]-lastTime
+                    tdBetweenFilesTotal=tdBetweenFilesTotal+tdBetweenFiles
+        
+                    if tdBetweenFiles > pd.Timedelta('0 second'):
+                        print("Zeitdifferenz: {!s:s} zwischen {:s} ({:s}) und {:s} ({:s})".format(
+                            str(tdBetweenFiles).replace('days','Tage')
+                            ,lastFile,lastZip
+                            ,row["logName"],row["zipName"]
+                        ))        
+                    if tdBetweenFiles < pd.Timedelta('0 second'):            
+                        if tdBetweenFiles < -pd.Timedelta('1 second'):
+                            print("Zeitueberlappung > 1s: {!s:s} zwischen {:s} ({:s}) und {:s} ({:s})".format(
+                                str(tdBetweenFiles).replace('days','Tage')
+                                ,lastFile,lastZip
+                                ,row["logName"],row["zipName"]     
+                            ))
+            
+                td=row["LastTime"]-row["FirstTime"]
+                if type(td) == pd.Timedelta:    
+                    tdTotal=tdTotal+td
+                else:
+                    print(index)# Fehler!
+                lastTime=row["LastTime"]
+                lastFile=row["logName"]
+                lastZip=row["zipName"]      
+                
+            firstTime=self.lookUpDf.iloc[0]["FirstTime"]    
+            lastTime=self.lookUpDf.iloc[-1]["LastTime"]
+            tdTotalGross=lastTime-firstTime
+            tdTotalGross,tdTotal,tdBetweenFilesTotal
+
+                            
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+            return firstTime,lastTime,tdTotalGross,tdTotal,tdBetweenFilesTotal
+
+
+
+
+
 
     def shrinkH5File(self):
         """       
@@ -1619,7 +1680,7 @@ class AppLog():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return
 
-    def getTCsFromH5s(self,timeStart=None,timeEnd=None, LDSResOnly=False, LDSResColsSpecified=None):
+    def getTCsFromH5s(self,timeStart=None,timeEnd=None, LDSResOnly=False, LDSResColsSpecified=None, LDSResTypeSpecified=None):
         """
         returns several TC-dfs from TC-H5s:
             TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2
@@ -1631,10 +1692,13 @@ class AppLog():
             or
             TCsdfLDSRes       
             
-            LDSResColsSpecified:
-            return in LDSRes dfs only the specified cols
-            all cols are returned otherwise
-        
+                LDSResColsSpecified:
+                return in LDSRes df(s) only the specified cols
+                all cols are returned otherwise
+
+                LDSResTypeSpecified:
+                return 1 (SEG) for 'SEG' or 2 (Druck) for 'Druck'
+                both are returned otherwise
         """ 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -1650,7 +1714,7 @@ class AppLog():
             TCsdfOPC=pd.DataFrame()
             TCsdfSirCalc=pd.DataFrame()
             TCsdfLDSIn=pd.DataFrame()
-            if Res2:
+            if Res2:                
                 TCsdfLDSRes1=pd.DataFrame()
                 TCsdfLDSRes2=pd.DataFrame()
             else:
@@ -1690,25 +1754,27 @@ class AppLog():
                     TCsdfLDSIn=pd.read_hdf(self.h5FileLDSIn,h5KeyLDSIn)
 
                 if Res2:
-                    logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes1 ...'))                      
-                    TCsdfLDSRes1=pd.read_hdf(self.h5FileLDSRes1,h5KeyLDSRes1)
-                    logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2 ...'))                      
-                    TCsdfLDSRes2=pd.read_hdf(self.h5FileLDSRes2,h5KeyLDSRes2)
+                    if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
+                        logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes1 ...'))                      
+                        TCsdfLDSRes1=pd.read_hdf(self.h5FileLDSRes1,h5KeyLDSRes1)
+                    if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
+                        logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2 ...'))                      
+                        TCsdfLDSRes2=pd.read_hdf(self.h5FileLDSRes2,h5KeyLDSRes2)
                 else:                   
                     logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes ...'))                    
                     TCsdfLDSRes=pd.read_hdf(self.h5FileLDSRes,h5KeyLDSRes)
 
-                if LDSResColsSpecified != None:
-                    pass
+                if LDSResColsSpecified != None:                    
                     if Res2:
-                        logger.debug("{0:s}{1:s} {2:s}".format(logStr,'TCsdfLDSRes1 Filter ...',str(LDSResColsSpecified)))                      
-                        TCsdfLDSRes1=TCsdfLDSRes1.filter(items=LDSResColsSpecified)
-                        logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2 Filter ...'))                      
-                        TCsdfLDSRes2=TCsdfLDSRes2.filter(items=LDSResColsSpecified)
+                        if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
+                            logger.debug("{0:s}{1:s} {2:s}".format(logStr,'TCsdfLDSRes1 Filter ...',str(LDSResColsSpecified)))                      
+                            TCsdfLDSRes1=TCsdfLDSRes1.filter(items=LDSResColsSpecified)
+                        if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
+                            logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2 Filter ...'))                      
+                            TCsdfLDSRes2=TCsdfLDSRes2.filter(items=LDSResColsSpecified)
                     else:                   
                         logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes Filter ...'))                    
                         TCsdfLDSRes=TCsdfLDSRes.filter(items=LDSResColsSpecified)
-
 
                 if idx==0:
                     if not LDSResOnly:
@@ -1716,11 +1782,12 @@ class AppLog():
                         TCsdfSirCalcLst=[]
                         TCsdfLDSInLst=[]
                     if Res2:
-                        TCsdfLDSRes1Lst=[]
-                        TCsdfLDSRes2Lst=[]
+                        if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
+                            TCsdfLDSRes1Lst=[]
+                        if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
+                            TCsdfLDSRes2Lst=[]
                     else:
                         TCsdfLDSResLst=[]
-
                     
                 logger.debug("{0:s}Append ...".format(logStr)) 
 
@@ -1729,8 +1796,10 @@ class AppLog():
                     TCsdfSirCalcLst.append(TCsdfSirCalc)
                     TCsdfLDSInLst.append(TCsdfLDSIn)
                 if Res2:
-                    TCsdfLDSRes1Lst.append(TCsdfLDSRes1)
-                    TCsdfLDSRes2Lst.append(TCsdfLDSRes2)
+                    if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
+                        TCsdfLDSRes1Lst.append(TCsdfLDSRes1)
+                    if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
+                        TCsdfLDSRes2Lst.append(TCsdfLDSRes2)
                 else:
                     TCsdfLDSResLst.append(TCsdfLDSRes)
 
@@ -1741,8 +1810,10 @@ class AppLog():
                 TCsdfSirCalc=pd.concat(TCsdfSirCalcLst)
                 TCsdfLDSIn=pd.concat(TCsdfLDSInLst)
             if Res2:
-                TCsdfLDSRes1=pd.concat(TCsdfLDSRes1Lst)
-                TCsdfLDSRes2=pd.concat(TCsdfLDSRes2Lst)
+                if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
+                    TCsdfLDSRes1=pd.concat(TCsdfLDSRes1Lst)
+                if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
+                    TCsdfLDSRes2=pd.concat(TCsdfLDSRes2Lst)
             else:
                 TCsdfLDSRes=pd.concat(TCsdfLDSResLst)
                                                                     
@@ -1759,7 +1830,12 @@ class AppLog():
                     return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes
             else:
                 if Res2:
-                    return TCsdfLDSRes1,TCsdfLDSRes2
+                    if LDSResTypeSpecified == None:
+                        return TCsdfLDSRes1,TCsdfLDSRes2
+                    elif LDSResTypeSpecified=='SEG':
+                        return TCsdfLDSRes1
+                    elif LDSResTypeSpecified=='Druck':
+                        return TCsdfLDSRes2
                 else:
                     return TCsdfLDSRes
 
