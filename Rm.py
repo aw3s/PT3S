@@ -925,6 +925,10 @@ def plotDfAlarmStatistikReportsSEGErgs(
     ,timeStart=None,timeEnd=None
     ,SEGErgsFile='SEGErgs.pdf'
     ,stopAtSEGNr=None
+    ,dateFormat='%y.%m.%d: %H:%M:%S'
+    ,byhour=[0,3,6,9,12,15,18,21]
+    ,byminute=None
+    ,bysecond=None  
     ):
     """
     Returns 
@@ -936,6 +940,14 @@ def plotDfAlarmStatistikReportsSEGErgs(
     try:   
         
         lx=Lx.AppLog(h5File=h5File)  
+
+        firstTime,lastTime,tdTotalGross,tdTotal,tdBetweenFilesTotal=lx.getTotalLogTime()
+        if timeStart==None:
+            timeStart = firstTime.floor(freq='1H') # https://stackoverflow.com/questions/35339139/where-is-the-documentation-on-pandas-freq-tags
+        if timeEnd==None:
+            timeEnd = lastTime.ceil(freq='1H') 
+
+        logger.debug("{0:s}timeStart: {1:s} timeEnd: {2:s}".format(logStr,str(timeStart),str(timeEnd)))         
 
         with PdfPages(SEGErgsFile) as pdf:
     
@@ -976,9 +988,10 @@ def plotDfAlarmStatistikReportsSEGErgs(
 
                 ,xlim=(timeStart,timeEnd)   
             
-                ,dateFormat='%d.%m.%y: %H:%M'#:%S'
-                ,bysecond=None#[0,15,30,45]
-                ,byminute=[0,30]
+                ,dateFormat=dateFormat
+                ,byhour=byhour 
+                ,byminute=byminute
+                ,bysecond=bysecond
 
                 ,ylimAL=(0,40)
                 ,yticksAL=[0,10,20,30,40]
@@ -1565,6 +1578,7 @@ def plotTimespans(
    ,dateFormat='%d.%m.%y: %H:%M:%S' # can be a list
    ,bysecond=[0,15,30,45] # can be a list
    ,byminute=None # can be a list    
+   ,byhour=None
 
    ,figTitle='' #!
    ,figSave=False #!
@@ -2153,25 +2167,45 @@ def plotTimespansHYD(
 def pltHelperX(
      ax
     ,dateFormat='%d.%m.%y: %H:%M:%S'
-    ,bysecond=[0,15,30,45]
+    ,bysecond=None # [0,15,30,45]
     ,byminute=None 
+    ,byhour=None 
     ,yPos=-0.0125 #: (i.d.R. negativer) Abstand der y-Achse von der Zeichenfläche; default: -0.0125
     ):
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    logger.debug("{0:s}bysecond: {1:s}".format(logStr,str(bysecond))) 
+    logger.debug("{0:s}byminute: {1:s}".format(logStr,str(byminute))) 
+    logger.debug("{0:s}byhour: {1:s}".format(logStr,str(byhour))) 
+    logger.debug("{0:s}dateFormat: {1:s}".format(logStr,dateFormat)) 
     
     if bysecond != None:
         majLocatorTmp=mdates.SecondLocator(bysecond=bysecond)
-    else:
+    elif byminute != None:
         majLocatorTmp=mdates.MinuteLocator(byminute=byminute)
-    majFormatterTmp=mdates.DateFormatter(dateFormat)    
+    elif byhour != None:
+        majLocatorTmp=mdates.HourLocator(byhour=byhour)
+    else:
+        majLocatorTmp=mdates.HourLocator(byhour=[0,12])
+
+    majFormatterTmp=mdates.DateFormatter(dateFormat)   
+    
+
+    logger.debug("{0:s}ax.xaxis.set_major_locator ...".format(logStr)) 
     ax.xaxis.set_major_locator(majLocatorTmp)
-    ax.xaxis.set_major_formatter(majFormatterTmp)    
+
+    logger.debug("{0:s}ax.xaxis.set_major_formatter ...".format(logStr)) 
+    ax.xaxis.set_major_formatter(majFormatterTmp)  
+  
+    logger.debug("{0:s}ax.get_xticks(): {1:s}".format(logStr,str(ax.get_xticks())))     
+
+    logger.debug("{0:s}setp(ax.xaxis.get_majorticklabels() ...".format(logStr))     
     dummy=plt.setp(ax.xaxis.get_majorticklabels(),rotation='vertical',ha='center')
     ax.spines["left"].set_position(("axes",yPos)) 
 
-    #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+    logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
     
 def pltLDSHelperY(
      ax
@@ -2608,8 +2642,9 @@ def pltLDSErgVec(
     ,xlim=None # tuple (xmin,xmax); wenn undef. gelten min/max aus vorgenannten Daten als xlim; wenn Seg angegeben, gilt Seg   
 
     ,dateFormat='%d.%m.%y: %H:%M:%S'
-    ,bysecond=[0,15,30,45]
+    ,bysecond=None #[0,15,30,45]
     ,byminute=None
+    ,byhour=None
     
     ,ylimAL=(0,40)
     ,yticksAL=[0,10,20,30,40]
@@ -2718,12 +2753,15 @@ def pltLDSErgVec(
 
             logger.debug("{0:s}bysecond: {1:s}".format(logStr,str(bysecond))) 
             logger.debug("{0:s}byminute: {1:s}".format(logStr,str(byminute))) 
+            logger.debug("{0:s}byhour: {1:s}".format(logStr,str(byhour))) 
+            logger.debug("{0:s}dateFormat: {1:s}".format(logStr,dateFormat)) 
     
             pltHelperX(
              ax
             ,dateFormat=dateFormat
             ,bysecond=bysecond
             ,byminute=byminute
+            ,byhour=byhour
             ,yPos=yTwinedAxesPosDeltaHPStart
             )      
     
@@ -2784,6 +2822,7 @@ def pltLDSErgVec(
             ,dateFormat=dateFormat
             ,bysecond=bysecond
             ,byminute=byminute
+            ,byhour=byhour
             ,yPos=yTwinedAxesPosDeltaHPStart+yTwinedAxesPosDeltaHP
             )         
            
@@ -2942,6 +2981,7 @@ def pltLDSErgVec(
                 ,dateFormat=dateFormat
                 ,bysecond=bysecond
                 ,byminute=byminute
+                ,byhour=byhour
                 ,yPos=yTwinedAxesPosDeltaHPStart+2*yTwinedAxesPosDeltaHP
                 )           
                 pltLDSHelperY(ax3)
@@ -3049,6 +3089,7 @@ def pltLDSErgVec(
                 ,dateFormat=dateFormat
                 ,bysecond=bysecond
                 ,byminute=byminute
+                ,byhour=byhour
                 ,yPos=yPos
                 )           
                 pltLDSHelperY(ax4)
@@ -3627,6 +3668,7 @@ def pltLDSpQAndEvents(
     ,dateFormat='%d.%m.%y: %H:%M:%S'
     ,bysecond=[0,15,30,45]
     ,byminute=None
+    ,byhour=None
     
     ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
     ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
@@ -3706,6 +3748,7 @@ def pltLDSpQAndEvents(
             ,dateFormat=dateFormat
             ,bysecond=bysecond
             ,byminute=byminute
+            ,byhour=byhour
             ,yPos=yTwinedAxesPosDeltaHPStart
             )  
                       
@@ -3806,6 +3849,7 @@ def pltLDSpQAndEvents(
             ,dateFormat=dateFormat
             ,bysecond=bysecond
             ,byminute=byminute
+            ,byhour=byhour
             ,yPos=yTwinedAxesPosDeltaHPStart+yTwinedAxesPosDeltaHP
             )         
            
@@ -3892,6 +3936,7 @@ def pltLDSpQAndEvents(
                 ,dateFormat=dateFormat
                 ,bysecond=bysecond
                 ,byminute=byminute
+                ,byhour=byhour
                 ,yPos=yTwinedAxesPosDeltaHPStart+2*yTwinedAxesPosDeltaHP
                 )         
 
