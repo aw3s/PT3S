@@ -411,6 +411,7 @@ def dfSegsNodesNDataDpkt(
             df4=df3.reset_index().rename(columns={'index':'NODEsLfdNr','NODEs':'NODEsName'})[['SEGName','NODEsLfdNr','NODEsName','OBJTYPE']]
             df4['NODEsType']=df4.apply(lambda row: row['NODEsLfdNr'] if row['NODEsLfdNr'] < df4.index[-1] else -1, axis=1)
             df4=df4[['SEGName','NODEsLfdNr','NODEsType','NODEsName','OBJTYPE']]
+            df4['SEGNodes']=row['SEG_Ki']+'~'+row['SEG_Kk']
     
             dfSegsNode.append(df4)        
         dfSegsNodes=pd.concat(dfSegsNode).reset_index(drop=True)
@@ -418,7 +419,7 @@ def dfSegsNodesNDataDpkt(
             by=['NODEsName','NODEsType','SEGName']
             ,ascending=[True,False,True]).groupby(['NODEsName']).cumcount() + 1
         dfSegsNodes=pd.merge(dfSegsNodes,dfSegsNodes.groupby(['NODEsName']).max(),left_on='NODEsName',right_index=True,suffixes=('','_max'))
-        dfSegsNodes=dfSegsNodes[['SEGName','NODEsRef_max','NODEsLfdNr','NODEsType','NODEsName','OBJTYPE']]
+        dfSegsNodes=dfSegsNodes[['SEGName','SEGNodes','NODEsRef_max','NODEsLfdNr','NODEsType','NODEsName','OBJTYPE']]
         dfSegsNodes=dfSegsNodes.rename(columns={'NODEsLfdNr':'NODEsSEGLfdNr','NODEsType':'NODEsSEGLfdNrType'})
 
         # --- Knotendaten ergaenzen
@@ -451,7 +452,20 @@ def dfSegsNodesNDataDpkt(
         dfSegsNodesNDataDpkt['DruckErgIDBase']=dfSegsNodesNDataDpkt['OPCITEM_ID'].apply(lambda x: fGetBaseIDFromErgID(x) )
         dfSegsNodesNDataDpkt['SEGErgIDBase']=dfSegsNodesNDataDpkt['SEGName'].apply(lambda x: 'Objects.3S_FBG_SEG_INFO.3S_L_'+x+'.In.')
 
-
+        # --- lfd. Nr. der Druckmessstelle im Segment ermitteln 
+        df=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['DruckErgIDBase'].notnull()].copy()
+        df['NODEsSEGDruckErgLfdNr']=df.groupby('SEGName').cumcount() + 1
+        df['NODEsSEGDruckErgLfdNr']=df['NODEsSEGDruckErgLfdNr'].astype(int)
+        cols=dfSegsNodesNDataDpkt.columns.to_list()
+        cols.append('NODEsSEGDruckErgLfdNr')
+        dfSegsNodesNDataDpkt=pd.merge(dfSegsNodesNDataDpkt
+                                          ,df
+                                          ,left_index=True
+                                          ,right_index=True
+                                          ,how='left'
+                                          ,suffixes=('','_df')
+                                          ).filter(items=cols)
+        dfSegsNodesNDataDpkt['NODEsSEGDruckErgLfdNr']=dfSegsNodesNDataDpkt['NODEsSEGDruckErgLfdNr'].astype(int)
                                                                                                                    
     except RmError:
         raise            
@@ -749,8 +763,9 @@ def dfAlarmStatistik(
         )
 
         # Alarmstatistik bilden
-        dfAlarmStatistik=dfSegsNodesNDataDpkt[['DIVPipelineName','SEGName','SEGErgIDBase']].drop_duplicates(keep='first').reset_index(drop=True)
-
+        dfAlarmStatistik=dfSegsNodesNDataDpkt[['DIVPipelineName','SEGName','SEGNodes','SEGErgIDBase']].drop_duplicates(keep='first').reset_index(drop=True)
+        dfAlarmStatistik['Nr']=dfAlarmStatistik.apply(lambda row: "{:2d}".format(str(row.name)),axis=1)
+    
         dfAlarmStatistik['FörderZeiten']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['STAT_S'])
         dfAlarmStatistik['FörderZeitenAl']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S'])
 
@@ -797,7 +812,22 @@ def plotDfAlarmStatistik(
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
     
     df=dfAlarmStatistik[[
-        'DIVPipelineName'
+        'Nr'
+       ,'DIVPipelineName'
+       ,'SEGName'
+
+       ,'FörderZeit'
+       ,'FörderZeitenAlAnz'
+       ,'FörderZeitAl'
+
+       ,'RuheZeit'
+       ,'RuheZeitenAlAnz'
+       ,'RuheZeitAl'       
+        ]]
+
+    df['Nr.']=df.apply(lambda row: "Nr. {:2d} - {:s}".format(str(row.Nr),str(row.DIVPipelineName)),axis=1)
+    df=df[[
+        'Nr.'
        ,'SEGName'
 
        ,'FörderZeit'
@@ -846,7 +876,8 @@ def plotDfAlarmStatistik(
                     else:
                         pass
                         cellObj.set_text_props(ha='center')
-                        cellObj.set_text_props(backgroundcolor='navajowhite')       
+                        cellObj.set_text_props(backgroundcolor='navajowhite')   # palegoldenrod
+                        #zu hoher % andersfarbig
                 
             if col == colIdxRuheZeitenAlAnz:
         
@@ -861,7 +892,8 @@ def plotDfAlarmStatistik(
                     else:
                         pass
                         cellObj.set_text_props(ha='center')
-                        cellObj.set_text_props(backgroundcolor='navajowhite')                    
+                        cellObj.set_text_props(backgroundcolor='navajowhite')  #  # palegoldenrod     
+                        #zu hoher % andersfarbig
                 
             
     
@@ -950,119 +982,131 @@ def plotDfAlarmStatistikReportsSEGErgs(
 
         logger.debug("{0:s}timeStart: {1:s} timeEnd: {2:s}".format(logStr,str(timeStart),str(timeEnd)))         
 
-        with PdfPages(SEGErgsFile) as pdf:
+        #with PdfPages(SEGErgsFile) as pdf:
+        pdf=PdfPages(SEGErgsFile)
     
-            for idx,(index,row) in enumerate(dfAlarmStatistik.iterrows()):
+        for idx,(index,row) in enumerate(dfAlarmStatistik.iterrows()):
 
-                if stopAtSEGNr != None:
-                    if idx>=stopAtSEGNr:                        
-                        break
+            if stopAtSEGNr != None:
+                if idx>=stopAtSEGNr:                        
+                    break
 
-                # Erg lesen
-                ErgIDBase=row['SEGErgIDBase']               
-                dfSegReprVec=getLDSResVecDf(ErgIDBase=ErgIDBase,LDSResType='SEG',lx=lx,timeStart=timeStart,timeEnd=timeEnd)
+            # Erg lesen
+            ErgIDBase=row['SEGErgIDBase']               
+            dfSegReprVec=getLDSResVecDf(ErgIDBase=ErgIDBase,LDSResType='SEG',lx=lx,timeStart=timeStart,timeEnd=timeEnd)
 
-                ID='AL_S'
-                if ID not in dfSegReprVec.keys():
-                    continue # keine leeren Seiten drucken
-                        # -----------------------------------------------------
-                        #fig=plt.figure(figsize=DINA4q,dpi=dpiSize) 
-                        #ax=fig.gca()              
-                        #ax.set_title("Nr. {:2d} - {:s}: {:s}: AL_S: nicht in Datenbasis (ggf. kein Förderbetrieb)".format(idx+1
-                        #              ,row['SEGName']                          
-                        #              ,row['SEGErgIDBase'])
-                        #              ,loc='left') 
-                        #fig.tight_layout(pad=2.) 
-                        #pdf.savefig()  
-                        #plt.close()
-                        # -----------------------------------------------------
+            ID='AL_S'
+            if ID not in dfSegReprVec.keys():
+                continue # keine leeren Seiten drucken
+                    # -----------------------------------------------------
+                    #fig=plt.figure(figsize=DINA4q,dpi=dpiSize) 
+                    #ax=fig.gca()              
+                    #ax.set_title("Nr. {:2d} - {:s}: {:s}: AL_S: nicht in Datenbasis (ggf. kein Förderbetrieb)".format(idx+1
+                    #              ,row['SEGName']                          
+                    #              ,row['SEGErgIDBase'])
+                    #              ,loc='left') 
+                    #fig.tight_layout(pad=2.) 
+                    #pdf.savefig()  
+                    #plt.close()
+                    # -----------------------------------------------------
             
             
-                # -----------------------------------------------------
+            # -----------------------------------------------------
+            if idx==0:
                 fig=plt.figure(figsize=DINA4q,dpi=dpiSize) 
-                ax=fig.gca()          
 
-                pltLDSErgVec(
-                 ax
-                ,dfSegReprVec=dfSegReprVec # Ergebnisvektor SEG; pass empty Df if Druck only    
-                ,dfDruckReprVec=pd.DataFrame() # Ergebnisvektor DRUCK; pass empty Df if Seg only    
+            ax=fig.gca()          
 
-                ,xlim=(timeStart,timeEnd)   
+            pltLDSErgVec(
+                ax
+            ,dfSegReprVec=dfSegReprVec # Ergebnisvektor SEG; pass empty Df if Druck only    
+            ,dfDruckReprVec=pd.DataFrame() # Ergebnisvektor DRUCK; pass empty Df if Seg only    
+
+            ,xlim=(timeStart,timeEnd)   
             
-                ,dateFormat=dateFormat
-                ,byhour=byhour 
-                ,byminute=byminute
-                ,bysecond=bysecond
+            ,dateFormat=dateFormat
+            ,byhour=byhour 
+            ,byminute=byminute
+            ,bysecond=bysecond
 
-                ,ylimAL=(0,40)
-                ,yticksAL=[0,10,20,30,40]
+            ,ylimAL=(0,40)
+            ,yticksAL=[0,10,20,30,40]
 
-                ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
-                ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
+            ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
+            ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
 
-                ,ylimR=(-45,45) 
-                ,ylimRxlim=False 
-                ,yticksR=[0,2,4,10,15,30,45] 
+            ,ylimR=(-45,45) 
+            ,ylimRxlim=False 
+            ,yticksR=[0,2,4,10,15,30,45] 
 
-                # dito Beschl.
-                ,ylimAC=(-5,5)
-                ,ylimACxlim=False 
-                ,yticksAC=[-5,0,5] 
+            # dito Beschl.
+            ,ylimAC=(-5,5)
+            ,ylimACxlim=False 
+            ,yticksAC=[-5,0,5] 
 
-                ,ySpanMin=0.9 # wenn ylim R/AC undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
+            ,ySpanMin=0.9 # wenn ylim R/AC undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
 
-                ,plotLegend=True    
-                ,legendLoc='best'
-                ,legendFramealpha=.2
-                ,legendFacecolor='white' 
+            ,plotLegend=True    
+            ,legendLoc='best'
+            ,legendFramealpha=.2
+            ,legendFacecolor='white' 
 
-                #,attrsDctLDS=attrsDctLDS         
+            #,attrsDctLDS=attrsDctLDS         
 
-                ,plotLPRate=True
-                ,plotR2FillSeg=True 
-                ,plotR2FillDruck=True         
+            ,plotLPRate=True
+            ,plotR2FillSeg=True 
+            ,plotR2FillDruck=True         
 
-                ,plotAC=True      
-                ,plotACCLimits=True
+            ,plotAC=True      
+            ,plotACCLimits=True
 
-                ,highlightAreas=True 
-                ,Seg_Highlight_Color='cyan'
-                ,Seg_Highlight_Alpha=.1     
-                ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False      
-                ,Seg_HighlightError_Color='peru'
-                ,Seg_Highlight_Alpha_Error=.3     
-                ,Seg_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False   
+            ,highlightAreas=True 
+            ,Seg_Highlight_Color='cyan'
+            ,Seg_Highlight_Alpha=.1     
+            ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False      
+            ,Seg_HighlightError_Color='peru'
+            ,Seg_Highlight_Alpha_Error=.3     
+            ,Seg_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False   
 
-                ,Druck_Highlight_Color='cyan'
-                ,Druck_Highlight_Alpha=.1
-                ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
-                ,Druck_HighlightError_Color='peru'
-                ,Druck_Highlight_Alpha_Error=.3
-                ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
+            ,Druck_Highlight_Color='cyan'
+            ,Druck_Highlight_Alpha=.1
+            ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
+            ,Druck_HighlightError_Color='peru'
+            ,Druck_Highlight_Alpha_Error=.3
+            ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
 
-                ,plotTV=True
-                ,plotTVTimerFct=None 
-                ,plotTVAmFct=lambda x: x*100 
-                ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
-                ,ylimTV=(0,300)
-                ,yticksTV=[0,100,180,200,300]    
-                )    
+            ,plotTV=True
+            ,plotTVTimerFct=None 
+            ,plotTVAmFct=lambda x: x*100 
+            ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
+            ,ylimTV=(0,300)
+            ,yticksTV=[0,100,180,200,300]    
+            )    
         
-                txt="SEG: FörderZeitenAlAnz: {:d}".format(row['FörderZeitenAlAnz'])        
-                ax.text(.98, .1,txt,
-                horizontalalignment='right',
-                verticalalignment='center',
-                transform=ax.transAxes)
-        
+            txt="SEG: FörderZeitenAlAnz: {:d}".format(row['FörderZeitenAlAnz'])        
+            ax.text(.98, .1,txt,
+            horizontalalignment='right',
+            verticalalignment='center',
+            transform=ax.transAxes)
 
-                ax.set_title( "Nr. {:2d} - {:s}: {:s}".format(idx+1
-                              ,row['SEGName']                      
-                              ,row['SEGErgIDBase'])                     
-                              ,loc='left'
-                            ) 
-                fig.tight_layout(pad=2.) 
-                pdf.savefig()  
-                plt.close()        
+            titleStr="Nr. {:3d} {:s}: {:s}: {:s}".format(
+                             idx+1                           
+                            ,row['SEGNodes']                           
+                            ,row['SEGName']                                   
+                            ,row['SEGErgIDBase'])  
+        
+            ax.set_title( titleStr,loc='left') 
+            logger.debug("{0:s}{1:s}".format(logStr,titleStr))       
+
+
+            fig.tight_layout(pad=2.) 
+            pdf.savefig(fig)  
+            #plt.savefig()  
+            plt.clf()
+            #plt.close()     
+            
+        plt.close()  
+        pdf.close()  
       
        
                                                                                                                    
@@ -1100,10 +1144,8 @@ def plotDfAlarmStatistikReportsDruckErgs(
         
 
         # eff. Messstellen aus Kantenzügen
-        df=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['DruckErgIDBase'].notnull()]
-        #df.shape
-        df2=pd.merge(df,dfAlarmStatistik,left_on='SEGName',right_on='SEGName',suffixes=('','_Statistik'))
-        #df2.shape
+        df=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['DruckErgIDBase'].notnull()] # NODEsSEGDruckErgLfdNr notnull        
+        df2=pd.merge(df,dfAlarmStatistik,left_on='SEGName',right_on='SEGName',suffixes=('','_Statistik'))      
 
         lx=Lx.AppLog(h5File=h5File)  
 
@@ -1115,122 +1157,132 @@ def plotDfAlarmStatistikReportsDruckErgs(
 
         logger.debug("{0:s}timeStart: {1:s} timeEnd: {2:s}".format(logStr,str(timeStart),str(timeEnd)))         
 
-        with PdfPages(DruckErgsFile) as pdf:
+        #with PdfPages(DruckErgsFile) as pdf:
+        pdf=PdfPages(DruckErgsFile)
     
-            for idx,(index,row) in enumerate(df2.iterrows()):
+        for idx,(index,row) in enumerate(df2.iterrows()):
 
-                if stopAtDruckNr != None:
-                    if idx>=stopAtDruckNr:                        
-                        break
+            if stopAtDruckNr != None:
+                if idx>=stopAtDruckNr:                        
+                    break
 
-                # Erg lesen
-                ErgIDBase=row['DruckErgIDBase']               
-                dfDruckReprVec=getLDSResVecDf(ErgIDBase=ErgIDBase,LDSResType='Druck',lx=lx,timeStart=timeStart,timeEnd=timeEnd)
+            # Erg lesen
+            ErgIDBase=row['DruckErgIDBase']               
+            dfDruckReprVec=getLDSResVecDf(ErgIDBase=ErgIDBase,LDSResType='Druck',lx=lx,timeStart=timeStart,timeEnd=timeEnd)
 
-                ID='AL_S'
-                if ID not in dfDruckReprVec.keys():
-                    continue # keine leeren Seiten drucken
-                        # -----------------------------------------------------
-                        #fig=plt.figure(figsize=DINA4q,dpi=dpiSize) 
-                        #ax=fig.gca()              
-                        #ax.set_title("Nr. {:2d} - {:s}: {:s}: AL_S: nicht in Datenbasis (ggf. kein Förderbetrieb)".format(idx+1
-                        #              ,row['SEGName']                          
-                        #              ,row['SEGErgIDBase'])
-                        #              ,loc='left') 
-                        #fig.tight_layout(pad=2.) 
-                        #pdf.savefig()  
-                        #plt.close()
-                        # -----------------------------------------------------
+            ID='AL_S'
+            if ID not in dfDruckReprVec.keys():
+                continue # keine leeren Seiten drucken
+                    # -----------------------------------------------------
+                    #fig=plt.figure(figsize=DINA4q,dpi=dpiSize) 
+                    #ax=fig.gca()              
+                    #ax.set_title("Nr. {:2d} - {:s}: {:s}: AL_S: nicht in Datenbasis (ggf. kein Förderbetrieb)".format(idx+1
+                    #              ,row['SEGName']                          
+                    #              ,row['SEGErgIDBase'])
+                    #              ,loc='left') 
+                    #fig.tight_layout(pad=2.) 
+                    #pdf.savefig()  
+                    #plt.close()
+                    # -----------------------------------------------------
             
             
-                # -----------------------------------------------------
+            # -----------------------------------------------------
+            if idx==0:
                 fig=plt.figure(figsize=DINA4q,dpi=dpiSize) 
-                ax=fig.gca()          
+            ax=fig.gca()          
 
-                pltLDSErgVec(
-                 ax
-                ,dfSegReprVec=pd.DataFrame() # Ergebnisvektor SEG; pass empty Df if Druck only    
-                ,dfDruckReprVec=dfDruckReprVec  # Ergebnisvektor DRUCK; pass empty Df if Seg only    
+            pltLDSErgVec(
+                ax
+            ,dfSegReprVec=pd.DataFrame() # Ergebnisvektor SEG; pass empty Df if Druck only    
+            ,dfDruckReprVec=dfDruckReprVec  # Ergebnisvektor DRUCK; pass empty Df if Seg only    
 
-                ,xlim=(timeStart,timeEnd)   
+            ,xlim=(timeStart,timeEnd)   
             
-                ,dateFormat=dateFormat
-                ,byhour=byhour 
-                ,byminute=byminute
-                ,bysecond=bysecond
+            ,dateFormat=dateFormat
+            ,byhour=byhour 
+            ,byminute=byminute
+            ,bysecond=bysecond
 
-                ,ylimAL=(0,40)
-                ,yticksAL=[0,10,20,30,40]
+            ,ylimAL=(0,40)
+            ,yticksAL=[0,10,20,30,40]
 
-                ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
-                ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
+            ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
+            ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
 
-                ,ylimR=(-45,45) 
-                ,ylimRxlim=False 
-                ,yticksR=[0,2,4,10,15,30,45] 
+            ,ylimR=(-45,45) 
+            ,ylimRxlim=False 
+            ,yticksR=[0,2,4,10,15,30,45] 
 
-                # dito Beschl.
-                ,ylimAC=(-5,5)
-                ,ylimACxlim=False 
-                ,yticksAC=[-5,0,5] 
+            # dito Beschl.
+            ,ylimAC=(-5,5)
+            ,ylimACxlim=False 
+            ,yticksAC=[-5,0,5] 
 
-                ,ySpanMin=0.9 # wenn ylim R/AC undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
+            ,ySpanMin=0.9 # wenn ylim R/AC undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
 
-                ,plotLegend=True    
-                ,legendLoc='best'
-                ,legendFramealpha=.2
-                ,legendFacecolor='white' 
+            ,plotLegend=True    
+            ,legendLoc='best'
+            ,legendFramealpha=.2
+            ,legendFacecolor='white' 
 
-                #,attrsDctLDS=attrsDctLDS         
+            #,attrsDctLDS=attrsDctLDS         
 
-                ,plotLPRate=True
-                ,plotR2FillSeg=True 
-                ,plotR2FillDruck=True         
+            ,plotLPRate=True
+            ,plotR2FillSeg=True 
+            ,plotR2FillDruck=True         
 
-                ,plotAC=True      
-                ,plotACCLimits=True
+            ,plotAC=True      
+            ,plotACCLimits=True
 
-                ,highlightAreas=True 
-                ,Seg_Highlight_Color='cyan'
-                ,Seg_Highlight_Alpha=.1     
-                ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False      
-                ,Seg_HighlightError_Color='peru'
-                ,Seg_Highlight_Alpha_Error=.3     
-                ,Seg_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False   
+            ,highlightAreas=True 
+            ,Seg_Highlight_Color='cyan'
+            ,Seg_Highlight_Alpha=.1     
+            ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False      
+            ,Seg_HighlightError_Color='peru'
+            ,Seg_Highlight_Alpha_Error=.3     
+            ,Seg_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False   
 
-                ,Druck_Highlight_Color='cyan'
-                ,Druck_Highlight_Alpha=.1
-                ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
-                ,Druck_HighlightError_Color='peru'
-                ,Druck_Highlight_Alpha_Error=.3
-                ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
+            ,Druck_Highlight_Color='cyan'
+            ,Druck_Highlight_Alpha=.1
+            ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
+            ,Druck_HighlightError_Color='peru'
+            ,Druck_Highlight_Alpha_Error=.3
+            ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
 
-                ,plotTV=True
-                ,plotTVTimerFct=None 
-                ,plotTVAmFct=lambda x: x*100 
-                ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
-                ,ylimTV=(0,300)
-                ,yticksTV=[0,100,180,200,300]    
-                )    
+            ,plotTV=True
+            ,plotTVTimerFct=None 
+            ,plotTVAmFct=lambda x: x*100 
+            ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
+            ,ylimTV=(0,300)
+            ,yticksTV=[0,100,180,200,300]    
+            )    
         
-                txt="SEG: RuheZeitenAlAnz: {:d}".format(row['RuheZeitenAlAnz'])        
-                ax.text(.98, .1,txt,
-                horizontalalignment='right',
-                verticalalignment='center',
-                transform=ax.transAxes)
-        
+            txt="SEG: RuheZeitenAlAnz: {:d}".format(row['RuheZeitenAlAnz'])        
+            ax.text(.98, .1,txt,
+            horizontalalignment='right',
+            verticalalignment='center',
+            transform=ax.transAxes)
 
-                ax.set_title( "Nr. {:2d} - {:s}: {:s}".format(idx+1
-                              ,row['SEGName']                      
-                              ,row['DruckErgIDBase'])                     
-                              ,loc='left'
-                            ) 
-                fig.tight_layout(pad=2.) 
-                pdf.savefig()  
-                plt.close()        
-      
+            titleStr="Nr. {:3d} {:s} ({:1d})x: {:s}: Nr. {:2d}: {:s}".format(
+                             idx+1
+                            ,row['NODEsName']
+                            ,row['NODEsRef_max']                           
+                            ,row['SEGName']        
+                            ,int(row['NODEsSEGDruckErgLfdNr'])
+                            ,row['DruckErgIDBase'])  
+        
+            ax.set_title( titleStr,loc='left') 
+            logger.debug("{0:s}{1:s}".format(logStr,titleStr))   
        
-                                                                                                                   
+            fig.tight_layout(pad=2.) 
+            pdf.savefig(fig)            
+            #plt.savefig()  
+            plt.clf()
+            #plt.close()     
+            
+        plt.close()  
+        pdf.close()        
+                                                                                                                          
     except RmError:
         raise            
     except Exception as e:
@@ -2367,7 +2419,7 @@ def pltHelperX(
     logger.debug("{0:s}ax.xaxis.set_major_formatter ...".format(logStr)) 
     ax.xaxis.set_major_formatter(majFormatterTmp)  
   
-    logger.debug("{0:s}ax.get_xticks(): {1:s}".format(logStr,str(ax.get_xticks())))     
+    #logger.debug("{0:s}ax.get_xticks(): {1:s}".format(logStr,str(ax.get_xticks())))     
 
     logger.debug("{0:s}setp(ax.xaxis.get_majorticklabels() ...".format(logStr))     
     dummy=plt.setp(ax.xaxis.get_majorticklabels(),rotation='vertical',ha='center')
@@ -2614,14 +2666,126 @@ def findAllTimeIntervallsSeries(
 ,fct=lambda x: True if x == 46 else False
 ,tdAllowed=None # if not None all subsequent TimePairs with TimeDifference <= tdAllowed are combined to one TimePair
 ):
-# alle [Zeitbereiche] finden fuer die fct Wahr ist; diese Zeitbereiche werden geliefert
+    """
+    # alle [Zeitbereiche] finden fuer die fct Wahr ist; diese Zeitbereiche werden geliefert; es werden nur Paare geliefert; d.h. Wahr-Solitäre sind nicht enthalten (gehen verloren)
 
-# if fct None: in [Zeitbereiche] zerlegen, die nicht mehr als tdAllowed auseinander liegen; diese Zeitbereiche werden geliefert
-#    1. Wert ZeitGap 2. Wert: 1. Intervall (enthält >=2 Werte und) beinhaltet dieses 1. ZeitGap 
-#    -2 Wert ZeitGap -1 Wert: letztes Intervall (enthält >=3 Werte und) beinhaltet dieses letzte ZeitGap 
-#   generell ist jeder Zeitbereich >=2, auch dann, wenn er dadurch ein ZeitGap enthalten muss
+    # if fct None: 
+    #       tdAllowed must be specified
+    #       in Zeitbereiche zerlegen, die nicht mehr als tdAllowed auseinander liegen; diese Zeitbereiche werden geliefert
+    #       generell ist jeder gelieferte Zeitbereich >=2, auch dann, wenn er dadurch ein oder mehrere unzul. ZeitGaps enthalten muss
+    #       denn es soll kein Wert verloren gehen
 
-# returns array of Time-Pair-Tuples
+    # returns array of Time-Pair-Tuples    
+    >>> import pandas as pd
+    >>> t=pd.Timestamp('2021-03-19 01:02:00')
+    >>> t1=t +pd.Timedelta('1 second')
+    >>> t2=t1+pd.Timedelta('1 second')
+    >>> t3=t2+pd.Timedelta('1 second')
+    >>> t4=t3+pd.Timedelta('1 second')
+    >>> t5=t4+pd.Timedelta('1 second')
+    >>> t6=t5+pd.Timedelta('1 second')
+    >>> t7=t6+pd.Timedelta('1 second')
+    >>> d = {t1: 46, t2: 0} # geht aus - kein Paar
+    >>> s1PaarGehtAus=pd.Series(data=d, index=[t1, t2])
+    >>> d = {t1: 0, t2: 46} # geht ein - kein Paar
+    >>> s1PaarGehtEin=pd.Series(data=d, index=[t1, t2])
+    >>> d = {t5: 46, t6: 0} # geht ausE - kein Paar
+    >>> s1PaarGehtAusE=pd.Series(data=d, index=[t5, t6])
+    >>> d = {t5: 0, t6: 46} # geht einE - kein Paar
+    >>> s1PaarGehtEinE=pd.Series(data=d, index=[t5, t6])
+    >>> d = {t1: 46, t2: 46} # geht aus - ein Paar
+    >>> s1PaarEin=pd.Series(data=d, index=[t1, t2])
+    >>> d = {t1: 0, t2: 0} # geht aus - kein Paar
+    >>> s1PaarAus=pd.Series(data=d, index=[t1, t2])
+    >>> s2PaarAus=pd.concat([s1PaarGehtAus,s1PaarGehtAusE])
+    >>> s2PaarEin=pd.concat([s1PaarGehtEin,s1PaarGehtEinE])
+    >>> s2PaarAusEin=pd.concat([s1PaarGehtAus,s1PaarGehtEinE])
+    >>> s2PaarEinAus=pd.concat([s1PaarGehtEin,s1PaarGehtAusE])
+    >>> ###
+    >>> # 46  0
+    >>> # 0  46
+    >>> # 0   0
+    >>> # 46 46 !1 Paar
+    >>> # 46  0  46  0
+    >>> # 46  0   0 46
+    >>> # 0  46   0 46
+    >>> # 0  46  46  0 !1 Paar
+    >>> ###
+    >>> findAllTimeIntervallsSeries(s1PaarGehtAus)
+    []
+    >>> findAllTimeIntervallsSeries(s1PaarGehtEin)
+    []
+    >>> findAllTimeIntervallsSeries(s1PaarEin)
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02'))]
+    >>> findAllTimeIntervallsSeries(s1PaarAus)
+    []
+    >>> findAllTimeIntervallsSeries(s2PaarAus)
+    []
+    >>> findAllTimeIntervallsSeries(s2PaarEin)
+    []
+    >>> findAllTimeIntervallsSeries(s2PaarAusEin)
+    []
+    >>> findAllTimeIntervallsSeries(s2PaarEinAus)
+    [(Timestamp('2021-03-19 01:02:02'), Timestamp('2021-03-19 01:02:05'))]
+    >>> ###
+    >>> # 46  0 !1 Paar
+    >>> # 0  46 !1 Paar
+    >>> # 0   0 !1 Paar
+    >>> # 46 46 !1 Paar
+    >>> # 46  0  46  0 !2 Paare
+    >>> # 46  0   0 46 !2 Paare
+    >>> # 0  46   0 46 !2 Paare
+    >>> # 0  46  46  0 !2 Paare
+    >>> ###
+    >>> findAllTimeIntervallsSeries(s1PaarGehtAus,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02'))]
+    >>> findAllTimeIntervallsSeries(s1PaarGehtEin,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02'))]
+    >>> findAllTimeIntervallsSeries(s1PaarEin,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02'))]
+    >>> findAllTimeIntervallsSeries(s1PaarAus,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02'))]
+    >>> findAllTimeIntervallsSeries(s2PaarAus,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:05'), Timestamp('2021-03-19 01:02:06'))]
+    >>> findAllTimeIntervallsSeries(s2PaarEin,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:05'), Timestamp('2021-03-19 01:02:06'))]
+    >>> findAllTimeIntervallsSeries(s2PaarAusEin,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:05'), Timestamp('2021-03-19 01:02:06'))]
+    >>> findAllTimeIntervallsSeries(s2PaarEinAus,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:05'), Timestamp('2021-03-19 01:02:06'))]
+    >>> ###
+    >>> d = {t1: 0, t3: 0} 
+    >>> s1PaarmZ=pd.Series(data=d, index=[t1, t3])
+    >>> findAllTimeIntervallsSeries(s1PaarmZ,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:03'))]
+    >>> d = {t4: 0, t5: 0} 
+    >>> s1PaaroZ=pd.Series(data=d, index=[t4, t5])
+    >>> s2PaarmZoZ=pd.concat([s1PaarmZ,s1PaaroZ])
+    >>> findAllTimeIntervallsSeries(s2PaarmZoZ,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:05'))]
+    >>> ###
+    >>> d = {t1: 0, t2: 0} 
+    >>> s1PaaroZ=pd.Series(data=d, index=[t1, t2])
+    >>> d = {t3: 0, t5: 0} 
+    >>> s1PaarmZ=pd.Series(data=d, index=[t3, t5])
+    >>> s2PaaroZmZ=pd.concat([s1PaaroZ,s1PaarmZ])
+    >>> findAllTimeIntervallsSeries(s2PaaroZmZ,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:05'))]
+    >>> ###
+    >>> d = {t6: 0, t7: 0} 
+    >>> s1PaaroZ2=pd.Series(data=d, index=[t6, t7])
+    >>> d = {t4: 0} 
+    >>> solitaer=pd.Series(data=d, index=[t4])
+    >>> s5er=pd.concat([s1PaaroZ,solitaer,s1PaaroZ2])
+    >>> findAllTimeIntervallsSeries(s5er,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:04'), Timestamp('2021-03-19 01:02:07'))]
+    >>> s3er=pd.concat([s1PaaroZ,solitaer])
+    >>> findAllTimeIntervallsSeries(s3er,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:04'))]
+    >>> s3er=pd.concat([solitaer,s1PaaroZ2])
+    >>> findAllTimeIntervallsSeries(s3er,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:04'), Timestamp('2021-03-19 01:02:07'))]
+    """
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -2633,23 +2797,35 @@ def findAllTimeIntervallsSeries(
         
         if fct != None:
             # paarweise über alle Zeilen
-            for (i1, s1), (i2, s2) in pairwise(s.iteritems()):    
+            for idx,((i1, s1), (i2, s2)) in enumerate(pairwise(s.iteritems())):    
                 s1Value=fct(s1)
                 s2Value=fct(s2)
 
                 # wenn 1 nicht x und 2       x tEin=t2 "geht Ein"
                 if not s1Value and s2Value:
                     tEin=i2
+                    if idx > 0:
+                            pass
+                    else:
+                            pass
+                            #print('beim ersten Paar "geht Ein"')      
 
                 # wenn 1       x und 2 nicht x tAus=t2 "geht Aus"
                 elif s1Value and not s2Value:
                     if tEin != None:
-                        # Paar speichern                        
-                        tPair=(tEin,i1)
-                        tPairs.append(tPair)            
-                    else:
-                        pass # sonst: Bed. ist jetzt Aus und war nicht Ein
-                    # Bed. kann nur im ersten Fall Ein gehen
+                        if tEin<i1:
+                            # Paar speichern                                                
+                            tPair=(tEin,i1)
+                            tPairs.append(tPair)            
+                        else:
+                            pass
+                    else: # geht Aus ohne Ein zu sein
+                        if idx > 0:
+                            pass # geht im ersten Paar Aus
+                            
+                        else:
+                            pass 
+                           
 
                 # wenn 1       x und 2       x
                 elif s1Value and s2Value: 
@@ -8267,7 +8443,8 @@ if __name__ == "__main__":
                                            ,'mxs':mxs})
 
             dTests.extend(dtFinder.find(pltMakeCategoricalColors))
-            dTests.extend(dtFinder.find(pltMakeCategoricalCmap))           
+            dTests.extend(dtFinder.find(pltMakeCategoricalCmap))       
+            dTests.extend(dtFinder.find(findAllTimeIntervallsSeries))
 
             # gefundene Tests mit geforderten Tests abgleichen
 
