@@ -742,11 +742,10 @@ def getAlarmStatistikAlarms(
 def dfAlarmStatistik(    
      TCsLDSRes1=pd.DataFrame()
     ,TCsLDSRes2=pd.DataFrame()
-    ,dfSegsNodesNDataDpkt=pd.DataFrame()
-    
+    ,dfSegsNodesNDataDpkt=pd.DataFrame()    
     ):
     """
-
+    Returns dfAlarmStatistik,SEGErgsDct,DruckErgsDct,SEGDruckErgsDct
     """
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
@@ -764,7 +763,7 @@ def dfAlarmStatistik(
 
         # Alarmstatistik bilden
         dfAlarmStatistik=dfSegsNodesNDataDpkt[['DIVPipelineName','SEGName','SEGNodes','SEGErgIDBase']].drop_duplicates(keep='first').reset_index(drop=True)
-        dfAlarmStatistik['Nr']=dfAlarmStatistik.apply(lambda row: "{:2d}".format(str(row.name)),axis=1)
+        dfAlarmStatistik['Nr']=dfAlarmStatistik.apply(lambda row: "{:2d}".format(int(row.name)),axis=1)
     
         dfAlarmStatistik['FörderZeiten']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['STAT_S'])
         dfAlarmStatistik['FörderZeitenAl']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S'])
@@ -799,7 +798,7 @@ def dfAlarmStatistik(
         raise RmError(logStrFinal)                       
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
-        return dfAlarmStatistik
+        return dfAlarmStatistik,SEGErgsDct,DruckErgsDct,SEGDruckErgsDct
 
 def plotDfAlarmStatistik(    
      dfAlarmStatistik=pd.DataFrame()    
@@ -823,11 +822,11 @@ def plotDfAlarmStatistik(
        ,'RuheZeit'
        ,'RuheZeitenAlAnz'
        ,'RuheZeitAl'       
-        ]]
+        ]].copy()
 
-    df['Nr.']=df.apply(lambda row: "Nr. {:2d} - {:s}".format(str(row.Nr),str(row.DIVPipelineName)),axis=1)
+    df['LfdNr']=df.apply(lambda row: "{:2d} - {:s}".format(int(row.Nr)+1,str(row.DIVPipelineName)),axis=1)
     df=df[[
-        'Nr.'
+        'LfdNr'
        ,'SEGName'
 
        ,'FörderZeit'
@@ -877,7 +876,9 @@ def plotDfAlarmStatistik(
                         pass
                         cellObj.set_text_props(ha='center')
                         cellObj.set_text_props(backgroundcolor='navajowhite')   # palegoldenrod
-                        #zu hoher % andersfarbig
+                        if df.loc[row-1,'FörderZeitAl']/ df.loc[row-1,'FörderZeit']*100>1:
+                            cellObj.set_text_props(backgroundcolor='tomato') 
+
                 
             if col == colIdxRuheZeitenAlAnz:
         
@@ -894,6 +895,9 @@ def plotDfAlarmStatistik(
                         cellObj.set_text_props(ha='center')
                         cellObj.set_text_props(backgroundcolor='navajowhite')  #  # palegoldenrod     
                         #zu hoher % andersfarbig
+
+                        if df.loc[row-1,'RuheZeitAl']/ df.loc[row-1,'RuheZeit']*100>1:
+                            cellObj.set_text_props(backgroundcolor='tomato') 
                 
             
     
@@ -1082,16 +1086,17 @@ def plotDfAlarmStatistikReportsSEGErgs(
             ,ylimTV=(0,300)
             ,yticksTV=[0,100,180,200,300]    
             )    
-        
-            txt="SEG: FörderZeitenAlAnz: {:d}".format(row['FörderZeitenAlAnz'])        
+                                             
+            txt="SEG: {:s}: FörderZeitenAlAnz: {:d}".format(row['SEGNodes'],row['FörderZeitenAlAnz'])        
             ax.text(.98, .1,txt,
             horizontalalignment='right',
             verticalalignment='center',
             transform=ax.transAxes)
 
-            titleStr="Nr. {:3d} {:s}: {:s}: {:s}".format(
-                             idx+1                           
-                            ,row['SEGNodes']                           
+            titleStr="LfdNr {:2d} - {:s}: {:s}: {:s}".format(
+                             int(row.Nr)+1         
+                            ,str(row.DIVPipelineName)
+                           # ,row['SEGNodes']                           
                             ,row['SEGName']                                   
                             ,row['SEGErgIDBase'])  
         
