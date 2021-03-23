@@ -144,6 +144,9 @@ import zipfile
 import pandas as pd
 import h5py
 
+from collections import namedtuple
+from operator import attrgetter
+
 import subprocess
 
 import warnings
@@ -169,6 +172,8 @@ import networkx as nx
 from itertools import chain
 import math
 import sys
+
+from copy import deepcopy
 
 
 import logging
@@ -510,7 +515,7 @@ fErgValidSeriesDct['AL_S10']=fErgValidSeriesAL_S10
 fErgValidSeriesDct['AL_S4']=fErgValidSeriesAL_S4
 fErgValidSeriesDct['AL_S3']=fErgValidSeriesAL_S3
 
-exts=['STAT_S','AL_S','AL_S10','AL_S4','AL_S3'] # Erg-Kanaele und abgeleitete Erg-Kanäle fuer Statistik
+exts=['STAT_S','AL_S']#,'AL_S10','AL_S4','AL_S3'] # Erg-Kanaele und abgeleitete Erg-Kanäle fuer Statistik
 # (fast) alle verfuegbaren Erg-Kanaele
 extsAll=['AL_S','STAT_S','SB_S','MZ_AV','LR_AV','NG_AV','LP_AV','AC_AV','ACCST_AV','ACCTR_AV','ACF_AV','TIMER_AV','AM_AV','DNTD_AV','DNTP_AV','DPDT_AV','DPDT_REF_AV','QM_AV','ZHKNR_S']
 
@@ -602,11 +607,11 @@ def getAlarmStatistikData(
         # zu lesende Daten ermitteln
         l=dfSegsNodesNDataDpkt['DruckErgIDBase'].unique()
         l = l[~pd.isnull(l)]
-        DruckErgIDs=[*[ID+'AL_S' for ID in l],*[ID+'STAT_S' for ID in l],*[ID+'SB_S' for ID in l]]
+        DruckErgIDs=[*[ID+'AL_S' for ID in l],*[ID+'STAT_S' for ID in l],*[ID+'SB_S' for ID in l],*[ID+'ZHKNR_S' for ID in l]]
         #
         l=dfSegsNodesNDataDpkt['SEGErgIDBase'].unique()
         l = l[~pd.isnull(l)]
-        SEGErgIDs=[*[ID+'AL_S' for ID in l],*[ID+'STAT_S' for ID in l],*[ID+'SB_S' for ID in l]]
+        SEGErgIDs=[*[ID+'AL_S' for ID in l],*[ID+'STAT_S' for ID in l],*[ID+'SB_S' for ID in l],*[ID+'ZHKNR_S' for ID in l]]
         ErgIDs=[*DruckErgIDs,*SEGErgIDs]
         
         # Daten lesen
@@ -639,10 +644,6 @@ def getAlarmStatistikAlarms(
 
     try:             
       
-        # noch zu klaeren
-        TCsLDSRes1NonDup=TCsLDSRes1[~TCsLDSRes1.index.duplicated(keep='first')]
-        TCsLDSRes2NonDup=TCsLDSRes2[~TCsLDSRes2.index.duplicated(keep='first')]
-
         # Zeiten SEGErgs mit zustaendig und Alarm
         SEGErgsDct=fGetErgs(dfSegsNodesNDataDpkt['SEGErgIDBase'].unique(),TCsLDSRes1)
         # verschiedene Auspraegungen SB_S pro Alarmzeit ermitteln
@@ -652,7 +653,7 @@ def getAlarmStatistikAlarms(
             if tPairs != []:        
                 for tPair in tPairs:                    
                     col=ID+'SB_S'                    
-                    SB_S_tPair=TCsLDSRes1NonDup.loc[tPair[0]:tPair[1],col].unique()
+                    SB_S_tPair=TCsLDSRes1.loc[tPair[0]:tPair[1],col].unique()
                     SB_S_tPair=[int(x) for x in SB_S_tPair if pd.isnull(x)==False]
                     SB_S_tPairs.append(sorted(SB_S_tPair))
             tPairsDct['AL_S_SB_S']=SB_S_tPairs    
@@ -663,6 +664,10 @@ def getAlarmStatistikAlarms(
         # Zeiten DruckErgs mit zustaendig und Alarm
         l=dfSegsNodesNDataDpkt['DruckErgIDBase'].unique()
         DruckErgsDct=fGetErgs(l[l != np.array(None)],TCsLDSRes2)
+        logger.debug("{:s}DruckErgsDct: {!s:s}".format(logStr,DruckErgsDct))
+
+        #x=1/0
+
 
         # Zeiten der Druckergs zu SEG-Zeiten zusammenfassen
         # dabei keine identischen Zeiten mehrfach zaehlen
@@ -683,7 +688,7 @@ def getAlarmStatistikAlarms(
             for (DIVPipelineName,SEGName,SEGErgIDBase) in tripleLst:      
                 if SEGErgIDBase not in SEGDruckErgsDct.keys():
                     # auf dieses SEG wurde noch nie verwiesen
-                    SEGDruckErgsDct[SEGErgIDBase]=tPairsDct # alle Druckergs haben dieselbe Menge an exts; es koennnen also beim Ergaenzen keine fehlen
+                    SEGDruckErgsDct[SEGErgIDBase]=deepcopy(tPairsDct)
                 else:
                     for idx2,ext in enumerate(exts):
                         tPairs=tPairsDct[ext]
@@ -708,7 +713,7 @@ def getAlarmStatistikAlarms(
             lDruckSBS=[x+'SB_S' for x in lDruckSBS]           
     
             for DruckSBS in lDruckSBS:
-                if DruckSBS not in TCsLDSRes2NonDup.columns.to_list():
+                if DruckSBS not in TCsLDSRes2.columns.to_list():
                     lDruckSBS.remove(DruckSBS)
                     logger.warning("{:s}SEG: {:s}: zugeh. Druck-PV: {:s} taucht gar nicht in den Ergebnissen auf?! Nur Foerderbetrieb?!".format(logStr,ID,DruckSBS))                    
             
@@ -718,7 +723,7 @@ def getAlarmStatistikAlarms(
             if tPairs != []:        
                 for tPair in tPairs:
                     #print(tPair)
-                    df=TCsLDSRes2NonDup.loc[tPair[0]:tPair[1],lDruckSBS]
+                    df=TCsLDSRes2.loc[tPair[0]:tPair[1],lDruckSBS]
                     l=pd.unique(df.values.ravel('K'))
                     l = l[~np.isnan(l)]
                     l=sorted([int(x) for x in l])
@@ -768,9 +773,9 @@ def dfAlarmStatistik(
         dfAlarmStatistik['FörderZeiten']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['STAT_S'])
         dfAlarmStatistik['FörderZeitenAl']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S'])
 
-        dfAlarmStatistik['FörderZeitenAl10']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S10'])
-        dfAlarmStatistik['FörderZeitenAl4']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S4'])
-        dfAlarmStatistik['FörderZeitenAl3']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S3'])
+        #dfAlarmStatistik['FörderZeitenAl10']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S10'])
+        #dfAlarmStatistik['FörderZeitenAl4']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S4'])
+        #dfAlarmStatistik['FörderZeitenAl3']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S3'])
 
         dfAlarmStatistik['FörderZeitenAlAnz']=dfAlarmStatistik['FörderZeitenAl'].apply(lambda x: len(x))
         dfAlarmStatistik['FörderZeitenAlSbs']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S_SB_S'])
@@ -778,9 +783,9 @@ def dfAlarmStatistik(
         dfAlarmStatistik['RuheZeiten']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['STAT_S'] if x in SEGDruckErgsDct.keys() else [])
         dfAlarmStatistik['RuheZeitenAl']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S'] if x in SEGDruckErgsDct.keys() else [])
 
-        dfAlarmStatistik['RuheZeitenAl10']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S10'] if x in SEGDruckErgsDct.keys() else [])
-        dfAlarmStatistik['RuheZeitenAl4']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S4'] if x in SEGDruckErgsDct.keys() else [])
-        dfAlarmStatistik['RuheZeitenAl3']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S3'] if x in SEGDruckErgsDct.keys() else [])
+        #dfAlarmStatistik['RuheZeitenAl10']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S10'] if x in SEGDruckErgsDct.keys() else [])
+        #dfAlarmStatistik['RuheZeitenAl4']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S4'] if x in SEGDruckErgsDct.keys() else [])
+        #dfAlarmStatistik['RuheZeitenAl3']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S3'] if x in SEGDruckErgsDct.keys() else [])
 
         dfAlarmStatistik['RuheZeitenAlAnz']=dfAlarmStatistik['RuheZeitenAl'].apply(lambda x: len(x))
         dfAlarmStatistik['RuheZeitenAlSbs']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S_SB_S'] if x in SEGDruckErgsDct.keys() else [])
@@ -914,6 +919,240 @@ def plotDfAlarmStatistik(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
         return t
+
+def f(LDSResType,OrteIDs):
+    """
+    returns Orte stripped
+    """    
+    if LDSResType == 'SEG': # 'Objects.3S_FBG_SEG_INFO.3S_L_6_MHV_02_FUD.In.']
+        orteStripped=[]
+        for OrtID in OrteIDs:
+            pass
+            m=re.search(Lx.pID,OrtID+'dummy')
+            ortStripped=m.group('C3')+'_'+m.group('C4')+'_'+m.group('C5')+'_'+m.group('C6')
+            orteStripped.append(ortStripped)
+        return orteStripped
+                
+    elif LDSResType == 'Druck': # Objects.3S_FBG_DRUCK.3S_6_BNV_01_PTI_01.In
+        orteStripped=[]
+        for OrtID in OrteIDs:
+            pass
+            m=re.search(Lx.pID,OrtID+'dummy')
+            ortStripped=m.group('C2')+'_'+m.group('C3')+'_'+m.group('C4')+'_'+m.group('C5')+m.group('C6')
+            orteStripped.append(ortStripped)
+        return orteStripped        
+    
+    else:
+        return None
+
+def dfAlarmEreignisse( 
+    SEGErgsDct={}
+   ,DruckErgsDct={}
+   ,TCsLDSRes1=pd.DataFrame()
+   ,TCsLDSRes2=pd.DataFrame()
+     
+    ):
+    """
+    Returns df
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    dfAlarmEreignisse=pd.DataFrame()
+
+    AlarmEvent = namedtuple('alarmEvent','tA,tE,ZHKNR,LDSResType')
+    # alarmEvent = AlarmEvent(pd.Timestamp('2021-03-11 11:56:51'),pd.Timestamp('2021-03-11 12:20:03'), 3432, 'Druck')
+    # alarmEvent.tA
+
+    try:       
+
+        # ueber alle ZHKNR_S 
+        # Auffüllen
+        # sonst steht zu Alarmzeitpunkten ggfs. nicht die ZHKNR_S zur Verfügung, wenn diese nur bei Änderungen geschrieben wird
+
+        for col in TCsLDSRes1.columns.to_list():    
+            m=re.search(Lx.pID,col)
+            ext=m.group('E')
+            if ext == 'ZHKNR_S':
+                #print(col)
+                TCsLDSRes1[col]=TCsLDSRes1[col].fillna(method='ffill')
+                TCsLDSRes1[col]=TCsLDSRes1[col].fillna(method='bfill')
+
+        for col in TCsLDSRes2.columns.to_list():    
+            m=re.search(Lx.pID,col)
+            ext=m.group('E')
+            if ext == 'ZHKNR_S':
+                #print(col)
+                TCsLDSRes2[col]=TCsLDSRes2[col].fillna(method='ffill')
+                TCsLDSRes2[col]=TCsLDSRes2[col].fillna(method='bfill')
+       
+        AlarmEvents=[]
+        AlarmEventsOrte={}
+
+        for ErgIDBase,dct in SEGErgsDct.items():
+            AL_S=dct['AL_S']
+            if len(AL_S) > 0:        
+                ID=ErgIDBase+'ZHKNR_S'
+                #print(ErgIDBase)            
+                for idx,AL_S_Timepair in enumerate(AL_S):            
+                    (t1,t2)=AL_S_Timepair
+                    ZHKNR_S_Lst=TCsLDSRes1.loc[t1:t2,ID].unique()
+                    if len(ZHKNR_S_Lst) != 1:                
+                        logger.warning(("{:s}{:s}: Alarm {:d}: Anzahl verschiedener ZHKNRn: {:d}?!".format(logStr,ID,idx,len(ZHKNR_S_Lst))))            
+                    else:
+                        ZHKNR=int(ZHKNR_S_Lst[0])
+                        #print("{:s}: Alarm {:d}: ZHKNR: {:d}".format(ID,idx+1,ZHKNR))
+                        alarmEvent=AlarmEvent(t1,t2,ZHKNR,'SEG')
+                        if alarmEvent not in AlarmEvents:
+                            #print("{!s:s} neu in Liste".format(alarmEvent))
+                            AlarmEvents.append(alarmEvent)   
+                            AlarmEventsOrte[alarmEvent]=[]
+                            AlarmEventsOrte[alarmEvent].append(ErgIDBase)
+                        else:
+                            #print("{!s:s} bereits in Liste".format(alarmEvent))
+                            AlarmEventsOrte[alarmEvent].append(ErgIDBase)
+                    
+        for ErgIDBase,dct in DruckErgsDct.items():
+            AL_S=dct['AL_S']
+            if len(AL_S) > 0:        
+                ID=ErgIDBase+'ZHKNR_S'
+                #print(ErgIDBase)            
+                for idx,AL_S_Timepair in enumerate(AL_S):            
+                    (t1,t2)=AL_S_Timepair
+                    ZHKNR_S_Lst=TCsLDSRes2.loc[t1:t2,ID].unique()
+                    if len(ZHKNR_S_Lst) != 1:                
+                        logger.warning("{:s}{:s}: Alarm {:d}: Anzahl verschiedener ZHKNRn: {:d}?!".format(logStr,ID,idx,len(ZHKNR_S_Lst)))            
+                    else:
+                        ZHKNR=int(ZHKNR_S_Lst[0])
+                        #print("{:s}: Alarm {:d}: ZHKNR: {:d}".format(ID,idx+1,ZHKNR))
+                        alarmEvent=AlarmEvent(t1,t2,ZHKNR,'Druck')
+                        if alarmEvent not in AlarmEvents:
+                            #print("{!s:s} neu in Liste".format(alarmEvent))
+                            AlarmEvents.append(alarmEvent)   
+                            AlarmEventsOrte[alarmEvent]=[]
+                            AlarmEventsOrte[alarmEvent].append(ErgIDBase)
+                            logger.debug("{:s}Alarm: {!s:s} {!s:s} {:d} {:s}".format(logStr,alarmEvent.tA,alarmEvent.tE,alarmEvent.ZHKNR,alarmEvent.LDSResType))            
+                        else:
+                            #print("{!s:s} bereits in Liste".format(alarmEvent))
+                            AlarmEventsOrte[alarmEvent].append(ErgIDBase)
+     
+        #AlarmEvents=sorted(AlarmEvents, key=lambda alarmEvent: alarmEvent.tA) 
+        AlarmEvents=sorted(AlarmEvents,key=attrgetter('tA','ZHKNR')) 
+
+        l=[]
+        for idx,alarmEvent in enumerate(AlarmEvents):
+            #alarmEvent=AlarmEvents[idx]
+            pass
+            #print("{:d}: {!s:s}: {!s:s}".format(idx+1,alarmEvent,AlarmEventsOrte[alarmEvent]))
+            l.append(AlarmEventsOrte[alarmEvent])
+    
+        dfAlarmEreignisse=pd.DataFrame.from_records(
+           [alarmEvent for alarmEvent in AlarmEvents],
+           columns=AlarmEvent._fields
+        )
+        dfAlarmEreignisse['OrteIDs']=l
+        dfAlarmEreignisse['Orte']=dfAlarmEreignisse.apply(lambda row: f(row.LDSResType,row.OrteIDs),axis=1)
+
+        dfAlarmEreignisse.index = np.arange(1, len(dfAlarmEreignisse)+1)
+
+        dfAlarmEreignisse=dfAlarmEreignisse.reset_index()
+        dfAlarmEreignisse.rename(columns={'index':'Nr'},inplace=True)
+        dfAlarmEreignisse['NrResType']=dfAlarmEreignisse.groupby('LDSResType').cumcount() + 1
+
+
+        VoralarmTypen=[]
+        for index, row in dfAlarmEreignisse.iterrows():            
+            OrteIDs=row['OrteIDs']
+            OrtID=OrteIDs[0]
+            #print(row['tA'])
+            if row['LDSResType']=='SEG':
+                VoralarmTyp=TCsLDSRes1.loc[:row['tA']-pd.Timedelta('1 second'),OrtID+'AL_S'].iloc[-1]
+                #print(VoralarmTyp)
+            elif row['LDSResType']=='Druck':
+                VoralarmTyp=TCsLDSRes2.loc[:row['tA']-pd.Timedelta('1 second'),OrtID+'AL_S'].iloc[-1]
+                #print(VoralarmTyp)        
+            logger.debug("{:s}{:d} {!s:s} {:d}".format(logStr,int(row['Nr']),row['tA'],int(VoralarmTyp)))
+            if VoralarmTyp == None:
+                VoralarmTyp=-1
+            VoralarmTypen.append(VoralarmTyp)
+        dfAlarmEreignisse['Voralarm']=[int(x) for x in VoralarmTypen]
+                                                                                                                       
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return dfAlarmEreignisse
+
+def plotDfAlarmEreignisse(    
+     dfAlarmEreignisse=pd.DataFrame()    
+    ):
+    """
+    Returns the plt.table
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+
+
+    try:                     
+
+        df=dfAlarmEreignisse[['Nr','LDSResType','Voralarm','NrResType','tA','tE','ZHKNR','Orte']].copy()
+        df['Orte']=df['Orte'].apply(lambda x: str(x).replace('[','').replace(']','').replace("'",""))
+        df['LDSResType']=df.apply(lambda row: "{:s} - {:d}".format(row['LDSResType'],row['Voralarm']),axis=1)
+        df=df[['Nr','LDSResType','NrResType','tA','tE','ZHKNR','Orte']]
+        df.rename(columns={'LDSResType':'ResTyp (Voralarm)'},inplace=True)
+        df.rename(columns={'NrResType':'NrResTyp'},inplace=True)
+
+        t=plt.table(cellText=df.values, colLabels=df.columns
+                    #,colWidths=[.05,.125,.075,.15,.15,.075,.375]
+                    ,colWidths=[.05,.1,.075,.125,.125,.05,.475]
+                    , cellLoc='left'
+                    , loc='center')    
+
+        t.auto_set_font_size(False)
+        t.set_fontsize(10)
+        
+        
+        cols=df.columns.to_list()
+        colIdxOrte=cols.index('Orte')
+
+        cells = t.properties()["celld"]
+        for cellTup,cellObj in cells.items():
+             cellObj.set_text_props(ha='left')
+
+
+             row,col=cellTup # row: 0 fuer Ueberschrift bei Ueberschrift; col mit 0
+    
+             if col == colIdxOrte:
+                 pass
+                 cellObj.set_text_props(fontsize=4)
+                 cellObj.set_text_props(ha='left')
+             else:
+                 pass
+                 #cellObj.set_text_props(fontsize=16)
+           
+            
+    
+    
+
+        plt.axis('off')       
+                                                                                                                   
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return t
+
 
 def getLDSResVecDf(
      ErgIDBase='ID.' # ErgVec-Defining-Channel; i.e. for Segs Objects.3S_XYZ_SEG_INFO.3S_L_6_EL1_39_TUD.In. / i.e. for Drks Objects.3S_XYZ_DRUCK.3S_6_EL1_39_PTI_02_E.In.
@@ -1262,7 +1501,12 @@ def plotDfAlarmStatistikReportsDruckErgs(
             ,yticksTV=[0,100,180,200,300]    
             )    
         
-            txt="SEG: RuheZeitenAlAnz: {:d}".format(row['RuheZeitenAlAnz'])        
+            txt="SEG: {:s}: LfdNr {:2d} - {:s}: RuheZeitenAlAnz: {:d}".format(
+                    row['SEGNodes']  
+                   ,int(row.Nr)+1         
+                   ,str(row.DIVPipelineName)                 
+                   ,row['RuheZeitenAlAnz'])        
+
             ax.text(.98, .1,txt,
             horizontalalignment='right',
             verticalalignment='center',

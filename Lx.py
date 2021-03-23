@@ -1744,36 +1744,36 @@ class AppLog():
 
                 if not LDSResOnly:
                                                            
-                    logger.debug("{0:s}{1:s}".format(logStr,'TCsdfOPC ...'))                    
+                    #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfOPC ...'))                    
                     TCsdfOPC=pd.read_hdf(self.h5FileOPC,h5KeyOPC)
 
-                    logger.debug("{0:s}{1:s}".format(logStr,'TCsdfSirCalc ...'))                                           
+                    #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfSirCalc ...'))                                           
                     TCsdfSirCalc=pd.read_hdf(self.h5FileSirCalc,h5KeySirCalc)
 
-                    logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSIn ...'))                      
+                    #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSIn ...'))                      
                     TCsdfLDSIn=pd.read_hdf(self.h5FileLDSIn,h5KeyLDSIn)
 
                 if Res2:
                     if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
-                        logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes1 ...'))                      
+                        #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes1 ...'))                      
                         TCsdfLDSRes1=pd.read_hdf(self.h5FileLDSRes1,h5KeyLDSRes1)
                     if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
-                        logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2 ...'))                      
+                        #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2 ...'))                      
                         TCsdfLDSRes2=pd.read_hdf(self.h5FileLDSRes2,h5KeyLDSRes2)
                 else:                   
-                    logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes ...'))                    
+                    #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes ...'))                    
                     TCsdfLDSRes=pd.read_hdf(self.h5FileLDSRes,h5KeyLDSRes)
 
                 if LDSResColsSpecified != None:                    
                     if Res2:
                         if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
-                            logger.debug("{0:s}{1:s} {2:s}".format(logStr,'TCsdfLDSRes1 Filter ...',str(LDSResColsSpecified)))                      
+                            #logger.debug("{0:s}{1:s} {2:s}".format(logStr,'TCsdfLDSRes1 Filter ...',str(LDSResColsSpecified)))                      
                             TCsdfLDSRes1=TCsdfLDSRes1.filter(items=LDSResColsSpecified)
                         if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
-                            logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2 Filter ...'))                      
+                            #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2 Filter ...'))                      
                             TCsdfLDSRes2=TCsdfLDSRes2.filter(items=LDSResColsSpecified)
                     else:                   
-                        logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes Filter ...'))                    
+                        #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes Filter ...'))                    
                         TCsdfLDSRes=TCsdfLDSRes.filter(items=LDSResColsSpecified)
 
                 if idx==0:
