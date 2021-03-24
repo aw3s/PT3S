@@ -470,7 +470,7 @@ def dfSegsNodesNDataDpkt(
                                           ,how='left'
                                           ,suffixes=('','_df')
                                           ).filter(items=cols)
-        dfSegsNodesNDataDpkt['NODEsSEGDruckErgLfdNr']=dfSegsNodesNDataDpkt['NODEsSEGDruckErgLfdNr'].astype(int)
+        dfSegsNodesNDataDpkt['NODEsSEGDruckErgLfdNr']=dfSegsNodesNDataDpkt['NODEsSEGDruckErgLfdNr'].astype(int,errors='ignore')
                                                                                                                    
     except RmError:
         raise            
@@ -1970,7 +1970,7 @@ def gen2Timespans(
     """
     erzeugt 2 gleich lange Zeitbereiche
     1 um timeStart herum
-    1 um time End herum
+    1 um timeEnd   herum
     """
       
     #print("timeStartPraefix: {:s}".format(str(timeStartPraefix)))
@@ -2229,6 +2229,7 @@ def plotTimespans(
                ,dateFormat=dateFormat
                ,bysecond=bysecond
                ,byminute=byminute
+               ,byhour=byhour
 
                ,ylimp=ylimp
                ,ylabelp=ylabelp
@@ -2275,6 +2276,7 @@ def plotTimespans(
                ,dateFormat=dateFormat
                ,bysecond=bysecond
                ,byminute=byminute
+               ,byhour=byhour
 
                ,ylimR=ylimR 
                ,ylimRxlim=ylimRxlim
@@ -2363,6 +2365,7 @@ def plotTimespansHYD(
    ,dateFormat='%d.%m.%y: %H:%M:%S' # can be a list
    ,bysecond=[0,15,30,45] # can be a list
    ,byminute=None # can be a list
+   ,byhour=None
    
    ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
    ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
@@ -2645,36 +2648,46 @@ def pltHelperX(
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
-    logger.debug("{0:s}bysecond: {1:s}".format(logStr,str(bysecond))) 
-    logger.debug("{0:s}byminute: {1:s}".format(logStr,str(byminute))) 
-    logger.debug("{0:s}byhour: {1:s}".format(logStr,str(byhour))) 
-    logger.debug("{0:s}dateFormat: {1:s}".format(logStr,dateFormat)) 
+    try:
+
+        logger.debug("{0:s}bysecond: {1:s}".format(logStr,str(bysecond))) 
+        logger.debug("{0:s}byminute: {1:s}".format(logStr,str(byminute))) 
+        logger.debug("{0:s}byhour: {1:s}".format(logStr,str(byhour))) 
+        logger.debug("{0:s}dateFormat: {1:s}".format(logStr,dateFormat)) 
     
-    if bysecond != None:
-        majLocatorTmp=mdates.SecondLocator(bysecond=bysecond)
-    elif byminute != None:
-        majLocatorTmp=mdates.MinuteLocator(byminute=byminute)
-    elif byhour != None:
-        majLocatorTmp=mdates.HourLocator(byhour=byhour)
-    else:
-        majLocatorTmp=mdates.HourLocator(byhour=[0,12])
+        if bysecond != None:
+            majLocatorTmp=mdates.SecondLocator(bysecond=bysecond)
+        elif byminute != None:
+            majLocatorTmp=mdates.MinuteLocator(byminute=byminute)
+        elif byhour != None:
+            majLocatorTmp=mdates.HourLocator(byhour=byhour)
+        else:
+            majLocatorTmp=mdates.HourLocator(byhour=[0,12])
 
-    majFormatterTmp=mdates.DateFormatter(dateFormat)   
+        majFormatterTmp=mdates.DateFormatter(dateFormat)   
     
 
-    logger.debug("{0:s}ax.xaxis.set_major_locator ...".format(logStr)) 
-    ax.xaxis.set_major_locator(majLocatorTmp)
+        logger.debug("{0:s}ax.xaxis.set_major_locator ...".format(logStr)) 
+        ax.xaxis.set_major_locator(majLocatorTmp)
 
-    logger.debug("{0:s}ax.xaxis.set_major_formatter ...".format(logStr)) 
-    ax.xaxis.set_major_formatter(majFormatterTmp)  
+        logger.debug("{0:s}ax.xaxis.set_major_formatter ...".format(logStr)) 
+        ax.xaxis.set_major_formatter(majFormatterTmp)  
   
-    #logger.debug("{0:s}ax.get_xticks(): {1:s}".format(logStr,str(ax.get_xticks())))     
+        #logger.debug("{0:s}ax.get_xticks(): {1:s}".format(logStr,str(ax.get_xticks())))     
 
-    logger.debug("{0:s}setp(ax.xaxis.get_majorticklabels() ...".format(logStr))     
-    dummy=plt.setp(ax.xaxis.get_majorticklabels(),rotation='vertical',ha='center')
-    ax.spines["left"].set_position(("axes",yPos)) 
+        logger.debug("{0:s}setp(ax.xaxis.get_majorticklabels() ...".format(logStr))     
+        dummy=plt.setp(ax.xaxis.get_majorticklabels(),rotation='vertical',ha='center')
+        ax.spines["left"].set_position(("axes",yPos)) 
 
-    logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+       
     
 def pltLDSHelperY(
      ax
@@ -3234,7 +3247,7 @@ def pltLDSErgVec(
 
     ,xlim=None # tuple (xmin,xmax); wenn undef. gelten min/max aus vorgenannten Daten als xlim; wenn Seg angegeben, gilt Seg   
 
-    ,dateFormat='%d.%m.%y: %H:%M:%S'
+    ,dateFormat='%y.%m.%d: %H:%M:%S'
     ,bysecond=None #[0,15,30,45]
     ,byminute=None
     ,byhour=None
@@ -3245,14 +3258,14 @@ def pltLDSErgVec(
     ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
     ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
 
-    ,ylimR=None #(-10,10) #wenn undef., dann min/max dfSegReprVec 
+    ,ylimR=(-45,45) #None #(-10,10) #wenn undef., dann min/max dfSegReprVec 
     ,ylimRxlim=False #wenn Wahr und ylimR undef. (None), dann wird xlim beruecksichtigt bei min/max dfSegReprVec
-    ,yticksR=[0,2,4,10,15,30,40]  #wenn undef. (None), dann aus ylimR; matplotlib "vergrößert" mit dem Setzen von yTicks ein ebenfalls gesetztes ylim wenn die Ticks außerhalb des ylims liegen
+    ,yticksR=[0,2,4,10,15,30,45]  #[0,2,4,10,15,30,40]  #wenn undef. (None), dann aus ylimR; matplotlib "vergrößert" mit dem Setzen von yTicks ein ebenfalls gesetztes ylim wenn die Ticks außerhalb des ylims liegen
 
     # dito Beschl.
-    ,ylimAC=None 
+    ,ylimAC=(-5,5)#None 
     ,ylimACxlim=False 
-    ,yticksAC=None 
+    ,yticksAC=[-5,0,5] #None 
 
     ,ySpanMin=0.9 # wenn ylim R/AC undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
 
@@ -3756,6 +3769,7 @@ def plotTimespansLDS(
     ,dateFormat='%d.%m.%y: %H:%M:%S'  # can be a list
     ,bysecond=[0,15,30,45]  # can be a list
     ,byminute=None  # can be a list
+    ,byhour=None
     
     ,ylimAL=(0,40)
     ,yticksAL=[0,10,20,30,40]
@@ -4258,8 +4272,8 @@ def pltLDSpQAndEvents(
     ,fctsDct={} # a Dct with Fcts
         
     ,xlim=None    
-    ,dateFormat='%d.%m.%y: %H:%M:%S'
-    ,bysecond=[0,15,30,45]
+    ,dateFormat='%y.%m.%d: %H:%M:%S'
+    ,bysecond=None #[0,15,30,45]
     ,byminute=None
     ,byhour=None
     
@@ -4335,6 +4349,7 @@ def pltLDSpQAndEvents(
 
             logger.debug("{0:s}bysecond: {1:s}".format(logStr,str(bysecond))) 
             logger.debug("{0:s}byminute: {1:s}".format(logStr,str(byminute))) 
+            logger.debug("{0:s}byhour: {1:s}".format(logStr,str(byhour))) 
                            
             pltHelperX(
              ax
@@ -4575,6 +4590,58 @@ def pltLDSpQAndEvents(
                          framealpha=legendFramealpha
                         ,facecolor=legendFacecolor
                         )
+
+            if plotLegend:
+                legendHorizontalPos='center'
+
+                patterBCp='^p S[rc|nk]'
+                patterBCQ='^Q S[rc|nk]'
+                patterBCpQ='^[p|Q] S[rc|nk]'
+                axes['p'].add_artist(axes['p'].legend(
+                                tuple([lines[line] for line in lines if re.search(patterBCp,line) != None]) 
+                                ,tuple([line for line in lines if re.search(patterBCp,line) != None]) 
+                                ,loc='upper '+legendHorizontalPos
+                                ,framealpha=legendFramealpha
+                                ,facecolor=legendFacecolor
+                                ))
+                axes['p'].add_artist(axes['p'].legend(
+                                tuple([lines[line] for line in lines if re.search(patterBCQ,line) != None]) 
+                                ,tuple([line for line in lines if re.search(patterBCQ,line) != None]) 
+                                ,loc='lower '+legendHorizontalPos
+                                ,framealpha=legendFramealpha
+                                ,facecolor=legendFacecolor
+                                ))
+
+                moreLines=[line for line in lines if re.search(patterBCpQ,line) == None]
+                if len(moreLines) > 0:
+                    opposite={'right':'left','left':'right','center':'left'}
+                    moreLinesp=[line for line in moreLines if re.search('^p',line) != None]
+                    if len(moreLinesp)>0:
+                        axes['p'].add_artist(axes['p'].legend(
+                                    tuple([lines[line] for line in moreLinesp]) 
+                                    ,tuple(moreLinesp) 
+                                    ,loc='upper '+opposite[legendHorizontalPos]
+                                    ,framealpha=legendFramealpha
+                                    ,facecolor=legendFacecolor
+                                    ))
+                    moreLinesQ=[line for line in moreLines if re.search('^Q',line) != None]
+                    if len(moreLinesQ)>0:
+                        axes['p'].add_artist(axes['p'].legend(
+                                    tuple([lines[line] for line in moreLinesQ]) 
+                                    ,tuple(moreLinesQ) 
+                                    ,loc='lower '+opposite[legendHorizontalPos]
+                                    ,framealpha=legendFramealpha
+                                    ,facecolor=legendFacecolor
+                                    ))
+
+                if 'SID' in axes.keys():
+                        if legendHorizontalPos == 'center':
+                            legendHorizontalPosAct=''
+                        else:
+                            legendHorizontalPosAct=' '+legendHorizontalPos
+                        axes['SID'].legend(loc='center'+legendHorizontalPosAct
+                                ,framealpha=legendFramealpha
+                                ,facecolor=legendFacecolor)        
                                                                                                                       
     except RmError:
         raise            

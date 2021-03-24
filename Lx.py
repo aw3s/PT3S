@@ -1789,7 +1789,7 @@ class AppLog():
                     else:
                         TCsdfLDSResLst=[]
                     
-                logger.debug("{0:s}Append ...".format(logStr)) 
+                #logger.debug("{0:s}Append ...".format(logStr)) 
 
                 if not LDSResOnly:
                     TCsdfOPCLst.append(TCsdfOPC)
