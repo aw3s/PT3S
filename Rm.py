@@ -2319,8 +2319,8 @@ def plotTimespansHYD(
     axLst # list of axes to be used    
    ,xlims # list of sections    
 
-   ,figTitle='a plotTimespansHYD title' # the title of the plot; will be extended by min. and max. time calculated over all sections; will be also the pdf and png fileName
-   ,figSave=True # creates pdf and png
+   ,figTitle='' # the title of the plot; will be extended by min. and max. time calculated over all sections; will be also the pdf and png fileName
+   ,figSave=False #True # creates pdf and png
    ,sectionTitles=[] #  list of section titles to be used    
    ,sectionTexts=[] #  list of section texts to be used    
    ,vLinesX=[] # plotted in each section if X-time fits
@@ -2362,8 +2362,8 @@ def plotTimespansHYD(
    
    ,fctsDct={} # a Dct with Fcts
           
-   ,dateFormat='%d.%m.%y: %H:%M:%S' # can be a list
-   ,bysecond=[0,15,30,45] # can be a list
+   ,dateFormat='%y.%m.%d: %H:%M:%S' # can be a list
+   ,bysecond=None#[0,15,30,45] # can be a list
    ,byminute=None # can be a list
    ,byhour=None
    
@@ -2373,13 +2373,13 @@ def plotTimespansHYD(
    # p y-Achse
    ,ylimp=(0,100)  #wenn undef., dann min/max 
    ,ylimpxlim=False #wenn Wahr und ylim undef., dann wird xlim beruecksichtigt bei min/max 
-   ,yticksp=[0,50,100] #wenn undef., dann aus ylimp
+   ,yticksp=None #[0,50,100] #wenn undef., dann aus ylimp
    ,ylabelp='[bar]'
    
    # Q y-Achse
    ,ylimQ=(0,250) 
    ,ylimQxlim=False 
-   ,yticksQ=[0,50,100,150,200,250]  
+   ,yticksQ=None #[0,50,100,150,200,250]  
    ,ylabelQ='[Nm³/h]'
 
     # 3. Achse
@@ -3754,8 +3754,8 @@ def plotTimespansLDS(
      axLst # list of axes to be used      
     ,xlims # list of sections    
 
-    ,figTitle='a plotTimespansLDS title' # the title of the plot; will be extended by min. and max. time calculated over all sections; will be also the pdf and png fileName
-    ,figSave=True # creates pdf and png
+    ,figTitle='' # the title of the plot; will be extended by min. and max. time calculated over all sections; will be also the pdf and png fileName
+    ,figSave=False #True # creates pdf and png
     ,sectionTitles=[] #  list of section titles to be used    
     ,sectionTexts=[] #  list of section texts to be used    
     ,vLinesX=[] # plotted in each section if X-time fits    
@@ -3766,8 +3766,8 @@ def plotTimespansLDS(
     ,dfDruckReprVec=pd.DataFrame() 
     
     #,xlim=None    
-    ,dateFormat='%d.%m.%y: %H:%M:%S'  # can be a list
-    ,bysecond=[0,15,30,45]  # can be a list
+    ,dateFormat='%y.%m.%d: %H:%M:%S'  # can be a list
+    ,bysecond=None #[0,15,30,45]  # can be a list
     ,byminute=None  # can be a list
     ,byhour=None
     
@@ -3777,13 +3777,13 @@ def plotTimespansLDS(
     ,yTwinedAxesPosDeltaHPStart=-0.0125 
     ,yTwinedAxesPosDeltaHP=-0.075 
 
-    ,ylimR=None # can be a list
+    ,ylimR=(-45,45) #None # can be a list
     ,ylimRxlim=False # can be a list
     ,yticksR=[0,2,4,10,15,30,45] # can be a list
     # dito Beschl.
-    ,ylimAC=None 
+    ,ylimAC=(-5,5)#None 
     ,ylimACxlim=False 
-    ,yticksAC=None 
+    ,yticksAC=[-5,0,5]#None 
 
     ,ySpanMin=0.9 
 
@@ -4283,13 +4283,13 @@ def pltLDSpQAndEvents(
     # p y-Achse
     ,ylimp=(0,100)  #wenn undef., dann min/max 
     ,ylimpxlim=False #wenn Wahr und ylim undef., dann wird xlim beruecksichtigt bei min/max 
-    ,yticksp=[0,50,100] #wenn undef., dann aus ylimp
+    ,yticksp=None #[0,50,100] #wenn undef., dann aus ylimp
     ,ylabelp='[bar]'
     
     # Q y-Achse
     ,ylimQ=(0,250) 
     ,ylimQxlim=False 
-    ,yticksQ=[0,50,100,150,200,250]  
+    ,yticksQ=None #[0,50,100,150,200,250]  
     ,ylabelQ='[Nm³/h]'
 
     # 3. Achse
