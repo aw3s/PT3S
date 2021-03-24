@@ -2043,9 +2043,16 @@ def plotTimespans(
      
     xlims # list of sections 
    ,orientation='landscape' # 'portrait'
+
+   ,pad=3.5
+   ,x_pad=0.5
+   ,rectSpalteLinks=[0, 0, 0.5, 1]
+   ,rectSpalteRechts=[0.4, 0, 1, 1]
+   ,rectZeileOben=[0, .5, 1, 1] 
+   ,rectZeileUnten=[0, 0, 1, .5]
     
-   ,dateFormat='%d.%m.%y: %H:%M:%S' # can be a list
-   ,bysecond=[0,15,30,45] # can be a list
+   ,dateFormat='%y.%m.%d: %H:%M:%S' # can be a list
+   ,bysecond=None #[0,15,30,45] # can be a list
    ,byminute=None # can be a list    
    ,byhour=None
 
@@ -2093,13 +2100,13 @@ def plotTimespans(
    # p y-Achse
    ,ylimp=(0,100)  #wenn undef., dann min/max 
    ,ylimpxlim=False #wenn Wahr und ylim undef., dann wird xlim beruecksichtigt bei min/max 
-   ,yticksp=[0,50,100] #wenn undef., dann aus ylimp
+   ,yticksp=None #[0,50,100] #wenn undef., dann aus ylimp
    ,ylabelp='[bar]'
    
    # Q y-Achse
    ,ylimQ=(0,250) 
    ,ylimQxlim=False 
-   ,yticksQ=[0,50,100,150,200,250]  
+   ,yticksQ=None #[0,50,100,150,200,250]  
    ,ylabelQ='[Nm³/h]'
 
     # 3. Achse
@@ -2159,14 +2166,14 @@ def plotTimespans(
    ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
    ,Druck_HighlightError_Color='peru'
    ,Druck_Highlight_Alpha_Error=.3
-   ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False          
-
-   ,plotTV=False
+   ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False        
+   
+   ,plotTV=True
    ,plotTVTimerFct=None 
    ,plotTVAmFct=lambda x: x*100 
    ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
    ,ylimTV=(0,300)
-   ,yticksTV=[0,100,200,300]
+   ,yticksTV=[0,100,180,200,300]   
     
 ):
     
@@ -2247,10 +2254,10 @@ def plotTimespans(
     
         if orientation=='landscape':
             # oben HYD unten LDS
-            gsHYD.tight_layout(fig, pad=5.,h_pad=2.,w_pad=2., rect=[0, .5, 1, 1]) 
+            gsHYD.tight_layout(fig, pad=pad,h_pad=x_pad,w_pad=x_pad, rect=rectZeileOben)#[0, .5, 1, 1]) 
         else:
             # links HYD rechts LDS
-            gsHYD.tight_layout(fig, pad=2., rect=[0, 0, 0.5, 1]) 
+            gsHYD.tight_layout(fig, pad=pad, rect=rectSpalteLinks)#[0, 0, 0.5, 1]) 
 
     
         pltLDSErgVecResults=plotTimespansLDS(    
@@ -2292,13 +2299,12 @@ def plotTimespans(
                ,yticksTV=yticksTV    
         )  
     
-    
         if orientation=='landscape':
             # oben HYD unten LDS
-            gsLDS.tight_layout(fig, pad=5.,h_pad=2.,w_pad=2., rect=[0, 0, 1, .5])
+            gsLDS.tight_layout(fig, pad=pad,h_pad=x_pad,w_pad=x_pad, rect=rectZeileUnten)#[0, 0, 1, .5])
         else:
             # links HYD rechts LDS
-            gsLDS.tight_layout(fig, pad=2., rect=[0.5, 0, 1, 1])
+            gsLDS.tight_layout(fig, pad=pad, rect=rectSpalteRechts)#[0.5, 0, 1, 1])
         
 
 
@@ -3729,15 +3735,30 @@ def pltLDSErgVec(
                     ax4.set_ylim(ylimTV)
                     ax4.set_yticks(yticksTV)        
                     ax4.set_ylabel(plotTVAmLabel)  
-   
+
             if plotLegend:
-                ax.legend(
-                 tuple([yLines[yline] for yline in yLines])
-                ,tuple([key for key,value in yLines.items()])
-                ,loc=legendLoc
-                ,framealpha=legendFramealpha
-                ,facecolor=legendFacecolor
-                )
+                legendHorizontalPos='center'
+                
+                               
+                if not dfSegReprVec.empty:
+                    patternSeg='Seg$'
+                    axes['A'].add_artist(axes['A'].legend(
+                                tuple([yLines[line] for line in yLines if re.search(patternSeg,line) != None]) 
+                                ,tuple([line for line in yLines if re.search(patternSeg,line) != None]) 
+                                ,loc='upper '+legendHorizontalPos
+                                ,framealpha=legendFramealpha
+                                ,facecolor=legendFacecolor
+                                ))         
+                if not dfDruckReprVec.empty:
+                    patternDruck='Drk$'
+                    axes['A'].add_artist(axes['A'].legend(
+                                tuple([yLines[line] for line in yLines if re.search(patternDruck,line) != None]) 
+                                ,tuple([line for line in yLines if re.search(patternDruck,line) != None]) 
+                                ,loc='lower '+legendHorizontalPos
+                                ,framealpha=legendFramealpha
+                                ,facecolor=legendFacecolor
+                                ))                   
+
                                                                                                                       
     except RmError:
         raise            
@@ -3777,13 +3798,13 @@ def plotTimespansLDS(
     ,yTwinedAxesPosDeltaHPStart=-0.0125 
     ,yTwinedAxesPosDeltaHP=-0.075 
 
-    ,ylimR=(-45,45) #None # can be a list
+    ,ylimR=None #(-45,45) #None # can be a list
     ,ylimRxlim=False # can be a list
     ,yticksR=[0,2,4,10,15,30,45] # can be a list
     # dito Beschl.
-    ,ylimAC=(-5,5)#None 
+    ,ylimAC=None #(-5,5)#None 
     ,ylimACxlim=False 
-    ,yticksAC=[-5,0,5]#None 
+    ,yticksAC=None #[-5,0,5]#None 
 
     ,ySpanMin=0.9 
 
@@ -3818,14 +3839,12 @@ def plotTimespansLDS(
     ,Druck_Highlight_Alpha_Error=.3
     ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
 
-    ,plotTV=False
+    ,plotTV=True
     ,plotTVTimerFct=None 
     ,plotTVAmFct=lambda x: x*100 
     ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
-    ,ylimTV=(0,400)
-    ,yticksTV=[0,100,180,200,270,300,400]
-
-     
+    ,ylimTV=(0,300)
+    ,yticksTV=[0,100,180,200,300]        
 ):
 
     # plots pltLDSErgVec-Sections 
