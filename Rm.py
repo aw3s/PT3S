@@ -115,7 +115,7 @@ True
 ...    os.remove(plotFileName)
 """
 
-__version__='90.12.4.1.dev1'
+__version__='90.12.4.3.dev1'
 
 import warnings # 3.6
 #...\Anaconda3\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
@@ -2136,13 +2136,14 @@ def plotTimespans(
    ,ylimAL=(0,40)
    ,yticksAL=[0,10,20,30,40]
 
-   ,ylimR=None # can be a list
-   ,ylimRxlim=False # can be a list
-   ,yticksR=[0,2,4,10,15,30,45] # can be a list of lists
-   # dito Beschl.
-   ,ylimAC=None 
+   ,ylimR=(-45,45)  #can be a list #None #(-10,10) #wenn undef., dann min/max dfSegReprVec 
+   ,ylimRxlim=False # can be a list #wenn Wahr und ylimR undef. (None), dann wird xlim beruecksichtigt bei min/max dfSegReprVec
+   ,yticksR=[0,2,4,10,15,30,45]  # can be a list of lists #[0,2,4,10,15,30,40]  #wenn undef. (None), dann aus ylimR; matplotlib "vergrößert" mit dem Setzen von yTicks ein ebenfalls gesetztes ylim wenn die Ticks außerhalb des ylims liegen
+
+    # dito Beschl.
+   ,ylimAC=(-5,5)#None 
    ,ylimACxlim=False 
-   ,yticksAC=None 
+   ,yticksAC=[-5,0,5] #None 
 
    ,attrsDctLDS=attrsDctLDS
 
@@ -2254,7 +2255,7 @@ def plotTimespans(
     
         if orientation=='landscape':
             # oben HYD unten LDS
-            gsHYD.tight_layout(fig, pad=pad,h_pad=x_pad,w_pad=x_pad, rect=rectZeileOben)#[0, .5, 1, 1]) 
+            gsHYD.tight_layout(fig, pad=pad,h_pad=x_pad*5,w_pad=x_pad, rect=rectZeileOben)#[0, .5, 1, 1]) 
         else:
             # links HYD rechts LDS
             gsHYD.tight_layout(fig, pad=pad, rect=rectSpalteLinks)#[0, 0, 0.5, 1]) 
@@ -2290,6 +2291,8 @@ def plotTimespans(
                ,yticksR=yticksR
 
                ,ylimAC=ylimAC 
+               ,ylimACxlim=ylimACxlim
+               ,yticksAC=yticksAC 
 
                ,plotTV=plotTV
                ,plotTVTimerFct=plotTVTimerFct 
@@ -2301,7 +2304,7 @@ def plotTimespans(
     
         if orientation=='landscape':
             # oben HYD unten LDS
-            gsLDS.tight_layout(fig, pad=pad,h_pad=x_pad,w_pad=x_pad, rect=rectZeileUnten)#[0, 0, 1, .5])
+            gsLDS.tight_layout(fig, pad=pad,h_pad=x_pad*5,w_pad=x_pad, rect=rectZeileUnten)#[0, 0, 1, .5])
         else:
             # links HYD rechts LDS
             gsLDS.tight_layout(fig, pad=pad, rect=rectSpalteRechts)#[0.5, 0, 1, 1])
@@ -3798,13 +3801,14 @@ def plotTimespansLDS(
     ,yTwinedAxesPosDeltaHPStart=-0.0125 
     ,yTwinedAxesPosDeltaHP=-0.075 
 
-    ,ylimR=None #(-45,45) #None # can be a list
+    ,ylimR=(-45,45) # can be a list
     ,ylimRxlim=False # can be a list
     ,yticksR=[0,2,4,10,15,30,45] # can be a list
+
     # dito Beschl.
-    ,ylimAC=None #(-5,5)#None 
+    ,ylimAC=(-5,5)
     ,ylimACxlim=False 
-    ,yticksAC=None #[-5,0,5]#None 
+    ,yticksAC=[-5,0,5]     
 
     ,ySpanMin=0.9 
 
