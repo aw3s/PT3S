@@ -544,10 +544,15 @@ class AppLog():
     def getTCsFromDf(cls,df,dfID=pd.DataFrame(),TCsdfOPCFill=TCsdfOPCFill):
         """
         returns several TC-dfs from df
+
+        Verarbeitung von dfs gemaess extractTCsToH5s; siehe dort
       
         Args:
             * df: a df with Log-Data
+                * columns: ['ID','ProcessTime','ScenTime','SubSystem','Value','Direction']
             * dfID
+                * index: ID
+                * erf. nur, wenn IDs nach Res1 und Res2 aufgeteilt werden sollen
             * TCsdfOPCFill: if True (default): fill NaNs
         
         Time curve dfs: cols:
@@ -559,7 +564,7 @@ class AppLog():
             * TCsdfOPC
             * TCsSirCalc
             * TCsLDSIn
-            * TCsLDSRes or TCsLDSRes1, TCsLDSRes2
+            * TCsLDSRes (dfID empty) or TCsLDSRes1, TCsLDSRes2
             
         """ 
  
@@ -581,7 +586,9 @@ class AppLog():
                 df=df.merge(dfID,how='left',left_on='ID',right_index=True,suffixes=('','_r'))             
                                                            
             logger.debug("{0:s}{1:s}".format(logStr,'TCsdfOPC ...'))     
-            TCsdfOPC=df[(df['SubSystem'].str.contains('^OPC')) & ~(df['Value'].isnull())][['ProcessTime','ID','Value']].pivot_table(index='ProcessTime', columns='ID', values='Value',aggfunc='last')
+            TCsdfOPC=df[(df['SubSystem'].str.contains('^OPC')) 
+                        ### & ~(df['Value'].isnull()) # ueberfluessig, wenn df dies bereits erfuellt
+                        ][['ProcessTime','ID','Value']].pivot_table(index='ProcessTime', columns='ID', values='Value',aggfunc='last')
             if TCsdfOPCFill:
                 for col in TCsdfOPC.columns:    
                     TCsdfOPC[col]=TCsdfOPC[col].fillna(method='ffill')
@@ -1476,6 +1483,7 @@ class AppLog():
     def getTCs(self,dfID=pd.DataFrame(),timeStart=None,timeEnd=None,TCsdfOPCFill=TCsdfOPCFill,persistent=False,overwrite=True):
         """
         returns TCs-dfs
+        Verarbeitung von dfs gemaess extractTCsToH5s; siehe dort
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1579,7 +1587,11 @@ class AppLog():
             # ueber alle dfs in H5 (unter Berücksichtigung von timeStart und timeEnd)
                 # lesen
                 # TC-Teilmenge ermitteln: 'ID','ProcessTime','ScenTime','SubSystem','Value','Direction'
+                    # Zeilen mit 'Value' isnull() werden NICHT gelesen
+                    # d.h. bei einer Logfile-Semantik welche durch NULL-Zeilen einen Wert auf (was auch immer) zuruecksetzt wuerde der Wert bei einer Stop-Plot-Ausgabe auf dem letzten Nicht-NULL Wert verharren ...
+                    # ... zunaechst ...                    
                 # Untermengen bilden: ['TCsdfOPC','TCsdfSirCalc','TCsdfLDSIn','TCsdfLDSRes1','TCsdfLDSRes2' (,'TCsdfLDSRes')]
+                    # ... NULLen (NaNs) entstehen durch die Pivotierung mit Index = Time: nicht fuer alles Times (Obermenge) gibt es fuer jede ID Values
                 # speichern
 
             (name,ext)=os.path.splitext(self.h5File)
@@ -1652,8 +1664,7 @@ class AppLog():
                 logger.debug("{0:s}Get (read_hdf) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
                 df=pd.read_hdf(self.h5File, key=h5Key)                   
                 df=df[['ID','ProcessTime','ScenTime','SubSystem','Value','Direction']]
-                df=df[~(df['Value'].isnull())]
-                #df['ID']=df['ID'].astype(str)
+                df=df[~(df['Value'].isnull())]                
 
                 if not dfID.empty:
                     TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2=self.getTCsFromDf(df,dfID=dfID,TCsdfOPCFill=TCsdfOPCFill)

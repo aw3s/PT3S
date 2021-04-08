@@ -1273,7 +1273,7 @@ def plotDfAlarmStatistikReportsSEGErgs(
             ,bysecond=bysecond
 
             ,ylimAL=(0,40)
-            ,yticksAL=[0,10,20,30,40]
+            ,yticksAL=yticksAL #[0,10,20,30,40]
 
             ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
             ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
@@ -1448,7 +1448,7 @@ def plotDfAlarmStatistikReportsDruckErgs(
             ,bysecond=bysecond
 
             ,ylimAL=(0,40)
-            ,yticksAL=[0,10,20,30,40]
+            ,yticksAL=yticksAL #[0,10,20,30,40]
 
             ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
             ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
@@ -2004,11 +2004,11 @@ def gen2Timespans(
 
 
 baseColorsSchieber=[ # Schieberfarben   
-                                         'b'        #                           1
-                                        ,'m'        #                           2
-                                        ,'g'        #                           3                                      
-                                        ,'c'        #                           4
-                                        ,'r'        #                           5
+                                         'g'        #                           1
+                                        ,'b'        #                           2
+                                        ,'m'        #                           3                                      
+                                        ,'r'        #                           4
+                                        ,'c'        #                           5
                                         # alle Basisfarben außer y gelb
                                         ,'tab:blue' #                           6
                                         ,'tab:orange' #                         7 
@@ -2037,7 +2037,7 @@ markerDefSchieber=[ # Schiebersymobole
 
 
 
-
+yticksAL=[0,3,4,10,20,30,40]
 
 def plotTimespans(
      
@@ -2134,7 +2134,7 @@ def plotTimespans(
    ,dfDruckReprVec=pd.DataFrame() 
         
    ,ylimAL=(0,40)
-   ,yticksAL=[0,10,20,30,40]
+   ,yticksAL=yticksAL #[0,10,20,30,40]
 
    ,ylimR=(-45,45)  #can be a list #None #(-10,10) #wenn undef., dann min/max dfSegReprVec 
    ,ylimRxlim=False # can be a list #wenn Wahr und ylimR undef. (None), dann wird xlim beruecksichtigt bei min/max dfSegReprVec
@@ -2540,7 +2540,8 @@ def plotTimespansHYD(
                     for vArea in vAreasXSection:
                         ax.axvspan(vArea[0], vArea[1], alpha=0.2, color='gray')
             else:
-                logger.warning("{0:s}vAreasX muss dieselbe Laenge haben wie xlims.".format(logStr)) 
+                if len(vAreasX)>0:
+                    logger.warning("{0:s}vAreasX muss dieselbe Laenge haben wie xlims.".format(logStr)) 
            
             # Legend
             if plotLegend:
@@ -2660,7 +2661,7 @@ def plotTimespansLDS(
     ,byhour=None
     
     ,ylimAL=(0,40)
-    ,yticksAL=[0,10,20,30,40]
+    ,yticksAL=yticksAL #[0,10,20,30,40]
 
     ,yTwinedAxesPosDeltaHPStart=-0.0125 
     ,yTwinedAxesPosDeltaHP=-0.075 
@@ -2873,7 +2874,8 @@ def plotTimespansLDS(
                     for vArea in vAreasXSection:
                         ax.axvspan(vArea[0], vArea[1], alpha=0.2, color='gray')
             else:
-                logger.warning("{0:s}vAreasX muss dieselbe Laenge haben wie xlims.".format(logStr))                
+                if len(vAreasX)>0:
+                    logger.warning("{0:s}vAreasX muss dieselbe Laenge haben wie xlims.".format(logStr))                
                                 
             # Legend
             if plotLegend:
@@ -3370,7 +3372,7 @@ def pltLDSErgVec(
     ,byhour=None
     
     ,ylimAL=(0,40)
-    ,yticksAL=[0,10,20,30,40]
+    ,yticksAL=yticksAL #[0,10,20,30,40]
 
     ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
     ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
@@ -3601,12 +3603,6 @@ def pltLDSErgVec(
                     dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
                                            ,where=df['LR_AV']>df['NG_AV']
                                            ,color='red',alpha=.2)
-
-
-
-
-
-
     
             if not dfDruckReprVec.empty:
                 lines = pltLDSErgVecHelper(ax2,dfDruckReprVec,'LR_AV',attrsDctLDS['Druck_LR_AV_Attrs'])                
@@ -3846,6 +3842,7 @@ def pltLDSErgVec(
                     ax4.set_ylim(ylimTV)
                     ax4.set_yticks(yticksTV)        
                     ax4.set_ylabel(plotTVAmLabel)  
+                    ax4.grid() 
 
             if plotLegend:
                 legendHorizontalPos='center'
@@ -4613,7 +4610,7 @@ def pltLDSSIDHelper(
                 idxKat[valRegExSchieberID]=idxSchieberLfd
                 idxSchieberLfd=idxSchieberLfd+1          
                         
-        logger.debug("{0:s}idxKat: keys: {1:s}: values: {2:s}".format(logStr,str(idxKat.keys()),str(idxKat.values())))
+        logger.debug("{0:s}Dct idxKat: keys (versch. Schieber - meint versch. Kategorien): {1:s}: values (Index der jeweiligen Kategorie): {2:s}".format(logStr,str(idxKat.keys()),str(idxKat.values())))
 
         ### jede Grundfarbe so oft wie es Schieber gibt ### VERALTET ### jetzt 1 Farbe pro Schieber - nachfolgendes Aufrufergebnis ohne Verwendung
         cm=pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,nOfSubCatsReq=len(idxKat),reversedSubCatOrder=True)   
