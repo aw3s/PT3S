@@ -2309,9 +2309,6 @@ def plotTimespans(
             # links HYD rechts LDS
             gsLDS.tight_layout(fig, pad=pad, rect=rectSpalteRechts)#[0.5, 0, 1, 1])
         
-
-
-
     except RmError:
         raise            
     except Exception as e:
@@ -2321,8 +2318,6 @@ def plotTimespans(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
         return gsHYD,gsLDS,pltLDSpQAndEventsResults,pltLDSErgVecResults
-
-   
 
 def plotTimespansHYD(    
     axLst # list of axes to be used    
@@ -2632,8 +2627,6 @@ def plotTimespansHYD(
             plt.savefig(figTitle+'.png')
             plt.savefig(figTitle+'.pdf') 
 
-
-
     except RmError:
         raise            
     except Exception as e:
@@ -2644,7 +2637,1251 @@ def plotTimespansHYD(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
         return pltLDSpQAndEventsResults
 
+
+def plotTimespansLDS(    
+     axLst # list of axes to be used      
+    ,xlims # list of sections    
+
+    ,figTitle='' # the title of the plot; will be extended by min. and max. time calculated over all sections; will be also the pdf and png fileName
+    ,figSave=False #True # creates pdf and png
+    ,sectionTitles=[] #  list of section titles to be used    
+    ,sectionTexts=[] #  list of section texts to be used    
+    ,vLinesX=[] # plotted in each section if X-time fits    
+    ,vAreasX=[] # for each section a list of areas to highlight i.e. [[(timeStartAusschnittDruck,timeEndAusschnittDruck),...],...]
+
+   # --- Args Fct. ---:     
+    ,dfSegReprVec=pd.DataFrame() 
+    ,dfDruckReprVec=pd.DataFrame() 
+    
+    #,xlim=None    
+    ,dateFormat='%y.%m.%d: %H:%M:%S'  # can be a list
+    ,bysecond=None #[0,15,30,45]  # can be a list
+    ,byminute=None  # can be a list
+    ,byhour=None
+    
+    ,ylimAL=(0,40)
+    ,yticksAL=[0,10,20,30,40]
+
+    ,yTwinedAxesPosDeltaHPStart=-0.0125 
+    ,yTwinedAxesPosDeltaHP=-0.075 
+
+    ,ylimR=(-45,45) # can be a list
+    ,ylimRxlim=False # can be a list
+    ,yticksR=[0,2,4,10,15,30,45] # can be a list
+
+    # dito Beschl.
+    ,ylimAC=(-5,5)
+    ,ylimACxlim=False 
+    ,yticksAC=[-5,0,5]     
+
+    ,ySpanMin=0.9 
+
+    ,plotLegend=True # interpretiert fuer diese Funktion; Inverse gilt fuer pltLDSErgVec selbst
+    ,plotLegend1stOnly=True # diese Funktion plottet wenn plotLegend=True die Legende nur im ersten Plot
+
+    ,legendLoc='best'
+    ,legendFramealpha=.2
+    ,legendFacecolor='white' 
+
+    ,attrsDctLDS=attrsDctLDS
+
+    ,plotLPRate=True
+    ,plotR2FillSeg=True 
+    ,plotR2FillDruck=True 
+    ,plotAC=True
+    ,plotACCLimits=True
+
+    ,highlightAreas=True 
+
+    ,Seg_Highlight_Color='cyan'
+    ,Seg_Highlight_Alpha=.1     
+    ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False      
+    ,Seg_HighlightError_Color='peru'
+    ,Seg_Highlight_Alpha_Error=.3     
+    ,Seg_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False   
+
+    ,Druck_Highlight_Color='cyan'
+    ,Druck_Highlight_Alpha=.1
+    ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
+    ,Druck_HighlightError_Color='peru'
+    ,Druck_Highlight_Alpha_Error=.3
+    ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
+
+    ,plotTV=True
+    ,plotTVTimerFct=None 
+    ,plotTVAmFct=lambda x: x*100 
+    ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
+    ,ylimTV=(0,300)
+    ,yticksTV=[0,100,180,200,300]        
+):
+
+    # plots pltLDSErgVec-Sections 
+    
+    # returns a Lst of pltLDSErgVec-Results, a Lst of (axes,lines)
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:    
+
+        if sectionTitles==[] or sectionTitles ==None:
+            sectionTitles=len(xlims)*['a plotTimespansLDS sectionTitle Praefix']
+
+        if not isinstance(sectionTitles, list):            
+            logger.warning("{0:s}sectionTitles muss eine Liste von strings sein.".format(logStr)) 
+            sectionTitles=len(xlims)*['a plotTimespansLDS sectionTitle Praefix']
+
+        if len(sectionTitles)!=len(xlims):            
+            logger.warning("{0:s}sectionTitles muss dieselbe Laenge haben wie xlims.".format(logStr)) 
+            sectionTitles=len(xlims)*['a plotTimespansLDS sectionTitle Praefix']
+
+        if sectionTexts==[] or sectionTexts==None:
+            sectionTexts=len(xlims)*['']
+
+        if not isinstance(sectionTexts, list):            
+            logger.warning("{0:s}sectionTexts muss eine Liste von strings sein.".format(logStr)) 
+            sectionTexts=len(xlims)*['']
+
+        if len(sectionTexts)!=len(xlims):            
+            logger.warning("{0:s}sectionTexts muss dieselbe Laenge haben wie xlims.".format(logStr)) 
+            sectionTexts=len(xlims)*['']
         
+        if plotLegend:
+           plotLegendFct=False
+        else:
+           plotLegendFct=True
+
+        pltLDSErgVecResults=[]
+        for idx,xlim in enumerate(xlims):   
+                             
+            ax = axLst[idx]
+
+            if isinstance(dateFormat, list):
+                dateFormatIdx=dateFormat[idx]
+            else:
+                dateFormatIdx=dateFormat
+
+            bysecondIdx=bysecond
+            if isinstance(bysecond, list):
+                if any(isinstance(el, list) for el in bysecond):               
+                    bysecondIdx=bysecond[idx]                        
+
+            byminuteIdx=byminute
+            if isinstance(byminute, list):
+                if any(isinstance(el, list) for el in byminute):              
+                    byminuteIdx=byminute[idx]      
+            
+            ylimRIdx=ylimR
+            if isinstance(ylimR, list):
+                ylimRIdx=ylimR[idx]
+
+            ylimRxlimIdx=ylimRxlim
+            if isinstance(ylimRxlim, list):
+                ylimRxlimIdx=ylimRxlim[idx]
+
+            yticksRIdx=yticksR
+            if isinstance(yticksR, list):
+                if any(isinstance(el, list) for el in yticksR):               
+                    yticksRIdx=yticksR[idx]                  
+
+        
+            (axes,lines)=pltLDSErgVec(
+                     ax
+                    ,dfSegReprVec=dfSegReprVec
+                    ,dfDruckReprVec=dfDruckReprVec
+                    ,xlim=xlims[idx]    
+                      
+                    ,dateFormat=dateFormatIdx
+                    ,bysecond=bysecondIdx
+                    ,byminute=byminuteIdx
+
+                    ,ylimAL=ylimAL
+                    ,yticksAL=yticksAL
+
+                    ,yTwinedAxesPosDeltaHPStart=yTwinedAxesPosDeltaHPStart
+                    ,yTwinedAxesPosDeltaHP=yTwinedAxesPosDeltaHP
+
+                    ,ylimR=ylimRIdx
+                    ,ylimRxlim=ylimRxlimIdx
+                    ,yticksR=yticksRIdx
+                
+                    ,ylimAC=ylimAC 
+                    ,ylimACxlim=ylimACxlim 
+                    ,yticksAC=yticksAC 
+
+                    ,ySpanMin=ySpanMin
+
+                    ,plotLegend=plotLegendFct
+                    ,legendLoc=legendLoc
+                    ,legendFramealpha=legendFramealpha
+                    ,legendFacecolor=legendFacecolor 
+
+                    ,attrsDctLDS=attrsDctLDS         
+                    
+                    ,plotLPRate=plotLPRate                  
+                    ,plotR2FillSeg=plotR2FillSeg
+                    ,plotR2FillDruck=plotR2FillDruck                   
+                    ,plotAC=plotAC     
+                    ,plotACCLimits=plotACCLimits
+
+                    ,highlightAreas=highlightAreas 
+
+                    ,Seg_Highlight_Color=Seg_Highlight_Color
+                    ,Seg_Highlight_Alpha=Seg_Highlight_Alpha     
+                    ,Seg_Highlight_Fct=Seg_Highlight_Fct   
+                    ,Seg_HighlightError_Color=Seg_HighlightError_Color
+                    ,Seg_Highlight_Alpha_Error=Seg_Highlight_Alpha_Error #     
+                    ,Seg_HighlightError_Fct=Seg_HighlightError_Fct   
+
+                    ,Druck_Highlight_Color=Druck_Highlight_Color
+                    ,Druck_Highlight_Alpha=Druck_Highlight_Alpha
+                    ,Druck_Highlight_Fct=Druck_Highlight_Fct  
+                    ,Druck_HighlightError_Color=Druck_HighlightError_Color
+                    ,Druck_Highlight_Alpha_Error=Druck_Highlight_Alpha_Error #     
+                    ,Druck_HighlightError_Fct=Druck_HighlightError_Fct        
+                    
+                    ,plotTV=plotTV
+                    ,plotTVTimerFct=plotTVTimerFct 
+                    ,plotTVAmFct=plotTVAmFct 
+                    ,plotTVAmLabel=plotTVAmLabel
+                    ,ylimTV=ylimTV
+                    ,yticksTV=yticksTV            
+                    )    
+            pltLDSErgVecResults.append((axes,lines))
+
+            sectionText=sectionTexts[idx]
+            ax.text(  
+                0.5, 0.5,
+                sectionText,
+                ha='center', va='top',
+                transform=ax.transAxes
+            )
+        
+            (timeStart,timeEnd)=xlim                
+            sectionTitleSingle="{:s}: Plot Nr. {:d} - Zeitspanne: {:s}".format(sectionTitles[idx],idx+1,str(timeEnd-timeStart)).replace('days','Tage')  
+            ax.set_title(sectionTitleSingle)         
+        
+            for vLineX in vLinesX:        
+                if vLineX >= timeStart and vLineX <= timeEnd:
+                    ax.axvline(x=vLineX,ymin=0, ymax=1, color='gray',ls=linestyle_tuple[11][1])     
+                
+            if len(vAreasX) == len(xlims):
+                vAreasXSection=vAreasX[idx]
+                if vAreasXSection==[] or vAreasXSection==None:
+                    pass
+                else:
+                    for vArea in vAreasXSection:
+                        ax.axvspan(vArea[0], vArea[1], alpha=0.2, color='gray')
+            else:
+                logger.warning("{0:s}vAreasX muss dieselbe Laenge haben wie xlims.".format(logStr))                
+                                
+            # Legend
+            if plotLegend:
+                legendHorizontalPos='center'
+                if len(xlims)>1:
+                    if idx in [0,2,4]: # Anfahren ...
+                        legendHorizontalPos='right'
+                    elif idx in [1,3,5]: # Abfahren ...
+                        legendHorizontalPos='left'                    
+
+                if plotLegend1stOnly and idx>0:
+                    pass
+                else:                
+                    if not dfSegReprVec.empty:
+                        patternSeg='Seg$'
+                        axes['A'].add_artist(axes['A'].legend(
+                                    tuple([lines[line] for line in lines if re.search(patternSeg,line) != None]) 
+                                   ,tuple([line for line in lines if re.search(patternSeg,line) != None]) 
+                                   ,loc='upper '+legendHorizontalPos
+                                   ,framealpha=legendFramealpha
+                                   ,facecolor=legendFacecolor
+                                    ))         
+                    if not dfDruckReprVec.empty:
+                        patternDruck='Drk$'
+                        axes['A'].add_artist(axes['A'].legend(
+                                    tuple([lines[line] for line in lines if re.search(patternDruck,line) != None]) 
+                                   ,tuple([line for line in lines if re.search(patternDruck,line) != None]) 
+                                   ,loc='lower '+legendHorizontalPos
+                                   ,framealpha=legendFramealpha
+                                   ,facecolor=legendFacecolor
+                                    ))                   
+        
+        # Titel
+        tMin=xlims[0][0]
+        tMax=xlims[-1][1]
+        for tPair in xlims:
+            (t1,t2)=tPair
+            if t1 < tMin:
+                tMin=t1
+            if t2>tMax:
+                tMax=t2
+
+        if figTitle not in ['',None]:                     
+            figTitle="{:s} - {:s} - {:s}".format(figTitle,str(tMin),str(tMax)).replace(':',' ')
+            fig=plt.gcf()
+            fig.suptitle(figTitle)   
+
+        # speichern?!
+        if figSave:
+            fig.tight_layout(pad=2.) # gs.tight_layout(fig,pad=2.)
+
+            plt.savefig(figTitle+'.png')
+            plt.savefig(figTitle+'.pdf') 
+                     
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return pltLDSErgVecResults    
+
+
+def pltLDSpQAndEvents(
+     ax
+    ,dfTCsLDSIn # es werden nur die aDct-definierten geplottet
+    ,dfTCsOPC=pd.DataFrame() # es werden nur die aDctOPC-definierten geplottet
+    # der Schluessel in den vorstehenden Dcts ist die ID (der Spaltenname) in den TCs
+    ,dfTCsOPCScenTimeShift=pd.Timedelta('1 hour') 
+
+    ,dfTCsSIDEvents=pd.DataFrame() 
+    ,dfTCsSIDEventsTimeShift=pd.Timedelta('1 hour') 
+    ,dfTCsSIDEventsInXlimOnly=True # es werden nur die Spalten geplottet, die in xlim vorkommen (in xlim mindestens 1x nicht Null sind)
+    ,dfTCsSIDEventsyOffset=.05 # die y-Werte werden ab dem 1. Schieber um je dfTCsSIDEventsyOffset erhöht (damit zeitgleiche Events besser sichtbar werden)
+    
+    ,QDct={ # Exanple
+        'Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value':{'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+        ,'Objects.FBG_MESSW.6_TUD_39_FT_01.In.MW.value':{'IDPlt':'Q Snk','RTTM':'IMDI.Objects.FBG_MESSW.6_TUD_39_FT_01.In.MW.value'}
+     }
+    
+    ,pDct={# Example
+       'Objects.FBG_HPS_M.6_KED_39_PTI_01_E.In.MW.value':{'IDPlt':'p Src'}
+       ,'Objects.FBG_HPS_M.6_TUD_39_PTI_01_E.In.MW.value':{'IDPlt':'p Snk'}
+       ,'Objects.FBG_HPS_M.6_EL1_39_PTI_01_E.In.MW.value':{'IDPlt':'p ISrc 1'}
+       ,'Objects.FBG_HPS_M.6_EL1_39_PTI_02_E.In.MW.value':{'IDPlt':'p ISnk 2'}    
+    }
+    ,QDctOPC={ # Exanple
+        'Objects.FBG_MESSW.6_EL1_39_FT_01.In.MW.value':{'IDPlt':'Q xSnk 1'}       
+     }
+
+    ,pDctOPC={} 
+    
+    ,IDPltKey='IDPlt' # Schluesselbezeichner in den vorstehenden 4 Dcts; Wert ist Referenz auf das folgende Layout-Dct und das folgende Fcts-Dct; Werte muessen eindeutig sein
+    
+    ,attrsDct=attrsDct 
+     
+    ,fctsDct={} # a Dct with Fcts
+        
+    ,xlim=None    
+    ,dateFormat='%y.%m.%d: %H:%M:%S'
+    ,bysecond=None #[0,15,30,45]
+    ,byminute=None
+    ,byhour=None
+    
+    ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
+    ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
+    
+    # p y-Achse
+    ,ylimp=(0,100)  #wenn undef., dann min/max 
+    ,ylimpxlim=False #wenn Wahr und ylim undef., dann wird xlim beruecksichtigt bei min/max 
+    ,yticksp=None #[0,50,100] #wenn undef., dann aus ylimp
+    ,ylabelp='[bar]'
+    
+    # Q y-Achse
+    ,ylimQ=(0,250) 
+    ,ylimQxlim=False 
+    ,yticksQ=None #[0,50,100,150,200,250]  
+    ,ylabelQ='[Nm³/h]'
+
+    # 3. Achse
+    ,ylim3rd=(-1,3)
+    ,yticks3rd=[0,1,2,3]
+    
+    ,yGridSteps=0 # 0: das y-Gitter besteht dann bei ylimp=ylimQ=yticksp=yticksQ None nur aus min/max (also 1 Gitterabschnitt)     
+    ,ySpanMin=0.9 # wenn ylim undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
+
+    ,plotLegend=True
+    ,legendLoc='best'
+    ,legendFramealpha=.2
+    ,legendFacecolor='white' 
+
+    # SchieberEvents
+
+    ,pSIDEvents=pSIDEvents
+    # ausgewertet werden: colRegExSchieberID (um welchen Schieber geht es), colRegExMiddle (Befehl oder Zustand) und colRegExEventID (welcher Befehl bzw. Zustand) 
+    # die Befehle bzw. Zustaende (die Auspraegungen von colRegExEventID) muessen nachf. def. sein um den Marker (des Befehls bzw. des Zustandes) zu definieren
+
+    ,eventCCmds=eventCCmds
+    ,eventCStats=eventCStats
+    ,valRegExMiddleCmds=valRegExMiddleCmds # colRegExMiddle-Auspraegung fuer Befehle (==> eventCCmds)
+
+    # es muessen soviele Farben definiert sein wie Schieber
+    ,baseColorsDef=baseColorsSchieber                                                             
+    ,markerDef=markerDefSchieber 
+    ):
+    """
+    zeichnet pq-Zeitkurven - ggf. ergaenzt durch Events
+
+    Returns:
+        * axes (Dct of axes)
+        * lines (Dct of lines)
+        * scatters (List of ax.scatter-Results)
+    """
+   
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    axes={}
+    lines={}
+    scatters=[]
+
+    try:    
+        
+            axes['p']=ax
+
+            # x-Achse ----------------
+            if xlim == None:            
+                xlimMin=dfTCsLDSIn.index[0]
+                xlimMax=dfTCsLDSIn.index[-1]                                
+                xlim=(xlimMin,xlimMax)
+            (xlimMin,xlimMax)=xlim
+
+            ax.set_xlim(xlim)
+
+            logger.debug("{0:s}bysecond: {1:s}".format(logStr,str(bysecond))) 
+            logger.debug("{0:s}byminute: {1:s}".format(logStr,str(byminute))) 
+            logger.debug("{0:s}byhour: {1:s}".format(logStr,str(byhour))) 
+                           
+            pltHelperX(
+             ax
+            ,dateFormat=dateFormat
+            ,bysecond=bysecond
+            ,byminute=byminute
+            ,byhour=byhour
+            ,yPos=yTwinedAxesPosDeltaHPStart
+            )  
+                      
+            # Eindeutigkeit der IDPlts pruefen
+            keys=[]
+            keysUneindeutig=[]
+            for dct in [QDct,pDct,QDctOPC,pDctOPC]:
+                for key, value in dct.items():
+                    if IDPltKey in value.keys():
+                        IDPltValue=value[IDPltKey]
+                        if IDPltValue in keys:                
+                            print("IDPlt {:s} bereits vergeben".format(IDPltValue))
+                            keysUneindeutig.append(IDPltValue)
+                        else:
+                            keys.append(IDPltValue)
+
+            # 1. Achse p -----------------------    
+        
+            for key, value in pDct.items(): # nur die konfigurierten IDs plotten          
+                if key in dfTCsLDSIn.columns: # nur dann, wenn ID als Spalte enthalten 
+                    label, linesAct = pltLDSpQHelper(
+                        ax    
+                       ,dfTCsLDSIn
+                       ,key # Spaltenname
+                       ,value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                       ,attrsDct # a Dct with - i.e. {'Q Src':{'color':'red'},...}
+                       ,IDPltKey=IDPltKey # Schluesselbezeichner in value   
+                       ,xDctFcts=fctsDct
+                        )                    
+                    lines[label]=linesAct[0]               
+                else:
+                    logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))   
+
+                if 'RTTM' in value.keys():       
+                    if value['RTTM'] in dfTCsLDSIn.columns:
+                        
+                        label, linesAct = pltLDSpQHelper(
+                        ax    
+                       ,dfTCsLDSIn
+                       ,value['RTTM'] 
+                       ,value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                       ,attrsDct 
+                       ,IDPltKey=IDPltKey 
+                       ,IDPltValuePostfix=' RTTM' 
+                       ,xDctFcts=fctsDct
+                        )                    
+                        lines[label]=linesAct[0]  
+
+                    else:
+                        logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,value['RTTM']))   
+
+            if not dfTCsOPC.empty:   
+                for key, value in pDctOPC.items():   
+                    if key in dfTCsOPC.columns:
+
+                        label, linesAct = pltLDSpQHelper(
+                        ax    
+                       ,dfTCsOPC
+                       ,key 
+                       ,value 
+                       ,attrsDct
+                       ,IDPltKey=IDPltKey 
+                       ,timeShift=dfTCsOPCScenTimeShift
+                       ,xDctFcts=fctsDct
+                        )                    
+                        lines[label]=linesAct[0]   
+
+                    else:
+                        logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))                                        
+                                                                                                           
+            ylimp,yticksp=pltLDSpQHelperYLimAndTicks(
+             dfTCsLDSIn
+            ,pDct.keys()
+            ,ylim=ylimp
+            ,yticks=yticksp     
+            ,ylimxlim=ylimpxlim 
+            ,xlim=xlim      
+            ,ySpanMin=ySpanMin
+            ,yGridSteps=yGridSteps
+            )       
+    
+            ax.set_ylim(ylimp)
+            ax.set_yticks(yticksp)
+                            
+            ax.grid() 
+    
+            ax.set_zorder(10)
+            ax.patch.set_visible(False)      
+    
+            ax.set_ylabel(ylabelp)
+    
+            # 2. y-Achse Q ----------------------------------------
+            ax2 = ax.twinx()
+            axes['Q']=ax2            
+    
+            pltHelperX(
+             ax2
+            ,dateFormat=dateFormat
+            ,bysecond=bysecond
+            ,byminute=byminute
+            ,byhour=byhour
+            ,yPos=yTwinedAxesPosDeltaHPStart+yTwinedAxesPosDeltaHP
+            )         
+           
+            for key, value in QDct.items():   
+                if key in dfTCsLDSIn.columns:
+                        label, linesAct = pltLDSpQHelper(
+                        ax2    
+                       ,dfTCsLDSIn
+                       ,key 
+                       ,value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                       ,attrsDct 
+                       ,IDPltKey=IDPltKey 
+                       ,xDctFcts=fctsDct
+                        )                    
+                        lines[label]=linesAct[0]  
+                else:
+                    logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))       
+                       
+                if 'RTTM' in value.keys():       
+                    if value['RTTM'] in dfTCsLDSIn.columns:
+                        
+                        label, linesAct = pltLDSpQHelper(
+                        ax2    
+                       ,dfTCsLDSIn
+                       ,value['RTTM'] 
+                       ,value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                       ,attrsDct 
+                       ,IDPltKey=IDPltKey 
+                       ,IDPltValuePostfix=' RTTM' 
+                       ,xDctFcts=fctsDct
+                        )                    
+                        lines[label]=linesAct[0]  
+
+                    else:
+                        logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,value['RTTM']))   
+
+            if not dfTCsOPC.empty:   
+                for key, value in QDctOPC.items():   
+                    if key in dfTCsOPC.columns:                       
+                        label, linesAct = pltLDSpQHelper(
+                        ax2    
+                       ,dfTCsOPC
+                       ,key 
+                       ,value 
+                       ,attrsDct 
+                       ,IDPltKey=IDPltKey 
+                       ,timeShift=dfTCsOPCScenTimeShift
+                       ,xDctFcts=fctsDct
+                        )                    
+                        lines[label]=linesAct[0]                                              
+                    else:
+                        logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))               
+ 
+                                
+            pltLDSHelperY(ax2)
+                     
+            ylimQ,yticksQ=pltLDSpQHelperYLimAndTicks(
+             dfTCsLDSIn
+            ,QDct.keys()
+            ,ylim=ylimQ
+            ,yticks=yticksQ     
+            ,ylimxlim=ylimQxlim 
+            ,xlim=xlim      
+            ,ySpanMin=ySpanMin
+            ,yGridSteps=yGridSteps                
+            )                               
+
+            ax2.set_ylim(ylimQ)
+            ax2.set_yticks(yticksQ)
+                                         
+            ax2.grid()  
+    
+            ax2.set_ylabel(ylabelQ)
+
+            # ggf. 3. Achse
+
+            if not dfTCsSIDEvents.empty:# or not dfTCsSirCalcSIDEvents.empty:                   
+
+                ax3 = ax.twinx()                
+                axes['SID']=ax3
+    
+                pltHelperX(
+                 ax3
+                ,dateFormat=dateFormat
+                ,bysecond=bysecond
+                ,byminute=byminute
+                ,byhour=byhour
+                ,yPos=yTwinedAxesPosDeltaHPStart+2*yTwinedAxesPosDeltaHP
+                )         
+
+
+                if dfTCsSIDEventsInXlimOnly:                    
+                    # auf xlim beschränken
+                    dfTCsSIDEventsPlot=dfTCsSIDEvents.loc[xlim[0]-dfTCsSIDEventsTimeShift:xlim[1]-dfTCsSIDEventsTimeShift,:]
+                else:
+                    dfTCsSIDEventsPlot=dfTCsSIDEvents
+            
+                labelsOneCall,scattersOneCall=pltLDSSIDHelper(
+                ax3 
+               ,dfTCsSIDEventsPlot
+               ,dfTCsSIDEventsTimeShift   
+               ,dfTCsSIDEventsyOffset
+               ,pSIDEvents
+               ,valRegExMiddleCmds
+               ,eventCCmds
+               ,eventCStats
+               ,markerDef
+               ,baseColorsDef
+                )                
+                scatters=scatters+scattersOneCall
+                
+
+
+            if not dfTCsSIDEvents.empty:# or not dfTCsSirCalcSIDEvents.empty:    
+                pltLDSHelperY(ax3)             
+                ax3.set_ylim(ylim3rd)
+                ax3.set_yticks(yticks3rd)
+    
+            if plotLegend:                
+                ax.legend(
+                 tuple([lines[line] for line in lines])
+                ,tuple([key for key,value in lines.items()])
+                ,loc=legendLoc
+                ,framealpha=legendFramealpha
+                ,facecolor=legendFacecolor
+                )
+
+                if not dfTCsSIDEvents.empty:# or not dfTCsSirCalcSIDEvents.empty:                                       
+                    ax3.legend(
+                         framealpha=legendFramealpha
+                        ,facecolor=legendFacecolor
+                        )
+
+            if plotLegend:
+                legendHorizontalPos='center'
+
+                patterBCp='^p S[rc|nk]'
+                patterBCQ='^Q S[rc|nk]'
+                patterBCpQ='^[p|Q] S[rc|nk]'
+                axes['p'].add_artist(axes['p'].legend(
+                                tuple([lines[line] for line in lines if re.search(patterBCp,line) != None]) 
+                                ,tuple([line for line in lines if re.search(patterBCp,line) != None]) 
+                                ,loc='upper '+legendHorizontalPos
+                                ,framealpha=legendFramealpha
+                                ,facecolor=legendFacecolor
+                                ))
+                axes['p'].add_artist(axes['p'].legend(
+                                tuple([lines[line] for line in lines if re.search(patterBCQ,line) != None]) 
+                                ,tuple([line for line in lines if re.search(patterBCQ,line) != None]) 
+                                ,loc='lower '+legendHorizontalPos
+                                ,framealpha=legendFramealpha
+                                ,facecolor=legendFacecolor
+                                ))
+
+                moreLines=[line for line in lines if re.search(patterBCpQ,line) == None]
+                if len(moreLines) > 0:
+                    opposite={'right':'left','left':'right','center':'left'}
+                    moreLinesp=[line for line in moreLines if re.search('^p',line) != None]
+                    if len(moreLinesp)>0:
+                        axes['p'].add_artist(axes['p'].legend(
+                                    tuple([lines[line] for line in moreLinesp]) 
+                                    ,tuple(moreLinesp) 
+                                    ,loc='upper '+opposite[legendHorizontalPos]
+                                    ,framealpha=legendFramealpha
+                                    ,facecolor=legendFacecolor
+                                    ))
+                    moreLinesQ=[line for line in moreLines if re.search('^Q',line) != None]
+                    if len(moreLinesQ)>0:
+                        axes['p'].add_artist(axes['p'].legend(
+                                    tuple([lines[line] for line in moreLinesQ]) 
+                                    ,tuple(moreLinesQ) 
+                                    ,loc='lower '+opposite[legendHorizontalPos]
+                                    ,framealpha=legendFramealpha
+                                    ,facecolor=legendFacecolor
+                                    ))
+
+                if 'SID' in axes.keys():
+                        if legendHorizontalPos == 'center':
+                            legendHorizontalPosAct=''
+                        else:
+                            legendHorizontalPosAct=' '+legendHorizontalPos
+                        axes['SID'].legend(loc='center'+legendHorizontalPosAct
+                                ,framealpha=legendFramealpha
+                                ,facecolor=legendFacecolor)        
+                                                                                                                      
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return axes,lines,scatters
+
+
+def pltLDSErgVec(
+     ax=None # Axes auf die geplottet werden soll (und aus der neue axes ge-twinx-ed werden; plt.gcf().gca() wenn undef.
+    ,dfSegReprVec=pd.DataFrame() # Ergebnisvektor SEG; pass empty Df if Druck only    
+    ,dfDruckReprVec=pd.DataFrame() # Ergebnisvektor DRUCK; pass empty Df if Seg only    
+
+    ,xlim=None # tuple (xmin,xmax); wenn undef. gelten min/max aus vorgenannten Daten als xlim; wenn Seg angegeben, gilt Seg   
+
+    ,dateFormat='%y.%m.%d: %H:%M:%S'
+    ,bysecond=None #[0,15,30,45]
+    ,byminute=None
+    ,byhour=None
+    
+    ,ylimAL=(0,40)
+    ,yticksAL=[0,10,20,30,40]
+
+    ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
+    ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
+
+    ,ylimR=(-45,45) #None #(-10,10) #wenn undef., dann min/max dfSegReprVec 
+    ,ylimRxlim=False #wenn Wahr und ylimR undef. (None), dann wird xlim beruecksichtigt bei min/max dfSegReprVec
+    ,yticksR=[0,2,4,10,15,30,45]  #[0,2,4,10,15,30,40]  #wenn undef. (None), dann aus ylimR; matplotlib "vergrößert" mit dem Setzen von yTicks ein ebenfalls gesetztes ylim wenn die Ticks außerhalb des ylims liegen
+
+    # dito Beschl.
+    ,ylimAC=(-5,5)#None 
+    ,ylimACxlim=False 
+    ,yticksAC=[-5,0,5] #None 
+
+    ,ySpanMin=0.9 # wenn ylim R/AC undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
+
+    ,plotLegend=True    
+    ,legendLoc='best'
+    ,legendFramealpha=.2
+    ,legendFacecolor='white' 
+
+    ,attrsDctLDS=attrsDctLDS         
+                    
+    ,plotLPRate=True
+    ,plotR2FillSeg=True 
+    ,plotR2FillDruck=True         
+
+    ,plotAC=True      
+    ,plotACCLimits=True
+
+    ,highlightAreas=True 
+    ,Seg_Highlight_Color='cyan'
+    ,Seg_Highlight_Alpha=.1     
+    ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False      
+    ,Seg_HighlightError_Color='peru'
+    ,Seg_Highlight_Alpha_Error=.3     
+    ,Seg_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False   
+
+    ,Druck_Highlight_Color='cyan'
+    ,Druck_Highlight_Alpha=.1
+    ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
+    ,Druck_HighlightError_Color='peru'
+    ,Druck_Highlight_Alpha_Error=.3
+    ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
+
+    ,plotTV=True
+    ,plotTVTimerFct=None 
+    ,plotTVAmFct=lambda x: x*100 
+    ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
+    ,ylimTV=(0,300)
+    ,yticksTV=[0,100,180,200,300]
+           
+    ):
+    """
+    zeichnet Zeitkurven von App LDS Ergebnisvektoren auf ax
+
+    return: axes (Dct der Achsen), yLines (Dct der Linien) 
+    Dct der Achsen: 'A': Alarm etc.; 'R': m3/h; 'a': ACC; 'TV': Timer und Leckvolumen
+
+    #! Lücken (nicht plotten) wenn keine Zeiten
+    """
+   
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    axes={}
+    yLines={}
+
+    try:    
+        
+            if dfSegReprVec.empty and dfDruckReprVec.empty:                
+                logger.error("{0:s}{1:s}".format(logStr,'dfSegReprVec UND dfDruckReprVec leer?! Return.')) 
+                return
+
+            if not dfSegReprVec.empty: 
+                # keine komplett leeren Zeilen
+                dfSegReprVec=dfSegReprVec[~dfSegReprVec.isnull().all(1)]
+                # keine doppelten Indices
+                dfSegReprVec=dfSegReprVec[~dfSegReprVec.index.duplicated(keep='last')] # dfSegReprVec.groupby(dfSegReprVec.index).last() # df[~df.index.duplicated(keep='last')]
+
+            if not dfDruckReprVec.empty: 
+                # keine komplett leeren Zeilen
+                dfDruckReprVec=dfDruckReprVec[~dfDruckReprVec.isnull().all(1)]
+                # keine doppelten Indices
+                dfDruckReprVec=dfDruckReprVec[~dfDruckReprVec.index.duplicated(keep='last')] # dfDruckReprVec.groupby(dfDruckReprVec.index).last() # df[~df.index.duplicated(keep='last')]
+
+            if ax==None:
+                ax=plt.gcf().gca()
+            axes['A']=ax 
+
+            # x-Achse ----------------
+            if xlim == None:
+                if not dfSegReprVec.empty:
+                    xlimMin=dfSegReprVec.index[0]
+                    xlimMax=dfSegReprVec.index[-1]
+                elif not dfDruckReprVec.empty:
+                    xlimMin=dfDruckReprVec.index[0]
+                    xlimMax=dfDruckReprVec.index[-1]
+                xlim=(xlimMin,xlimMax)
+
+            (xlimMin,xlimMax)=xlim
+
+            ax.set_xlim(xlim)
+
+            logger.debug("{0:s}bysecond: {1:s}".format(logStr,str(bysecond))) 
+            logger.debug("{0:s}byminute: {1:s}".format(logStr,str(byminute))) 
+            logger.debug("{0:s}byhour: {1:s}".format(logStr,str(byhour))) 
+            logger.debug("{0:s}dateFormat: {1:s}".format(logStr,dateFormat)) 
+    
+            pltHelperX(
+             ax
+            ,dateFormat=dateFormat
+            ,bysecond=bysecond
+            ,byminute=byminute
+            ,byhour=byhour
+            ,yPos=yTwinedAxesPosDeltaHPStart
+            )      
+    
+            # 1. Achse Alarm -----------------------    
+
+            if not dfSegReprVec.empty and highlightAreas:
+                tPairs=findAllTimeIntervalls(dfSegReprVec,Seg_Highlight_Fct)
+                for t1,t2 in tPairs:                    
+                    ax.axvspan(t1, t2, alpha=Seg_Highlight_Alpha, color=Seg_Highlight_Color)
+                tPairs=findAllTimeIntervalls(dfSegReprVec,Seg_HighlightError_Fct)
+                for t1,t2 in tPairs:                    
+                    ax.axvspan(t1, t2, alpha=Seg_Highlight_Alpha_Error, color=Seg_HighlightError_Color)
+
+            if not dfDruckReprVec.empty and highlightAreas:
+                tPairs=findAllTimeIntervalls(dfDruckReprVec,Druck_Highlight_Fct)
+                for t1,t2 in tPairs:                    
+                    ax.axvspan(t1, t2, alpha=Druck_Highlight_Alpha, color=Druck_Highlight_Color)
+                tPairs=findAllTimeIntervalls(dfDruckReprVec,Druck_HighlightError_Fct)
+                for t1,t2 in tPairs:                    
+                    ax.axvspan(t1, t2, alpha=Druck_Highlight_Alpha_Error, color=Druck_HighlightError_Color)
+
+            if not dfSegReprVec.empty:
+                lines = pltLDSErgVecHelper(ax,dfSegReprVec,'AL_S',attrsDctLDS['Seg_AL_S_Attrs'])              
+                yLines['AL_S Seg']=lines[0]
+
+                
+            if not dfDruckReprVec.empty:
+                lines = pltLDSErgVecHelper(ax,dfDruckReprVec,'AL_S',attrsDctLDS['Druck_AL_S_Attrs'])                
+                yLines['AL_S Drk']=lines[0]
+    
+                    
+            if not dfSegReprVec.empty:
+                lines = pltLDSErgVecHelper(ax,dfSegReprVec,'SB_S',attrsDctLDS['Seg_SB_S_Attrs'],fct=lambda x: x*10)                
+                yLines['SB_S Seg']=lines[0]
+
+
+            if not dfDruckReprVec.empty:    
+                lines = pltLDSErgVecHelper(ax,dfDruckReprVec,'SB_S',attrsDctLDS['Druck_SB_S_Attrs'],fct=lambda x: x*10)                
+                yLines['SB_S Drk']=lines[0]
+   
+        
+            ax.set_ylim(ylimAL)
+            ax.set_yticks(yticksAL)
+    
+            ax.grid() 
+    
+            ax.set_zorder(10)
+            ax.patch.set_visible(False)      
+    
+            ax.set_ylabel('A [0/10/20] u. 10x B [0/1/2/3/4]')
+    
+            # 2. y-Achse Fluss ----------------------------------------
+            ax2 = ax.twinx()
+            axes['R']=ax2            
+    
+            pltHelperX(
+             ax2
+            ,dateFormat=dateFormat
+            ,bysecond=bysecond
+            ,byminute=byminute
+            ,byhour=byhour
+            ,yPos=yTwinedAxesPosDeltaHPStart+yTwinedAxesPosDeltaHP
+            )         
+           
+            pltLDSHelperY(ax2)
+            
+            if not dfSegReprVec.empty:
+
+                lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'MZ_AV',attrsDctLDS['Seg_MZ_AV_Attrs'])                
+                yLines['MZ_AV (R1) Seg']=lines[0]
+         
+        
+                lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'LR_AV',attrsDctLDS['Seg_LR_AV_Attrs'])                
+                yLines['LR_AV (R2) Seg']=lines[0]
+ 
+    
+                lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'NG_AV',attrsDctLDS['Seg_NG_AV_Attrs'])                            
+                yLines['NG_AV Seg']=lines[0]
+
+                    
+                if plotLPRate:        
+                    # R2 = R1 - LP
+                    # R2 - R1 = -LP
+                    # LP = R1 - R2
+                    lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'LP_AV',attrsDctLDS['Seg_LP_AV_Attrs'])                   
+                    yLines['LP_AV Seg']=lines[0]
+         
+                                  
+                if plotR2FillSeg: 
+                    df=dfSegReprVec
+                    df=df.reindex(pd.date_range(start=df.index[0], end=df.index[-1], freq='1s'))
+                    df=df.fillna(method='ffill').fillna(method='bfill')
+
+                    # R2 unter 0
+                    dummy=ax2.fill_between(df.index, df['LR_AV'],0
+                                           ,where=df['LR_AV']<0,color='grey',alpha=.2)
+
+                    # zwischen R2 und 0   
+                    dummy=ax2.fill_between(df.index, 0, df['LR_AV']
+                                           ,where=df['LR_AV']>0
+                                           #,color='yellow',alpha=.1
+                                           ,color='red',alpha=.1
+                                           )
+
+
+                    # R2 über 0 aber unter NG  
+                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
+                                           ,where=(df['LR_AV']>0) & (df['LR_AV']<df['NG_AV']) 
+                                           #,color='red',alpha=.1
+                                           ,color='yellow',alpha=.1
+                                           )
+
+                    # R2 über NG
+                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
+                                           ,where=df['LR_AV']>df['NG_AV']
+                                           ,color='red',alpha=.2)
+
+
+
+
+
+
+    
+            if not dfDruckReprVec.empty:
+                lines = pltLDSErgVecHelper(ax2,dfDruckReprVec,'LR_AV',attrsDctLDS['Druck_LR_AV_Attrs'])                
+                yLines['LR_AV (R2) Drk']=lines[0]
+   
+    
+                lines = pltLDSErgVecHelper(ax2,dfDruckReprVec,'NG_AV',attrsDctLDS['Druck_NG_AV_Attrs'])                
+                yLines['NG_AV Drk']=lines[0]
+
+
+                if plotLPRate:        
+                    lines = pltLDSErgVecHelper(ax2,dfDruckReprVec,'LP_AV',attrsDctLDS['Druck_LP_AV_Attrs'])                    
+                    yLines['LP_AV Drk']=lines[0]
+  
+
+                if plotR2FillDruck: 
+                    df=dfDruckReprVec
+                    df=df.reindex(pd.date_range(start=df.index[0], end=df.index[-1], freq='1s'))
+                    df=df.fillna(method='ffill').fillna(method='bfill')
+
+                    # R2 unter 0
+                    dummy=ax2.fill_between(df.index, df['LR_AV'],0
+                                           ,where=df['LR_AV']<0,color='grey',alpha=.4)
+
+                    # zwischen R2 und 0   
+                    dummy=ax2.fill_between(df.index, 0, df['LR_AV']
+                                           ,where=df['LR_AV']>0
+                                           #,color='yellow',alpha=.1
+                                           ,color='red',alpha=.1
+                                           )
+
+
+                    # R2 über 0 aber unter NG  
+                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
+                                           ,where=(df['LR_AV']>0) & (df['LR_AV']<df['NG_AV']) 
+                                           #,color='red',alpha=.1
+                                           ,color='yellow',alpha=.1
+                                           )
+
+                    # R2 über NG
+                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
+                                           ,where=df['LR_AV']>df['NG_AV']
+                                           ,color='red',alpha=.2)
+
+        
+
+            ylimSeg,yticksSeg=pltLDSErgVecHelperYLimAndTicks(
+             dfSegReprVec
+            ,'LR_AV'
+            ,ylim=ylimR   
+            ,yticks=yticksR 
+            ,ylimxlim=ylimRxlim 
+
+            ,xlim=xlim      
+            ,ySpanMin=ySpanMin
+            )   
+            logger.debug("{0:s}ylimRSeg: {1:s} yticksRSeg: {2:s}".format(logStr,str(ylimSeg),str(yticksSeg)))   
+
+            ylimDrk,yticksDrk=pltLDSErgVecHelperYLimAndTicks(
+             dfDruckReprVec
+            ,'LR_AV'
+            ,ylim=ylimR   
+            ,yticks=yticksR 
+            ,ylimxlim=ylimRxlim
+            
+            ,xlim=xlim      
+            ,ySpanMin=ySpanMin
+            ) 
+            logger.debug("{0:s}ylimRDrk: {1:s} yticksRDrk: {2:s}".format(logStr,str(ylimDrk),str(yticksDrk)))   
+
+            if ylimSeg[1]>=ylimDrk[1]:
+                ylimR=ylimSeg
+                yticksR=yticksSeg
+            else:
+                ylimR=ylimDrk
+                yticksR=yticksDrk
+            logger.debug("{0:s}ylimR: {1:s} yticksR: {2:s}".format(logStr,str(ylimR),str(yticksR)))   
+            
+            ax2.set_ylim(ylimR)
+            ax2.set_yticks(yticksR)
+        
+            ax2.grid()  
+    
+            ax2.set_ylabel('R1, R2, NG, LP (R1-R2) [Nm³/h]')
+
+            # 3. y-Achse Beschleunigung ----------------------------------------    
+            if plotAC:
+    
+                # 3. y-Achse Beschleunigung -------------------------------------------------
+                ax3 = ax.twinx()
+                axes['a']=ax3               
+    
+                pltHelperX(
+                 ax3
+                ,dateFormat=dateFormat
+                ,bysecond=bysecond
+                ,byminute=byminute
+                ,byhour=byhour
+                ,yPos=yTwinedAxesPosDeltaHPStart+2*yTwinedAxesPosDeltaHP
+                )           
+                pltLDSHelperY(ax3)
+        
+                if not dfSegReprVec.empty:
+                    lines = pltLDSErgVecHelper(ax3,dfSegReprVec,'AC_AV',attrsDctLDS['Seg_AC_AV_Attrs'])                    
+                    yLines['AC_AV Seg']=lines[0]                        
+    
+                if not dfDruckReprVec.empty:
+                    lines = pltLDSErgVecHelper(ax3,dfDruckReprVec,'AC_AV',attrsDctLDS['Druck_AC_AV_Attrs'])                   
+                    yLines['AC_AV Drk']=lines[0]                 
+
+                # ACC Limits
+                if plotACCLimits:
+
+                    if not dfSegReprVec.empty:
+                        # +
+                        line=ax3.axhline(y=dfSegReprVec['ACCST_AV'].max())
+                        for prop,value in attrsDctLDS['Seg_ACC_Limits_Attrs'].items():               
+                            plt.setp(line,"{:s}".format(prop),value)   
+                        line=ax3.axhline(y=dfSegReprVec['ACCTR_AV'].max())
+                        for prop,value in attrsDctLDS['Seg_ACC_Limits_Attrs'].items():               
+                            plt.setp(line,"{:s}".format(prop),value)  
+                    
+                    if not dfDruckReprVec.empty:
+                        # +
+                        line=ax3.axhline(y=dfDruckReprVec['ACCST_AV'].max())
+                        for prop,value in attrsDctLDS['Druck_ACC_Limits_Attrs'].items():               
+                            plt.setp(line,"{:s}".format(prop),value)   
+                        line=ax3.axhline(y=dfDruckReprVec['ACCTR_AV'].max())
+                        for prop,value in attrsDctLDS['Druck_ACC_Limits_Attrs'].items():               
+                            plt.setp(line,"{:s}".format(prop),value)   
+
+                    if not dfSegReprVec.empty:
+                        # -
+                        line=ax3.axhline(y=-dfSegReprVec['ACCST_AV'].max())
+                        for prop,value in attrsDctLDS['Seg_ACC_Limits_Attrs'].items():               
+                            plt.setp(line,"{:s}".format(prop),value)   
+                        line=ax3.axhline(y=-dfSegReprVec['ACCTR_AV'].max())
+                        for prop,value in attrsDctLDS['Seg_ACC_Limits_Attrs'].items():               
+                            plt.setp(line,"{:s}".format(prop),value)   
+
+                    if not dfDruckReprVec.empty:
+                        # -
+                        line=ax3.axhline(y=-dfDruckReprVec['ACCST_AV'].max())
+                        for prop,value in attrsDctLDS['Druck_ACC_Limits_Attrs'].items():               
+                            plt.setp(line,"{:s}".format(prop),value)   
+                        line=ax3.axhline(y=-dfDruckReprVec['ACCTR_AV'].max())
+                        for prop,value in attrsDctLDS['Druck_ACC_Limits_Attrs'].items():               
+                            plt.setp(line,"{:s}".format(prop),value)   
+
+
+                ylimSeg,yticksSeg=pltLDSErgVecHelperYLimAndTicks(
+                 dfSegReprVec
+
+                ,'AC_AV'
+                ,ylim=ylimAC   
+                ,yticks=yticksAC    
+                ,ylimxlim=ylimACxlim 
+
+                ,xlim=xlim       
+                ,ySpanMin=ySpanMin
+                )   
+                logger.debug("{0:s}ylimACSeg: {1:s} yticksACSeg: {2:s}".format(logStr,str(ylimSeg),str(yticksSeg)))   
+
+                ylimDrk,yticksDrk=pltLDSErgVecHelperYLimAndTicks(
+                 dfDruckReprVec              
+
+                ,'AC_AV'
+                ,ylim=ylimAC   
+                ,yticks=yticksAC    
+                ,ylimxlim=ylimACxlim 
+
+                ,xlim=xlim       
+                ,ySpanMin=ySpanMin
+                ) 
+                logger.debug("{0:s}ylimACDrk: {1:s} yticksACDrk: {2:s}".format(logStr,str(ylimDrk),str(yticksDrk)))   
+
+                if ylimSeg[1]>=ylimDrk[1]:
+                    ylimAC=ylimSeg
+                    yticksAC=yticksSeg
+                else:
+                    ylimAC=ylimDrk
+                    yticksAC=yticksDrk
+                logger.debug("{0:s}ylimAC: {1:s} yticksAC: {2:s}".format(logStr,str(ylimAC),str(yticksAC)))   
+
+                ax3.set_ylim(ylimAC)
+                ax3.set_yticks(yticksAC)    
+    
+                ax3.set_ylabel('a [mm/s²]')    
+
+            # 4. y-Achse Timer und Volumen  ----------------------------------------    
+            if plotTV:
+    
+                # 4. y-Achse Timer und Volumen  ----------------------------------------    
+                ax4 = ax.twinx()
+                axes['TV']=ax4               
+    
+                yPos=yTwinedAxesPosDeltaHPStart+2*yTwinedAxesPosDeltaHP
+                if plotAC:
+                    yPos=yPos+yTwinedAxesPosDeltaHP
+                                 
+                pltHelperX(
+                 ax4
+                ,dateFormat=dateFormat
+                ,bysecond=bysecond
+                ,byminute=byminute
+                ,byhour=byhour
+                ,yPos=yPos
+                )           
+                pltLDSHelperY(ax4)
+        
+                if not dfSegReprVec.empty:
+
+                    # TIMER_AV	
+                    lines = pltLDSErgVecHelper(ax4,dfSegReprVec,'TIMER_AV',attrsDctLDS['Seg_TIMER_AV_Attrs'],fct=plotTVTimerFct)                    
+                    yLines['TIMER_AV Seg']=lines[0]      
+                    
+                    # AM_AV
+                    lines = pltLDSErgVecHelper(ax4,dfSegReprVec,'AM_AV',attrsDctLDS['Seg_AM_AV_Attrs'],fct=plotTVAmFct)                    
+                    yLines['AM_AV Seg']=lines[0]      
+
+                if not dfSegReprVec.empty or not dfDruckReprVec.empty:
+                    ax4.set_ylim(ylimTV)
+                    ax4.set_yticks(yticksTV)        
+                    ax4.set_ylabel(plotTVAmLabel)    
+    
+                if not dfDruckReprVec.empty:
+
+                    # TIMER_AV	
+                    lines = pltLDSErgVecHelper(ax4,dfDruckReprVec,'TIMER_AV',attrsDctLDS['Druck_TIMER_AV_Attrs'],fct=plotTVTimerFct)                    
+                    yLines['TIMER_AV Drk']=lines[0]      
+                    
+                    # AM_AV
+                    lines = pltLDSErgVecHelper(ax4,dfDruckReprVec,'AM_AV',attrsDctLDS['Druck_AM_AV_Attrs'],fct=plotTVAmFct)                    
+                    yLines['AM_AV Drk']=lines[0]      
+
+                if not dfSegReprVec.empty or not dfDruckReprVec.empty:
+                    ax4.set_ylim(ylimTV)
+                    ax4.set_yticks(yticksTV)        
+                    ax4.set_ylabel(plotTVAmLabel)  
+
+            if plotLegend:
+                legendHorizontalPos='center'
+                
+                               
+                if not dfSegReprVec.empty:
+                    patternSeg='Seg$'
+                    axes['A'].add_artist(axes['A'].legend(
+                                tuple([yLines[line] for line in yLines if re.search(patternSeg,line) != None]) 
+                                ,tuple([line for line in yLines if re.search(patternSeg,line) != None]) 
+                                ,loc='upper '+legendHorizontalPos
+                                ,framealpha=legendFramealpha
+                                ,facecolor=legendFacecolor
+                                ))         
+                if not dfDruckReprVec.empty:
+                    patternDruck='Drk$'
+                    axes['A'].add_artist(axes['A'].legend(
+                                tuple([yLines[line] for line in yLines if re.search(patternDruck,line) != None]) 
+                                ,tuple([line for line in yLines if re.search(patternDruck,line) != None]) 
+                                ,loc='lower '+legendHorizontalPos
+                                ,framealpha=legendFramealpha
+                                ,facecolor=legendFacecolor
+                                ))                   
+
+                                                                                                                      
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return axes,yLines
+
+
 def pltHelperX(
      ax
     ,dateFormat='%d.%m.%y: %H:%M:%S'
@@ -3247,832 +4484,6 @@ def pltLDSErgVecHelper(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
         return lines
-
-
-def pltLDSErgVec(
-     ax=None # Axes auf die geplottet werden soll (und aus der neue axes ge-twinx-ed werden; plt.gcf().gca() wenn undef.
-    ,dfSegReprVec=pd.DataFrame() # Ergebnisvektor SEG; pass empty Df if Druck only    
-    ,dfDruckReprVec=pd.DataFrame() # Ergebnisvektor DRUCK; pass empty Df if Seg only    
-
-    ,xlim=None # tuple (xmin,xmax); wenn undef. gelten min/max aus vorgenannten Daten als xlim; wenn Seg angegeben, gilt Seg   
-
-    ,dateFormat='%y.%m.%d: %H:%M:%S'
-    ,bysecond=None #[0,15,30,45]
-    ,byminute=None
-    ,byhour=None
-    
-    ,ylimAL=(0,40)
-    ,yticksAL=[0,10,20,30,40]
-
-    ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
-    ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
-
-    ,ylimR=(-45,45) #None #(-10,10) #wenn undef., dann min/max dfSegReprVec 
-    ,ylimRxlim=False #wenn Wahr und ylimR undef. (None), dann wird xlim beruecksichtigt bei min/max dfSegReprVec
-    ,yticksR=[0,2,4,10,15,30,45]  #[0,2,4,10,15,30,40]  #wenn undef. (None), dann aus ylimR; matplotlib "vergrößert" mit dem Setzen von yTicks ein ebenfalls gesetztes ylim wenn die Ticks außerhalb des ylims liegen
-
-    # dito Beschl.
-    ,ylimAC=(-5,5)#None 
-    ,ylimACxlim=False 
-    ,yticksAC=[-5,0,5] #None 
-
-    ,ySpanMin=0.9 # wenn ylim R/AC undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
-
-    ,plotLegend=True    
-    ,legendLoc='best'
-    ,legendFramealpha=.2
-    ,legendFacecolor='white' 
-
-    ,attrsDctLDS=attrsDctLDS         
-                    
-    ,plotLPRate=True
-    ,plotR2FillSeg=True 
-    ,plotR2FillDruck=True         
-
-    ,plotAC=True      
-    ,plotACCLimits=True
-
-    ,highlightAreas=True 
-    ,Seg_Highlight_Color='cyan'
-    ,Seg_Highlight_Alpha=.1     
-    ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False      
-    ,Seg_HighlightError_Color='peru'
-    ,Seg_Highlight_Alpha_Error=.3     
-    ,Seg_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False   
-
-    ,Druck_Highlight_Color='cyan'
-    ,Druck_Highlight_Alpha=.1
-    ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
-    ,Druck_HighlightError_Color='peru'
-    ,Druck_Highlight_Alpha_Error=.3
-    ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
-
-    ,plotTV=True
-    ,plotTVTimerFct=None 
-    ,plotTVAmFct=lambda x: x*100 
-    ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
-    ,ylimTV=(0,300)
-    ,yticksTV=[0,100,180,200,300]
-           
-    ):
-    """
-    zeichnet Zeitkurven von App LDS Ergebnisvektoren auf ax
-
-    return: axes (Dct der Achsen), yLines (Dct der Linien) 
-    Dct der Achsen: 'A': Alarm etc.; 'R': m3/h; 'a': ACC; 'TV': Timer und Leckvolumen
-
-    #! Lücken (nicht plotten) wenn keine Zeiten
-    """
-   
-    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-    axes={}
-    yLines={}
-
-    try:    
-        
-            if dfSegReprVec.empty and dfDruckReprVec.empty:                
-                logger.error("{0:s}{1:s}".format(logStr,'dfSegReprVec UND dfDruckReprVec leer?! Return.')) 
-                return
-
-            if not dfSegReprVec.empty: 
-                # keine komplett leeren Zeilen
-                dfSegReprVec=dfSegReprVec[~dfSegReprVec.isnull().all(1)]
-                # keine doppelten Indices
-                dfSegReprVec=dfSegReprVec[~dfSegReprVec.index.duplicated(keep='last')] # dfSegReprVec.groupby(dfSegReprVec.index).last() # df[~df.index.duplicated(keep='last')]
-
-            if not dfDruckReprVec.empty: 
-                # keine komplett leeren Zeilen
-                dfDruckReprVec=dfDruckReprVec[~dfDruckReprVec.isnull().all(1)]
-                # keine doppelten Indices
-                dfDruckReprVec=dfDruckReprVec[~dfDruckReprVec.index.duplicated(keep='last')] # dfDruckReprVec.groupby(dfDruckReprVec.index).last() # df[~df.index.duplicated(keep='last')]
-
-            if ax==None:
-                ax=plt.gcf().gca()
-            axes['A']=ax 
-
-            # x-Achse ----------------
-            if xlim == None:
-                if not dfSegReprVec.empty:
-                    xlimMin=dfSegReprVec.index[0]
-                    xlimMax=dfSegReprVec.index[-1]
-                elif not dfDruckReprVec.empty:
-                    xlimMin=dfDruckReprVec.index[0]
-                    xlimMax=dfDruckReprVec.index[-1]
-                xlim=(xlimMin,xlimMax)
-
-            (xlimMin,xlimMax)=xlim
-
-            ax.set_xlim(xlim)
-
-            logger.debug("{0:s}bysecond: {1:s}".format(logStr,str(bysecond))) 
-            logger.debug("{0:s}byminute: {1:s}".format(logStr,str(byminute))) 
-            logger.debug("{0:s}byhour: {1:s}".format(logStr,str(byhour))) 
-            logger.debug("{0:s}dateFormat: {1:s}".format(logStr,dateFormat)) 
-    
-            pltHelperX(
-             ax
-            ,dateFormat=dateFormat
-            ,bysecond=bysecond
-            ,byminute=byminute
-            ,byhour=byhour
-            ,yPos=yTwinedAxesPosDeltaHPStart
-            )      
-    
-            # 1. Achse Alarm -----------------------    
-
-            if not dfSegReprVec.empty and highlightAreas:
-                tPairs=findAllTimeIntervalls(dfSegReprVec,Seg_Highlight_Fct)
-                for t1,t2 in tPairs:                    
-                    ax.axvspan(t1, t2, alpha=Seg_Highlight_Alpha, color=Seg_Highlight_Color)
-                tPairs=findAllTimeIntervalls(dfSegReprVec,Seg_HighlightError_Fct)
-                for t1,t2 in tPairs:                    
-                    ax.axvspan(t1, t2, alpha=Seg_Highlight_Alpha_Error, color=Seg_HighlightError_Color)
-
-            if not dfDruckReprVec.empty and highlightAreas:
-                tPairs=findAllTimeIntervalls(dfDruckReprVec,Druck_Highlight_Fct)
-                for t1,t2 in tPairs:                    
-                    ax.axvspan(t1, t2, alpha=Druck_Highlight_Alpha, color=Druck_Highlight_Color)
-                tPairs=findAllTimeIntervalls(dfDruckReprVec,Druck_HighlightError_Fct)
-                for t1,t2 in tPairs:                    
-                    ax.axvspan(t1, t2, alpha=Druck_Highlight_Alpha_Error, color=Druck_HighlightError_Color)
-
-            if not dfSegReprVec.empty:
-                lines = pltLDSErgVecHelper(ax,dfSegReprVec,'AL_S',attrsDctLDS['Seg_AL_S_Attrs'])              
-                yLines['AL_S Seg']=lines[0]
-
-                
-            if not dfDruckReprVec.empty:
-                lines = pltLDSErgVecHelper(ax,dfDruckReprVec,'AL_S',attrsDctLDS['Druck_AL_S_Attrs'])                
-                yLines['AL_S Drk']=lines[0]
-    
-                    
-            if not dfSegReprVec.empty:
-                lines = pltLDSErgVecHelper(ax,dfSegReprVec,'SB_S',attrsDctLDS['Seg_SB_S_Attrs'],fct=lambda x: x*10)                
-                yLines['SB_S Seg']=lines[0]
-
-
-            if not dfDruckReprVec.empty:    
-                lines = pltLDSErgVecHelper(ax,dfDruckReprVec,'SB_S',attrsDctLDS['Druck_SB_S_Attrs'],fct=lambda x: x*10)                
-                yLines['SB_S Drk']=lines[0]
-   
-        
-            ax.set_ylim(ylimAL)
-            ax.set_yticks(yticksAL)
-    
-            ax.grid() 
-    
-            ax.set_zorder(10)
-            ax.patch.set_visible(False)      
-    
-            ax.set_ylabel('A [0/10/20] u. 10x B [0/1/2/3/4]')
-    
-            # 2. y-Achse Fluss ----------------------------------------
-            ax2 = ax.twinx()
-            axes['R']=ax2            
-    
-            pltHelperX(
-             ax2
-            ,dateFormat=dateFormat
-            ,bysecond=bysecond
-            ,byminute=byminute
-            ,byhour=byhour
-            ,yPos=yTwinedAxesPosDeltaHPStart+yTwinedAxesPosDeltaHP
-            )         
-           
-            pltLDSHelperY(ax2)
-            
-            if not dfSegReprVec.empty:
-
-                lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'MZ_AV',attrsDctLDS['Seg_MZ_AV_Attrs'])                
-                yLines['MZ_AV (R1) Seg']=lines[0]
-         
-        
-                lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'LR_AV',attrsDctLDS['Seg_LR_AV_Attrs'])                
-                yLines['LR_AV (R2) Seg']=lines[0]
- 
-    
-                lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'NG_AV',attrsDctLDS['Seg_NG_AV_Attrs'])                            
-                yLines['NG_AV Seg']=lines[0]
-
-                    
-                if plotLPRate:        
-                    # R2 = R1 - LP
-                    # R2 - R1 = -LP
-                    # LP = R1 - R2
-                    lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'LP_AV',attrsDctLDS['Seg_LP_AV_Attrs'])                   
-                    yLines['LP_AV Seg']=lines[0]
-         
-                                  
-                if plotR2FillSeg: 
-                    df=dfSegReprVec
-                    df=df.reindex(pd.date_range(start=df.index[0], end=df.index[-1], freq='1s'))
-                    df=df.fillna(method='ffill').fillna(method='bfill')
-
-                    # R2 unter 0
-                    dummy=ax2.fill_between(df.index, df['LR_AV'],0
-                                           ,where=df['LR_AV']<0,color='grey',alpha=.2)
-
-                    # zwischen R2 und 0   
-                    dummy=ax2.fill_between(df.index, 0, df['LR_AV']
-                                           ,where=df['LR_AV']>0
-                                           #,color='yellow',alpha=.1
-                                           ,color='red',alpha=.1
-                                           )
-
-
-                    # R2 über 0 aber unter NG  
-                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
-                                           ,where=(df['LR_AV']>0) & (df['LR_AV']<df['NG_AV']) 
-                                           #,color='red',alpha=.1
-                                           ,color='yellow',alpha=.1
-                                           )
-
-                    # R2 über NG
-                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
-                                           ,where=df['LR_AV']>df['NG_AV']
-                                           ,color='red',alpha=.2)
-
-
-
-
-
-
-    
-            if not dfDruckReprVec.empty:
-                lines = pltLDSErgVecHelper(ax2,dfDruckReprVec,'LR_AV',attrsDctLDS['Druck_LR_AV_Attrs'])                
-                yLines['LR_AV (R2) Drk']=lines[0]
-   
-    
-                lines = pltLDSErgVecHelper(ax2,dfDruckReprVec,'NG_AV',attrsDctLDS['Druck_NG_AV_Attrs'])                
-                yLines['NG_AV Drk']=lines[0]
-
-
-                if plotLPRate:        
-                    lines = pltLDSErgVecHelper(ax2,dfDruckReprVec,'LP_AV',attrsDctLDS['Druck_LP_AV_Attrs'])                    
-                    yLines['LP_AV Drk']=lines[0]
-  
-
-                if plotR2FillDruck: 
-                    df=dfDruckReprVec
-                    df=df.reindex(pd.date_range(start=df.index[0], end=df.index[-1], freq='1s'))
-                    df=df.fillna(method='ffill').fillna(method='bfill')
-
-                    # R2 unter 0
-                    dummy=ax2.fill_between(df.index, df['LR_AV'],0
-                                           ,where=df['LR_AV']<0,color='grey',alpha=.4)
-
-                    # zwischen R2 und 0   
-                    dummy=ax2.fill_between(df.index, 0, df['LR_AV']
-                                           ,where=df['LR_AV']>0
-                                           #,color='yellow',alpha=.1
-                                           ,color='red',alpha=.1
-                                           )
-
-
-                    # R2 über 0 aber unter NG  
-                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
-                                           ,where=(df['LR_AV']>0) & (df['LR_AV']<df['NG_AV']) 
-                                           #,color='red',alpha=.1
-                                           ,color='yellow',alpha=.1
-                                           )
-
-                    # R2 über NG
-                    dummy=ax2.fill_between(df.index, df['LR_AV'], df['NG_AV']
-                                           ,where=df['LR_AV']>df['NG_AV']
-                                           ,color='red',alpha=.2)
-
-        
-
-            ylimSeg,yticksSeg=pltLDSErgVecHelperYLimAndTicks(
-             dfSegReprVec
-            ,'LR_AV'
-            ,ylim=ylimR   
-            ,yticks=yticksR 
-            ,ylimxlim=ylimRxlim 
-
-            ,xlim=xlim      
-            ,ySpanMin=ySpanMin
-            )   
-            logger.debug("{0:s}ylimRSeg: {1:s} yticksRSeg: {2:s}".format(logStr,str(ylimSeg),str(yticksSeg)))   
-
-            ylimDrk,yticksDrk=pltLDSErgVecHelperYLimAndTicks(
-             dfDruckReprVec
-            ,'LR_AV'
-            ,ylim=ylimR   
-            ,yticks=yticksR 
-            ,ylimxlim=ylimRxlim
-            
-            ,xlim=xlim      
-            ,ySpanMin=ySpanMin
-            ) 
-            logger.debug("{0:s}ylimRDrk: {1:s} yticksRDrk: {2:s}".format(logStr,str(ylimDrk),str(yticksDrk)))   
-
-            if ylimSeg[1]>=ylimDrk[1]:
-                ylimR=ylimSeg
-                yticksR=yticksSeg
-            else:
-                ylimR=ylimDrk
-                yticksR=yticksDrk
-            logger.debug("{0:s}ylimR: {1:s} yticksR: {2:s}".format(logStr,str(ylimR),str(yticksR)))   
-            
-            ax2.set_ylim(ylimR)
-            ax2.set_yticks(yticksR)
-        
-            ax2.grid()  
-    
-            ax2.set_ylabel('R1, R2, NG, LP (R1-R2) [Nm³/h]')
-
-            # 3. y-Achse Beschleunigung ----------------------------------------    
-            if plotAC:
-    
-                # 3. y-Achse Beschleunigung -------------------------------------------------
-                ax3 = ax.twinx()
-                axes['a']=ax3               
-    
-                pltHelperX(
-                 ax3
-                ,dateFormat=dateFormat
-                ,bysecond=bysecond
-                ,byminute=byminute
-                ,byhour=byhour
-                ,yPos=yTwinedAxesPosDeltaHPStart+2*yTwinedAxesPosDeltaHP
-                )           
-                pltLDSHelperY(ax3)
-        
-                if not dfSegReprVec.empty:
-                    lines = pltLDSErgVecHelper(ax3,dfSegReprVec,'AC_AV',attrsDctLDS['Seg_AC_AV_Attrs'])                    
-                    yLines['AC_AV Seg']=lines[0]                        
-    
-                if not dfDruckReprVec.empty:
-                    lines = pltLDSErgVecHelper(ax3,dfDruckReprVec,'AC_AV',attrsDctLDS['Druck_AC_AV_Attrs'])                   
-                    yLines['AC_AV Drk']=lines[0]                 
-
-                # ACC Limits
-                if plotACCLimits:
-
-                    if not dfSegReprVec.empty:
-                        # +
-                        line=ax3.axhline(y=dfSegReprVec['ACCST_AV'].max())
-                        for prop,value in attrsDctLDS['Seg_ACC_Limits_Attrs'].items():               
-                            plt.setp(line,"{:s}".format(prop),value)   
-                        line=ax3.axhline(y=dfSegReprVec['ACCTR_AV'].max())
-                        for prop,value in attrsDctLDS['Seg_ACC_Limits_Attrs'].items():               
-                            plt.setp(line,"{:s}".format(prop),value)  
-                    
-                    if not dfDruckReprVec.empty:
-                        # +
-                        line=ax3.axhline(y=dfDruckReprVec['ACCST_AV'].max())
-                        for prop,value in attrsDctLDS['Druck_ACC_Limits_Attrs'].items():               
-                            plt.setp(line,"{:s}".format(prop),value)   
-                        line=ax3.axhline(y=dfDruckReprVec['ACCTR_AV'].max())
-                        for prop,value in attrsDctLDS['Druck_ACC_Limits_Attrs'].items():               
-                            plt.setp(line,"{:s}".format(prop),value)   
-
-                    if not dfSegReprVec.empty:
-                        # -
-                        line=ax3.axhline(y=-dfSegReprVec['ACCST_AV'].max())
-                        for prop,value in attrsDctLDS['Seg_ACC_Limits_Attrs'].items():               
-                            plt.setp(line,"{:s}".format(prop),value)   
-                        line=ax3.axhline(y=-dfSegReprVec['ACCTR_AV'].max())
-                        for prop,value in attrsDctLDS['Seg_ACC_Limits_Attrs'].items():               
-                            plt.setp(line,"{:s}".format(prop),value)   
-
-                    if not dfDruckReprVec.empty:
-                        # -
-                        line=ax3.axhline(y=-dfDruckReprVec['ACCST_AV'].max())
-                        for prop,value in attrsDctLDS['Druck_ACC_Limits_Attrs'].items():               
-                            plt.setp(line,"{:s}".format(prop),value)   
-                        line=ax3.axhline(y=-dfDruckReprVec['ACCTR_AV'].max())
-                        for prop,value in attrsDctLDS['Druck_ACC_Limits_Attrs'].items():               
-                            plt.setp(line,"{:s}".format(prop),value)   
-
-
-                ylimSeg,yticksSeg=pltLDSErgVecHelperYLimAndTicks(
-                 dfSegReprVec
-
-                ,'AC_AV'
-                ,ylim=ylimAC   
-                ,yticks=yticksAC    
-                ,ylimxlim=ylimACxlim 
-
-                ,xlim=xlim       
-                ,ySpanMin=ySpanMin
-                )   
-                logger.debug("{0:s}ylimACSeg: {1:s} yticksACSeg: {2:s}".format(logStr,str(ylimSeg),str(yticksSeg)))   
-
-                ylimDrk,yticksDrk=pltLDSErgVecHelperYLimAndTicks(
-                 dfDruckReprVec              
-
-                ,'AC_AV'
-                ,ylim=ylimAC   
-                ,yticks=yticksAC    
-                ,ylimxlim=ylimACxlim 
-
-                ,xlim=xlim       
-                ,ySpanMin=ySpanMin
-                ) 
-                logger.debug("{0:s}ylimACDrk: {1:s} yticksACDrk: {2:s}".format(logStr,str(ylimDrk),str(yticksDrk)))   
-
-                if ylimSeg[1]>=ylimDrk[1]:
-                    ylimAC=ylimSeg
-                    yticksAC=yticksSeg
-                else:
-                    ylimAC=ylimDrk
-                    yticksAC=yticksDrk
-                logger.debug("{0:s}ylimAC: {1:s} yticksAC: {2:s}".format(logStr,str(ylimAC),str(yticksAC)))   
-
-                ax3.set_ylim(ylimAC)
-                ax3.set_yticks(yticksAC)    
-    
-                ax3.set_ylabel('a [mm/s²]')    
-
-            # 4. y-Achse Timer und Volumen  ----------------------------------------    
-            if plotTV:
-    
-                # 4. y-Achse Timer und Volumen  ----------------------------------------    
-                ax4 = ax.twinx()
-                axes['TV']=ax4               
-    
-                yPos=yTwinedAxesPosDeltaHPStart+2*yTwinedAxesPosDeltaHP
-                if plotAC:
-                    yPos=yPos+yTwinedAxesPosDeltaHP
-                                 
-                pltHelperX(
-                 ax4
-                ,dateFormat=dateFormat
-                ,bysecond=bysecond
-                ,byminute=byminute
-                ,byhour=byhour
-                ,yPos=yPos
-                )           
-                pltLDSHelperY(ax4)
-        
-                if not dfSegReprVec.empty:
-
-                    # TIMER_AV	
-                    lines = pltLDSErgVecHelper(ax4,dfSegReprVec,'TIMER_AV',attrsDctLDS['Seg_TIMER_AV_Attrs'],fct=plotTVTimerFct)                    
-                    yLines['TIMER_AV Seg']=lines[0]      
-                    
-                    # AM_AV
-                    lines = pltLDSErgVecHelper(ax4,dfSegReprVec,'AM_AV',attrsDctLDS['Seg_AM_AV_Attrs'],fct=plotTVAmFct)                    
-                    yLines['AM_AV Seg']=lines[0]      
-
-                if not dfSegReprVec.empty or not dfDruckReprVec.empty:
-                    ax4.set_ylim(ylimTV)
-                    ax4.set_yticks(yticksTV)        
-                    ax4.set_ylabel(plotTVAmLabel)    
-    
-                if not dfDruckReprVec.empty:
-
-                    # TIMER_AV	
-                    lines = pltLDSErgVecHelper(ax4,dfDruckReprVec,'TIMER_AV',attrsDctLDS['Druck_TIMER_AV_Attrs'],fct=plotTVTimerFct)                    
-                    yLines['TIMER_AV Drk']=lines[0]      
-                    
-                    # AM_AV
-                    lines = pltLDSErgVecHelper(ax4,dfDruckReprVec,'AM_AV',attrsDctLDS['Druck_AM_AV_Attrs'],fct=plotTVAmFct)                    
-                    yLines['AM_AV Drk']=lines[0]      
-
-                if not dfSegReprVec.empty or not dfDruckReprVec.empty:
-                    ax4.set_ylim(ylimTV)
-                    ax4.set_yticks(yticksTV)        
-                    ax4.set_ylabel(plotTVAmLabel)  
-
-            if plotLegend:
-                legendHorizontalPos='center'
-                
-                               
-                if not dfSegReprVec.empty:
-                    patternSeg='Seg$'
-                    axes['A'].add_artist(axes['A'].legend(
-                                tuple([yLines[line] for line in yLines if re.search(patternSeg,line) != None]) 
-                                ,tuple([line for line in yLines if re.search(patternSeg,line) != None]) 
-                                ,loc='upper '+legendHorizontalPos
-                                ,framealpha=legendFramealpha
-                                ,facecolor=legendFacecolor
-                                ))         
-                if not dfDruckReprVec.empty:
-                    patternDruck='Drk$'
-                    axes['A'].add_artist(axes['A'].legend(
-                                tuple([yLines[line] for line in yLines if re.search(patternDruck,line) != None]) 
-                                ,tuple([line for line in yLines if re.search(patternDruck,line) != None]) 
-                                ,loc='lower '+legendHorizontalPos
-                                ,framealpha=legendFramealpha
-                                ,facecolor=legendFacecolor
-                                ))                   
-
-                                                                                                                      
-    except RmError:
-        raise            
-    except Exception as e:
-        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-        logger.error(logStrFinal) 
-        raise RmError(logStrFinal)                       
-    finally:       
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-        return axes,yLines
-
-
-def plotTimespansLDS(    
-     axLst # list of axes to be used      
-    ,xlims # list of sections    
-
-    ,figTitle='' # the title of the plot; will be extended by min. and max. time calculated over all sections; will be also the pdf and png fileName
-    ,figSave=False #True # creates pdf and png
-    ,sectionTitles=[] #  list of section titles to be used    
-    ,sectionTexts=[] #  list of section texts to be used    
-    ,vLinesX=[] # plotted in each section if X-time fits    
-    ,vAreasX=[] # for each section a list of areas to highlight i.e. [[(timeStartAusschnittDruck,timeEndAusschnittDruck),...],...]
-
-   # --- Args Fct. ---:     
-    ,dfSegReprVec=pd.DataFrame() 
-    ,dfDruckReprVec=pd.DataFrame() 
-    
-    #,xlim=None    
-    ,dateFormat='%y.%m.%d: %H:%M:%S'  # can be a list
-    ,bysecond=None #[0,15,30,45]  # can be a list
-    ,byminute=None  # can be a list
-    ,byhour=None
-    
-    ,ylimAL=(0,40)
-    ,yticksAL=[0,10,20,30,40]
-
-    ,yTwinedAxesPosDeltaHPStart=-0.0125 
-    ,yTwinedAxesPosDeltaHP=-0.075 
-
-    ,ylimR=(-45,45) # can be a list
-    ,ylimRxlim=False # can be a list
-    ,yticksR=[0,2,4,10,15,30,45] # can be a list
-
-    # dito Beschl.
-    ,ylimAC=(-5,5)
-    ,ylimACxlim=False 
-    ,yticksAC=[-5,0,5]     
-
-    ,ySpanMin=0.9 
-
-    ,plotLegend=True # interpretiert fuer diese Funktion; Inverse gilt fuer pltLDSErgVec selbst
-    ,plotLegend1stOnly=True # diese Funktion plottet wenn plotLegend=True die Legende nur im ersten Plot
-
-    ,legendLoc='best'
-    ,legendFramealpha=.2
-    ,legendFacecolor='white' 
-
-    ,attrsDctLDS=attrsDctLDS
-
-    ,plotLPRate=True
-    ,plotR2FillSeg=True 
-    ,plotR2FillDruck=True 
-    ,plotAC=True
-    ,plotACCLimits=True
-
-    ,highlightAreas=True 
-
-    ,Seg_Highlight_Color='cyan'
-    ,Seg_Highlight_Alpha=.1     
-    ,Seg_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False      
-    ,Seg_HighlightError_Color='peru'
-    ,Seg_Highlight_Alpha_Error=.3     
-    ,Seg_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False   
-
-    ,Druck_Highlight_Color='cyan'
-    ,Druck_Highlight_Alpha=.1
-    ,Druck_Highlight_Fct=lambda row: True if row['STAT_S']==101 else False  
-    ,Druck_HighlightError_Color='peru'
-    ,Druck_Highlight_Alpha_Error=.3
-    ,Druck_HighlightError_Fct=lambda row: True if row['STAT_S']==601 else False      
-
-    ,plotTV=True
-    ,plotTVTimerFct=None 
-    ,plotTVAmFct=lambda x: x*100 
-    ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
-    ,ylimTV=(0,300)
-    ,yticksTV=[0,100,180,200,300]        
-):
-
-    # plots pltLDSErgVec-Sections 
-    
-    # returns a Lst of pltLDSErgVec-Results, a Lst of (axes,lines)
-
-    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-    try:    
-
-        if sectionTitles==[] or sectionTitles ==None:
-            sectionTitles=len(xlims)*['a plotTimespansLDS sectionTitle Praefix']
-
-        if not isinstance(sectionTitles, list):            
-            logger.warning("{0:s}sectionTitles muss eine Liste von strings sein.".format(logStr)) 
-            sectionTitles=len(xlims)*['a plotTimespansLDS sectionTitle Praefix']
-
-        if len(sectionTitles)!=len(xlims):            
-            logger.warning("{0:s}sectionTitles muss dieselbe Laenge haben wie xlims.".format(logStr)) 
-            sectionTitles=len(xlims)*['a plotTimespansLDS sectionTitle Praefix']
-
-        if sectionTexts==[] or sectionTexts==None:
-            sectionTexts=len(xlims)*['']
-
-        if not isinstance(sectionTexts, list):            
-            logger.warning("{0:s}sectionTexts muss eine Liste von strings sein.".format(logStr)) 
-            sectionTexts=len(xlims)*['']
-
-        if len(sectionTexts)!=len(xlims):            
-            logger.warning("{0:s}sectionTexts muss dieselbe Laenge haben wie xlims.".format(logStr)) 
-            sectionTexts=len(xlims)*['']
-        
-        if plotLegend:
-           plotLegendFct=False
-        else:
-           plotLegendFct=True
-
-        pltLDSErgVecResults=[]
-        for idx,xlim in enumerate(xlims):   
-                             
-            ax = axLst[idx]
-
-            if isinstance(dateFormat, list):
-                dateFormatIdx=dateFormat[idx]
-            else:
-                dateFormatIdx=dateFormat
-
-            bysecondIdx=bysecond
-            if isinstance(bysecond, list):
-                if any(isinstance(el, list) for el in bysecond):               
-                    bysecondIdx=bysecond[idx]                        
-
-            byminuteIdx=byminute
-            if isinstance(byminute, list):
-                if any(isinstance(el, list) for el in byminute):              
-                    byminuteIdx=byminute[idx]      
-            
-            ylimRIdx=ylimR
-            if isinstance(ylimR, list):
-                ylimRIdx=ylimR[idx]
-
-            ylimRxlimIdx=ylimRxlim
-            if isinstance(ylimRxlim, list):
-                ylimRxlimIdx=ylimRxlim[idx]
-
-            yticksRIdx=yticksR
-            if isinstance(yticksR, list):
-                if any(isinstance(el, list) for el in yticksR):               
-                    yticksRIdx=yticksR[idx]                  
-
-        
-            (axes,lines)=pltLDSErgVec(
-                     ax
-                    ,dfSegReprVec=dfSegReprVec
-                    ,dfDruckReprVec=dfDruckReprVec
-                    ,xlim=xlims[idx]    
-                      
-                    ,dateFormat=dateFormatIdx
-                    ,bysecond=bysecondIdx
-                    ,byminute=byminuteIdx
-
-                    ,ylimAL=ylimAL
-                    ,yticksAL=yticksAL
-
-                    ,yTwinedAxesPosDeltaHPStart=yTwinedAxesPosDeltaHPStart
-                    ,yTwinedAxesPosDeltaHP=yTwinedAxesPosDeltaHP
-
-                    ,ylimR=ylimRIdx
-                    ,ylimRxlim=ylimRxlimIdx
-                    ,yticksR=yticksRIdx
-                
-                    ,ylimAC=ylimAC 
-                    ,ylimACxlim=ylimACxlim 
-                    ,yticksAC=yticksAC 
-
-                    ,ySpanMin=ySpanMin
-
-                    ,plotLegend=plotLegendFct
-                    ,legendLoc=legendLoc
-                    ,legendFramealpha=legendFramealpha
-                    ,legendFacecolor=legendFacecolor 
-
-                    ,attrsDctLDS=attrsDctLDS         
-                    
-                    ,plotLPRate=plotLPRate                  
-                    ,plotR2FillSeg=plotR2FillSeg
-                    ,plotR2FillDruck=plotR2FillDruck                   
-                    ,plotAC=plotAC     
-                    ,plotACCLimits=plotACCLimits
-
-                    ,highlightAreas=highlightAreas 
-
-                    ,Seg_Highlight_Color=Seg_Highlight_Color
-                    ,Seg_Highlight_Alpha=Seg_Highlight_Alpha     
-                    ,Seg_Highlight_Fct=Seg_Highlight_Fct   
-                    ,Seg_HighlightError_Color=Seg_HighlightError_Color
-                    ,Seg_Highlight_Alpha_Error=Seg_Highlight_Alpha_Error #     
-                    ,Seg_HighlightError_Fct=Seg_HighlightError_Fct   
-
-                    ,Druck_Highlight_Color=Druck_Highlight_Color
-                    ,Druck_Highlight_Alpha=Druck_Highlight_Alpha
-                    ,Druck_Highlight_Fct=Druck_Highlight_Fct  
-                    ,Druck_HighlightError_Color=Druck_HighlightError_Color
-                    ,Druck_Highlight_Alpha_Error=Druck_Highlight_Alpha_Error #     
-                    ,Druck_HighlightError_Fct=Druck_HighlightError_Fct        
-                    
-                    ,plotTV=plotTV
-                    ,plotTVTimerFct=plotTVTimerFct 
-                    ,plotTVAmFct=plotTVAmFct 
-                    ,plotTVAmLabel=plotTVAmLabel
-                    ,ylimTV=ylimTV
-                    ,yticksTV=yticksTV            
-                    )    
-            pltLDSErgVecResults.append((axes,lines))
-
-            sectionText=sectionTexts[idx]
-            ax.text(  
-                0.5, 0.5,
-                sectionText,
-                ha='center', va='top',
-                transform=ax.transAxes
-            )
-        
-            (timeStart,timeEnd)=xlim                
-            sectionTitleSingle="{:s}: Plot Nr. {:d} - Zeitspanne: {:s}".format(sectionTitles[idx],idx+1,str(timeEnd-timeStart)).replace('days','Tage')  
-            ax.set_title(sectionTitleSingle)         
-        
-            for vLineX in vLinesX:        
-                if vLineX >= timeStart and vLineX <= timeEnd:
-                    ax.axvline(x=vLineX,ymin=0, ymax=1, color='gray',ls=linestyle_tuple[11][1])     
-                
-            if len(vAreasX) == len(xlims):
-                vAreasXSection=vAreasX[idx]
-                if vAreasXSection==[] or vAreasXSection==None:
-                    pass
-                else:
-                    for vArea in vAreasXSection:
-                        ax.axvspan(vArea[0], vArea[1], alpha=0.2, color='gray')
-            else:
-                logger.warning("{0:s}vAreasX muss dieselbe Laenge haben wie xlims.".format(logStr))                
-                                
-            # Legend
-            if plotLegend:
-                legendHorizontalPos='center'
-                if len(xlims)>1:
-                    if idx in [0,2,4]: # Anfahren ...
-                        legendHorizontalPos='right'
-                    elif idx in [1,3,5]: # Abfahren ...
-                        legendHorizontalPos='left'                    
-
-                if plotLegend1stOnly and idx>0:
-                    pass
-                else:                
-                    if not dfSegReprVec.empty:
-                        patternSeg='Seg$'
-                        axes['A'].add_artist(axes['A'].legend(
-                                    tuple([lines[line] for line in lines if re.search(patternSeg,line) != None]) 
-                                   ,tuple([line for line in lines if re.search(patternSeg,line) != None]) 
-                                   ,loc='upper '+legendHorizontalPos
-                                   ,framealpha=legendFramealpha
-                                   ,facecolor=legendFacecolor
-                                    ))         
-                    if not dfDruckReprVec.empty:
-                        patternDruck='Drk$'
-                        axes['A'].add_artist(axes['A'].legend(
-                                    tuple([lines[line] for line in lines if re.search(patternDruck,line) != None]) 
-                                   ,tuple([line for line in lines if re.search(patternDruck,line) != None]) 
-                                   ,loc='lower '+legendHorizontalPos
-                                   ,framealpha=legendFramealpha
-                                   ,facecolor=legendFacecolor
-                                    ))                   
-        
-        # Titel
-        tMin=xlims[0][0]
-        tMax=xlims[-1][1]
-        for tPair in xlims:
-            (t1,t2)=tPair
-            if t1 < tMin:
-                tMin=t1
-            if t2>tMax:
-                tMax=t2
-
-        if figTitle not in ['',None]:                     
-            figTitle="{:s} - {:s} - {:s}".format(figTitle,str(tMin),str(tMax)).replace(':',' ')
-            fig=plt.gcf()
-            fig.suptitle(figTitle)   
-
-        # speichern?!
-        if figSave:
-            fig.tight_layout(pad=2.) # gs.tight_layout(fig,pad=2.)
-
-            plt.savefig(figTitle+'.png')
-            plt.savefig(figTitle+'.pdf') 
-                     
-    except RmError:
-        raise            
-    except Exception as e:
-        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-        logger.error(logStrFinal) 
-        raise RmError(logStrFinal)                       
-    finally:       
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-        return pltLDSErgVecResults    
         
 def pltLDSpQHelper(
     ax    
@@ -4258,423 +4669,6 @@ def pltLDSSIDHelper(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
         return labels, scatters
-
-def pltLDSpQAndEvents(
-     ax
-    ,dfTCsLDSIn # es werden nur die aDct-definierten geplottet
-    ,dfTCsOPC=pd.DataFrame() # es werden nur die aDctOPC-definierten geplottet
-    # der Schluessel in den vorstehenden Dcts ist die ID (der Spaltenname) in den TCs
-    ,dfTCsOPCScenTimeShift=pd.Timedelta('1 hour') 
-
-    ,dfTCsSIDEvents=pd.DataFrame() 
-    ,dfTCsSIDEventsTimeShift=pd.Timedelta('1 hour') 
-    ,dfTCsSIDEventsInXlimOnly=True # es werden nur die Spalten geplottet, die in xlim vorkommen (in xlim mindestens 1x nicht Null sind)
-    ,dfTCsSIDEventsyOffset=.05 # die y-Werte werden ab dem 1. Schieber um je dfTCsSIDEventsyOffset erhöht (damit zeitgleiche Events besser sichtbar werden)
-    
-    ,QDct={ # Exanple
-        'Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value':{'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-        ,'Objects.FBG_MESSW.6_TUD_39_FT_01.In.MW.value':{'IDPlt':'Q Snk','RTTM':'IMDI.Objects.FBG_MESSW.6_TUD_39_FT_01.In.MW.value'}
-     }
-    
-    ,pDct={# Example
-       'Objects.FBG_HPS_M.6_KED_39_PTI_01_E.In.MW.value':{'IDPlt':'p Src'}
-       ,'Objects.FBG_HPS_M.6_TUD_39_PTI_01_E.In.MW.value':{'IDPlt':'p Snk'}
-       ,'Objects.FBG_HPS_M.6_EL1_39_PTI_01_E.In.MW.value':{'IDPlt':'p ISrc 1'}
-       ,'Objects.FBG_HPS_M.6_EL1_39_PTI_02_E.In.MW.value':{'IDPlt':'p ISnk 2'}    
-    }
-    ,QDctOPC={ # Exanple
-        'Objects.FBG_MESSW.6_EL1_39_FT_01.In.MW.value':{'IDPlt':'Q xSnk 1'}       
-     }
-
-    ,pDctOPC={} 
-    
-    ,IDPltKey='IDPlt' # Schluesselbezeichner in den vorstehenden 4 Dcts; Wert ist Referenz auf das folgende Layout-Dct und das folgende Fcts-Dct; Werte muessen eindeutig sein
-    
-    ,attrsDct=attrsDct 
-     
-    ,fctsDct={} # a Dct with Fcts
-        
-    ,xlim=None    
-    ,dateFormat='%y.%m.%d: %H:%M:%S'
-    ,bysecond=None #[0,15,30,45]
-    ,byminute=None
-    ,byhour=None
-    
-    ,yTwinedAxesPosDeltaHPStart=-0.0125 #: (i.d.R. negativer) Abstand der 1. y-Achse von der Zeichenfläche
-    ,yTwinedAxesPosDeltaHP=-0.075 #: (i.d.R. negativer) zus. Abstand jeder weiteren y-Achse von der Zeichenfläche
-    
-    # p y-Achse
-    ,ylimp=(0,100)  #wenn undef., dann min/max 
-    ,ylimpxlim=False #wenn Wahr und ylim undef., dann wird xlim beruecksichtigt bei min/max 
-    ,yticksp=None #[0,50,100] #wenn undef., dann aus ylimp
-    ,ylabelp='[bar]'
-    
-    # Q y-Achse
-    ,ylimQ=(0,250) 
-    ,ylimQxlim=False 
-    ,yticksQ=None #[0,50,100,150,200,250]  
-    ,ylabelQ='[Nm³/h]'
-
-    # 3. Achse
-    ,ylim3rd=(-1,3)
-    ,yticks3rd=[0,1,2,3]
-    
-    ,yGridSteps=0 # 0: das y-Gitter besteht dann bei ylimp=ylimQ=yticksp=yticksQ None nur aus min/max (also 1 Gitterabschnitt)     
-    ,ySpanMin=0.9 # wenn ylim undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
-
-    ,plotLegend=True
-    ,legendLoc='best'
-    ,legendFramealpha=.2
-    ,legendFacecolor='white' 
-
-    # SchieberEvents
-
-    ,pSIDEvents=pSIDEvents
-    # ausgewertet werden: colRegExSchieberID (um welchen Schieber geht es), colRegExMiddle (Befehl oder Zustand) und colRegExEventID (welcher Befehl bzw. Zustand) 
-    # die Befehle bzw. Zustaende (die Auspraegungen von colRegExEventID) muessen nachf. def. sein um den Marker (des Befehls bzw. des Zustandes) zu definieren
-
-    ,eventCCmds=eventCCmds
-    ,eventCStats=eventCStats
-    ,valRegExMiddleCmds=valRegExMiddleCmds # colRegExMiddle-Auspraegung fuer Befehle (==> eventCCmds)
-
-    # es muessen soviele Farben definiert sein wie Schieber
-    ,baseColorsDef=baseColorsSchieber                                                             
-    ,markerDef=markerDefSchieber 
-    ):
-    """
-    zeichnet pq-Zeitkurven - ggf. ergaenzt durch Events
-
-    Returns:
-        * axes (Dct of axes)
-        * lines (Dct of lines)
-        * scatters (List of ax.scatter-Results)
-    """
-   
-    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-    axes={}
-    lines={}
-    scatters=[]
-
-    try:    
-        
-            axes['p']=ax
-
-            # x-Achse ----------------
-            if xlim == None:            
-                xlimMin=dfTCsLDSIn.index[0]
-                xlimMax=dfTCsLDSIn.index[-1]                                
-                xlim=(xlimMin,xlimMax)
-            (xlimMin,xlimMax)=xlim
-
-            ax.set_xlim(xlim)
-
-            logger.debug("{0:s}bysecond: {1:s}".format(logStr,str(bysecond))) 
-            logger.debug("{0:s}byminute: {1:s}".format(logStr,str(byminute))) 
-            logger.debug("{0:s}byhour: {1:s}".format(logStr,str(byhour))) 
-                           
-            pltHelperX(
-             ax
-            ,dateFormat=dateFormat
-            ,bysecond=bysecond
-            ,byminute=byminute
-            ,byhour=byhour
-            ,yPos=yTwinedAxesPosDeltaHPStart
-            )  
-                      
-            # Eindeutigkeit der IDPlts pruefen
-            keys=[]
-            keysUneindeutig=[]
-            for dct in [QDct,pDct,QDctOPC,pDctOPC]:
-                for key, value in dct.items():
-                    if IDPltKey in value.keys():
-                        IDPltValue=value[IDPltKey]
-                        if IDPltValue in keys:                
-                            print("IDPlt {:s} bereits vergeben".format(IDPltValue))
-                            keysUneindeutig.append(IDPltValue)
-                        else:
-                            keys.append(IDPltValue)
-
-            # 1. Achse p -----------------------    
-        
-            for key, value in pDct.items(): # nur die konfigurierten IDs plotten          
-                if key in dfTCsLDSIn.columns: # nur dann, wenn ID als Spalte enthalten 
-                    label, linesAct = pltLDSpQHelper(
-                        ax    
-                       ,dfTCsLDSIn
-                       ,key # Spaltenname
-                       ,value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-                       ,attrsDct # a Dct with - i.e. {'Q Src':{'color':'red'},...}
-                       ,IDPltKey=IDPltKey # Schluesselbezeichner in value   
-                       ,xDctFcts=fctsDct
-                        )                    
-                    lines[label]=linesAct[0]               
-                else:
-                    logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))   
-
-                if 'RTTM' in value.keys():       
-                    if value['RTTM'] in dfTCsLDSIn.columns:
-                        
-                        label, linesAct = pltLDSpQHelper(
-                        ax    
-                       ,dfTCsLDSIn
-                       ,value['RTTM'] 
-                       ,value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-                       ,attrsDct 
-                       ,IDPltKey=IDPltKey 
-                       ,IDPltValuePostfix=' RTTM' 
-                       ,xDctFcts=fctsDct
-                        )                    
-                        lines[label]=linesAct[0]  
-
-                    else:
-                        logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,value['RTTM']))   
-
-            if not dfTCsOPC.empty:   
-                for key, value in pDctOPC.items():   
-                    if key in dfTCsOPC.columns:
-
-                        label, linesAct = pltLDSpQHelper(
-                        ax    
-                       ,dfTCsOPC
-                       ,key 
-                       ,value 
-                       ,attrsDct
-                       ,IDPltKey=IDPltKey 
-                       ,timeShift=dfTCsOPCScenTimeShift
-                       ,xDctFcts=fctsDct
-                        )                    
-                        lines[label]=linesAct[0]   
-
-                    else:
-                        logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))                                        
-                                                                                                           
-            ylimp,yticksp=pltLDSpQHelperYLimAndTicks(
-             dfTCsLDSIn
-            ,pDct.keys()
-            ,ylim=ylimp
-            ,yticks=yticksp     
-            ,ylimxlim=ylimpxlim 
-            ,xlim=xlim      
-            ,ySpanMin=ySpanMin
-            ,yGridSteps=yGridSteps
-            )       
-    
-            ax.set_ylim(ylimp)
-            ax.set_yticks(yticksp)
-                            
-            ax.grid() 
-    
-            ax.set_zorder(10)
-            ax.patch.set_visible(False)      
-    
-            ax.set_ylabel(ylabelp)
-    
-            # 2. y-Achse Q ----------------------------------------
-            ax2 = ax.twinx()
-            axes['Q']=ax2            
-    
-            pltHelperX(
-             ax2
-            ,dateFormat=dateFormat
-            ,bysecond=bysecond
-            ,byminute=byminute
-            ,byhour=byhour
-            ,yPos=yTwinedAxesPosDeltaHPStart+yTwinedAxesPosDeltaHP
-            )         
-           
-            for key, value in QDct.items():   
-                if key in dfTCsLDSIn.columns:
-                        label, linesAct = pltLDSpQHelper(
-                        ax2    
-                       ,dfTCsLDSIn
-                       ,key 
-                       ,value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-                       ,attrsDct 
-                       ,IDPltKey=IDPltKey 
-                       ,xDctFcts=fctsDct
-                        )                    
-                        lines[label]=linesAct[0]  
-                else:
-                    logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))       
-                       
-                if 'RTTM' in value.keys():       
-                    if value['RTTM'] in dfTCsLDSIn.columns:
-                        
-                        label, linesAct = pltLDSpQHelper(
-                        ax2    
-                       ,dfTCsLDSIn
-                       ,value['RTTM'] 
-                       ,value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-                       ,attrsDct 
-                       ,IDPltKey=IDPltKey 
-                       ,IDPltValuePostfix=' RTTM' 
-                       ,xDctFcts=fctsDct
-                        )                    
-                        lines[label]=linesAct[0]  
-
-                    else:
-                        logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,value['RTTM']))   
-
-            if not dfTCsOPC.empty:   
-                for key, value in QDctOPC.items():   
-                    if key in dfTCsOPC.columns:                       
-                        label, linesAct = pltLDSpQHelper(
-                        ax2    
-                       ,dfTCsOPC
-                       ,key 
-                       ,value 
-                       ,attrsDct 
-                       ,IDPltKey=IDPltKey 
-                       ,timeShift=dfTCsOPCScenTimeShift
-                       ,xDctFcts=fctsDct
-                        )                    
-                        lines[label]=linesAct[0]                                              
-                    else:
-                        logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))               
- 
-                                
-            pltLDSHelperY(ax2)
-                     
-            ylimQ,yticksQ=pltLDSpQHelperYLimAndTicks(
-             dfTCsLDSIn
-            ,QDct.keys()
-            ,ylim=ylimQ
-            ,yticks=yticksQ     
-            ,ylimxlim=ylimQxlim 
-            ,xlim=xlim      
-            ,ySpanMin=ySpanMin
-            ,yGridSteps=yGridSteps                
-            )                               
-
-            ax2.set_ylim(ylimQ)
-            ax2.set_yticks(yticksQ)
-                                         
-            ax2.grid()  
-    
-            ax2.set_ylabel(ylabelQ)
-
-            # ggf. 3. Achse
-
-            if not dfTCsSIDEvents.empty:# or not dfTCsSirCalcSIDEvents.empty:                   
-
-                ax3 = ax.twinx()                
-                axes['SID']=ax3
-    
-                pltHelperX(
-                 ax3
-                ,dateFormat=dateFormat
-                ,bysecond=bysecond
-                ,byminute=byminute
-                ,byhour=byhour
-                ,yPos=yTwinedAxesPosDeltaHPStart+2*yTwinedAxesPosDeltaHP
-                )         
-
-
-                if dfTCsSIDEventsInXlimOnly:                    
-                    # auf xlim beschränken
-                    dfTCsSIDEventsPlot=dfTCsSIDEvents.loc[xlim[0]-dfTCsSIDEventsTimeShift:xlim[1]-dfTCsSIDEventsTimeShift,:]
-                else:
-                    dfTCsSIDEventsPlot=dfTCsSIDEvents
-            
-                labelsOneCall,scattersOneCall=pltLDSSIDHelper(
-                ax3 
-               ,dfTCsSIDEventsPlot
-               ,dfTCsSIDEventsTimeShift   
-               ,dfTCsSIDEventsyOffset
-               ,pSIDEvents
-               ,valRegExMiddleCmds
-               ,eventCCmds
-               ,eventCStats
-               ,markerDef
-               ,baseColorsDef
-                )                
-                scatters=scatters+scattersOneCall
-                
-
-
-            if not dfTCsSIDEvents.empty:# or not dfTCsSirCalcSIDEvents.empty:    
-                pltLDSHelperY(ax3)             
-                ax3.set_ylim(ylim3rd)
-                ax3.set_yticks(yticks3rd)
-    
-            if plotLegend:                
-                ax.legend(
-                 tuple([lines[line] for line in lines])
-                ,tuple([key for key,value in lines.items()])
-                ,loc=legendLoc
-                ,framealpha=legendFramealpha
-                ,facecolor=legendFacecolor
-                )
-
-                if not dfTCsSIDEvents.empty:# or not dfTCsSirCalcSIDEvents.empty:                                       
-                    ax3.legend(
-                         framealpha=legendFramealpha
-                        ,facecolor=legendFacecolor
-                        )
-
-            if plotLegend:
-                legendHorizontalPos='center'
-
-                patterBCp='^p S[rc|nk]'
-                patterBCQ='^Q S[rc|nk]'
-                patterBCpQ='^[p|Q] S[rc|nk]'
-                axes['p'].add_artist(axes['p'].legend(
-                                tuple([lines[line] for line in lines if re.search(patterBCp,line) != None]) 
-                                ,tuple([line for line in lines if re.search(patterBCp,line) != None]) 
-                                ,loc='upper '+legendHorizontalPos
-                                ,framealpha=legendFramealpha
-                                ,facecolor=legendFacecolor
-                                ))
-                axes['p'].add_artist(axes['p'].legend(
-                                tuple([lines[line] for line in lines if re.search(patterBCQ,line) != None]) 
-                                ,tuple([line for line in lines if re.search(patterBCQ,line) != None]) 
-                                ,loc='lower '+legendHorizontalPos
-                                ,framealpha=legendFramealpha
-                                ,facecolor=legendFacecolor
-                                ))
-
-                moreLines=[line for line in lines if re.search(patterBCpQ,line) == None]
-                if len(moreLines) > 0:
-                    opposite={'right':'left','left':'right','center':'left'}
-                    moreLinesp=[line for line in moreLines if re.search('^p',line) != None]
-                    if len(moreLinesp)>0:
-                        axes['p'].add_artist(axes['p'].legend(
-                                    tuple([lines[line] for line in moreLinesp]) 
-                                    ,tuple(moreLinesp) 
-                                    ,loc='upper '+opposite[legendHorizontalPos]
-                                    ,framealpha=legendFramealpha
-                                    ,facecolor=legendFacecolor
-                                    ))
-                    moreLinesQ=[line for line in moreLines if re.search('^Q',line) != None]
-                    if len(moreLinesQ)>0:
-                        axes['p'].add_artist(axes['p'].legend(
-                                    tuple([lines[line] for line in moreLinesQ]) 
-                                    ,tuple(moreLinesQ) 
-                                    ,loc='lower '+opposite[legendHorizontalPos]
-                                    ,framealpha=legendFramealpha
-                                    ,facecolor=legendFacecolor
-                                    ))
-
-                if 'SID' in axes.keys():
-                        if legendHorizontalPos == 'center':
-                            legendHorizontalPosAct=''
-                        else:
-                            legendHorizontalPosAct=' '+legendHorizontalPos
-                        axes['SID'].legend(loc='center'+legendHorizontalPosAct
-                                ,framealpha=legendFramealpha
-                                ,facecolor=legendFacecolor)        
-                                                                                                                      
-    except RmError:
-        raise            
-    except Exception as e:
-        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-        logger.error(logStrFinal) 
-        raise RmError(logStrFinal)                       
-    finally:       
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-        return axes,lines,scatters
         
 def pltMakePatchSpinesInvisible(ax):
     ax.set_frame_on(True)
