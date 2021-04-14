@@ -115,7 +115,7 @@ True
 ...    os.remove(plotFileName)
 """
 
-__version__='90.12.4.3.dev1'
+__version__='90.12.4.5.dev1'
 
 import warnings # 3.6
 #...\Anaconda3\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
@@ -157,10 +157,11 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 from matplotlib.colorbar import make_axes
 
-
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 import matplotlib.dates as mdates
+from matplotlib import markers
+from matplotlib.path import Path
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -174,7 +175,6 @@ import math
 import sys
 
 from copy import deepcopy
-
 
 import logging
 # ---
@@ -219,6 +219,11 @@ import doctest
 
 import math
 
+from itertools import tee
+
+# --- Parameter Allgemein
+# -----------------------
+
 DINA6 =  (4.13 ,  5.83)
 DINA5 =  (5.83 ,  8.27)
 DINA4 =  (8.27 , 11.69)
@@ -260,6 +265,650 @@ linestyle_tuple = [
      ('loosely dashdotdotted', (0, (3, 10, 1, 10, 1, 10))),
      ('densely dashdotdotted', (0, (3, 1, 1, 1, 1, 1)))]
 
+# --- Funktionen Allgemein
+# -----------------------
+
+def pairwise(iterable):
+    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
+
+def genTimespans(timeStart
+     ,timeEnd
+     ,timeSpan=pd.Timedelta('12 Minutes')
+     ,timeOverlap=pd.Timedelta('0 Seconds')
+     ,timeStartPraefix=pd.Timedelta('0 Seconds')
+     ,timeEndPostfix=pd.Timedelta('0 Seconds')
+    ):
+    
+    # generates timeSpan-Sections 
+
+    # if timeStart is 
+    #     an int, it is considered as the number of desired Sections before timeEnd; timeEnd must be a time
+    #     a time, it is considered as timeStart      
+    
+    # if timeEnd is 
+    #     an int, it is considered as the number of desired Sections after timeStart; timeStart must be a time
+    #     a time, it is considered as timeEnd 
+    
+    # if timeSpan is 
+    #     an int, it is considered as the number of desired Sections 
+    #     a time, it is considered as timeSpan
+    
+    # returns an array of tuples
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    xlims=[]
+
+    try:
+ 
+        if type(timeStart) == int:    
+            numOfDesiredSections=timeStart                
+            timeStartEff=timeEnd+timeEndPostfix-numOfDesiredSections*timeSpan+(numOfDesiredSections-1)*timeOverlap-timeStartPraefix
+        else:        
+            timeStartEff=timeStart-timeStartPraefix
+        logger.debug("{0:s}timeStartEff: {1:s}".format(logStr,str(timeStartEff))) 
+    
+        if type(timeEnd) == int:    
+            numOfDesiredSections=timeEnd
+            timeEndEff=timeStart-timeStartPraefix+numOfDesiredSections*timeSpan-(numOfDesiredSections-1)*timeOverlap+timeEndPostfix        
+        else:        
+            timeEndEff=timeEnd+timeEndPostfix
+        logger.debug("{0:s}timeEndEff: {1:s}".format(logStr,str(timeEndEff))) 
+    
+        if type(timeSpan) == int:    
+            numOfDesiredSections=timeSpan  
+            dt=timeEndEff-timeStartEff
+            timeSpanEff=dt/numOfDesiredSections+(numOfDesiredSections-1)*timeOverlap        
+        else:        
+            timeSpanEff=timeSpan
+        logger.debug("{0:s}timeSpanEff: {1:s}".format(logStr,str(timeSpanEff))) 
+    
+        logger.debug("{0:s}timeOverlap: {1:s}".format(logStr,str(timeOverlap)))  
+        
+        timeStartAct = timeStartEff           
+        while timeStartAct < timeEndEff: 
+            logger.debug("{0:s}timeStartAct: {1:s}".format(logStr,str(timeStartAct)))  
+            timeEndAct=timeStartAct+timeSpanEff
+            xlim=(timeStartAct,timeEndAct)
+            xlims.append(xlim)        
+            timeStartAct = timeEndAct - timeOverlap         
+    
+   
+
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return xlims
+
+def gen2Timespans(
+      timeStart # Anfang eines "Prozesses"
+     ,timeEnd # Ende eines "Prozesses"
+     ,timeSpan=pd.Timedelta('12 Minutes')     
+     ,timeStartPraefix=pd.Timedelta('0 Seconds')
+     ,timeEndPostfix=pd.Timedelta('0 Seconds')
+     ,roundStr=None # i.e. '5min': timeStart.round(roundStr) und timeEnd dito
+    ):
+
+    """
+    erzeugt 2 gleich lange Zeitbereiche
+    1 um timeStart herum
+    1 um timeEnd   herum
+    """
+      
+    #print("timeStartPraefix: {:s}".format(str(timeStartPraefix)))
+    #print("timeEndPostfix: {:s}".format(str(timeEndPostfix)))
+    
+    xlims=[]
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:
+
+        if roundStr != None:
+            timeStart=timeStart.round(roundStr)
+            timeEnd=timeEnd.round(roundStr)
+
+        xlims.append((timeStart-timeStartPraefix,timeStart-timeStartPraefix+timeSpan))
+        xlims.append((timeEnd+timeEndPostfix-timeSpan,timeEnd+timeEndPostfix))
+     
+        return xlims
+
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return xlims
+
+def fTotalTimeFromPairs(
+     x
+    ,denominator=None # i.e. pd.Timedelta('1 minute') for totalTime in Minutes
+    ,roundToInt=True # round to and return as int if denominator is specified; else td is rounded by 2
+):
+    tdTotal=pd.Timedelta('0 seconds')
+    for idx,tPairs in enumerate(x):
+
+        t1,t2=tPairs
+        if idx==0:
+            tLast=t2                
+        else:
+            if t1 <= tLast:
+                print("Zeitpaar überlappt?!")        
+        td=t2-t1
+        if td < pd.Timedelta('1 seconds'):
+            print("Zeitpaar < als 1 Sekunde?!")     
+        
+        
+        tdTotal=tdTotal+td
+    if denominator==None:
+        return tdTotal
+    else:
+        td=tdTotal / denominator
+        if roundToInt:
+            td=int(round(td,0))
+        else:
+            td=round(td,2)
+        return td
+
+def findAllTimeIntervalls(
+ df
+,fct=lambda row: True if row['col'] == 46 else False
+,tdAllowed=None # if not None all subsequent TimePairs with TimeDifference <= tdAllowed are combined to one TimePair
+):
+# alle [Zeitbereiche] finden fuer die fct Wahr ist
+# returns array of Time-Pair-Tuples
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    tPairs=[]
+
+    try:
+        tEin=None
+        # paarweise über alle Zeilen
+        for (i1, row1), (i2, row2) in pairwise(df.iterrows()):    
+            row1Value=fct(row1)
+            row2Value=fct(row2)
+
+            # wenn 1 nicht x und 2       x tEin=t2 "geht Ein"
+            if not row1Value and row2Value:
+                tEin=i2
+
+            # wenn 1       x und 2 nicht x tAus=t2 "geht Aus"
+            elif row1Value and not row2Value:
+                if tEin != None:
+                    # Paar speichern                    
+                    tPair=(tEin,i1)
+                    tPairs.append(tPair)            
+                else:
+                    pass # sonst: Bed. ist jetzt Aus und war nicht Ein
+                    # Bed. kann nur im ersten Fall Ein gehen
+
+            # wenn 1       x und 2       x
+            elif row1Value and row2Value: 
+                if tEin != None:
+                    pass
+                else:
+                    # im ersten Wertepaar ist der Bereich Ein
+                    tEin=i1
+
+        # letztes Paar
+        if row1Value and row2Value: 
+                if tEin != None:
+                    tPair=(tEin,i2)
+                    tPairs.append(tPair)    
+
+        if tdAllowed != None:            
+            tPairs=fCombineSubsequenttPairs(tPairs,tdAllowed)
+
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return tPairs
+
+def findAllTimeIntervallsSeries(
+ s
+,fct=lambda x: True if x == 46 else False
+,tdAllowed=None # if not None all subsequent TimePairs with TimeDifference <= tdAllowed are combined to one TimePair
+):
+    """
+    # alle [Zeitbereiche] finden fuer die fct Wahr ist; diese Zeitbereiche werden geliefert; es werden nur Paare geliefert; d.h. Wahr-Solitäre sind nicht enthalten (gehen verloren)
+
+    # if fct None: 
+    #       tdAllowed must be specified
+    #       in Zeitbereiche zerlegen, die nicht mehr als tdAllowed auseinander liegen; diese Zeitbereiche werden geliefert
+    #       generell ist jeder gelieferte Zeitbereich >=2, auch dann, wenn er dadurch ein oder mehrere unzul. ZeitGaps enthalten muss
+    #       denn es soll kein Wert verloren gehen
+
+    # returns array of Time-Pair-Tuples    
+    >>> import pandas as pd
+    >>> t=pd.Timestamp('2021-03-19 01:02:00')
+    >>> t1=t +pd.Timedelta('1 second')
+    >>> t2=t1+pd.Timedelta('1 second')
+    >>> t3=t2+pd.Timedelta('1 second')
+    >>> t4=t3+pd.Timedelta('1 second')
+    >>> t5=t4+pd.Timedelta('1 second')
+    >>> t6=t5+pd.Timedelta('1 second')
+    >>> t7=t6+pd.Timedelta('1 second')
+    >>> d = {t1: 46, t2: 0} # geht aus - kein Paar
+    >>> s1PaarGehtAus=pd.Series(data=d, index=[t1, t2])
+    >>> d = {t1: 0, t2: 46} # geht ein - kein Paar
+    >>> s1PaarGehtEin=pd.Series(data=d, index=[t1, t2])
+    >>> d = {t5: 46, t6: 0} # geht ausE - kein Paar
+    >>> s1PaarGehtAusE=pd.Series(data=d, index=[t5, t6])
+    >>> d = {t5: 0, t6: 46} # geht einE - kein Paar
+    >>> s1PaarGehtEinE=pd.Series(data=d, index=[t5, t6])
+    >>> d = {t1: 46, t2: 46} # geht aus - ein Paar
+    >>> s1PaarEin=pd.Series(data=d, index=[t1, t2])
+    >>> d = {t1: 0, t2: 0} # geht aus - kein Paar
+    >>> s1PaarAus=pd.Series(data=d, index=[t1, t2])
+    >>> s2PaarAus=pd.concat([s1PaarGehtAus,s1PaarGehtAusE])
+    >>> s2PaarEin=pd.concat([s1PaarGehtEin,s1PaarGehtEinE])
+    >>> s2PaarAusEin=pd.concat([s1PaarGehtAus,s1PaarGehtEinE])
+    >>> s2PaarEinAus=pd.concat([s1PaarGehtEin,s1PaarGehtAusE])
+    >>> ###
+    >>> # 46  0
+    >>> # 0  46
+    >>> # 0   0
+    >>> # 46 46 !1 Paar
+    >>> # 46  0  46  0
+    >>> # 46  0   0 46
+    >>> # 0  46   0 46
+    >>> # 0  46  46  0 !1 Paar
+    >>> ###
+    >>> findAllTimeIntervallsSeries(s1PaarGehtAus)
+    []
+    >>> findAllTimeIntervallsSeries(s1PaarGehtEin)
+    []
+    >>> findAllTimeIntervallsSeries(s1PaarEin)
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02'))]
+    >>> findAllTimeIntervallsSeries(s1PaarAus)
+    []
+    >>> findAllTimeIntervallsSeries(s2PaarAus)
+    []
+    >>> findAllTimeIntervallsSeries(s2PaarEin)
+    []
+    >>> findAllTimeIntervallsSeries(s2PaarAusEin)
+    []
+    >>> findAllTimeIntervallsSeries(s2PaarEinAus)
+    [(Timestamp('2021-03-19 01:02:02'), Timestamp('2021-03-19 01:02:05'))]
+    >>> ###
+    >>> # 46  0 !1 Paar
+    >>> # 0  46 !1 Paar
+    >>> # 0   0 !1 Paar
+    >>> # 46 46 !1 Paar
+    >>> # 46  0  46  0 !2 Paare
+    >>> # 46  0   0 46 !2 Paare
+    >>> # 0  46   0 46 !2 Paare
+    >>> # 0  46  46  0 !2 Paare
+    >>> ###
+    >>> findAllTimeIntervallsSeries(s1PaarGehtAus,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02'))]
+    >>> findAllTimeIntervallsSeries(s1PaarGehtEin,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02'))]
+    >>> findAllTimeIntervallsSeries(s1PaarEin,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02'))]
+    >>> findAllTimeIntervallsSeries(s1PaarAus,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02'))]
+    >>> findAllTimeIntervallsSeries(s2PaarAus,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:05'), Timestamp('2021-03-19 01:02:06'))]
+    >>> findAllTimeIntervallsSeries(s2PaarEin,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:05'), Timestamp('2021-03-19 01:02:06'))]
+    >>> findAllTimeIntervallsSeries(s2PaarAusEin,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:05'), Timestamp('2021-03-19 01:02:06'))]
+    >>> findAllTimeIntervallsSeries(s2PaarEinAus,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:05'), Timestamp('2021-03-19 01:02:06'))]
+    >>> ###
+    >>> d = {t1: 0, t3: 0} 
+    >>> s1PaarmZ=pd.Series(data=d, index=[t1, t3])
+    >>> findAllTimeIntervallsSeries(s1PaarmZ,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:03'))]
+    >>> d = {t4: 0, t5: 0} 
+    >>> s1PaaroZ=pd.Series(data=d, index=[t4, t5])
+    >>> s2PaarmZoZ=pd.concat([s1PaarmZ,s1PaaroZ])
+    >>> findAllTimeIntervallsSeries(s2PaarmZoZ,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:05'))]
+    >>> ###
+    >>> d = {t1: 0, t2: 0} 
+    >>> s1PaaroZ=pd.Series(data=d, index=[t1, t2])
+    >>> d = {t3: 0, t5: 0} 
+    >>> s1PaarmZ=pd.Series(data=d, index=[t3, t5])
+    >>> s2PaaroZmZ=pd.concat([s1PaaroZ,s1PaarmZ])
+    >>> findAllTimeIntervallsSeries(s2PaaroZmZ,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:05'))]
+    >>> ###
+    >>> d = {t6: 0, t7: 0} 
+    >>> s1PaaroZ2=pd.Series(data=d, index=[t6, t7])
+    >>> d = {t4: 0} 
+    >>> solitaer=pd.Series(data=d, index=[t4])
+    >>> s5er=pd.concat([s1PaaroZ,solitaer,s1PaaroZ2])
+    >>> findAllTimeIntervallsSeries(s5er,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:04'), Timestamp('2021-03-19 01:02:07'))]
+    >>> s3er=pd.concat([s1PaaroZ,solitaer])
+    >>> findAllTimeIntervallsSeries(s3er,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:04'))]
+    >>> s3er=pd.concat([solitaer,s1PaaroZ2])
+    >>> findAllTimeIntervallsSeries(s3er,fct=None,tdAllowed=pd.Timedelta('1 second'))
+    [(Timestamp('2021-03-19 01:02:04'), Timestamp('2021-03-19 01:02:07'))]
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    tPairs=[]
+
+    try:
+        tEin=None
+        
+        if fct != None:
+            # paarweise über alle Zeilen
+            for idx,((i1, s1), (i2, s2)) in enumerate(pairwise(s.iteritems())):    
+                s1Value=fct(s1)
+                s2Value=fct(s2)
+
+                # wenn 1 nicht x und 2       x tEin=t2 "geht Ein"
+                if not s1Value and s2Value:
+                    tEin=i2
+                    if idx > 0:
+                            pass
+                    else:
+                            pass
+                            #print('beim ersten Paar "geht Ein"')      
+
+                # wenn 1       x und 2 nicht x tAus=t2 "geht Aus"
+                elif s1Value and not s2Value:
+                    if tEin != None:
+                        if tEin<i1:
+                            # Paar speichern                                                
+                            tPair=(tEin,i1)
+                            tPairs.append(tPair)            
+                        else:
+                            pass
+                    else: # geht Aus ohne Ein zu sein
+                        if idx > 0:
+                            pass # geht im ersten Paar Aus
+                            
+                        else:
+                            pass 
+                           
+
+                # wenn 1       x und 2       x
+                elif s1Value and s2Value: 
+                    if tEin != None:
+                        pass
+                    else:
+                        # im ersten Wertepaar ist der Bereich Ein
+                        tEin=i1
+            # letztes Paar
+            if s1Value and s2Value: 
+                if tEin != None:
+                    tPair=(tEin,i2)
+                    tPairs.append(tPair)      
+
+            if tdAllowed != None:            
+                tPairs=fCombineSubsequenttPairs(tPairs,tdAllowed)
+        else:            
+            # paarweise über alle Zeilen
+            # neues Paar beginnen
+            anzInPair=1 
+            for (i1, s1), (i2, s2) in pairwise(s.iteritems()):    
+                td=i2-i1
+                if td > tdAllowed:
+                    if tEin==None:
+                        # erstes Paar liegt bereits zu weit auseinander
+                        # Paarabschluss wird ignoriert, denn sonst nur 1 Wert am Anfang
+                        # aktuelles Paar beginnt beim 1. Wert und geht über diese Schwelle
+                        tEin=i1
+                        anzInPair=2
+                    else:                    
+                        if anzInPair>=2:
+                            # Paar abschließen                            
+                            tPair=(tEin,i1)
+                            tPairs.append(tPair)      
+                            # neues Paar beginnen
+                            tEin=i2
+                            anzInPair=1
+                        else:
+                            # Paarabschluss wird ignoriert, denn sonst nur 1 Wert
+                            anzInPair=2
+                else:
+                    if tEin==None:
+                        tEin=i1
+                    anzInPair=anzInPair+1
+                    
+            # letztes Paar
+            if anzInPair>=2:
+                tPair=(tEin,i2)
+                tPairs.append(tPair)                                  
+            else:                
+                # ein letzter Wert wuere ueber bleiben ... 
+                tPair=tPairs[-1]
+                tPair=(tPair[0],i2)
+                tPairs[-1]=tPair  
+                
+            
+
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return tPairs
+
+def fCombineSubsequenttPairs(
+ tPairs
+,tdAllowed=pd.Timedelta('1 second') # all subsequent TimePairs with TimeDifference <= tdAllowed are combined to one TimePair
+):
+# returns tPairs 
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    try:
+
+        for idx,(tp1,tp2) in enumerate(pairwise(tPairs)):            
+            
+            t1Ende=tp1[1]
+            t2Start=tp2[0]
+
+            if t2Start-t1Ende <= tdAllowed:
+                # print(t1Ende,t2Start)
+                tPairs[idx]=(tp1[0],tp2[1]) # Folgepaar in vorheriges Paar integrieren
+                tPairs.remove(tp2) # Folgepaar löschen
+                tPairs=fCombineSubsequenttPairs(tPairs,tdAllowed) # Rekursion       
+
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+        return tPairs
+
+class RmError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+# --- Parameter und Funktionen LDS Reports
+# ----------------------------------------
+
+def pltMakeCategoricalColors(color,nOfSubColorsReq=3,reversedOrder=False):
+    """
+    Returns an array of rgb colors derived from color.
+
+    Parameter:
+        color:             a rgb color                       
+        nOfSubColorsReq:   number of SubColors requested
+        
+    Raises:
+        RmError
+
+    >>> import matplotlib
+    >>> color='red'
+    >>> c=list(matplotlib.colors.to_rgb(color))
+    >>> import Rm    
+    >>> Rm.pltMakeCategoricalColors(c)
+    array([[1.   , 0.   , 0.   ],
+           [1.   , 0.375, 0.375],
+           [1.   , 0.75 , 0.75 ]])
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    rgb=None
+
+    try:             
+        chsv = matplotlib.colors.rgb_to_hsv(color[:3])
+        arhsv = np.tile(chsv,nOfSubColorsReq).reshape(nOfSubColorsReq,3)
+        arhsv[:,1] = np.linspace(chsv[1],0.25,nOfSubColorsReq)
+        arhsv[:,2] = np.linspace(chsv[2],1,nOfSubColorsReq)
+        rgb = matplotlib.colors.hsv_to_rgb(arhsv)
+        if reversedOrder:
+            rgb=list(reversed(rgb))                                                                                                                    
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return rgb
+
+# Farben fuer Druecke
+SrcColorp='green'
+SrcColorsp=pltMakeCategoricalColors(list(matplotlib.colors.to_rgb(SrcColorp)),nOfSubColorsReq=4,reversedOrder=False)
+# erste Farbe ist Original-Farbe
+
+SnkColorp='blue'
+SnkColorsp=pltMakeCategoricalColors(list(matplotlib.colors.to_rgb(SnkColorp)),nOfSubColorsReq=4,reversedOrder=True)
+# letzte Farbe ist Original-Farbe
+
+# Farben fuer Fluesse
+SrcColorQ='red'
+SrcColorsQ=pltMakeCategoricalColors(list(matplotlib.colors.to_rgb(SrcColorQ)),nOfSubColorsReq=4,reversedOrder=False)
+# erste Farbe ist Original-Farbe
+
+SnkColorQ='orange'
+SnkColorsQ=pltMakeCategoricalColors(list(matplotlib.colors.to_rgb(SnkColorQ)),nOfSubColorsReq=4,reversedOrder=True)
+# letzte Farbe ist Original-Farbe
+
+attrsDct={   'p Src':{'color':SrcColorp,'lw':4.5,'where':'post'}
+            ,'p Snk':{'color':SnkColorp,'lw':2.5,'where':'post'}
+            ,'p Snk 2':{'color':'mediumorchid','where':'post'}
+            ,'p Snk 3':{'color':'darkviolet','where':'post'}
+                                             
+            ,'Q Src':{'color':SrcColorQ,'lw':4.5,'where':'post'}
+            ,'Q Snk':{'color':SnkColorQ,'lw':2.5,'where':'post'}
+            ,'Q Snk 2':{'color':'indianred','where':'post'}
+            ,'Q Snk 3':{'color':'coral','where':'post'}
+
+                    
+            ,'Q Src RTTM':{'color':SrcColorQ,'ls':'dotted','where':'post'}
+            ,'Q Snk RTTM':{'color':SnkColorQ,'ls':'dotted','where':'post'}        
+            ,'Q Snk 2 RTTM':{'color':'indianred','ls':'dotted','where':'post'}        
+            ,'Q Snk 3 RTTM':{'color':'coral','ls':'dotted','where':'post'}        
+
+
+
+
+                    
+            ,'p ISrc 1':{'color':SrcColorsp[-1],'ls':'dashdot','where':'post'}          
+            ,'p ISrc 2':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     
+            ,'p ISrc 3':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     # ab hier selbe Farbe
+            ,'p ISrc 4':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     
+            ,'p ISrc 5':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     
+            ,'p ISrc 6':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     
+          
+            ,'p ISnk 1':{'color':SnkColorsp[0],'ls':'dashdot','where':'post'}          
+            ,'p ISnk 2':{'color':SnkColorsp[1],'ls':'dashdot','where':'post'}        
+            ,'p ISnk 3':{'color':SnkColorsp[1],'ls':'dashdot','where':'post'}     # ab hier selbe Farbe   
+            ,'p ISnk 4':{'color':SnkColorsp[1],'ls':'dashdot','where':'post'}        
+            ,'p ISnk 5':{'color':SnkColorsp[1],'ls':'dashdot','where':'post'}        
+            ,'p ISnk 6':{'color':SnkColorsp[1],'ls':'dashdot','where':'post'}        
+          
+            ,'Q xSrc 1':{'color':SrcColorsQ[-1],'ls':'dashdot','where':'post'}          
+            ,'Q xSrc 2':{'color':SrcColorsQ[-2],'ls':'dashdot','where':'post'}     
+            ,'Q xSrc 3':{'color':SrcColorsQ[-3],'ls':'dashdot','where':'post'}     
+          
+            ,'Q xSnk 1':{'color':SnkColorsQ[0],'ls':'dashdot','where':'post'}          
+            ,'Q xSnk 2':{'color':SnkColorsQ[1],'ls':'dashdot','where':'post'}        
+            ,'Q xSnk 3':{'color':SnkColorsQ[2],'ls':'dashdot','where':'post'}                                        
+          }
+
+attrsDctLDS={
+     'Seg_AL_S_Attrs':{'color':'blue','lw':3.,'where':'post'}
+    ,'Druck_AL_S_Attrs':{'color':'blue','lw':3.,'ls':'dashed','where':'post'}
+    
+    ,'Seg_MZ_AV_Attrs':{'color':'orange','zorder':3,'where':'post'}    
+    
+    ,'Seg_LR_AV_Attrs':{'color':'green','zorder':1,'where':'post'}
+    ,'Druck_LR_AV_Attrs':{'color':'green','zorder':1,'ls':'dashed','where':'post'}
+    
+    ,'Seg_LP_AV_Attrs':{'color':'turquoise','zorder':0,'lw':1.50,'where':'post'}
+    ,'Druck_LP_AV_Attrs':{'color':'turquoise','zorder':0,'lw':1.50,'ls':'dashed','where':'post'}
+    
+    ,'Seg_NG_AV_Attrs':{'color':'red','zorder':2,'where':'post'}
+    ,'Druck_NG_AV_Attrs':{'color':'red','zorder':2,'ls':'dashed','where':'post'}
+    
+    ,'Seg_SB_S_Attrs':{'color':'black','alpha':.5,'where':'post'}
+    ,'Druck_SB_S_Attrs':{'color':'black','ls':'dashed','alpha':.5,'where':'post'}    
+    
+    ,'Seg_AC_AV_Attrs':{'color':'indigo','where':'post'}
+    ,'Druck_AC_AV_Attrs':{'color':'indigo','ls':'dashed','where':'post'}       
+
+    ,'Seg_ACC_Limits_Attrs':{'color':'indigo','ls':linestyle_tuple[2][1]}
+    ,'Druck_ACC_Limits_Attrs':{'color':'indigo','ls':linestyle_tuple[8][1]}
+
+    ,'Seg_TIMER_AV_Attrs':{'color':'chartreuse','where':'post'}
+    ,'Druck_TIMER_AV_Attrs':{'color':'chartreuse','ls':'dashed','where':'post'}      
+
+    ,'Seg_AM_AV_Attrs':{'color':'chocolate','where':'post'}
+    ,'Druck_AM_AV_Attrs':{'color':'chocolate','ls':'dashed','where':'post'}      
+    }
+
+pSIDEvents=re.compile('(?P<Prae>IMDI\.)?Objects\.(?P<colRegExMiddle>3S_FBG_ESCHIEBER|FBG_ESCHIEBER{1})\.(3S_)?(?P<colRegExSchieberID>[a-z,A-Z,0-9,_]+)\.(?P<colRegExEventID>(In\.ZUST|In\.LAEUFT|In\.LAEUFT_NICHT|In\.STOER|Out\.AUF|Out\.HALT|Out\.ZU)$)')
+# ausgewertet werden: colRegExSchieberID (um welchen Schieber geht es), colRegExMiddle (Befehl oder Zustand) und colRegExEventID (welcher Befehl bzw. Zustand) 
+# die Befehle bzw. Zustaende (die Auspraegungen von colRegExEventID) muessen nachf. def. sein um den Marker (des Befehls bzw. des Zustandes) zu definieren
+
+eventCCmds={ 'Out.AUF':0
+                 ,'Out.ZU':1
+                 ,'Out.HALT':2}
+eventCStats={'In.LAEUFT':3
+                 ,'In.LAEUFT_NICHT':4
+                 ,'In.ZUST':5
+                 ,'Out.AUF':6
+                 ,'Out.ZU':7
+                 ,'Out.HALT':8            
+                 ,'In.STOER':9}
+
+valRegExMiddleCmds='3S_FBG_ESCHIEBER' # colRegExMiddle-Auspraegung fuer Befehle (==> eventCCmds)
 
 def fSEGNameFromSWVTBeschr(Beschr):
     m=re.search(Lx.pID,Beschr)
@@ -274,7 +923,7 @@ def getNamesFromOPCITEM_ID(dfSegsNodesNDataDpkt
     if not df.empty:
         return (df['DIVPipelineName'].iloc[0],df['SEGName'].iloc[0])
 
-def fGetBaseIDFromErgID(
+def fGetBaseIDFromResID(
     ID='Objects.3S_XXX_DRUCK.3S_6_BNV_01_PTI_01.In.MW.value'
 ):
     """
@@ -312,26 +961,26 @@ def fGetBaseIDFromErgID(
     #print(base)
     return base
 
-def getNamesFromSEGErgIDBase(dfSegsNodesNDataDpkt
-                            ,SEGErgIDBase):
+def getNamesFromSEGResIDBase(dfSegsNodesNDataDpkt
+                            ,SEGResIDBase):
     """
-    Returns tuple (DIVPipelineName,SEGName) from SEGErgIDBase
+    Returns tuple (DIVPipelineName,SEGName) from SEGResIDBase
     """    
-    df=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['SEGErgIDBase']==SEGErgIDBase]
+    df=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['SEGResIDBase']==SEGResIDBase]
     if not df.empty:
         return (df['DIVPipelineName'].iloc[0],df['SEGName'].iloc[0])
 
-def getNamesFromDruckErgIDBase(dfSegsNodesNDataDpkt
-                            ,DruckErgIDBase):
+def getNamesFromDruckResIDBase(dfSegsNodesNDataDpkt
+                            ,DruckResIDBase):
     """
-    Returns tuple (DIVPipelineName,SEGName,SEGErgIDBase) from DruckErgIDBase
+    Returns tuple (DIVPipelineName,SEGName,SEGResIDBase) from DruckResIDBase
     """    
-    df=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['DruckErgIDBase']==DruckErgIDBase]
+    df=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['DruckResIDBase']==DruckResIDBase]
     if not df.empty:
-        #return (df['DIVPipelineName'].iloc[0],df['SEGName'].iloc[0],df['SEGErgIDBase'].iloc[0])
+        #return (df['DIVPipelineName'].iloc[0],df['SEGName'].iloc[0],df['SEGResIDBase'].iloc[0])
         tripleLst=[]
         for index,row in df.iterrows():
-            triple=(row['DIVPipelineName'],row['SEGName'],row['SEGErgIDBase'])
+            triple=(row['DIVPipelineName'],row['SEGName'],row['SEGResIDBase'])
             tripleLst.append(triple)    
         return tripleLst
     else:
@@ -454,11 +1103,11 @@ def dfSegsNodesNDataDpkt(
 
         dfSegsNodesNDataDpkt=dfSegsNodesNDataDpkt.sort_values(by=['DIVPipelineName','SEGName','NODEsSEGLfdNr']).reset_index(drop=True)
 
-        dfSegsNodesNDataDpkt['DruckErgIDBase']=dfSegsNodesNDataDpkt['OPCITEM_ID'].apply(lambda x: fGetBaseIDFromErgID(x) )
-        dfSegsNodesNDataDpkt['SEGErgIDBase']=dfSegsNodesNDataDpkt['SEGName'].apply(lambda x: 'Objects.3S_FBG_SEG_INFO.3S_L_'+x+'.In.')
+        dfSegsNodesNDataDpkt['DruckResIDBase']=dfSegsNodesNDataDpkt['OPCITEM_ID'].apply(lambda x: fGetBaseIDFromResID(x) )
+        dfSegsNodesNDataDpkt['SEGResIDBase']=dfSegsNodesNDataDpkt['SEGName'].apply(lambda x: 'Objects.3S_FBG_SEG_INFO.3S_L_'+x+'.In.')
 
         # --- lfd. Nr. der Druckmessstelle im Segment ermitteln 
-        df=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['DruckErgIDBase'].notnull()].copy()
+        df=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['DruckResIDBase'].notnull()].copy()
         df['NODEsSEGDruckErgLfdNr']=df.groupby('SEGName').cumcount() + 1
         df['NODEsSEGDruckErgLfdNr']=df['NODEsSEGDruckErgLfdNr'].astype(int)
         cols=dfSegsNodesNDataDpkt.columns.to_list()
@@ -483,7 +1132,7 @@ def dfSegsNodesNDataDpkt(
         return dfSegsNodesNDataDpkt
 
 
-def fErgValidSeriesSTAT_S(x): # STAT_S
+def fResValidSeriesSTAT_S(x): # STAT_S
     if pd.isnull(x)==False:
         if x >=0:
             return True
@@ -492,7 +1141,7 @@ def fErgValidSeriesSTAT_S(x): # STAT_S
     else:
         return False
 
-def fErgValidSeriesAL_S(x,value=20): # AL_S
+def fResValidSeriesAL_S(x,value=20): # AL_S
     if pd.isnull(x)==False:
         if x==value:
             return True
@@ -501,47 +1150,127 @@ def fErgValidSeriesAL_S(x,value=20): # AL_S
     else:
         return False
 
-def fErgValidSeriesAL_S10(x): 
-    return fErgValidSeriesAL_S(x,value=10)
-def fErgValidSeriesAL_S4(x): 
-    return fErgValidSeriesAL_S(x,value=4)
-def fErgValidSeriesAL_S3(x): 
-    return fErgValidSeriesAL_S(x,value=3)
+def fResValidSeriesAL_S10(x): 
+    return fResValidSeriesAL_S(x,value=10)
+def fResValidSeriesAL_S4(x): 
+    return fResValidSeriesAL_S(x,value=4)
+def fResValidSeriesAL_S3(x): 
+    return fResValidSeriesAL_S(x,value=3)
     
-fErgValidSeriesDct={}
-fErgValidSeriesDct['STAT_S']=fErgValidSeriesSTAT_S
-fErgValidSeriesDct['AL_S']=fErgValidSeriesAL_S
-fErgValidSeriesDct['AL_S10']=fErgValidSeriesAL_S10
-fErgValidSeriesDct['AL_S4']=fErgValidSeriesAL_S4
-fErgValidSeriesDct['AL_S3']=fErgValidSeriesAL_S3
+fResValidSeriesDct={}
+fResValidSeriesDct['STAT_S']=fResValidSeriesSTAT_S
+fResValidSeriesDct['AL_S']=fResValidSeriesAL_S
+fResValidSeriesDct['AL_S10']=fResValidSeriesAL_S10
+fResValidSeriesDct['AL_S4']=fResValidSeriesAL_S4
+fResValidSeriesDct['AL_S3']=fResValidSeriesAL_S3
 
-exts=['STAT_S','AL_S']#,'AL_S10','AL_S4','AL_S3'] # Erg-Kanaele und abgeleitete Erg-Kanäle fuer Statistik
+ResChannelTypes=['STAT_S','AL_S']#,'AL_S10','AL_S4','AL_S3'] # Erg-Kanaele und abgeleitete Erg-Kanäle fuer Statistik
 # (fast) alle verfuegbaren Erg-Kanaele
-extsAll=['AL_S','STAT_S','SB_S','MZ_AV','LR_AV','NG_AV','LP_AV','AC_AV','ACCST_AV','ACCTR_AV','ACF_AV','TIMER_AV','AM_AV','DNTD_AV','DNTP_AV','DPDT_AV','DPDT_REF_AV','QM_AV','ZHKNR_S']
+ResChannelTypesAll=['AL_S','STAT_S','SB_S','MZ_AV','LR_AV','NG_AV','LP_AV','AC_AV','ACCST_AV','ACCTR_AV','ACF_AV','TIMER_AV','AM_AV','DNTD_AV','DNTP_AV','DPDT_AV','DPDT_REF_AV','QM_AV','ZHKNR_S']
 
-def fGetErgs(
-    ErgIDBases
-   ,df
-   ,exts=exts
-   ,fErgValidSeriesDct=fErgValidSeriesDct
+baseColorsSchieber=[ # Schieberfarben   
+                                         'g'        #                           1
+                                        ,'b'        #                           2
+                                        ,'m'        #                           3                                      
+                                        ,'r'        #                           4
+                                        ,'c'        #                           5
+                                        # alle Basisfarben außer y gelb
+                                        ,'tab:blue' #                           6
+                                        ,'tab:orange' #                         7 
+                                        ,'tab:green' #                          8
+                                        ,'tab:red' #                            9
+                                        ,'tab:purple' #                         10
+                                        ,'tab:brown' #                          11
+                                        ,'tab:pink'  #                          12                                    
+                                        ,'gold'     #                           13
+                                        ,'fuchsia'  #                           14                                       
+                                        ,'coral'    #                           15                                                     
+                    ]   
+markerDefSchieber=[ # Schiebersymobole                      
+                                         '^'        # 0 Auf
+                                        ,'v'        # 1 Zu
+                                        ,'>'        # 2 Halt
+                                        # ab hier Zustaende
+                                        ,'4'        # 3 Laeuft
+                                        ,'3'        # 4 Laeuft nicht
+                                        ,'P'        # 5 Zust
+                                        ,'1'        # 6 Auf
+                                        ,'2'        # 7 Zu
+                                        ,'+'        # 8 Halt
+                                        ,'x'        # 9 Stoer
+                    ]          
+
+yticksAL=[0,3,4,10,20,30,40]
+
+# --- Reports LDS: Funktionen und Hilfsfunktionen
+# -----------------------------------------------
+
+def getLDSResVecDf(
+     ResIDBase='ID.' # i.e. for Segs Objects.3S_XYZ_SEG_INFO.3S_L_6_EL1_39_TUD.In. / i.e. for Drks Objects.3S_XYZ_DRUCK.3S_6_EL1_39_PTI_02_E.In.
+    ,LDSResBaseType='SEG' # or Druck
+    ,lx=None
+    ,timeStart=None,timeEnd=None
+    ,ResChannelTypes=ResChannelTypesAll
+    ):
+    """
+    returns a df: the specified LDSResChannels (AL_S, ...) for an ResIDBase 
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+    
+    dfResVec=pd.DataFrame()
+    try:
+
+        # zu lesende IDs basierend auf ResIDBase bestimmen 
+        ErgIDs=[ResIDBase+ext for ext in ResChannelTypes]
+        IMDIErgIDs=['IMDI.'+ID for ID in ErgIDs]
+        ErgIDsAll=[*ErgIDs,*IMDIErgIDs]
+        
+        # Daten lesen von TC-H5s
+        dfFiltered=lx.getTCsFromH5s(timeStart=timeStart,timeEnd=timeEnd,LDSResOnly=True,LDSResColsSpecified=ErgIDsAll,LDSResBaseTypeSpecified=LDSResBaseType) 
+        
+        # Spalten umbenennen
+        colDct={}
+        for col in dfFiltered.columns:            
+            m=re.search(Lx.pID,col)
+            colDct[col]=m.group('E')
+        dfResVec=dfFiltered.rename(columns=colDct)        
+
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)     
+        
+    finally:
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+        return dfResVec
+
+def fGetResTimes(
+    ResIDBases
+   ,df # TCsLDSRes...
+   ,ResChannelTypes=ResChannelTypes
+   ,fResValidSeriesDct=fResValidSeriesDct
 ):
     """
-    Return: dct mit ErgIDBases als Schluessel
-            value: dct mit den geforderten Schluesseln exts; values: Liste mit Zeitpaaren oder leere Liste
+    Return: dct mit ResIDBases als Schluessel
+            value: dct:
+                        Schluessel: ResChannels
+                        Value: Liste mit Zeitpaaren oder leere Liste
     """
-    ErgsDct={}
-    for ErgIDBase in ErgIDBases:
+    resTimesDct={}
+    for ResIDBase in ResIDBases:
         tPairsDct={}
 
-        for ext in exts:
+        for ext in ResChannelTypes:
 
-            ID=ErgIDBase+ext
+            ID=ResIDBase+ext
 
             if ID in df:     
                 #print("{:s} in Ergliste".format(ID))
                 tPairs=findAllTimeIntervallsSeries(
                             s=df[ID].dropna()  #!                             
-                           ,fct=fErgValidSeriesDct[ext]                           
+                           ,fct=fResValidSeriesDct[ext]                           
                            ,tdAllowed=pd.Timedelta('1 second')
                                         )                            
             else:
@@ -549,38 +1278,8 @@ def fGetErgs(
                 tPairs=[]
             tPairsDct[ext]=tPairs
 
-        ErgsDct[ErgIDBase]=tPairsDct
-    return ErgsDct
-
-def fTotalTimeFromPairs(
-     x
-    ,denominator=None # i.e. pd.Timedelta('1 minute') for totalTime in Minutes
-    ,roundToInt=True # round to and return as int if denominator is specified; else td is rounded by 2
-):
-    tdTotal=pd.Timedelta('0 seconds')
-    for idx,tPairs in enumerate(x):
-
-        t1,t2=tPairs
-        if idx==0:
-            tLast=t2                
-        else:
-            if t1 <= tLast:
-                print("Zeitpaar überlappt?!")        
-        td=t2-t1
-        if td < pd.Timedelta('1 seconds'):
-            print("Zeitpaar < als 1 Sekunde?!")     
-        
-        
-        tdTotal=tdTotal+td
-    if denominator==None:
-        return tdTotal
-    else:
-        td=tdTotal / denominator
-        if roundToInt:
-            td=int(round(td,0))
-        else:
-            td=round(td,2)
-        return td
+        resTimesDct[ResIDBase]=tPairsDct
+    return resTimesDct
 
 def getAlarmStatistikData(    
      h5File='a.h5'   
@@ -605,11 +1304,11 @@ def getAlarmStatistikData(
             raise RmError
        
         # zu lesende Daten ermitteln
-        l=dfSegsNodesNDataDpkt['DruckErgIDBase'].unique()
+        l=dfSegsNodesNDataDpkt['DruckResIDBase'].unique()
         l = l[~pd.isnull(l)]
         DruckErgIDs=[*[ID+'AL_S' for ID in l],*[ID+'STAT_S' for ID in l],*[ID+'SB_S' for ID in l],*[ID+'ZHKNR_S' for ID in l]]
         #
-        l=dfSegsNodesNDataDpkt['SEGErgIDBase'].unique()
+        l=dfSegsNodesNDataDpkt['SEGResIDBase'].unique()
         l = l[~pd.isnull(l)]
         SEGErgIDs=[*[ID+'AL_S' for ID in l],*[ID+'STAT_S' for ID in l],*[ID+'SB_S' for ID in l],*[ID+'ZHKNR_S' for ID in l]]
         ErgIDs=[*DruckErgIDs,*SEGErgIDs]
@@ -635,7 +1334,7 @@ def getAlarmStatistikAlarms(
     ):
     """
 
-    Returns: SEGErgsDct,DruckErgsDct,SEGDruckErgsDct
+    Returns: SEGResDct,DruckResDct,SEGDruckResDct
 
     """
 
@@ -645,9 +1344,9 @@ def getAlarmStatistikAlarms(
     try:             
       
         # Zeiten SEGErgs mit zustaendig und Alarm
-        SEGErgsDct=fGetErgs(dfSegsNodesNDataDpkt['SEGErgIDBase'].unique(),TCsLDSRes1)
+        SEGResDct=fGetResTimes(dfSegsNodesNDataDpkt['SEGResIDBase'].unique(),TCsLDSRes1)
         # verschiedene Auspraegungen SB_S pro Alarmzeit ermitteln
-        for idx,(ID,tPairsDct) in enumerate(SEGErgsDct.items()):            
+        for idx,(ID,tPairsDct) in enumerate(SEGResDct.items()):            
             tPairs=tPairsDct['AL_S']
             SB_S_tPairs=[]           
             if tPairs != []:        
@@ -657,58 +1356,58 @@ def getAlarmStatistikAlarms(
                     SB_S_tPair=[int(x) for x in SB_S_tPair if pd.isnull(x)==False]
                     SB_S_tPairs.append(sorted(SB_S_tPair))
             tPairsDct['AL_S_SB_S']=SB_S_tPairs    
-            SEGErgsDct[ID]=tPairsDct
+            SEGResDct[ID]=tPairsDct
 
-        logger.debug("{:s}SEGErgsDct: {!s:s}".format(logStr,SEGErgsDct))
+        logger.debug("{:s}SEGResDct: {!s:s}".format(logStr,SEGResDct))
 
         # Zeiten DruckErgs mit zustaendig und Alarm
-        l=dfSegsNodesNDataDpkt['DruckErgIDBase'].unique()
-        DruckErgsDct=fGetErgs(l[l != np.array(None)],TCsLDSRes2)
-        logger.debug("{:s}DruckErgsDct: {!s:s}".format(logStr,DruckErgsDct))
+        l=dfSegsNodesNDataDpkt['DruckResIDBase'].unique()
+        DruckResDct=fGetResTimes(l[l != np.array(None)],TCsLDSRes2)
+        logger.debug("{:s}DruckResDct: {!s:s}".format(logStr,DruckResDct))
 
         #x=1/0
 
 
         # Zeiten der Druckergs zu SEG-Zeiten zusammenfassen
         # dabei keine identischen Zeiten mehrfach zaehlen
-        # SEGDruckErgsDct enthaelt fuer ein SEG bzgl. Ruhebetrieb das, was SEGErgsDct für Foerderbetrieb enthaelt
-        # allerdings enthaelt SEGDruckErgsDct nicht notwendig alle SEGs sondern nur die, von denen auf DruckErgs verwiesen wird
-        # und von den "exts" sind auch nur die in den DruckErgs vorhandenen verfuegbar
+        # SEGDruckResDct enthaelt fuer ein SEG bzgl. Ruhebetrieb das, was SEGResDct für Foerderbetrieb enthaelt
+        # allerdings enthaelt SEGDruckResDct nicht notwendig alle SEGs sondern nur die, von denen auf DruckErgs verwiesen wird
+        # und von den "ResChannelTypes" sind auch nur die in den DruckErgs vorhandenen verfuegbar
 
-        SEGDruckErgsDct={}
+        SEGDruckResDct={}
 
         # über alle DruckErgs
-        for idx,(ID,tPairsDct) in enumerate(DruckErgsDct.items()):
+        for idx,(ID,tPairsDct) in enumerate(DruckResDct.items()):
     
             # SEG ermitteln
     
             # ein DruckErg kann zu mehreren SEGs gehoeren z.B. gehoert ein Verzweigungsknoten i.d.R. zu 3 versch. SEGs
-            tripleLst=getNamesFromDruckErgIDBase(dfSegsNodesNDataDpkt,ID)            
+            tripleLst=getNamesFromDruckResIDBase(dfSegsNodesNDataDpkt,ID)            
      
-            for (DIVPipelineName,SEGName,SEGErgIDBase) in tripleLst:      
-                if SEGErgIDBase not in SEGDruckErgsDct.keys():
+            for (DIVPipelineName,SEGName,SEGResIDBase) in tripleLst:      
+                if SEGResIDBase not in SEGDruckResDct.keys():
                     # auf dieses SEG wurde noch nie verwiesen
-                    SEGDruckErgsDct[SEGErgIDBase]=deepcopy(tPairsDct)
+                    SEGDruckResDct[SEGResIDBase]=deepcopy(tPairsDct)
                 else:
-                    for idx2,ext in enumerate(exts):
+                    for idx2,ext in enumerate(ResChannelTypes):
                         tPairs=tPairsDct[ext]
                         for idx3,tPair in enumerate(tPairs):            
-                            if tPair not in SEGDruckErgsDct[SEGErgIDBase][ext]: #  keine identischen Zeiten mehrfach zaehlen
-                                SEGDruckErgsDct[SEGErgIDBase][ext].append(tPair)
+                            if tPair not in SEGDruckResDct[SEGResIDBase][ext]: #  keine identischen Zeiten mehrfach zaehlen
+                                SEGDruckResDct[SEGResIDBase][ext].append(tPair)
 
         # Ergebnis: sortieren und dann angrenzende oder ueberlappende Zeiten zusammenfassen
-        for idx,(ID,tPairsDct) in enumerate(SEGDruckErgsDct.items()):
+        for idx,(ID,tPairsDct) in enumerate(SEGDruckResDct.items()):
             for idx2,ext in enumerate(tPairsDct.keys()):        
                 tPairs=tPairsDct[ext]
                 tPairs=sorted(tPairs,key=lambda tup: tup[0])
                 tPairs=fCombineSubsequenttPairs(tPairs)
-                SEGDruckErgsDct[ID][ext]=tPairs
+                SEGDruckResDct[ID][ext]=tPairs
 
         # verschiedene Auspraegungen SB_S pro Alarmzeit ermitteln
-        for idx,(ID,tPairsDct) in enumerate(SEGDruckErgsDct.items()):
+        for idx,(ID,tPairsDct) in enumerate(SEGDruckResDct.items()):
     
             #DruckErgPVs zum SEG ermitteln
-            lDruckSBS=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['SEGErgIDBase']==ID]['DruckErgIDBase'].unique()
+            lDruckSBS=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['SEGResIDBase']==ID]['DruckResIDBase'].unique()
             lDruckSBS=lDruckSBS[lDruckSBS != np.array(None)]
             lDruckSBS=[x+'SB_S' for x in lDruckSBS]           
     
@@ -729,9 +1428,9 @@ def getAlarmStatistikAlarms(
                     l=sorted([int(x) for x in l])
                     SB_S_tPairs.append(l)
             tPairsDct['AL_S_SB_S']=SB_S_tPairs  
-            SEGDruckErgsDct[ID]=tPairsDct 
+            SEGDruckResDct[ID]=tPairsDct 
 
-        logger.debug("{:s}SEGDruckErgsDct: {!s:s}".format(logStr,SEGDruckErgsDct))
+        logger.debug("{:s}SEGDruckResDct: {!s:s}".format(logStr,SEGDruckResDct))
                                                                                                                    
     except RmError:
         raise            
@@ -741,8 +1440,7 @@ def getAlarmStatistikAlarms(
         raise RmError(logStrFinal)                       
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
-        return SEGErgsDct,DruckErgsDct,SEGDruckErgsDct
-
+        return SEGResDct,DruckResDct,SEGDruckResDct
 
 def dfAlarmStatistik(    
      TCsLDSRes1=pd.DataFrame()
@@ -750,7 +1448,7 @@ def dfAlarmStatistik(
     ,dfSegsNodesNDataDpkt=pd.DataFrame()    
     ):
     """
-    Returns dfAlarmStatistik,SEGErgsDct,DruckErgsDct,SEGDruckErgsDct
+    Returns dfAlarmStatistik,SEGResDct,DruckResDct,SEGDruckResDct
     """
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
@@ -760,35 +1458,35 @@ def dfAlarmStatistik(
 
     try:             
 
-        SEGErgsDct,DruckErgsDct,SEGDruckErgsDct=getAlarmStatistikAlarms(    
+        SEGResDct,DruckResDct,SEGDruckResDct=getAlarmStatistikAlarms(    
          TCsLDSRes1
         ,TCsLDSRes2
         ,dfSegsNodesNDataDpkt    
         )
 
         # Alarmstatistik bilden
-        dfAlarmStatistik=dfSegsNodesNDataDpkt[['DIVPipelineName','SEGName','SEGNodes','SEGErgIDBase']].drop_duplicates(keep='first').reset_index(drop=True)
+        dfAlarmStatistik=dfSegsNodesNDataDpkt[['DIVPipelineName','SEGName','SEGNodes','SEGResIDBase']].drop_duplicates(keep='first').reset_index(drop=True)
         dfAlarmStatistik['Nr']=dfAlarmStatistik.apply(lambda row: "{:2d}".format(int(row.name)),axis=1)
     
-        dfAlarmStatistik['FörderZeiten']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['STAT_S'])
-        dfAlarmStatistik['FörderZeitenAl']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S'])
+        dfAlarmStatistik['FörderZeiten']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGResDct[x]['STAT_S'])
+        dfAlarmStatistik['FörderZeitenAl']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGResDct[x]['AL_S'])
 
-        #dfAlarmStatistik['FörderZeitenAl10']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S10'])
-        #dfAlarmStatistik['FörderZeitenAl4']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S4'])
-        #dfAlarmStatistik['FörderZeitenAl3']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S3'])
+        #dfAlarmStatistik['FörderZeitenAl10']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGResDct[x]['AL_S10'])
+        #dfAlarmStatistik['FörderZeitenAl4']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGResDct[x]['AL_S4'])
+        #dfAlarmStatistik['FörderZeitenAl3']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGResDct[x]['AL_S3'])
 
         dfAlarmStatistik['FörderZeitenAlAnz']=dfAlarmStatistik['FörderZeitenAl'].apply(lambda x: len(x))
-        dfAlarmStatistik['FörderZeitenAlSbs']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGErgsDct[x]['AL_S_SB_S'])
+        dfAlarmStatistik['FörderZeitenAlSbs']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGResDct[x]['AL_S_SB_S'])
 
-        dfAlarmStatistik['RuheZeiten']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['STAT_S'] if x in SEGDruckErgsDct.keys() else [])
-        dfAlarmStatistik['RuheZeitenAl']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S'] if x in SEGDruckErgsDct.keys() else [])
+        dfAlarmStatistik['RuheZeiten']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGDruckResDct[x]['STAT_S'] if x in SEGDruckResDct.keys() else [])
+        dfAlarmStatistik['RuheZeitenAl']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGDruckResDct[x]['AL_S'] if x in SEGDruckResDct.keys() else [])
 
-        #dfAlarmStatistik['RuheZeitenAl10']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S10'] if x in SEGDruckErgsDct.keys() else [])
-        #dfAlarmStatistik['RuheZeitenAl4']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S4'] if x in SEGDruckErgsDct.keys() else [])
-        #dfAlarmStatistik['RuheZeitenAl3']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S3'] if x in SEGDruckErgsDct.keys() else [])
+        #dfAlarmStatistik['RuheZeitenAl10']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGDruckResDct[x]['AL_S10'] if x in SEGDruckResDct.keys() else [])
+        #dfAlarmStatistik['RuheZeitenAl4']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGDruckResDct[x]['AL_S4'] if x in SEGDruckResDct.keys() else [])
+        #dfAlarmStatistik['RuheZeitenAl3']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGDruckResDct[x]['AL_S3'] if x in SEGDruckResDct.keys() else [])
 
         dfAlarmStatistik['RuheZeitenAlAnz']=dfAlarmStatistik['RuheZeitenAl'].apply(lambda x: len(x))
-        dfAlarmStatistik['RuheZeitenAlSbs']=dfAlarmStatistik['SEGErgIDBase'].apply(lambda x: SEGDruckErgsDct[x]['AL_S_SB_S'] if x in SEGDruckErgsDct.keys() else [])
+        dfAlarmStatistik['RuheZeitenAlSbs']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGDruckResDct[x]['AL_S_SB_S'] if x in SEGDruckResDct.keys() else [])
 
         dfAlarmStatistik['FörderZeit']=dfAlarmStatistik['FörderZeiten'].apply(lambda x: fTotalTimeFromPairs(x,pd.Timedelta('1 minute'),False))
         dfAlarmStatistik['RuheZeit']=dfAlarmStatistik['RuheZeiten'].apply(lambda x: fTotalTimeFromPairs(x,pd.Timedelta('1 minute'),False))
@@ -803,7 +1501,7 @@ def dfAlarmStatistik(
         raise RmError(logStrFinal)                       
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
-        return dfAlarmStatistik,SEGErgsDct,DruckErgsDct,SEGDruckErgsDct
+        return dfAlarmStatistik,SEGResDct,DruckResDct,SEGDruckResDct
 
 def plotDfAlarmStatistik(    
      dfAlarmStatistik=pd.DataFrame()    
@@ -920,11 +1618,11 @@ def plotDfAlarmStatistik(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
         return t
 
-def f(LDSResType,OrteIDs):
+def f(LDSResBaseType,OrteIDs):
     """
     returns Orte stripped
     """    
-    if LDSResType == 'SEG': # 'Objects.3S_FBG_SEG_INFO.3S_L_6_MHV_02_FUD.In.']
+    if LDSResBaseType == 'SEG': # 'Objects.3S_FBG_SEG_INFO.3S_L_6_MHV_02_FUD.In.']
         orteStripped=[]
         for OrtID in OrteIDs:
             pass
@@ -933,7 +1631,7 @@ def f(LDSResType,OrteIDs):
             orteStripped.append(ortStripped)
         return orteStripped
                 
-    elif LDSResType == 'Druck': # Objects.3S_FBG_DRUCK.3S_6_BNV_01_PTI_01.In
+    elif LDSResBaseType == 'Druck': # Objects.3S_FBG_DRUCK.3S_6_BNV_01_PTI_01.In
         orteStripped=[]
         for OrtID in OrteIDs:
             pass
@@ -946,8 +1644,8 @@ def f(LDSResType,OrteIDs):
         return None
 
 def dfAlarmEreignisse( 
-    SEGErgsDct={}
-   ,DruckErgsDct={}
+    SEGResDct={}
+   ,DruckResDct={}
    ,TCsLDSRes1=pd.DataFrame()
    ,TCsLDSRes2=pd.DataFrame()
      
@@ -961,7 +1659,7 @@ def dfAlarmEreignisse(
     
     dfAlarmEreignisse=pd.DataFrame()
 
-    AlarmEvent = namedtuple('alarmEvent','tA,tE,ZHKNR,LDSResType')
+    AlarmEvent = namedtuple('alarmEvent','tA,tE,ZHKNR,LDSResBaseType')
     # alarmEvent = AlarmEvent(pd.Timestamp('2021-03-11 11:56:51'),pd.Timestamp('2021-03-11 12:20:03'), 3432, 'Druck')
     # alarmEvent.tA
 
@@ -990,11 +1688,11 @@ def dfAlarmEreignisse(
         AlarmEvents=[]
         AlarmEventsOrte={}
 
-        for ErgIDBase,dct in SEGErgsDct.items():
+        for ResIDBase,dct in SEGResDct.items():
             AL_S=dct['AL_S']
             if len(AL_S) > 0:        
-                ID=ErgIDBase+'ZHKNR_S'
-                #print(ErgIDBase)            
+                ID=ResIDBase+'ZHKNR_S'
+                #print(ResIDBase)            
                 for idx,AL_S_Timepair in enumerate(AL_S):            
                     (t1,t2)=AL_S_Timepair
                     ZHKNR_S_Lst=TCsLDSRes1.loc[t1:t2,ID].unique()
@@ -1008,16 +1706,16 @@ def dfAlarmEreignisse(
                             #print("{!s:s} neu in Liste".format(alarmEvent))
                             AlarmEvents.append(alarmEvent)   
                             AlarmEventsOrte[alarmEvent]=[]
-                            AlarmEventsOrte[alarmEvent].append(ErgIDBase)
+                            AlarmEventsOrte[alarmEvent].append(ResIDBase)
                         else:
                             #print("{!s:s} bereits in Liste".format(alarmEvent))
-                            AlarmEventsOrte[alarmEvent].append(ErgIDBase)
+                            AlarmEventsOrte[alarmEvent].append(ResIDBase)
                     
-        for ErgIDBase,dct in DruckErgsDct.items():
+        for ResIDBase,dct in DruckResDct.items():
             AL_S=dct['AL_S']
             if len(AL_S) > 0:        
-                ID=ErgIDBase+'ZHKNR_S'
-                #print(ErgIDBase)            
+                ID=ResIDBase+'ZHKNR_S'
+                #print(ResIDBase)            
                 for idx,AL_S_Timepair in enumerate(AL_S):            
                     (t1,t2)=AL_S_Timepair
                     ZHKNR_S_Lst=TCsLDSRes2.loc[t1:t2,ID].unique()
@@ -1031,11 +1729,11 @@ def dfAlarmEreignisse(
                             #print("{!s:s} neu in Liste".format(alarmEvent))
                             AlarmEvents.append(alarmEvent)   
                             AlarmEventsOrte[alarmEvent]=[]
-                            AlarmEventsOrte[alarmEvent].append(ErgIDBase)
-                            logger.debug("{:s}Alarm: {!s:s} {!s:s} {:d} {:s}".format(logStr,alarmEvent.tA,alarmEvent.tE,alarmEvent.ZHKNR,alarmEvent.LDSResType))            
+                            AlarmEventsOrte[alarmEvent].append(ResIDBase)
+                            logger.debug("{:s}Alarm: {!s:s} {!s:s} {:d} {:s}".format(logStr,alarmEvent.tA,alarmEvent.tE,alarmEvent.ZHKNR,alarmEvent.LDSResBaseType))            
                         else:
                             #print("{!s:s} bereits in Liste".format(alarmEvent))
-                            AlarmEventsOrte[alarmEvent].append(ErgIDBase)
+                            AlarmEventsOrte[alarmEvent].append(ResIDBase)
      
         #AlarmEvents=sorted(AlarmEvents, key=lambda alarmEvent: alarmEvent.tA) 
         AlarmEvents=sorted(AlarmEvents,key=attrgetter('tA','ZHKNR')) 
@@ -1052,13 +1750,13 @@ def dfAlarmEreignisse(
            columns=AlarmEvent._fields
         )
         dfAlarmEreignisse['OrteIDs']=l
-        dfAlarmEreignisse['Orte']=dfAlarmEreignisse.apply(lambda row: f(row.LDSResType,row.OrteIDs),axis=1)
+        dfAlarmEreignisse['Orte']=dfAlarmEreignisse.apply(lambda row: f(row.LDSResBaseType,row.OrteIDs),axis=1)
 
         dfAlarmEreignisse.index = np.arange(1, len(dfAlarmEreignisse)+1)
 
         dfAlarmEreignisse=dfAlarmEreignisse.reset_index()
         dfAlarmEreignisse.rename(columns={'index':'Nr'},inplace=True)
-        dfAlarmEreignisse['NrResType']=dfAlarmEreignisse.groupby('LDSResType').cumcount() + 1
+        dfAlarmEreignisse['NrResType']=dfAlarmEreignisse.groupby('LDSResBaseType').cumcount() + 1
 
 
         VoralarmTypen=[]
@@ -1066,10 +1764,10 @@ def dfAlarmEreignisse(
             OrteIDs=row['OrteIDs']
             OrtID=OrteIDs[0]
             #print(row['tA'])
-            if row['LDSResType']=='SEG':
+            if row['LDSResBaseType']=='SEG':
                 VoralarmTyp=TCsLDSRes1.loc[:row['tA']-pd.Timedelta('1 second'),OrtID+'AL_S'].iloc[-1]
                 #print(VoralarmTyp)
-            elif row['LDSResType']=='Druck':
+            elif row['LDSResBaseType']=='Druck':
                 VoralarmTyp=TCsLDSRes2.loc[:row['tA']-pd.Timedelta('1 second'),OrtID+'AL_S'].iloc[-1]
                 #print(VoralarmTyp)        
             logger.debug("{:s}{:d} {!s:s} {:d}".format(logStr,int(row['Nr']),row['tA'],int(VoralarmTyp)))
@@ -1102,11 +1800,11 @@ def plotDfAlarmEreignisse(
 
     try:                     
 
-        df=dfAlarmEreignisse[['Nr','LDSResType','Voralarm','NrResType','tA','tE','ZHKNR','Orte']].copy()
+        df=dfAlarmEreignisse[['Nr','LDSResBaseType','Voralarm','NrResType','tA','tE','ZHKNR','Orte']].copy()
         df['Orte']=df['Orte'].apply(lambda x: str(x).replace('[','').replace(']','').replace("'",""))
-        df['LDSResType']=df.apply(lambda row: "{:s} - {:d}".format(row['LDSResType'],row['Voralarm']),axis=1)
-        df=df[['Nr','LDSResType','NrResType','tA','tE','ZHKNR','Orte']]
-        df.rename(columns={'LDSResType':'ResTyp (Voralarm)'},inplace=True)
+        df['LDSResBaseType']=df.apply(lambda row: "{:s} - {:d}".format(row['LDSResBaseType'],row['Voralarm']),axis=1)
+        df=df[['Nr','LDSResBaseType','NrResType','tA','tE','ZHKNR','Orte']]
+        df.rename(columns={'LDSResBaseType':'ResTyp - Voralarm'},inplace=True)
         df.rename(columns={'NrResType':'NrResTyp'},inplace=True)
 
         t=plt.table(cellText=df.values, colLabels=df.columns
@@ -1154,46 +1852,6 @@ def plotDfAlarmEreignisse(
         return t
 
 
-def getLDSResVecDf(
-     ErgIDBase='ID.' # ErgVec-Defining-Channel; i.e. for Segs Objects.3S_XYZ_SEG_INFO.3S_L_6_EL1_39_TUD.In. / i.e. for Drks Objects.3S_XYZ_DRUCK.3S_6_EL1_39_PTI_02_E.In.
-    ,LDSResType='SEG' # Druck
-    ,lx=None
-    ,timeStart=None,timeEnd=None
-    ,exts=extsAll
-    ):
-    """
-    returns a df with LDSResChannels as columns (AL_S, ...)
-    """
-
-    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-    
-    dfResVec=pd.DataFrame()
-    try:
-
-        # zu lesende IDs basierend auf ErgIDBase bestimmen 
-        ErgIDs=[ErgIDBase+ext for ext in exts]
-        IMDIErgIDs=['IMDI.'+ID for ID in ErgIDs]
-        ErgIDsAll=[*ErgIDs,*IMDIErgIDs]
-        
-        # Daten lesen
-        dfFiltered=lx.getTCsFromH5s(timeStart=timeStart,timeEnd=timeEnd,LDSResOnly=True,LDSResColsSpecified=ErgIDsAll,LDSResTypeSpecified=LDSResType) 
-        
-        colDct={}
-        for col in dfFiltered.columns:            
-            m=re.search(Lx.pID,col)
-            colDct[col]=m.group('E')
-        dfResVec=dfFiltered.rename(columns=colDct)        
-
-    except Exception as e:
-        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-        logger.error(logStrFinal) 
-        raise RmError(logStrFinal)     
-        
-    finally:
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
-        return dfResVec
-
 def plotDfAlarmStatistikReportsSEGErgs( 
      h5File='a.h5'   
     ,dfAlarmStatistik=pd.DataFrame()    
@@ -1235,8 +1893,8 @@ def plotDfAlarmStatistikReportsSEGErgs(
                     break
 
             # Erg lesen
-            ErgIDBase=row['SEGErgIDBase']               
-            dfSegReprVec=getLDSResVecDf(ErgIDBase=ErgIDBase,LDSResType='SEG',lx=lx,timeStart=timeStart,timeEnd=timeEnd)
+            ResIDBase=row['SEGResIDBase']               
+            dfSegReprVec=getLDSResVecDf(ResIDBase=ResIDBase,LDSResBaseType='SEG',lx=lx,timeStart=timeStart,timeEnd=timeEnd)
 
             ID='AL_S'
             if ID not in dfSegReprVec.keys():
@@ -1246,7 +1904,7 @@ def plotDfAlarmStatistikReportsSEGErgs(
                     #ax=fig.gca()              
                     #ax.set_title("Nr. {:2d} - {:s}: {:s}: AL_S: nicht in Datenbasis (ggf. kein Förderbetrieb)".format(idx+1
                     #              ,row['SEGName']                          
-                    #              ,row['SEGErgIDBase'])
+                    #              ,row['SEGResIDBase'])
                     #              ,loc='left') 
                     #fig.tight_layout(pad=2.) 
                     #pdf.savefig()  
@@ -1337,7 +1995,7 @@ def plotDfAlarmStatistikReportsSEGErgs(
                             ,str(row.DIVPipelineName)
                            # ,row['SEGNodes']                           
                             ,row['SEGName']                                   
-                            ,row['SEGErgIDBase'])  
+                            ,row['SEGResIDBase'])  
         
             ax.set_title( titleStr,loc='left') 
             logger.debug("{0:s}{1:s}".format(logStr,titleStr))       
@@ -1388,7 +2046,7 @@ def plotDfAlarmStatistikReportsDruckErgs(
         
 
         # eff. Messstellen aus Kantenzügen
-        df=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['DruckErgIDBase'].notnull()] # NODEsSEGDruckErgLfdNr notnull        
+        df=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['DruckResIDBase'].notnull()] # NODEsSEGDruckErgLfdNr notnull        
         df2=pd.merge(df,dfAlarmStatistik,left_on='SEGName',right_on='SEGName',suffixes=('','_Statistik'))      
 
         lx=Lx.AppLog(h5File=h5File)  
@@ -1411,8 +2069,8 @@ def plotDfAlarmStatistikReportsDruckErgs(
                     break
 
             # Erg lesen
-            ErgIDBase=row['DruckErgIDBase']               
-            dfDruckReprVec=getLDSResVecDf(ErgIDBase=ErgIDBase,LDSResType='Druck',lx=lx,timeStart=timeStart,timeEnd=timeEnd)
+            ResIDBase=row['DruckResIDBase']               
+            dfDruckReprVec=getLDSResVecDf(ResIDBase=ResIDBase,LDSResBaseType='Druck',lx=lx,timeStart=timeStart,timeEnd=timeEnd)
 
             ID='AL_S'
             if ID not in dfDruckReprVec.keys():
@@ -1422,7 +2080,7 @@ def plotDfAlarmStatistikReportsDruckErgs(
                     #ax=fig.gca()              
                     #ax.set_title("Nr. {:2d} - {:s}: {:s}: AL_S: nicht in Datenbasis (ggf. kein Förderbetrieb)".format(idx+1
                     #              ,row['SEGName']                          
-                    #              ,row['SEGErgIDBase'])
+                    #              ,row['SEGResIDBase'])
                     #              ,loc='left') 
                     #fig.tight_layout(pad=2.) 
                     #pdf.savefig()  
@@ -1518,7 +2176,7 @@ def plotDfAlarmStatistikReportsDruckErgs(
                             ,row['NODEsRef_max']                           
                             ,row['SEGName']        
                             ,int(row['NODEsSEGDruckErgLfdNr'])
-                            ,row['DruckErgIDBase'])  
+                            ,row['DruckResIDBase'])  
         
             ax.set_title( titleStr,loc='left') 
             logger.debug("{0:s}{1:s}".format(logStr,titleStr))   
@@ -1542,502 +2200,6 @@ def plotDfAlarmStatistikReportsDruckErgs(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
         return 
 
-
-
-from itertools import tee
-def pairwise(iterable):
-    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
-    a, b = tee(iterable)
-    next(b, None)
-    return zip(a, b)
-
-def pltMakeCategoricalColors(color,nOfSubColorsReq=3,reversedOrder=False):
-    """
-    Returns an array of rgb colors derived from color.
-
-    Parameter:
-        color:             a rgb color                       
-        nOfSubColorsReq:   number of SubColors requested
-        
-    Raises:
-        RmError
-
-    >>> import matplotlib
-    >>> color='red'
-    >>> c=list(matplotlib.colors.to_rgb(color))
-    >>> import Rm    
-    >>> Rm.pltMakeCategoricalColors(c)
-    array([[1.   , 0.   , 0.   ],
-           [1.   , 0.375, 0.375],
-           [1.   , 0.75 , 0.75 ]])
-    """
-
-    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-    rgb=None
-
-    try:             
-        chsv = matplotlib.colors.rgb_to_hsv(color[:3])
-        arhsv = np.tile(chsv,nOfSubColorsReq).reshape(nOfSubColorsReq,3)
-        arhsv[:,1] = np.linspace(chsv[1],0.25,nOfSubColorsReq)
-        arhsv[:,2] = np.linspace(chsv[2],1,nOfSubColorsReq)
-        rgb = matplotlib.colors.hsv_to_rgb(arhsv)
-        if reversedOrder:
-            rgb=list(reversed(rgb))                                                                                                                    
-    except RmError:
-        raise            
-    except Exception as e:
-        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-        logger.error(logStrFinal) 
-        raise RmError(logStrFinal)                       
-    finally:       
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
-        return rgb
-
-def pltMakeCategoricalCmap(baseColorsDef="tab10",catagoryColors=None,nOfSubCatsReq=3,reversedSubCatOrder=False):
-    """
-    Returns a cmap with nOfCatsReq * nOfSubCatsReq discrete colors.
-
-    Parameter:
-        baseColorsDef:    a (discrete) cmap defining the "base"colors
-                         default: tab10
-
-                         if baseColorsDef is not via get_cmap a matplotlib.colors.ListedColormap, baseColorsDef is interpreted via to_rgb as a list of colors
-                         in this case catagoryColors is ignored 
-
-        catagoryColors:  a list of "base"colors indices for this cmap
-                         the length of the list is the number of Categories requested: nOfCatsReq
-                         apparently cmap's nOfColors must be ge than nOfCatsReq
-                         default: None (==> nOfCatsReq = cmap's nOfColors)
-                         i.e. [2,8,3] for tab10 is green, yellow (ocher), red
-
-        nOfSubCatsReq:   number of Subcategories requested
-
-        reversedSubCatOrder: False (default): if True, the last color of a category is from baseColorsDef
-        reversedSubCatOrder can be a list
-        
-    Returns:
-        cmap with nOfCatsReq * nOfSubCatsReq discrete colors; None if an error occurs
-        one "base"color per category
-        nOfSubCatsReq "sub"colors per category
-        so each category consists of nOfSubCatsReq colors
-
-    Raises:
-        RmError
-
-    >>> import matplotlib
-    >>> import matplotlib.pyplot as plt
-    >>> import numpy as np
-    >>> import Rm    
-    >>> Rm.pltMakeCategoricalCmap().N
-    30
-    >>> Rm.pltMakeCategoricalCmap(catagoryColors=[2,8,3]).N # 2 8 3 in tab10: grün gelb rot
-    9
-    >>> baseColorsDef="tab10"
-    >>> catagoryColors=[2,8,3]
-    >>> nOfSubCatsReq=4
-    >>> # grün gelb rot mit je 4 Farben von hell nach dunkel
-    >>> cm=Rm.pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,catagoryColors=catagoryColors,nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=True)
-    >>> cm.colors
-    array([[0.75      , 1.        , 0.75      ],
-           [0.51819172, 0.87581699, 0.51819172],
-           [0.32570806, 0.75163399, 0.32570806],
-           [0.17254902, 0.62745098, 0.17254902],
-           [0.9983871 , 1.        , 0.75      ],
-           [0.91113148, 0.91372549, 0.51165404],
-           [0.82408742, 0.82745098, 0.30609849],
-           [0.7372549 , 0.74117647, 0.13333333],
-           [1.        , 0.75      , 0.75142857],
-           [0.94640523, 0.53069452, 0.53307001],
-           [0.89281046, 0.33167491, 0.3348814 ],
-           [0.83921569, 0.15294118, 0.15686275]])
-    >>> cm2=Rm.pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,catagoryColors=catagoryColors,nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=[False]+2*[True])
-    >>> cm.colors[nOfSubCatsReq-1]==cm2.colors[0]
-    array([ True,  True,  True])
-    >>> plt.close()
-    >>> size_DINA6quer=(5.8,4.1)    
-    >>> fig, ax = plt.subplots(figsize=size_DINA6quer)
-    >>> fig.subplots_adjust(bottom=0.5)
-    >>> norm=matplotlib.colors.Normalize(vmin=0, vmax=100)
-    >>> cb=matplotlib.colorbar.ColorbarBase(ax, cmap=cm2,norm=norm,orientation='horizontal')
-    >>> cb.set_label('baseColorsDef was (via get_cmap) a matplotlib.colors.ListedColormap')    
-    >>> #plt.show()
-    >>> cm3=Rm.pltMakeCategoricalCmap(baseColorsDef=['b','c','m'],nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=True)   
-    >>> cm3.colors
-    array([[0.75      , 0.75      , 1.        ],
-           [0.5       , 0.5       , 1.        ],
-           [0.25      , 0.25      , 1.        ],
-           [0.        , 0.        , 1.        ],
-           [0.75      , 1.        , 1.        ],
-           [0.45833333, 0.91666667, 0.91666667],
-           [0.20833333, 0.83333333, 0.83333333],
-           [0.        , 0.75      , 0.75      ],
-           [1.        , 0.75      , 1.        ],
-           [0.91666667, 0.45833333, 0.91666667],
-           [0.83333333, 0.20833333, 0.83333333],
-           [0.75      , 0.        , 0.75      ]])
-    >>> plt.close()     
-    >>> fig, ax = plt.subplots(figsize=size_DINA6quer)
-    >>> fig.subplots_adjust(bottom=0.5)
-    >>> norm=matplotlib.colors.Normalize(vmin=0, vmax=100)
-    >>> cb=matplotlib.colorbar.ColorbarBase(ax, cmap=cm3,norm=norm,orientation='horizontal')
-    >>> cb.set_label('baseColorsDef was (via to_rgb) a list of colors')   
-    >>> #plt.show()
-    """
-
-    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-    cmap=None
-
-    try:  
-
-        try:
-            # Farben, "base"colors, welche die cmap hat
-            nOfColors=plt.get_cmap(baseColorsDef).N
-
-            if catagoryColors==None:            
-                catagoryColors=np.arange(nOfColors,dtype=int)
-
-            # verlangte Kategorien
-            nOfCatsReq=len(catagoryColors)
-        
-            if nOfCatsReq > nOfColors:
-                logStrFinal="{0:s}: nOfCatsReq: {1:d} > cmap's nOfColors: {2:d}!".format(logStr,nOfCatsReq,nOfColors)                                 
-                raise RmError(logStrFinal)          
-                        
-            if max(catagoryColors) > nOfColors-1:
-                logStrFinal="{0:s}: max. Idx of catsReq: {1:d} > cmap's nOfColors-1: {2:d}!".format(logStr,max(catagoryColors),nOfColors-1)                                 
-                raise RmError(logStrFinal)      
-
-            # alle Farben holen, welche die cmap hat
-            ccolors = plt.get_cmap(baseColorsDef)(np.arange(nOfColors,dtype=int))
-            # die gewuenschten Kategorie"Basis"farben extrahieren        
-            ccolors=[ccolors[idx] for idx in catagoryColors]
-           
-        except:
-            listOfColors=baseColorsDef
-            nOfColors=len(listOfColors)
-            nOfCatsReq=nOfColors
-
-            ccolors=[]
-            for color in listOfColors:                
-                ccolors.append(list(matplotlib.colors.to_rgb(color)))
-
-        finally:
-            pass
-    
-        logger.debug("{0:s}ccolors: {1:s}".format(logStr,str(ccolors))) 
-        logger.debug("{0:s}nOfCatsReq: {1:s}".format(logStr,str((nOfCatsReq)))) 
-        logger.debug("{0:s}nOfSubCatsReq: {1:s}".format(logStr,str((nOfSubCatsReq)))) 
-
-        # Farben bauen  -------------------------------------
-
-        # resultierende Farben vorbelegen
-        cols = np.zeros((nOfCatsReq*nOfSubCatsReq, 3))
-
-        # ueber alle Kategoriefarben
-        if type(reversedSubCatOrder) is not list:
-            reversedSubCatOrderLst=nOfCatsReq*[reversedSubCatOrder]
-        else:
-            reversedSubCatOrderLst=reversedSubCatOrder
-
-        logger.debug("{0:s}reversedSubCatOrderLst: {1:s}".format(logStr,str((reversedSubCatOrderLst)))) 
-
-        for i, c in enumerate(ccolors):
-            rgb=pltMakeCategoricalColors(c,nOfSubColorsReq=nOfSubCatsReq,reversedOrder=reversedSubCatOrderLst[i])               
-            cols[i*nOfSubCatsReq:(i+1)*nOfSubCatsReq,:] = rgb
-            
-        cmap = matplotlib.colors.ListedColormap(cols)                
-                                                                                          
-    except RmError:
-        raise            
-    except Exception as e:
-        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-        logger.error(logStrFinal) 
-        raise RmError(logStrFinal)                       
-    finally:       
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
-        return cmap
-
-# Farben fuer Druecke
-SrcColorp='green'
-SrcColorsp=pltMakeCategoricalColors(list(matplotlib.colors.to_rgb(SrcColorp)),nOfSubColorsReq=4,reversedOrder=False)
-# erste Farbe ist Original-Farbe
-
-SnkColorp='blue'
-SnkColorsp=pltMakeCategoricalColors(list(matplotlib.colors.to_rgb(SnkColorp)),nOfSubColorsReq=4,reversedOrder=True)
-# letzte Farbe ist Original-Farbe
-
-# Farben fuer Fluesse
-SrcColorQ='red'
-SrcColorsQ=pltMakeCategoricalColors(list(matplotlib.colors.to_rgb(SrcColorQ)),nOfSubColorsReq=4,reversedOrder=False)
-# erste Farbe ist Original-Farbe
-
-SnkColorQ='orange'
-SnkColorsQ=pltMakeCategoricalColors(list(matplotlib.colors.to_rgb(SnkColorQ)),nOfSubColorsReq=4,reversedOrder=True)
-# letzte Farbe ist Original-Farbe
-
-attrsDct={   'p Src':{'color':SrcColorp,'lw':4.5,'where':'post'}
-            ,'p Snk':{'color':SnkColorp,'lw':2.5,'where':'post'}
-            ,'p Snk 2':{'color':'mediumorchid','where':'post'}
-            ,'p Snk 3':{'color':'darkviolet','where':'post'}
-                                             
-            ,'Q Src':{'color':SrcColorQ,'lw':4.5,'where':'post'}
-            ,'Q Snk':{'color':SnkColorQ,'lw':2.5,'where':'post'}
-            ,'Q Snk 2':{'color':'indianred','where':'post'}
-            ,'Q Snk 3':{'color':'coral','where':'post'}
-
-                    
-            ,'Q Src RTTM':{'color':SrcColorQ,'ls':'dotted','where':'post'}
-            ,'Q Snk RTTM':{'color':SnkColorQ,'ls':'dotted','where':'post'}        
-            ,'Q Snk 2 RTTM':{'color':'indianred','ls':'dotted','where':'post'}        
-            ,'Q Snk 3 RTTM':{'color':'coral','ls':'dotted','where':'post'}        
-
-
-
-
-                    
-            ,'p ISrc 1':{'color':SrcColorsp[-1],'ls':'dashdot','where':'post'}          
-            ,'p ISrc 2':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     
-            ,'p ISrc 3':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     # ab hier selbe Farbe
-            ,'p ISrc 4':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     
-            ,'p ISrc 5':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     
-            ,'p ISrc 6':{'color':SrcColorsp[-2],'ls':'dashdot','where':'post'}     
-          
-            ,'p ISnk 1':{'color':SnkColorsp[0],'ls':'dashdot','where':'post'}          
-            ,'p ISnk 2':{'color':SnkColorsp[1],'ls':'dashdot','where':'post'}        
-            ,'p ISnk 3':{'color':SnkColorsp[1],'ls':'dashdot','where':'post'}     # ab hier selbe Farbe   
-            ,'p ISnk 4':{'color':SnkColorsp[1],'ls':'dashdot','where':'post'}        
-            ,'p ISnk 5':{'color':SnkColorsp[1],'ls':'dashdot','where':'post'}        
-            ,'p ISnk 6':{'color':SnkColorsp[1],'ls':'dashdot','where':'post'}        
-          
-            ,'Q xSrc 1':{'color':SrcColorsQ[-1],'ls':'dashdot','where':'post'}          
-            ,'Q xSrc 2':{'color':SrcColorsQ[-2],'ls':'dashdot','where':'post'}     
-            ,'Q xSrc 3':{'color':SrcColorsQ[-3],'ls':'dashdot','where':'post'}     
-          
-            ,'Q xSnk 1':{'color':SnkColorsQ[0],'ls':'dashdot','where':'post'}          
-            ,'Q xSnk 2':{'color':SnkColorsQ[1],'ls':'dashdot','where':'post'}        
-            ,'Q xSnk 3':{'color':SnkColorsQ[2],'ls':'dashdot','where':'post'}                    
-                    
-          }
-
-attrsDctLDS={
-     'Seg_AL_S_Attrs':{'color':'blue','lw':3.,'where':'post'}
-    ,'Druck_AL_S_Attrs':{'color':'blue','lw':3.,'ls':'dashed','where':'post'}
-    
-    ,'Seg_MZ_AV_Attrs':{'color':'orange','zorder':3,'where':'post'}    
-    
-    ,'Seg_LR_AV_Attrs':{'color':'green','zorder':1,'where':'post'}
-    ,'Druck_LR_AV_Attrs':{'color':'green','zorder':1,'ls':'dashed','where':'post'}
-    
-    ,'Seg_LP_AV_Attrs':{'color':'turquoise','zorder':0,'lw':1.50,'where':'post'}
-    ,'Druck_LP_AV_Attrs':{'color':'turquoise','zorder':0,'lw':1.50,'ls':'dashed','where':'post'}
-    
-    ,'Seg_NG_AV_Attrs':{'color':'red','zorder':2,'where':'post'}
-    ,'Druck_NG_AV_Attrs':{'color':'red','zorder':2,'ls':'dashed','where':'post'}
-    
-    ,'Seg_SB_S_Attrs':{'color':'black','alpha':.5,'where':'post'}
-    ,'Druck_SB_S_Attrs':{'color':'black','ls':'dashed','alpha':.5,'where':'post'}    
-    
-    ,'Seg_AC_AV_Attrs':{'color':'indigo','where':'post'}
-    ,'Druck_AC_AV_Attrs':{'color':'indigo','ls':'dashed','where':'post'}       
-
-    ,'Seg_ACC_Limits_Attrs':{'color':'indigo','ls':linestyle_tuple[2][1]}
-    ,'Druck_ACC_Limits_Attrs':{'color':'indigo','ls':linestyle_tuple[8][1]}
-
-    ,'Seg_TIMER_AV_Attrs':{'color':'chartreuse','where':'post'}
-    ,'Druck_TIMER_AV_Attrs':{'color':'chartreuse','ls':'dashed','where':'post'}      
-
-    ,'Seg_AM_AV_Attrs':{'color':'chocolate','where':'post'}
-    ,'Druck_AM_AV_Attrs':{'color':'chocolate','ls':'dashed','where':'post'}      
-
-    }
-
-
-pSIDEvents=re.compile('(?P<Prae>IMDI\.)?Objects\.(?P<colRegExMiddle>3S_FBG_ESCHIEBER|FBG_ESCHIEBER{1})\.(3S_)?(?P<colRegExSchieberID>[a-z,A-Z,0-9,_]+)\.(?P<colRegExEventID>(In\.ZUST|In\.LAEUFT|In\.LAEUFT_NICHT|In\.STOER|Out\.AUF|Out\.HALT|Out\.ZU)$)')
-# ausgewertet werden: colRegExSchieberID (um welchen Schieber geht es), colRegExMiddle (Befehl oder Zustand) und colRegExEventID (welcher Befehl bzw. Zustand) 
-# die Befehle bzw. Zustaende (die Auspraegungen von colRegExEventID) muessen nachf. def. sein um den Marker (des Befehls bzw. des Zustandes) zu definieren
-
-eventCCmds={ 'Out.AUF':0
-                 ,'Out.ZU':1
-                 ,'Out.HALT':2}
-eventCStats={'In.LAEUFT':3
-                 ,'In.LAEUFT_NICHT':4
-                 ,'In.ZUST':5
-                 ,'Out.AUF':6
-                 ,'Out.ZU':7
-                 ,'Out.HALT':8            
-                 ,'In.STOER':9}
-valRegExMiddleCmds='3S_FBG_ESCHIEBER' # colRegExMiddle-Auspraegung fuer Befehle (==> eventCCmds)
-
-class RmError(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
-
-from matplotlib import markers
-from matplotlib.path import Path
-
-import numpy as np
-
-def genTimespans(timeStart
-     ,timeEnd
-     ,timeSpan=pd.Timedelta('12 Minutes')
-     ,timeOverlap=pd.Timedelta('0 Seconds')
-     ,timeStartPraefix=pd.Timedelta('0 Seconds')
-     ,timeEndPostfix=pd.Timedelta('0 Seconds')
-    ):
-    
-    # generates timeSpan-Sections 
-
-    # if timeStart is 
-    #     an int, it is considered as the number of desired Sections before timeEnd; timeEnd must be a time
-    #     a time, it is considered as timeStart      
-    
-    # if timeEnd is 
-    #     an int, it is considered as the number of desired Sections after timeStart; timeStart must be a time
-    #     a time, it is considered as timeEnd 
-    
-    # if timeSpan is 
-    #     an int, it is considered as the number of desired Sections 
-    #     a time, it is considered as timeSpan
-    
-    # returns an array of tuples
-
-    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-    
-    xlims=[]
-
-    try:
- 
-        if type(timeStart) == int:    
-            numOfDesiredSections=timeStart                
-            timeStartEff=timeEnd+timeEndPostfix-numOfDesiredSections*timeSpan+(numOfDesiredSections-1)*timeOverlap-timeStartPraefix
-        else:        
-            timeStartEff=timeStart-timeStartPraefix
-        logger.debug("{0:s}timeStartEff: {1:s}".format(logStr,str(timeStartEff))) 
-    
-        if type(timeEnd) == int:    
-            numOfDesiredSections=timeEnd
-            timeEndEff=timeStart-timeStartPraefix+numOfDesiredSections*timeSpan-(numOfDesiredSections-1)*timeOverlap+timeEndPostfix        
-        else:        
-            timeEndEff=timeEnd+timeEndPostfix
-        logger.debug("{0:s}timeEndEff: {1:s}".format(logStr,str(timeEndEff))) 
-    
-        if type(timeSpan) == int:    
-            numOfDesiredSections=timeSpan  
-            dt=timeEndEff-timeStartEff
-            timeSpanEff=dt/numOfDesiredSections+(numOfDesiredSections-1)*timeOverlap        
-        else:        
-            timeSpanEff=timeSpan
-        logger.debug("{0:s}timeSpanEff: {1:s}".format(logStr,str(timeSpanEff))) 
-    
-        logger.debug("{0:s}timeOverlap: {1:s}".format(logStr,str(timeOverlap)))  
-        
-        timeStartAct = timeStartEff           
-        while timeStartAct < timeEndEff: 
-            logger.debug("{0:s}timeStartAct: {1:s}".format(logStr,str(timeStartAct)))  
-            timeEndAct=timeStartAct+timeSpanEff
-            xlim=(timeStartAct,timeEndAct)
-            xlims.append(xlim)        
-            timeStartAct = timeEndAct - timeOverlap         
-    
-   
-
-    except RmError:
-        raise            
-    except Exception as e:
-        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-        logger.error(logStrFinal) 
-        raise RmError(logStrFinal)                       
-    finally:       
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
-        return xlims
-
-def gen2Timespans(
-      timeStart # Anfang eines "Prozesses"
-     ,timeEnd # Ende eines "Prozesses"
-     ,timeSpan=pd.Timedelta('12 Minutes')     
-     ,timeStartPraefix=pd.Timedelta('0 Seconds')
-     ,timeEndPostfix=pd.Timedelta('0 Seconds')
-     ,roundStr=None # i.e. '5min': timeStart.round(roundStr) und timeEnd dito
-    ):
-
-    """
-    erzeugt 2 gleich lange Zeitbereiche
-    1 um timeStart herum
-    1 um timeEnd   herum
-    """
-      
-    #print("timeStartPraefix: {:s}".format(str(timeStartPraefix)))
-    #print("timeEndPostfix: {:s}".format(str(timeEndPostfix)))
-    
-    xlims=[]
-
-    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-    try:
-
-        if roundStr != None:
-            timeStart=timeStart.round(roundStr)
-            timeEnd=timeEnd.round(roundStr)
-
-        xlims.append((timeStart-timeStartPraefix,timeStart-timeStartPraefix+timeSpan))
-        xlims.append((timeEnd+timeEndPostfix-timeSpan,timeEnd+timeEndPostfix))
-     
-        return xlims
-
-    except RmError:
-        raise            
-    except Exception as e:
-        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-        logger.error(logStrFinal) 
-        raise RmError(logStrFinal)                       
-    finally:       
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
-        return xlims
-
-
-baseColorsSchieber=[ # Schieberfarben   
-                                         'g'        #                           1
-                                        ,'b'        #                           2
-                                        ,'m'        #                           3                                      
-                                        ,'r'        #                           4
-                                        ,'c'        #                           5
-                                        # alle Basisfarben außer y gelb
-                                        ,'tab:blue' #                           6
-                                        ,'tab:orange' #                         7 
-                                        ,'tab:green' #                          8
-                                        ,'tab:red' #                            9
-                                        ,'tab:purple' #                         10
-                                        ,'tab:brown' #                          11
-                                        ,'tab:pink'  #                          12                                    
-                                        ,'gold'     #                           13
-                                        ,'fuchsia'  #                           14                                       
-                                        ,'coral'    #                           15                                                     
-                    ]   
-markerDefSchieber=[ # Schiebersymobole                      
-                                         '^'        # 0 Auf
-                                        ,'v'        # 1 Zu
-                                        ,'>'        # 2 Halt
-                                        # ab hier Zustaende
-                                        ,'4'        # 3 Laeuft
-                                        ,'3'        # 4 Laeuft nicht
-                                        ,'P'        # 5 Zust
-                                        ,'1'        # 6 Auf
-                                        ,'2'        # 7 Zu
-                                        ,'+'        # 8 Halt
-                                        ,'x'        # 9 Stoer
-                    ]          
-
-
-
-yticksAL=[0,3,4,10,20,30,40]
 
 def plotTimespans(
      
@@ -2221,6 +2383,7 @@ def plotTimespans(
 
                ,dfTCsLDSIn=dfTCsLDSIn
                ,dfTCsOPC=dfTCsOPC
+               ,dfTCsOPCScenTimeShift=dfTCsOPCScenTimeShift
 
                ,dfTCsSIDEvents=dfTCsSIDEvents
                ,dfTCsSIDEventsTimeShift=dfTCsSIDEventsTimeShift
@@ -3052,6 +3215,8 @@ def pltLDSpQAndEvents(
 
             ax.set_xlim(xlim)
 
+            logger.debug("{0:s}dfTCsOPCScenTimeShift: {1:s}".format(logStr,str(dfTCsOPCScenTimeShift))) 
+
             logger.debug("{0:s}bysecond: {1:s}".format(logStr,str(bysecond))) 
             logger.debug("{0:s}byminute: {1:s}".format(logStr,str(byminute))) 
             logger.debug("{0:s}byhour: {1:s}".format(logStr,str(byhour))) 
@@ -3079,17 +3244,20 @@ def pltLDSpQAndEvents(
                             keys.append(IDPltValue)
 
             # 1. Achse p -----------------------    
+            logger.debug("{0:s}{1:s}".format(logStr,'# 1. Achse p'))   
         
             for key, value in pDct.items(): # nur die konfigurierten IDs plotten          
                 if key in dfTCsLDSIn.columns: # nur dann, wenn ID als Spalte enthalten 
                     label, linesAct = pltLDSpQHelper(
-                        ax    
-                       ,dfTCsLDSIn
-                       ,key # Spaltenname
-                       ,value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-                       ,attrsDct # a Dct with - i.e. {'Q Src':{'color':'red'},...}
+                        ax
+                       ,TCdf=dfTCsLDSIn
+                       ,ID=key # Spaltenname
+                       ,xDctValue=value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                       ,xDctAttrs=attrsDct # a Dct with - i.e. {'Q Src':{'color':'red'},...}
                        ,IDPltKey=IDPltKey # Schluesselbezeichner in value   
+                       ,IDPltValuePostfix=None
                        ,xDctFcts=fctsDct
+                       ,timeShift=pd.Timedelta('1 hour') # pd.Timedelta('0 seconds')
                         )                    
                     lines[label]=linesAct[0]               
                 else:
@@ -3099,14 +3267,15 @@ def pltLDSpQAndEvents(
                     if value['RTTM'] in dfTCsLDSIn.columns:
                         
                         label, linesAct = pltLDSpQHelper(
-                        ax    
-                       ,dfTCsLDSIn
-                       ,value['RTTM'] 
-                       ,value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-                       ,attrsDct 
+                        ax
+                       ,TCdf=dfTCsLDSIn
+                       ,ID=value['RTTM'] 
+                       ,xDctValue=value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                       ,xDctAttrs=attrsDct 
                        ,IDPltKey=IDPltKey 
                        ,IDPltValuePostfix=' RTTM' 
                        ,xDctFcts=fctsDct
+                       ,timeShift=pd.Timedelta('1 hour') #pd.Timedelta('0 seconds')
                         )                    
                         lines[label]=linesAct[0]  
 
@@ -3114,18 +3283,20 @@ def pltLDSpQAndEvents(
                         logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,value['RTTM']))   
 
             if not dfTCsOPC.empty:   
+                logger.debug("{0:s}{1:s}".format(logStr,'# 1. Achse p OPC'))   
                 for key, value in pDctOPC.items():   
                     if key in dfTCsOPC.columns:
 
                         label, linesAct = pltLDSpQHelper(
-                        ax    
-                       ,dfTCsOPC
-                       ,key 
-                       ,value 
-                       ,attrsDct
+                        ax  
+                       ,TCdf=dfTCsOPC
+                       ,ID=key 
+                       ,xDctValue=value 
+                       ,xDctAttrs=attrsDct
                        ,IDPltKey=IDPltKey 
-                       ,timeShift=dfTCsOPCScenTimeShift
+                       ,IDPltValuePostfix=None
                        ,xDctFcts=fctsDct
+                       ,timeShift=dfTCsOPCScenTimeShift
                         )                    
                         lines[label]=linesAct[0]   
 
@@ -3154,6 +3325,7 @@ def pltLDSpQAndEvents(
             ax.set_ylabel(ylabelp)
     
             # 2. y-Achse Q ----------------------------------------
+            logger.debug("{0:s}{1:s}".format(logStr,'# 2. Achse Q'))   
             ax2 = ax.twinx()
             axes['Q']=ax2            
     
@@ -3170,12 +3342,14 @@ def pltLDSpQAndEvents(
                 if key in dfTCsLDSIn.columns:
                         label, linesAct = pltLDSpQHelper(
                         ax2    
-                       ,dfTCsLDSIn
-                       ,key 
-                       ,value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-                       ,attrsDct 
+                       ,TCdf=dfTCsLDSIn
+                       ,ID=key 
+                       ,xDctValue=value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                       ,xDctAttrs=attrsDct 
                        ,IDPltKey=IDPltKey 
+                       ,IDPltValuePostfix=None
                        ,xDctFcts=fctsDct
+                       ,timeShift=pd.Timedelta('1 hour') # pd.Timedelta('0 seconds')
                         )                    
                         lines[label]=linesAct[0]  
                 else:
@@ -3186,13 +3360,14 @@ def pltLDSpQAndEvents(
                         
                         label, linesAct = pltLDSpQHelper(
                         ax2    
-                       ,dfTCsLDSIn
-                       ,value['RTTM'] 
-                       ,value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-                       ,attrsDct 
+                       ,TCdf=dfTCsLDSIn
+                       ,ID=value['RTTM'] 
+                       ,xDctValue=value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                       ,xDctAttrs=attrsDct 
                        ,IDPltKey=IDPltKey 
                        ,IDPltValuePostfix=' RTTM' 
                        ,xDctFcts=fctsDct
+                       ,timeShift=pd.Timedelta('0 hour') #pd.Timedelta('0 seconds')
                         )                    
                         lines[label]=linesAct[0]  
 
@@ -3200,17 +3375,19 @@ def pltLDSpQAndEvents(
                         logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,value['RTTM']))   
 
             if not dfTCsOPC.empty:   
+                logger.debug("{0:s}{1:s}".format(logStr,'# 2. Achse Q OPC'))   
                 for key, value in QDctOPC.items():   
                     if key in dfTCsOPC.columns:                       
                         label, linesAct = pltLDSpQHelper(
                         ax2    
-                       ,dfTCsOPC
-                       ,key 
-                       ,value 
-                       ,attrsDct 
-                       ,IDPltKey=IDPltKey 
-                       ,timeShift=dfTCsOPCScenTimeShift
+                       ,TCdf=dfTCsOPC
+                       ,ID=key 
+                       ,xDctValue=value
+                       ,xDctAttrs=attrsDct 
+                       ,IDPltKey=IDPltKey    
+                       ,IDPltValuePostfix=None
                        ,xDctFcts=fctsDct
+                       ,timeShift=dfTCsOPCScenTimeShift
                         )                    
                         lines[label]=linesAct[0]                                              
                     else:
@@ -3422,8 +3599,7 @@ def pltLDSErgVec(
     ,plotTVAmFct=lambda x: x*100 
     ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
     ,ylimTV=(0,300)
-    ,yticksTV=[0,100,180,200,300]
-           
+    ,yticksTV=[0,100,180,200,300]           
     ):
     """
     zeichnet Zeitkurven von App LDS Ergebnisvektoren auf ax
@@ -4105,331 +4281,6 @@ def pltLDSpQHelperYLimAndTicks(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
         return ylim,yticks
                                             
-def findAllTimeIntervalls(
- df
-,fct=lambda row: True if row['col'] == 46 else False
-,tdAllowed=None # if not None all subsequent TimePairs with TimeDifference <= tdAllowed are combined to one TimePair
-):
-# alle [Zeitbereiche] finden fuer die fct Wahr ist
-# returns array of Time-Pair-Tuples
-
-    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-    tPairs=[]
-
-    try:
-        tEin=None
-        # paarweise über alle Zeilen
-        for (i1, row1), (i2, row2) in pairwise(df.iterrows()):    
-            row1Value=fct(row1)
-            row2Value=fct(row2)
-
-            # wenn 1 nicht x und 2       x tEin=t2 "geht Ein"
-            if not row1Value and row2Value:
-                tEin=i2
-
-            # wenn 1       x und 2 nicht x tAus=t2 "geht Aus"
-            elif row1Value and not row2Value:
-                if tEin != None:
-                    # Paar speichern                    
-                    tPair=(tEin,i1)
-                    tPairs.append(tPair)            
-                else:
-                    pass # sonst: Bed. ist jetzt Aus und war nicht Ein
-                    # Bed. kann nur im ersten Fall Ein gehen
-
-            # wenn 1       x und 2       x
-            elif row1Value and row2Value: 
-                if tEin != None:
-                    pass
-                else:
-                    # im ersten Wertepaar ist der Bereich Ein
-                    tEin=i1
-
-        # letztes Paar
-        if row1Value and row2Value: 
-                if tEin != None:
-                    tPair=(tEin,i2)
-                    tPairs.append(tPair)    
-
-        if tdAllowed != None:            
-            tPairs=fCombineSubsequenttPairs(tPairs,tdAllowed)
-
-    except RmError:
-        raise            
-    except Exception as e:
-        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-        logger.error(logStrFinal) 
-        raise RmError(logStrFinal)                       
-    finally:       
-        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-        return tPairs
-
-def findAllTimeIntervallsSeries(
- s
-,fct=lambda x: True if x == 46 else False
-,tdAllowed=None # if not None all subsequent TimePairs with TimeDifference <= tdAllowed are combined to one TimePair
-):
-    """
-    # alle [Zeitbereiche] finden fuer die fct Wahr ist; diese Zeitbereiche werden geliefert; es werden nur Paare geliefert; d.h. Wahr-Solitäre sind nicht enthalten (gehen verloren)
-
-    # if fct None: 
-    #       tdAllowed must be specified
-    #       in Zeitbereiche zerlegen, die nicht mehr als tdAllowed auseinander liegen; diese Zeitbereiche werden geliefert
-    #       generell ist jeder gelieferte Zeitbereich >=2, auch dann, wenn er dadurch ein oder mehrere unzul. ZeitGaps enthalten muss
-    #       denn es soll kein Wert verloren gehen
-
-    # returns array of Time-Pair-Tuples    
-    >>> import pandas as pd
-    >>> t=pd.Timestamp('2021-03-19 01:02:00')
-    >>> t1=t +pd.Timedelta('1 second')
-    >>> t2=t1+pd.Timedelta('1 second')
-    >>> t3=t2+pd.Timedelta('1 second')
-    >>> t4=t3+pd.Timedelta('1 second')
-    >>> t5=t4+pd.Timedelta('1 second')
-    >>> t6=t5+pd.Timedelta('1 second')
-    >>> t7=t6+pd.Timedelta('1 second')
-    >>> d = {t1: 46, t2: 0} # geht aus - kein Paar
-    >>> s1PaarGehtAus=pd.Series(data=d, index=[t1, t2])
-    >>> d = {t1: 0, t2: 46} # geht ein - kein Paar
-    >>> s1PaarGehtEin=pd.Series(data=d, index=[t1, t2])
-    >>> d = {t5: 46, t6: 0} # geht ausE - kein Paar
-    >>> s1PaarGehtAusE=pd.Series(data=d, index=[t5, t6])
-    >>> d = {t5: 0, t6: 46} # geht einE - kein Paar
-    >>> s1PaarGehtEinE=pd.Series(data=d, index=[t5, t6])
-    >>> d = {t1: 46, t2: 46} # geht aus - ein Paar
-    >>> s1PaarEin=pd.Series(data=d, index=[t1, t2])
-    >>> d = {t1: 0, t2: 0} # geht aus - kein Paar
-    >>> s1PaarAus=pd.Series(data=d, index=[t1, t2])
-    >>> s2PaarAus=pd.concat([s1PaarGehtAus,s1PaarGehtAusE])
-    >>> s2PaarEin=pd.concat([s1PaarGehtEin,s1PaarGehtEinE])
-    >>> s2PaarAusEin=pd.concat([s1PaarGehtAus,s1PaarGehtEinE])
-    >>> s2PaarEinAus=pd.concat([s1PaarGehtEin,s1PaarGehtAusE])
-    >>> ###
-    >>> # 46  0
-    >>> # 0  46
-    >>> # 0   0
-    >>> # 46 46 !1 Paar
-    >>> # 46  0  46  0
-    >>> # 46  0   0 46
-    >>> # 0  46   0 46
-    >>> # 0  46  46  0 !1 Paar
-    >>> ###
-    >>> findAllTimeIntervallsSeries(s1PaarGehtAus)
-    []
-    >>> findAllTimeIntervallsSeries(s1PaarGehtEin)
-    []
-    >>> findAllTimeIntervallsSeries(s1PaarEin)
-    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02'))]
-    >>> findAllTimeIntervallsSeries(s1PaarAus)
-    []
-    >>> findAllTimeIntervallsSeries(s2PaarAus)
-    []
-    >>> findAllTimeIntervallsSeries(s2PaarEin)
-    []
-    >>> findAllTimeIntervallsSeries(s2PaarAusEin)
-    []
-    >>> findAllTimeIntervallsSeries(s2PaarEinAus)
-    [(Timestamp('2021-03-19 01:02:02'), Timestamp('2021-03-19 01:02:05'))]
-    >>> ###
-    >>> # 46  0 !1 Paar
-    >>> # 0  46 !1 Paar
-    >>> # 0   0 !1 Paar
-    >>> # 46 46 !1 Paar
-    >>> # 46  0  46  0 !2 Paare
-    >>> # 46  0   0 46 !2 Paare
-    >>> # 0  46   0 46 !2 Paare
-    >>> # 0  46  46  0 !2 Paare
-    >>> ###
-    >>> findAllTimeIntervallsSeries(s1PaarGehtAus,fct=None,tdAllowed=pd.Timedelta('1 second'))
-    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02'))]
-    >>> findAllTimeIntervallsSeries(s1PaarGehtEin,fct=None,tdAllowed=pd.Timedelta('1 second'))
-    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02'))]
-    >>> findAllTimeIntervallsSeries(s1PaarEin,fct=None,tdAllowed=pd.Timedelta('1 second'))
-    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02'))]
-    >>> findAllTimeIntervallsSeries(s1PaarAus,fct=None,tdAllowed=pd.Timedelta('1 second'))
-    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02'))]
-    >>> findAllTimeIntervallsSeries(s2PaarAus,fct=None,tdAllowed=pd.Timedelta('1 second'))
-    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:05'), Timestamp('2021-03-19 01:02:06'))]
-    >>> findAllTimeIntervallsSeries(s2PaarEin,fct=None,tdAllowed=pd.Timedelta('1 second'))
-    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:05'), Timestamp('2021-03-19 01:02:06'))]
-    >>> findAllTimeIntervallsSeries(s2PaarAusEin,fct=None,tdAllowed=pd.Timedelta('1 second'))
-    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:05'), Timestamp('2021-03-19 01:02:06'))]
-    >>> findAllTimeIntervallsSeries(s2PaarEinAus,fct=None,tdAllowed=pd.Timedelta('1 second'))
-    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:05'), Timestamp('2021-03-19 01:02:06'))]
-    >>> ###
-    >>> d = {t1: 0, t3: 0} 
-    >>> s1PaarmZ=pd.Series(data=d, index=[t1, t3])
-    >>> findAllTimeIntervallsSeries(s1PaarmZ,fct=None,tdAllowed=pd.Timedelta('1 second'))
-    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:03'))]
-    >>> d = {t4: 0, t5: 0} 
-    >>> s1PaaroZ=pd.Series(data=d, index=[t4, t5])
-    >>> s2PaarmZoZ=pd.concat([s1PaarmZ,s1PaaroZ])
-    >>> findAllTimeIntervallsSeries(s2PaarmZoZ,fct=None,tdAllowed=pd.Timedelta('1 second'))
-    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:05'))]
-    >>> ###
-    >>> d = {t1: 0, t2: 0} 
-    >>> s1PaaroZ=pd.Series(data=d, index=[t1, t2])
-    >>> d = {t3: 0, t5: 0} 
-    >>> s1PaarmZ=pd.Series(data=d, index=[t3, t5])
-    >>> s2PaaroZmZ=pd.concat([s1PaaroZ,s1PaarmZ])
-    >>> findAllTimeIntervallsSeries(s2PaaroZmZ,fct=None,tdAllowed=pd.Timedelta('1 second'))
-    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:05'))]
-    >>> ###
-    >>> d = {t6: 0, t7: 0} 
-    >>> s1PaaroZ2=pd.Series(data=d, index=[t6, t7])
-    >>> d = {t4: 0} 
-    >>> solitaer=pd.Series(data=d, index=[t4])
-    >>> s5er=pd.concat([s1PaaroZ,solitaer,s1PaaroZ2])
-    >>> findAllTimeIntervallsSeries(s5er,fct=None,tdAllowed=pd.Timedelta('1 second'))
-    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:04'), Timestamp('2021-03-19 01:02:07'))]
-    >>> s3er=pd.concat([s1PaaroZ,solitaer])
-    >>> findAllTimeIntervallsSeries(s3er,fct=None,tdAllowed=pd.Timedelta('1 second'))
-    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:04'))]
-    >>> s3er=pd.concat([solitaer,s1PaaroZ2])
-    >>> findAllTimeIntervallsSeries(s3er,fct=None,tdAllowed=pd.Timedelta('1 second'))
-    [(Timestamp('2021-03-19 01:02:04'), Timestamp('2021-03-19 01:02:07'))]
-    """
-
-    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-    tPairs=[]
-
-    try:
-        tEin=None
-        
-        if fct != None:
-            # paarweise über alle Zeilen
-            for idx,((i1, s1), (i2, s2)) in enumerate(pairwise(s.iteritems())):    
-                s1Value=fct(s1)
-                s2Value=fct(s2)
-
-                # wenn 1 nicht x und 2       x tEin=t2 "geht Ein"
-                if not s1Value and s2Value:
-                    tEin=i2
-                    if idx > 0:
-                            pass
-                    else:
-                            pass
-                            #print('beim ersten Paar "geht Ein"')      
-
-                # wenn 1       x und 2 nicht x tAus=t2 "geht Aus"
-                elif s1Value and not s2Value:
-                    if tEin != None:
-                        if tEin<i1:
-                            # Paar speichern                                                
-                            tPair=(tEin,i1)
-                            tPairs.append(tPair)            
-                        else:
-                            pass
-                    else: # geht Aus ohne Ein zu sein
-                        if idx > 0:
-                            pass # geht im ersten Paar Aus
-                            
-                        else:
-                            pass 
-                           
-
-                # wenn 1       x und 2       x
-                elif s1Value and s2Value: 
-                    if tEin != None:
-                        pass
-                    else:
-                        # im ersten Wertepaar ist der Bereich Ein
-                        tEin=i1
-            # letztes Paar
-            if s1Value and s2Value: 
-                if tEin != None:
-                    tPair=(tEin,i2)
-                    tPairs.append(tPair)      
-
-            if tdAllowed != None:            
-                tPairs=fCombineSubsequenttPairs(tPairs,tdAllowed)
-        else:            
-            # paarweise über alle Zeilen
-            # neues Paar beginnen
-            anzInPair=1 
-            for (i1, s1), (i2, s2) in pairwise(s.iteritems()):    
-                td=i2-i1
-                if td > tdAllowed:
-                    if tEin==None:
-                        # erstes Paar liegt bereits zu weit auseinander
-                        # Paarabschluss wird ignoriert, denn sonst nur 1 Wert am Anfang
-                        # aktuelles Paar beginnt beim 1. Wert und geht über diese Schwelle
-                        tEin=i1
-                        anzInPair=2
-                    else:                    
-                        if anzInPair>=2:
-                            # Paar abschließen                            
-                            tPair=(tEin,i1)
-                            tPairs.append(tPair)      
-                            # neues Paar beginnen
-                            tEin=i2
-                            anzInPair=1
-                        else:
-                            # Paarabschluss wird ignoriert, denn sonst nur 1 Wert
-                            anzInPair=2
-                else:
-                    if tEin==None:
-                        tEin=i1
-                    anzInPair=anzInPair+1
-                    
-            # letztes Paar
-            if anzInPair>=2:
-                tPair=(tEin,i2)
-                tPairs.append(tPair)                                  
-            else:                
-                # ein letzter Wert wuere ueber bleiben ... 
-                tPair=tPairs[-1]
-                tPair=(tPair[0],i2)
-                tPairs[-1]=tPair  
-                
-            
-
-    except RmError:
-        raise            
-    except Exception as e:
-        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-        logger.error(logStrFinal) 
-        raise RmError(logStrFinal)                       
-    finally:       
-        #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-        return tPairs
-
-def fCombineSubsequenttPairs(
- tPairs
-,tdAllowed=pd.Timedelta('1 second') # all subsequent TimePairs with TimeDifference <= tdAllowed are combined to one TimePair
-):
-# returns tPairs 
-
-    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
-    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-
-    try:
-
-        for idx,(tp1,tp2) in enumerate(pairwise(tPairs)):            
-            
-            t1Ende=tp1[1]
-            t2Start=tp2[0]
-
-            if t2Start-t1Ende <= tdAllowed:
-                # print(t1Ende,t2Start)
-                tPairs[idx]=(tp1[0],tp2[1]) # Folgepaar in vorheriges Paar integrieren
-                tPairs.remove(tp2) # Folgepaar löschen
-                tPairs=fCombineSubsequenttPairs(tPairs,tdAllowed) # Rekursion       
-
-    except RmError:
-        raise            
-    except Exception as e:
-        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-        logger.error(logStrFinal) 
-        raise RmError(logStrFinal)                       
-    finally:       
-        #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-        return tPairs
-
 
 def pltLDSErgVecHelper(
     ax    
@@ -4484,14 +4335,14 @@ def pltLDSErgVecHelper(
         
 def pltLDSpQHelper(
     ax    
-   ,TCdf
-   ,ID # Spaltenname
+   ,TCdf=pd.DataFrame()
+   ,ID='' # Spaltenname
    ,xDctValue={} # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
    ,xDctAttrs={} # a Dct with - i.e. {'Q Src':{'color':'red'},...}
    ,IDPltKey='IDPlt' # Schluesselbezeichner in xDctValue (Key in xDctAttrs und xDctFcts)
    ,IDPltValuePostfix=None # SchluesselPostfix in xDctAttrs und xDctFcts - i.e. ' RTTM'
-   ,timeShift=pd.Timedelta('0 seconds')
    ,xDctFcts={} # a Dct with Fcts - i.e. {'p Src':  lambda x: 134.969 + x*10^5/(794.*9.81)}
+   ,timeShift=pd.Timedelta('0 seconds')
     ):
 
     """
@@ -4513,8 +4364,9 @@ def pltLDSpQHelper(
         # nur Not Null plotten
         s=TCdf[ID][TCdf[ID].notnull()]
 
+        logger.debug("{0:s}timeShift: {1:s}".format(logStr,str(timeShift)))      
         x=s.index.values+timeShift #TCdf.index.values+timeShift
-
+       
         IDPltValue=None
         if IDPltKey in xDctValue.keys():
             # es liegt ein Schluessel fuer eine Layout-Informationen vor
@@ -4667,6 +4519,176 @@ def pltLDSSIDHelper(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
         return labels, scatters
         
+
+# --- PLOT: Funktionen und Hilfsfunktionen
+# -----------------------------------------------
+
+def pltMakeCategoricalCmap(baseColorsDef="tab10",catagoryColors=None,nOfSubCatsReq=3,reversedSubCatOrder=False):
+    """
+    Returns a cmap with nOfCatsReq * nOfSubCatsReq discrete colors.
+
+    Parameter:
+        baseColorsDef:    a (discrete) cmap defining the "base"colors
+                         default: tab10
+
+                         if baseColorsDef is not via get_cmap a matplotlib.colors.ListedColormap, baseColorsDef is interpreted via to_rgb as a list of colors
+                         in this case catagoryColors is ignored 
+
+        catagoryColors:  a list of "base"colors indices for this cmap
+                         the length of the list is the number of Categories requested: nOfCatsReq
+                         apparently cmap's nOfColors must be ge than nOfCatsReq
+                         default: None (==> nOfCatsReq = cmap's nOfColors)
+                         i.e. [2,8,3] for tab10 is green, yellow (ocher), red
+
+        nOfSubCatsReq:   number of Subcategories requested
+
+        reversedSubCatOrder: False (default): if True, the last color of a category is from baseColorsDef
+        reversedSubCatOrder can be a list
+        
+    Returns:
+        cmap with nOfCatsReq * nOfSubCatsReq discrete colors; None if an error occurs
+        one "base"color per category
+        nOfSubCatsReq "sub"colors per category
+        so each category consists of nOfSubCatsReq colors
+
+    Raises:
+        RmError
+
+    >>> import matplotlib
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> import Rm    
+    >>> Rm.pltMakeCategoricalCmap().N
+    30
+    >>> Rm.pltMakeCategoricalCmap(catagoryColors=[2,8,3]).N # 2 8 3 in tab10: grün gelb rot
+    9
+    >>> baseColorsDef="tab10"
+    >>> catagoryColors=[2,8,3]
+    >>> nOfSubCatsReq=4
+    >>> # grün gelb rot mit je 4 Farben von hell nach dunkel
+    >>> cm=Rm.pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,catagoryColors=catagoryColors,nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=True)
+    >>> cm.colors
+    array([[0.75      , 1.        , 0.75      ],
+           [0.51819172, 0.87581699, 0.51819172],
+           [0.32570806, 0.75163399, 0.32570806],
+           [0.17254902, 0.62745098, 0.17254902],
+           [0.9983871 , 1.        , 0.75      ],
+           [0.91113148, 0.91372549, 0.51165404],
+           [0.82408742, 0.82745098, 0.30609849],
+           [0.7372549 , 0.74117647, 0.13333333],
+           [1.        , 0.75      , 0.75142857],
+           [0.94640523, 0.53069452, 0.53307001],
+           [0.89281046, 0.33167491, 0.3348814 ],
+           [0.83921569, 0.15294118, 0.15686275]])
+    >>> cm2=Rm.pltMakeCategoricalCmap(baseColorsDef=baseColorsDef,catagoryColors=catagoryColors,nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=[False]+2*[True])
+    >>> cm.colors[nOfSubCatsReq-1]==cm2.colors[0]
+    array([ True,  True,  True])
+    >>> plt.close()
+    >>> size_DINA6quer=(5.8,4.1)    
+    >>> fig, ax = plt.subplots(figsize=size_DINA6quer)
+    >>> fig.subplots_adjust(bottom=0.5)
+    >>> norm=matplotlib.colors.Normalize(vmin=0, vmax=100)
+    >>> cb=matplotlib.colorbar.ColorbarBase(ax, cmap=cm2,norm=norm,orientation='horizontal')
+    >>> cb.set_label('baseColorsDef was (via get_cmap) a matplotlib.colors.ListedColormap')    
+    >>> #plt.show()
+    >>> cm3=Rm.pltMakeCategoricalCmap(baseColorsDef=['b','c','m'],nOfSubCatsReq=nOfSubCatsReq,reversedSubCatOrder=True)   
+    >>> cm3.colors
+    array([[0.75      , 0.75      , 1.        ],
+           [0.5       , 0.5       , 1.        ],
+           [0.25      , 0.25      , 1.        ],
+           [0.        , 0.        , 1.        ],
+           [0.75      , 1.        , 1.        ],
+           [0.45833333, 0.91666667, 0.91666667],
+           [0.20833333, 0.83333333, 0.83333333],
+           [0.        , 0.75      , 0.75      ],
+           [1.        , 0.75      , 1.        ],
+           [0.91666667, 0.45833333, 0.91666667],
+           [0.83333333, 0.20833333, 0.83333333],
+           [0.75      , 0.        , 0.75      ]])
+    >>> plt.close()     
+    >>> fig, ax = plt.subplots(figsize=size_DINA6quer)
+    >>> fig.subplots_adjust(bottom=0.5)
+    >>> norm=matplotlib.colors.Normalize(vmin=0, vmax=100)
+    >>> cb=matplotlib.colorbar.ColorbarBase(ax, cmap=cm3,norm=norm,orientation='horizontal')
+    >>> cb.set_label('baseColorsDef was (via to_rgb) a list of colors')   
+    >>> #plt.show()
+    """
+
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    cmap=None
+
+    try:  
+
+        try:
+            # Farben, "base"colors, welche die cmap hat
+            nOfColors=plt.get_cmap(baseColorsDef).N
+
+            if catagoryColors==None:            
+                catagoryColors=np.arange(nOfColors,dtype=int)
+
+            # verlangte Kategorien
+            nOfCatsReq=len(catagoryColors)
+        
+            if nOfCatsReq > nOfColors:
+                logStrFinal="{0:s}: nOfCatsReq: {1:d} > cmap's nOfColors: {2:d}!".format(logStr,nOfCatsReq,nOfColors)                                 
+                raise RmError(logStrFinal)          
+                        
+            if max(catagoryColors) > nOfColors-1:
+                logStrFinal="{0:s}: max. Idx of catsReq: {1:d} > cmap's nOfColors-1: {2:d}!".format(logStr,max(catagoryColors),nOfColors-1)                                 
+                raise RmError(logStrFinal)      
+
+            # alle Farben holen, welche die cmap hat
+            ccolors = plt.get_cmap(baseColorsDef)(np.arange(nOfColors,dtype=int))
+            # die gewuenschten Kategorie"Basis"farben extrahieren        
+            ccolors=[ccolors[idx] for idx in catagoryColors]
+           
+        except:
+            listOfColors=baseColorsDef
+            nOfColors=len(listOfColors)
+            nOfCatsReq=nOfColors
+
+            ccolors=[]
+            for color in listOfColors:                
+                ccolors.append(list(matplotlib.colors.to_rgb(color)))
+
+        finally:
+            pass
+    
+        logger.debug("{0:s}ccolors: {1:s}".format(logStr,str(ccolors))) 
+        logger.debug("{0:s}nOfCatsReq: {1:s}".format(logStr,str((nOfCatsReq)))) 
+        logger.debug("{0:s}nOfSubCatsReq: {1:s}".format(logStr,str((nOfSubCatsReq)))) 
+
+        # Farben bauen  -------------------------------------
+
+        # resultierende Farben vorbelegen
+        cols = np.zeros((nOfCatsReq*nOfSubCatsReq, 3))
+
+        # ueber alle Kategoriefarben
+        if type(reversedSubCatOrder) is not list:
+            reversedSubCatOrderLst=nOfCatsReq*[reversedSubCatOrder]
+        else:
+            reversedSubCatOrderLst=reversedSubCatOrder
+
+        logger.debug("{0:s}reversedSubCatOrderLst: {1:s}".format(logStr,str((reversedSubCatOrderLst)))) 
+
+        for i, c in enumerate(ccolors):
+            rgb=pltMakeCategoricalColors(c,nOfSubColorsReq=nOfSubCatsReq,reversedOrder=reversedSubCatOrderLst[i])               
+            cols[i*nOfSubCatsReq:(i+1)*nOfSubCatsReq,:] = rgb
+            
+        cmap = matplotlib.colors.ListedColormap(cols)                
+                                                                                          
+    except RmError:
+        raise            
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise RmError(logStrFinal)                       
+    finally:       
+        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
+        return cmap
+
 def pltMakePatchSpinesInvisible(ax):
     ax.set_frame_on(True)
     ax.patch.set_visible(False)

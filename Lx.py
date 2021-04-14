@@ -39,15 +39,6 @@ import glob
 # pd.reset_option('max_rows')
 # ...
 
-
-# 453	20210126_100917_j.7z	20210126_0002355.log	NaT	NaT
-
-#20210126_100917_j.7z
-#c:\program files (x86)\microsoft visual studio\shared\python37_64\lib\site-packages\IPython\core\interactiveshell.py:3417: DtypeWarning: Columns (6) have mixed types.Specify dtype option on import or set low_memory=False.
-#  exec(code_obj, self.user_global_ns, self.user_ns)
-#20210126_100917_k.7z
-
-
 class LxError(Exception):
     def __init__(self, value):
         self.value = value
@@ -91,15 +82,15 @@ def getTCsOPCDerivative(TCsOPC,col,shiftSize,windowSize,fct=None):
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
         return mDf
 
-
-
-
+logFilenamePattern='([0-9]+)(_)+([0-9]+)(\.log)' # group(3) ist Postfix und Nr.
+logFilenameHeadPattern='([0-9,_]+)(\.log)' # group(1) ist Head und H5-Key
 
 # nicht alle IDs werden von RE pID erfasst
 # diese werden mit pID2, getDfFromODIHelper und in getDfFromODI "nachbehandelt"
 
 pID=re.compile('(?P<Prae>IMDI\.)?(?P<A>[a-z,A-Z,0-9,_]+)\.(?P<B>[a-z,A-Z,0-9,_]+)\.(?P<C1>[a-z,A-Z,0-9]+)_(?P<C2>[a-z,A-Z,0-9]+)_(?P<C3>[a-z,A-Z,0-9]+)_(?P<C4>[a-z,A-Z,0-9]+)_(?P<C5>[a-z,A-Z,0-9]+)(?P<C6>_[a-z,A-Z,0-9]+)?(?P<C7>_[a-z,A-Z,0-9]+)?\.(?P<D>[a-z,A-Z,0-9,_]+)\.(?P<E>[a-z,A-Z,0-9,_]+)(?P<Post>\.[a-z,A-Z,0-9,_]+)?') 
 pID2='(?P<Prae>IMDI\.)?(?P<A>[a-z,A-Z,0-9,_]+)(?P<Post>\.[a-z,A-Z,0-9,_]+)?'
+
 def getDfFromODIHelper(row,col,colCheck,pID2=pID2):
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
@@ -225,8 +216,10 @@ def fODIFindAllSchieberSteuerungsIDs(dfODI,NAME1=None,NAME2=None):    # dfODI: p
     df=fODIMatch(dfODI,TYPE='OL_2',OBJTYPE='VENT',NAME1=NAME1,NAME2=NAME2)
     return sorted(list(df['ID'].unique())+[ID for ID in df['REF_ID'].unique() if not pd.isnull(ID)])
 
+
 def fODIFindAllZeilenWithIDs(dfODI,IDs):
     return dfODI[dfODI['ID'].isin(IDs) | dfODI['REF_ID'].isin(IDs)]
+
 
 def getDfFromODIHelperyUnit(row):
     """
@@ -533,8 +526,8 @@ class AppLog():
     * lookUpDf
         zipName
         logName
-        FirstTime (a #LogTime)
-        LastTime  (a #LogTime)
+        FirstTime (ScenTime - not #LogTime)
+        LastTime  (ScenTime - mot #LogTime)
     * lookUpDfZips
     """
 
@@ -621,16 +614,21 @@ class AppLog():
             else:
                 return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes
 
-    def fValueFct(x):
+    def fValueFct(x):        
+        ###x=x.replace(',', '.')
         # values koennten auch strings sein ... (kann theoretisch bei jeder ID vorkommen; adHoc keinen Ansatz wann oder wo das vorkommt)
-        if x in ['true','True']:
-            return pd.to_numeric(1,errors='coerce',downcast='float')
-        elif x in ['false','False']:
-            return pd.to_numeric(0,errors='coerce',downcast='float')
-        else:
-            return pd.to_numeric(x,errors='coerce',downcast='float')
+        #if x in ['true','True']:
+        #    return pd.to_numeric(1,errors='coerce',downcast='float')
+        #elif x in ['false','False']:
+        #    return pd.to_numeric(0,errors='coerce',downcast='float')
+        #elif x in ['p-p','Q-Q','p-Q','Q-p']: # 1615051120421	STD	CVD		1615051118000	p-p			BEGIN_OF_NEW_CONTROL_VOLUME	6-02-MHV-RB~6-02-FUD-RB	NULL	NULL
+        # 1615051120421	STD	CVD	<-			2094		CV_ID
+        #    return pd.to_numeric(['p-p','Q-Q','p-Q','Q-p'].index(x),errors='coerce',downcast='float')
+        #else:
+            #return pd.to_numeric(x,errors='coerce',downcast='float')
+        return pd.to_numeric(x,errors='ignore',downcast='float')
 
-    def __init__(self,logFile=None,zip7File=None,h5File=None,h5FileName=None,readWithDictReader=False,nRows=None):
+    def __init__(self,logFile=None,zip7File=None,h5File=None,h5FileName=None,readWithDictReader=False,nRows=None,readWindowsLog=False):
         """
         (re-)initialize
 
@@ -676,9 +674,9 @@ class AppLog():
              elif h5File != None and zip7File != None:
                 logger.debug("{0:s}{1:s}".format(logStr,'2 Files (h5File and zip7File) specified.')) 
              elif  logFile != None:                 
-                 self.__initlogFile(logFile,h5FileName=h5FileName,readWithDictReader=readWithDictReader)
+                 self.__initlogFile(logFile,h5FileName=h5FileName,readWithDictReader=readWithDictReader,readWindowsLog=readWindowsLog)
              elif zip7File != None:
-                 self.__initzip7File(zip7File,h5FileName=h5FileName,readWithDictReader=readWithDictReader)            
+                 self.__initzip7File(zip7File,h5FileName=h5FileName,readWithDictReader=readWithDictReader,readWindowsLog=readWindowsLog)            
              elif h5File != None:
                  self.__initWithH5File(h5File)
              else:                 
@@ -691,7 +689,7 @@ class AppLog():
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
              
-    def __initlogFile(self,logFile,h5FileName=None,readWithDictReader=False):
+    def __initlogFile(self,logFile,h5FileName=None,readWithDictReader=False,readWindowsLog=False):
         """
         (re-)initialize with logFile
         """ 
@@ -704,7 +702,7 @@ class AppLog():
              if not os.path.exists(logFile):                                      
                 logger.debug("{0:s}logFile {1:s} not existing.".format(logStr,logFile))    
              else:
-                df = self.__processALogFile(logFile=logFile,readWithDictReader=readWithDictReader)    
+                df = self.__processALogFile(logFile=logFile,readWithDictReader=readWithDictReader,readWindowsLog=readWindowsLog)    
                 self.__initH5File(logFile,df,h5FileName=h5FileName)
          
         except Exception as e:
@@ -713,7 +711,6 @@ class AppLog():
             raise LxError(logStrFinal)                       
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-
 
     def __initH5File(self,h5File,df,h5FileName=None):
         """
@@ -837,106 +834,7 @@ class AppLog():
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
 
-
-    def getTotalLogTime(self):
-        """       
-        Returns Tuple: firstTime,lastTime,tdTotalGross,tdTotal,tdBetweenFilesTotal # Brutto-Logzeit, Netto-Logzeit, Summe aller Zeiten zwischen 2 Logdateien (sollte = Brutto-Netto sein)
-        """ 
- 
-        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-        
-        try:  
-
-            # Inhalt der Logs
-            tdTotal=pd.Timedelta('0 Seconds')
-            tdBetweenFilesTotal=pd.Timedelta('0 Seconds')
-            for idx,(index,row) in enumerate(self.lookUpDf.iterrows()):               
-                if idx > 0:
-        
-                    tdBetweenFiles=row["FirstTime"]-lastTime
-                    tdBetweenFilesTotal=tdBetweenFilesTotal+tdBetweenFiles
-        
-                    if tdBetweenFiles > pd.Timedelta('0 second'):
-                        print("Zeitdifferenz: {!s:s} zwischen {:s} ({:s}) und {:s} ({:s})".format(
-                            str(tdBetweenFiles).replace('days','Tage')
-                            ,lastFile,lastZip
-                            ,row["logName"],row["zipName"]
-                        ))        
-                    if tdBetweenFiles < pd.Timedelta('0 second'):            
-                        if tdBetweenFiles < -pd.Timedelta('1 second'):
-                            print("Zeitueberlappung > 1s: {!s:s} zwischen {:s} ({:s}) und {:s} ({:s})".format(
-                                str(tdBetweenFiles).replace('days','Tage')
-                                ,lastFile,lastZip
-                                ,row["logName"],row["zipName"]     
-                            ))
-            
-                td=row["LastTime"]-row["FirstTime"]
-                if type(td) == pd.Timedelta:    
-                    tdTotal=tdTotal+td
-                else:
-                    print(index)# Fehler!
-                lastTime=row["LastTime"]
-                lastFile=row["logName"]
-                lastZip=row["zipName"]      
-                
-            firstTime=self.lookUpDf.iloc[0]["FirstTime"]    
-            lastTime=self.lookUpDf.iloc[-1]["LastTime"]
-            tdTotalGross=lastTime-firstTime
-            tdTotalGross,tdTotal,tdBetweenFilesTotal
-
-                            
-        except Exception as e:
-            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-            logger.error(logStrFinal) 
-            raise LxError(logStrFinal)                       
-        finally:           
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-            return firstTime,lastTime,tdTotalGross,tdTotal,tdBetweenFilesTotal
-
-
-
-
-
-
-    def shrinkH5File(self):
-        """       
-        die dfs werden geloescht im H5-File
-        extract TCs to H5s sollte vorher gelaufen sein
-        dann stehen die TCs als H5s zur Verfügung und das Master-H5 als lookUp ohne weitere Daten
-        
-        HDF5 does not adjust the size of the store after removal (see SO answer), 
-        so it is necessary to recompress/restructure the store - i.e. via cmd-Line:
-        ptrepack --chunkshape=auto --propindexes --complib=blosc in.h5 out.h5
-        """ 
- 
-        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-        
-        try:  
-            # H5 existiert 
-            if os.path.exists(self.h5File):
-                
-                # Keys available
-                with pd.HDFStore(self.h5File) as h5Store:
-                     h5Keys=sorted(h5Store.keys())         # /Log20201216_0000001                            
-                     logger.debug("{0:s}h5Keys available: {1:s}".format(logStr,str(h5Keys))) 
-
-                     for key in h5Keys:
-                        if re.match('(^/Log)',key):                            
-                            logger.debug("{0:s}key removed: {1:s}".format(logStr,str(key))) 
-                            h5Store.remove(key.replace(h5KeySep,''))
-                        else:
-                            logger.debug("{0:s}key NOT removed: {1:s}".format(logStr,str(key))) 
-                            
-        except Exception as e:
-            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-            logger.error(logStrFinal) 
-            raise LxError(logStrFinal)                       
-        finally:           
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-
-    def __initzip7File(self,zip7File,h5FileName=None,nRows=None,readWithDictReader=False):
+    def __initzip7File(self,zip7File,h5FileName=None,nRows=None,readWithDictReader=False,readWindowsLog=False):
         """
         (re-)initialize with zip7File
         """ 
@@ -1015,7 +913,7 @@ class AppLog():
 
                         # ...
                         if os.path.isfile(logFile):                                                  
-                            df = self.__processALogFile(logFile=logFile,nRows=nRows,readWithDictReader=readWithDictReader) 
+                            df = self.__processALogFile(logFile=logFile,nRows=nRows,readWithDictReader=readWithDictReader,readWindowsLog=readWindowsLog) 
                             if df is None:      
                                 logger.warning("{0:s}idx: {1:d} Log: {2:s} NOT processed?! Continue with next Name in 7Zip.".format(logStr,idx,logFileTail))  
                                 # nichts zu prozessieren ...
@@ -1054,197 +952,6 @@ class AppLog():
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
 
-    def addZip7File(self,zip7File,firstsAndLastsLogsOnly=False,nRows=None,readWithDictReader=False,noDfStorage=False):
-        """
-        add zip7File
-
-        Args:
-        * zipFile: zipFile which LogFiles shall be added
-
-        * Args for internal Usage: 
-            * firstsAndLastsLogsOnly (True dann)
-            * nRows (1 dann)
-            * readWithDictReader (True dann)
-            d.h. es werden nur die ersten und letzten Logs pro Zip angelesen und dort auch nur die 1. und letzte Zeile und das mit DictReader
-        """ 
- 
-        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-        
-        try:                                             
-                # wenn zip7File nicht existiert ...
-                if not os.path.exists(zip7File):                     
-                   logStrFinal="{0:s}zip7File {1:s} not existing.".format(logStr,zip7File) 
-                   logger.debug(logStrFinal)    
-                   raise LxError(logStrFinal)    
-                else:
-                   (zip7FileHead, zip7FileTail)=os.path.split(zip7File)
-                   logger.debug("{0:s}zip7FileHead (leer wenn zip7 im selben Verz.): {1:s} zip7FileTail: {2:s}.".format(logStr,zip7FileHead,zip7FileTail))  
-
-                
-                tmpDir=os.path.dirname(zip7File)
-                tmpDirContent=glob.glob(tmpDir)
-              
-                with py7zr.SevenZipFile(zip7File, 'r') as zip7FileObj:                
-                    allLogFiles = zip7FileObj.getnames()
-                    allLogFilesLen=len(allLogFiles)
-                    logger.debug("{0:s}{1:s}: len(getnames()): {2:d}.".format(logStr,zip7FileTail,allLogFilesLen))  
-
-                    extDirLstTBDeleted=[]
-                    extDirLstExistingLogged=[]                    
-
-                    for idx,logFileNameInZip in enumerate(allLogFiles):
-
-                        if firstsAndLastsLogsOnly:
-                            if idx not in [0,1,allLogFilesLen-2,allLogFilesLen-1]:
-                                #logger.debug("{0:s}idx: {1:d} item: {2:s} NOT processed ...".format(logStr,idx,logFileNameInZip))   
-                                continue
-
-                        logger.debug("{0:s}idx: {1:d} item: {2:s} ...".format(logStr,idx,logFileNameInZip))   
-
-                        # die Datei die 7Zip bei extract erzeugen wird
-                        logFile=os.path.join(tmpDir,logFileNameInZip)
-                        (logFileHead, logFileTail)=os.path.split(logFile)
-
-                        # evtl. bezeichnet logFileNameInZip keine Datei sondern ein Verzeichnis
-                        (name, ext)=os.path.splitext(logFileNameInZip)
-                        if ext == '':
-                            # Verzeichnis!                        
-                            extDir=os.path.join(tmpDir,logFileNameInZip)                       
-                            (extDirHead, extDirTail)=os.path.split(extDir)
-                            if os.path.exists(extDir) and extDir in tmpDirContent:
-                                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert(e) bereits.".format(logStr,idx,extDirTail))  
-                                        extDirLstExistingLogged.append(extDir)
-                            elif os.path.exists(extDir) and extDir not in tmpDirContent:
-                                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert(e) noch nicht.".format(logStr,idx,extDirTail))                      
-                                        extDirLstTBDeleted.append(extDir)
-                            elif not os.path.exists(extDir) and extDir not in tmpDirContent:
-                                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert(e) noch nicht.".format(logStr,idx,extDirTail))                      
-                                        extDirLstTBDeleted.append(extDir)
-                            # kein Logfile zu prozessieren ...
-                            continue
-
-                        # logFileNameInZip bezeichnet eine Datei       
-                        if os.path.exists(logFile):
-                            isFile = os.path.isfile(logFile)
-                            if isFile:
-                                logger.debug("{0:s}idx: {1:d} Log: {2:s} existiert bereits. Wird durch Extrakt ueberschrieben werden.".format(logStr,idx,logFileTail))  
-                                logFileTBDeleted=False
-                            else:
-                                logFileTBDeleted=False
-                        else:
-                            logger.debug("{0:s}idx: {1:d} Log: {2:s} existiert nicht. Wird extrahiert, dann prozessiert und dann wieder geloescht.".format(logStr,idx,logFileTail))                      
-                            logFileTBDeleted=True
-                  
-                        # extrahieren 
-                        zip7FileObj.extract(path=tmpDir,targets=logFileNameInZip)
-                    
-                        if os.path.exists(logFile):
-                            pass                       
-                        else:
-                            logger.warning("{0:s}idx: {1:d} Log: {2:s} NOT extracted?! Continue with next Name in 7Zip.".format(logStr,idx,logFileTail))  
-                            # nichts zu prozessieren ...
-                            continue
-
-                        # ...
-                        if os.path.isfile(logFile):                                                  
-                            df = self.__processALogFile(logFile=logFile,nRows=nRows,readWithDictReader=readWithDictReader) 
-                            if df is None:      
-                                logger.warning("{0:s}idx: {1:d} Log: {2:s} NOT processed?! Continue with next Name in 7Zip.".format(logStr,idx,logFileTail))  
-                                # nichts zu prozessieren ...
-                                continue                        
-                        # ...
-
-                        # gleich wieder loeschen
-                        if os.path.exists(logFile) and logFileTBDeleted:
-                            if os.path.isfile(logFile):
-                                os.remove(logFile)
-                                logger.debug("{0:s}idx: {1:d} Log: {2:s} wieder geloescht.".format(logStr,idx,logFileTail))         
-
-                        #  ...
-                        (name, ext)=os.path.splitext(logFileTail)
-                        key='Log'+name
-
-                        if zip7FileHead != '':
-                            zipName=os.path.join(os.path.relpath(zip7FileHead),zip7FileTail)
-                        else:
-                            zipName=zip7FileTail
-                        # df schreiben
-                        self.__toH5(key,df,updLookUpDf=True,logName=logFileTail,zipName=zipName,noDfStorage=noDfStorage)#os.path.join(os.path.relpath(zip7FileHead),zip7FileTail))
-                        # danach gleich lookUpDf schreiben ...
-                        self.__toH5('lookUpDf',self.lookUpDf,noDfStorage=noDfStorage)
-                                
-                for dirName in extDirLstTBDeleted:
-                    if os.path.exists(dirName):
-                        if os.path.isdir(dirName):
-                            (dirNameHead, dirNameTail)=os.path.split(dirName)
-                            if len(os.listdir(dirName)) == 0:
-                                os.rmdir(dirName)                                    
-                                logger.debug("{0:s}dirName: {1:s} existierte nicht und wurde wieder geloescht.".format(logStr,dirNameTail))     
-                            else:
-                                logger.info("{0:s}dirName: {1:s} existiert mit nicht leerem Inhalt?!".format(logStr,dirNameTail))                                                                    
-         
-        except Exception as e:
-            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-            logger.error(logStrFinal) 
-            raise LxError(logStrFinal)                       
-        finally:           
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-
-
-    def rebuildLookUpDfZips(self,zip7Files,readWithDictReader=True):#,h5FileName=None):
-        """
-        (re-)initialize with zip7Files
-
-        only persistent outcome is lookUpDfZips (Attribute and H5-Persistence)
-        lookUpdf is changed but not H5-stored   
-        (Re-)Init with AppLog(h5File=...) after using rebuildLookUpDfZips to obtain old lookUpdf   
-
-        main Usage of rebuildLookUpDfZips is to determine which zip7Files to add by i.e.:
-        zip7FilesToAdd=lx.lookUpDfZips[~(lx.lookUpDfZips['LastTime']<timeStartAusschnitt) & ~(lx.lookUpDfZips['FirstTime']>timeEndAusschnitt)].index.to_list()
-        """ 
-
-
-        #noDfStorage=False
- 
-        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-        
-        try:                                                             
-                #self.__initzip7File(zip7File=zip7Files[0],h5FileName=h5FileName,nRows=1,readWithDictReader=True)
-            
-                for zip7File in zip7Files:
-                    self.addZip7File(zip7File,firstsAndLastsLogsOnly=True,nRows=1,readWithDictReader=readWithDictReader,noDfStorage=True)
-
-                df=self.lookUpDf.groupby(by='zipName').agg(['min', 'max'])
-                minTime=df.loc[:,('FirstTime','min')]
-                maxTime=df.loc[:,('LastTime','max')]
-
-                minFileNr=df.loc[:,('logName','min')].apply(lambda x: int(re.search('([0-9]+)_([0-9]+)(\.log)',x).group(2)))
-                maxFileNr=df.loc[:,('logName','max')].apply(lambda x: int(re.search('([0-9]+)_([0-9]+)(\.log)',x).group(2)))
-
-
-                s=(maxTime-minTime)/(maxFileNr-minFileNr)
-                lookUpDfZips=s.to_frame().rename(columns={0:'TimespanPerLog'})
-                lookUpDfZips['NumOfFiles']=maxFileNr-minFileNr
-                lookUpDfZips['FirstTime']=minTime
-                lookUpDfZips['LastTime']=maxTime
-                lookUpDfZips['minFileNr']=minFileNr
-                lookUpDfZips['maxFileNr']=maxFileNr
-
-                lookUpDfZips=lookUpDfZips[['FirstTime','LastTime','TimespanPerLog','NumOfFiles','minFileNr','maxFileNr']]
-
-                # lookUpDfZips schreiben
-                self.lookUpDfZips=lookUpDfZips
-                self.__toH5('lookUpDfZips',self.lookUpDfZips)
-                                                             
-        except Exception as e:
-            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-            logger.error(logStrFinal) 
-            raise LxError(logStrFinal)                       
-        finally:           
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-
     def __toH5(self,key,df,useRawHdfAPI=False,updLookUpDf=False,logName='',zipName='',noDfStorage=False):
         """
         write df with key to H5-File (if not noDfStorage)
@@ -1253,8 +960,8 @@ class AppLog():
         * updLookUpDf: if True, self.lookUpDf is updated with 
             * zipName (the Zip of logFile)
             * logName (the name of the logFile i.e. 20201113_0000004.log)
-            * FirstTime (the first logTime in df)
-            * LastTime (the last logTime in df)
+            * FirstTime (the first ScenTime in df)
+            * LastTime (the last ScenTime in df)
             self.lookUpDf is not wriiten to H5
         """ 
  
@@ -1278,7 +985,7 @@ class AppLog():
                  logger.debug("{0:s}Writing df with h5Key={1:s} to {2:s} done.".format(logStr,key,h5FileTail))    
 
              if updLookUpDf:
-                 s=df.iloc[[0,-1]]['#LogTime']
+                 s=df.iloc[[0,-1]]['ScenTime']#['#LogTime']
                  FirstTime=s.iloc[0]
                  LastTime=s.iloc[-1]
                  if self.lookUpDf.empty:
@@ -1305,7 +1012,7 @@ class AppLog():
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
           
-    def __processALogFile(self,logFile=None,delimiter='\t',nRows=None,readWithDictReader=False,fValueFct=fValueFct):
+    def __processALogFile(self,logFile=None,delimiter='\t',nRows=None,readWithDictReader=False,fValueFct=fValueFct,readWindowsLog=False):
         """
         process logFile
 
@@ -1361,7 +1068,7 @@ class AppLog():
                         restValue=dct[restkey]
                         restValueStr = delimiter.join(restValue)
                         newValue=rows[i][-1]+delimiter+restValueStr
-                        logger.debug("{0:s}{1:s} restValueStr: {2:s} - Zeile {3:10d}: {4:s} - neuer Wert letzte Spalte: {5:s}.".format(logStr,logFileTail,restValueStr,i,str(rows[i]),newValue)) 
+                        #logger.debug("{0:s}{1:s} restValueStr: {2:s} - Zeile {3:10d}: {4:s} - neuer Wert letzte Spalte: {5:s}.".format(logStr,logFileTail,restValueStr,i,str(rows[i]),newValue)) 
                         rows[i][-1]=rows[i][-1]+newValue
                 logger.debug("{0:s}{1:s} restkey processed.".format(logStr,logFileTail)) 
 
@@ -1381,40 +1088,69 @@ class AppLog():
              
              #ProcessTime
              df['ProcessTime']=pd.to_datetime(df['ProcessTime'],unit='ms',errors='coerce') # NaT
+
+             logger.debug("{0:s}{1:s} col ProcessTime processed.".format(logStr,logFileTail)) 
              
              #Value
-             #df.Value=df.Value.str.replace(',', '.')
+             df['ValueProcessed']=df.Value.str.replace(',', '.')
              #df.Value=pd.to_numeric(df.Value,errors='coerce') # NaN # kann auch true oder false sein ....
-             df['Value']=df['Value'].apply(fValueFct)
+             # df['distance'] = haversine(40.671, -73.985, df['latitude'].values, df['longitude'].values)
 
-             #Strings
-             #df['LogLevel'] = df.LogLevel.astype('category')
-             #df['SubSystem'] = df.SubSystem.astype('category')
-             #df['Direction'] = df.Direction.astype('category')
-             #df['ID'] = df.ID.astype('category')
-             for col in ['ID','Direction','SubSystem','LogLevel','State','Remark']: #['State','Remark']:
+             df['ValueProcessed2']=fValueFct(df['ValueProcessed'].values) #df['ValueProcessed'].apply(fValueFct)
+
+             logger.debug("{0:s}{1:s} col Value processed.".format(logStr,logFileTail)) 
+
+             #Strings             
+             for col in ['ID','Direction','SubSystem','LogLevel','State','Remark']: 
                 df[col]=df[col].astype(str)
 
-             ##ScenTime             
-             p=re.compile('(^Starting cycle for )(?P<Time>[0-9,\-,\ ,\:,\.]+)') # Starting cycle for 2020-11-13 15:20:52.000        
-             f1=lambda row: p.search(row['Remark'])             
-             df['ScenTimeTmp']=df.apply(f1,axis=1)
-             #logger.debug("{0:s}df: {1:s}".format(logStr,str(df)))
-             #logger.debug("{0:s}df['ScenTimeTmp']: {1:s}".format(logStr,str(df['ScenTimeTmp']))) 
-             try:
-                 f2=lambda row: pd.to_datetime(row['ScenTimeTmp'].group('Time'),format='%Y-%m-%d %H:%M:%S.%f') if row['ScenTimeTmp'] != None else None             
-                 df['ScenTime']=df.apply(f2,axis=1)
-                 firstScenTimeLoggedWithLdsMcl=df['ScenTime'].loc[df['ScenTime'].notnull()].iloc[0]
-                 #lastScenTimeLoggedWithLdsMcl=df['ScenTime'].loc[df['ScenTime'].notnull()].iloc[-1]            
-                 df['ScenTime']=df['ScenTime'].fillna(method='ffill')
-                 df['ScenTime']=df['ScenTime'].fillna(value=firstScenTimeLoggedWithLdsMcl-pd.Timedelta('1000 ms'))
-             except:
-                 logger.debug("{0:s}{1:s}: ScenTime set to #LogTime.".format(logStr,logFileTail))
-                 df['ScenTime']=df['#LogTime']         
+             logger.debug("{0:s}{1:s} String-cols processed.".format(logStr,logFileTail)) 
 
-             df=df[['#LogTime','LogLevel','SubSystem','Direction','ProcessTime','ID','Value','ScenTime','State','Remark']]
+#1618249551621	STD	CVD		1615442324000	p-p			BEGIN_OF_NEW_CONTROL_VOLUME	6-10-SV1-RB~6-10-BID-RB	NULL	NULL # String in beiden Faellen (Linux und Windows) gleich?
+#1618249551621	STD	CVD	<-			156		CV_ID
+
+             ##ScenTime       
+             ##                      SubSystem   Direction   ProcessTime     ID                  Value   State   Remark                              
+             ## Linux ---
+             ## 1615029280000	INF	SQC		    			                                                    Starting cycle for 2021-03-06 12:14:38.000
+             ## 1615029280000	STD	LDS MCL		            1615029278000	Main cycle loop			            06.03.2021	12:14:38.000 (ScenTime: Tag und Zeit in Klartext; Spalte ProcessTime Logzeit?!)
+             ## Windows ---
+             ## 1618256150711	STD	SQC		                1615457121000	Main cycle loop			            11:05:21.000 (ScenTime-Zeit in Klartext; Spalte ProcessTime ScenTime?!)
+                          
+             ## #######
+             #if nRows==None:
+             #    if readWindowsLog:
+             #        fScenTime=lambda row: row['ProcessTime'] if row['ID']=='Main cycle loop' else None
+             #        df['ScenTime']=df.apply(fScenTime,axis=1)
+             #        firstScenTimeLoggedWithLdsMcl=df['ScenTime'].loc[df['ScenTime'].notnull()].iloc[0]
+             #        df['ScenTime']=df['ScenTime'].fillna(method='ffill')
+             #        df['ScenTime']=df['ScenTime'].fillna(value=firstScenTimeLoggedWithLdsMcl-pd.Timedelta('1000 ms'))
+             #    else:                 
+             #        p=re.compile('(^Starting cycle for )(?P<Time>[0-9,\-,\ ,\:,\.]+)') # Starting cycle for 2020-11-13 15:20:52.000        
+             #        f1=lambda row: p.search(row['Remark'])             
+             #        df['ScenTimeTmp']=df.apply(f1,axis=1)
+             #        ####logger.debug("{0:s}df: {1:s}".format(logStr,str(df)))
+             #        ####logger.debug("{0:s}df['ScenTimeTmp']: {1:s}".format(logStr,str(df['ScenTimeTmp']))) 
+             #        #try:
+             #        f2=lambda row: pd.to_datetime(row['ScenTimeTmp'].group('Time'),format='%Y-%m-%d %H:%M:%S.%f') if row['ScenTimeTmp'] != None else None             
+             #        df['ScenTime']=df.apply(f2,axis=1)
+             #        firstScenTimeLoggedWithLdsMcl=df['ScenTime'].loc[df['ScenTime'].notnull()].iloc[0]
+             #        #lastScenTimeLoggedWithLdsMcl=df['ScenTime'].loc[df['ScenTime'].notnull()].iloc[-1]            
+             #        df['ScenTime']=df['ScenTime'].fillna(method='ffill')
+             #        df['ScenTime']=df['ScenTime'].fillna(value=firstScenTimeLoggedWithLdsMcl-pd.Timedelta('1000 ms'))
+             #        #except:
+             #        #    logger.debug("{0:s}{1:s}: ScenTime set to #LogTime.".format(logStr,logFileTail))
+             #        #    df['ScenTime']=df['#LogTime']        
+             #else:
+             #    # wenn nur wenige Zeilen gelesen werden sollten ist evtl. gar keine Zeile mit Main cycle loop dabei ...
+             #    df['ScenTime']=df['#LogTime']    
+             df['ScenTime']=df['ProcessTime']  
+
+             df=df[['#LogTime','LogLevel','SubSystem','Direction','ProcessTime','ID','ValueProcessed2','ScenTime','State','Remark']]
+             df.rename(columns={'ValueProcessed2':'Value'},inplace=True)
                         
-             logger.debug("{0:s}{1:s} processed with nRows (None if all): {2:s}.".format(logStr,logFileTail,str(nRows)))     
+             #logger.debug("{0:s}{1:s} processed with nRows (None if all): {2:s}. Unique ScenTimes: {3:s}.".format(logStr,logFileTail,str(nRows),str(df['ScenTime'].unique())))     
+             logger.debug("{0:s}{1:s} processed with nRows (None if all).".format(logStr,logFileTail,str(nRows)))     
                           
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -1424,153 +1160,255 @@ class AppLog():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))                    
             return df
 
-    def get(self,timeStart=None,timeEnd=None,filter_fct=None,filterAfter=True,useRawHdfAPI=False):
+    def rebuildLookUpDfZips(self,zip7Files,readWithDictReader=True,readWindowsLog=False):
         """
-        returns df with filter_fct applied
+        (re-)initialize with zip7Files
+
+        only persistent outcome is lookUpDfZips (Attribute and H5-Persistence)
+        lookUpdf is changed but not H5-stored   
+        (Re-)Init with AppLog(h5File=...) after using rebuildLookUpDfZips to obtain old lookUpdf   
+
+        main Usage of rebuildLookUpDfZips is to determine which zip7Files to add by i.e.:
+        zip7FilesToAdd=lx.lookUpDfZips[~(lx.lookUpDfZips['LastTime']<timeStartAusschnitt) & ~(lx.lookUpDfZips['FirstTime']>timeEndAusschnitt)].index.to_list()
         """ 
+
+
+        #noDfStorage=False
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-                
-        dfRet=None
-        try:   
-            dfLst=[]
+        
+        try:                                                             
+                #self.__initzip7File(zip7File=zip7Files[0],h5FileName=h5FileName,nRows=1,readWithDictReader=True)
+            
+                for zip7File in zip7Files:                    
+                    logger.debug("{0:s}addZip7File: {1:s}".format(logStr,zip7File))   
+                    self.addZip7File(zip7File,firstsAndLastsLogsOnly=True,nRows=1,readWithDictReader=readWithDictReader,noDfStorage=True,readWindowsLog=readWindowsLog)
 
-            dfLookUpTimes=self.lookUpDf
-            if timeStart!=None:
-                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['LastTime']>=timeStart] # endet nach dem Anfang oder EndeFile ist Anfang
-            if timeEnd!=None:
-                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
-            dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
-            dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
-            h5Keys=['Log'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
-                         
-            if useRawHdfAPI:
-                with pd.HDFStore(self.h5File) as h5Store:                   
-                    for h5Key in h5Keys:
-                        logger.debug("{0:s}Get (pd.HDFStore) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
-                        df=h5Store[h5Key]
-                        if not filterAfter and filter_fct != None:
-                            logger.debug("{0:s}Apply Filter ...".format(logStr)) 
-                            df=pd.DataFrame(df[df.apply(filter_fct,axis=1)].values,columns=df.columns)                                                     
-                        dfLst.append(df)
-            else:
-                    for h5Key in h5Keys:
-                        logger.debug("{0:s}Get (read_hdf) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
-                        df=pd.read_hdf(self.h5File, key=h5Key)
-                        if not filterAfter and filter_fct != None:
-                            logger.debug("{0:s}Apply Filter ...".format(logStr)) 
-                            df=pd.DataFrame(df[df.apply(filter_fct,axis=1)].values,columns=df.columns)    
-                        dfLst.append(df)     
-                        
-            logger.debug("{0:s}{1:s}".format(logStr,'Extraction finished. Concat ...')) 
-            dfRet=pd.concat(dfLst)
-            del dfLst
-            if filterAfter and filter_fct != None:
-                logger.debug("{0:s}Apply Filter ...".format(logStr)) 
-                dfRet=pd.DataFrame(dfRet[dfRet.apply(filter_fct,axis=1)].values,columns=dfRet.columns)   
-                               
+                df=self.lookUpDf.groupby(by='zipName').agg(['min', 'max'])
+                logger.debug("{0:s}df: {1:s}".format(logStr,df.to_string()))   
+
+                minTime=df.loc[:,('FirstTime','min')]
+                maxTime=df.loc[:,('LastTime','max')]
+
+                minFileNr=df.loc[:,('logName','min')].apply(lambda x: int(re.search(logFilenamePattern,x).group(3)))
+                maxFileNr=df.loc[:,('logName','max')].apply(lambda x: int(re.search(logFilenamePattern,x).group(3)))
+
+                s=(maxTime-minTime)/(maxFileNr-minFileNr)
+                lookUpDfZips=s.to_frame().rename(columns={0:'TimespanPerLog'})
+                lookUpDfZips['NumOfFiles']=maxFileNr-minFileNr
+                lookUpDfZips['FirstTime']=minTime
+                lookUpDfZips['LastTime']=maxTime
+                lookUpDfZips['minFileNr']=minFileNr
+                lookUpDfZips['maxFileNr']=maxFileNr
+
+                lookUpDfZips=lookUpDfZips[['FirstTime','LastTime','TimespanPerLog','NumOfFiles','minFileNr','maxFileNr']]
+
+                # lookUpDfZips schreiben
+                self.lookUpDfZips=lookUpDfZips
+                self.__toH5('lookUpDfZips',self.lookUpDfZips)
+                                                             
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
             raise LxError(logStrFinal)                       
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-            return dfRet
 
-
-    def getTCs(self,dfID=pd.DataFrame(),timeStart=None,timeEnd=None,TCsdfOPCFill=TCsdfOPCFill,persistent=False,overwrite=True):
+    def addZip7File(self,zip7File,firstsAndLastsLogsOnly=False,nRows=None,readWithDictReader=False,noDfStorage=False,readWindowsLog=False):
         """
-        returns TCs-dfs
-        Verarbeitung von dfs gemaess extractTCsToH5s; siehe dort
+        add zip7File
+
+        Args:
+        * zipFile: zipFile which LogFiles shall be added
+
+        * Args for internal Usage: 
+            * firstsAndLastsLogsOnly (True dann)
+            * nRows (1 dann)
+            * readWithDictReader (True dann)
+            d.h. es werden nur die ersten und letzten Logs pro Zip angelesen und dort auch nur die 1. und letzte Zeile und das mit DictReader
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-                        
-        try:   
+        
+        try:                                             
+                # wenn zip7File nicht existiert ...
+                if not os.path.exists(zip7File):                     
+                   logStrFinal="{0:s}zip7File {1:s} not existing.".format(logStr,zip7File) 
+                   logger.debug(logStrFinal)    
+                   raise LxError(logStrFinal)    
+                else:
+                   (zip7FileHead, zip7FileTail)=os.path.split(zip7File)
+                   logger.debug("{0:s}zip7FileHead (leer wenn zip7 im selben Verz.): {1:s} zip7FileTail: {2:s}.".format(logStr,zip7FileHead,zip7FileTail))  
 
-            TCKeys=['TCsdfOPC','TCsdfSirCalc','TCsdfLDSIn','TCsdfLDSRes1','TCsdfLDSRes2a','TCsdfLDSRes2b','TCsdfLDSRes2c']
+                
+                tmpDir=os.path.dirname(zip7File)
+                tmpDirContent=glob.glob(tmpDir)
+              
+                with py7zr.SevenZipFile(zip7File, 'r') as zip7FileObj:                
+                    allLogFiles = zip7FileObj.getnames()
+                    allLogFilesLen=len(allLogFiles)
+                    logger.debug("{0:s}{1:s}: len(getnames()): {2:d}.".format(logStr,zip7FileTail,allLogFilesLen))  
 
-            if persistent:        
-                 with pd.HDFStore(self.h5File) as h5Store:
-                    h5Keys=sorted(h5Store.keys())                                     
-                    #logger.debug("{0:s}h5Keys available: {1:s}".format(logStr,str(h5Keys)))                      
-                    h5KeysStripped=[item.replace(h5KeySep,'') for item in h5Keys]                   
+                    extDirLstTBDeleted=[]
+                    extDirLstExistingLogged=[]                    
 
-                 if set(TCKeys) & set(h5KeysStripped) == set(TCKeys):
-                    if not overwrite:
-                        logger.debug("{0:s}persistent: TCKeys {1:s} existieren alle bereits - return aus H5-File ...".format(logStr,str(TCKeys))) 
+                    for idx,logFileNameInZip in enumerate(allLogFiles):
 
-                        TCsdfOPC=pd.read_hdf(self.h5File,key='TCsdfOPC')
-                        TCsdfSirCalc=pd.read_hdf(self.h5File,key='TCsdfSirCalc')
-                        TCsdfLDSIn=pd.read_hdf(self.h5File,key='TCsdfLDSIn')
-                        TCsdfLDSRes1=pd.read_hdf(self.h5File,key='TCsdfLDSRes1')
-                        TCsdfLDSRes2a=pd.read_hdf(self.h5File,key='TCsdfLDSRes2a')
-                        TCsdfLDSRes2b=pd.read_hdf(self.h5File,key='TCsdfLDSRes2b')
-                        TCsdfLDSRes2c=pd.read_hdf(self.h5File,key='TCsdfLDSRes2c')
-                       
-                        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-                        return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2a,TCsdfLDSRes2b,TCsdfLDSRes2c
-                    else:
-                        logger.debug("{0:s}persistent: TCKeys {1:s} existieren alle bereits - sollen aber ueberschrieben werden ...".format(logStr,str(TCKeys))) 
-                        
-                 else:                    
-                    logger.debug("{0:s}persistent: TCKeys {1:s} existieren nicht (alle) ...".format(logStr,str(TCKeys))) 
-                       
-            dfLookUpTimes=self.lookUpDf
-            if timeStart!=None:
-                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['LastTime']>=timeStart] # endet nach dem Anfang oder EndeFile ist Anfang
-            if timeEnd!=None:
-                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
-            dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
-            dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
-            h5Keys=['Log'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
+                        if firstsAndLastsLogsOnly:
+                            if idx not in [0,1,allLogFilesLen-2,allLogFilesLen-1]:
+                                logger.debug("{0:s}idx: {1:d} item: {2:s} NOT processed ...".format(logStr,idx,logFileNameInZip))   
+                                continue
 
-            dfLst=[]
-            for h5Key in h5Keys:
-                logger.debug("{0:s}Get (read_hdf) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
-                dfSingle=pd.read_hdf(self.h5File, key=h5Key)
-                   
-                dfSingle=dfSingle[['ID','ProcessTime','ScenTime','SubSystem','Value','Direction']]
-                dfSingle=dfSingle[~(dfSingle['Value'].isnull())]
+                        logger.debug("{0:s}idx: {1:d} item: {2:s} ...".format(logStr,idx,logFileNameInZip))   
 
-                dfLst.append(dfSingle) 
-                                              
-            logger.debug("{0:s}{1:s}".format(logStr,'Extraction finished. Concat ...')) 
-            df=pd.concat(dfLst)
-            del dfLst
+                        # die Datei die 7Zip bei extract erzeugen wird
+                        logFile=os.path.join(tmpDir,logFileNameInZip)
+                        (logFileHead, logFileTail)=os.path.split(logFile)
 
-            logger.debug("{0:s}{1:s}".format(logStr,'Concat finished. Filter & Pivot ...'))      
-            
-            if not dfID.empty:
-                TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2=self.getTCsFromDf(df,dfID=dfID,TCsdfOPCFill=TCsdfOPCFill)
-            else:
-                TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes=self.getTCsFromDf(df,dfID=dfID,TCsdfOPCFill=TCsdfOPCFill)
-               
-            if persistent:                 
-                    logger.debug("{0:s}peristent: TCKeys {1:s} nach H5-File ...".format(logStr,str(TCKeys))) 
-                    TCsdfOPC.to_hdf(self.h5File,key='TCsdfOPC')
-                    TCsdfSirCalc.to_hdf(self.h5File,key='TCsdfSirCalc')
-                    TCsdfLDSIn.to_hdf(self.h5File,key='TCsdfLDSIn')
-                    TCsdfLDSRes1.to_hdf(self.h5File,key='TCsdfLDSRes1')
-                    TCsdfLDSRes2a.to_hdf(self.h5File,key='TCsdfLDSRes2a')
-                    TCsdfLDSRes2b.to_hdf(self.h5File,key='TCsdfLDSRes2b')
-                    TCsdfLDSRes2c.to_hdf(self.h5File,key='TCsdfLDSRes2c')
+                        # evtl. bezeichnet logFileNameInZip keine Datei sondern ein Verzeichnis
+                        (name, ext)=os.path.splitext(logFileNameInZip)
+                        if ext == '':
+                            # Verzeichnis!                        
+                            extDir=os.path.join(tmpDir,logFileNameInZip)                       
+                            (extDirHead, extDirTail)=os.path.split(extDir)
+                            if os.path.exists(extDir) and extDir in tmpDirContent:
+                                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert(e) bereits.".format(logStr,idx,extDirTail))  
+                                        extDirLstExistingLogged.append(extDir)
+                            elif os.path.exists(extDir) and extDir not in tmpDirContent:
+                                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert(e) noch nicht.".format(logStr,idx,extDirTail))                      
+                                        extDirLstTBDeleted.append(extDir)
+                            elif not os.path.exists(extDir) and extDir not in tmpDirContent:
+                                        logger.debug("{0:s}idx: {1:d} extDir: {2:s} existiert(e) noch nicht.".format(logStr,idx,extDirTail))                      
+                                        extDirLstTBDeleted.append(extDir)
+                            # kein Logfile zu prozessieren ...
+                            continue
+
+                        # logFileNameInZip bezeichnet eine Datei       
+                        if os.path.exists(logFile):
+                            isFile = os.path.isfile(logFile)
+                            if isFile:
+                                logger.debug("{0:s}idx: {1:d} Log: {2:s} existiert bereits. Wird durch Extrakt ueberschrieben werden.".format(logStr,idx,logFileTail))  
+                                logFileTBDeleted=False
+                            else:
+                                logFileTBDeleted=False
+                        else:
+                            logger.debug("{0:s}idx: {1:d} Log: {2:s} existiert nicht. Wird extrahiert, dann prozessiert und dann wieder geloescht.".format(logStr,idx,logFileTail))                      
+                            logFileTBDeleted=True
+                  
+                        # extrahieren 
+                        logger.debug("{0:s}Log: {1:s} wird extrahiert ... ".format(logStr,logFileTail))   
+                        zip7FileObj.extract(path=tmpDir,targets=logFileNameInZip)
+                        logger.debug("{0:s}Log: {1:s} wurde extrahiert. ".format(logStr,logFileTail))   
                     
-                                          
+                        if os.path.exists(logFile):
+                            pass                       
+                        else:
+                            logger.warning("{0:s}idx: {1:d} Log: {2:s} NOT extracted?! Continue with next Name in 7Zip.".format(logStr,idx,logFileTail))  
+                            # nichts zu prozessieren ...
+                            continue
+
+                        # ...
+                        if os.path.isfile(logFile):                                                  
+                            df = self.__processALogFile(logFile=logFile,nRows=nRows,readWithDictReader=readWithDictReader,readWindowsLog=readWindowsLog) 
+                            if df is None:      
+                                logger.warning("{0:s}idx: {1:d} Log: {2:s} NOT processed?! Continue with next Name in 7Zip.".format(logStr,idx,logFileTail))  
+                                # nichts zu prozessieren ...
+                                continue                        
+                        # ...
+
+                        # gleich wieder loeschen
+                        if os.path.exists(logFile) and logFileTBDeleted:
+                            if os.path.isfile(logFile):
+                                os.remove(logFile)
+                                logger.debug("{0:s}idx: {1:d} Log: {2:s} wieder geloescht.".format(logStr,idx,logFileTail))         
+
+                        #  ...
+                        (name, ext)=os.path.splitext(logFileTail)
+                        key='Log'+name
+
+                        if zip7FileHead != '':
+                            zipName=os.path.join(os.path.relpath(zip7FileHead),zip7FileTail)
+                        else:
+                            zipName=zip7FileTail
+                        # df schreiben
+                        self.__toH5(key,df,updLookUpDf=True,logName=logFileTail,zipName=zipName,noDfStorage=noDfStorage)#os.path.join(os.path.relpath(zip7FileHead),zip7FileTail))
+                        # danach gleich lookUpDf schreiben ...
+                        self.__toH5('lookUpDf',self.lookUpDf,noDfStorage=noDfStorage)
+                                
+                for dirName in extDirLstTBDeleted:
+                    if os.path.exists(dirName):
+                        if os.path.isdir(dirName):
+                            (dirNameHead, dirNameTail)=os.path.split(dirName)
+                            if len(os.listdir(dirName)) == 0:
+                                os.rmdir(dirName)                                    
+                                logger.debug("{0:s}dirName: {1:s} existierte nicht und wurde wieder geloescht.".format(logStr,dirNameTail))     
+                            else:
+                                logger.info("{0:s}dirName: {1:s} existiert mit nicht leerem Inhalt?!".format(logStr,dirNameTail))                                                                    
+         
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
             raise LxError(logStrFinal)                       
         finally:           
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
-            if not dfID.empty:
-                return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2#a,TCsdfLDSRes2b,TCsdfLDSRes2c
-            else:                
-                return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+
+    def getTotalLogTime(self):
+        """       
+        Returns Tuple: firstTime,lastTime,tdTotalGross,tdTotal,tdBetweenFilesTotal # Brutto-Logzeit, Netto-Logzeit, Summe aller Zeiten zwischen 2 Logdateien (sollte = Brutto-Netto sein)
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:  
+
+            # Inhalt der Logs
+            tdTotal=pd.Timedelta('0 Seconds')
+            tdBetweenFilesTotal=pd.Timedelta('0 Seconds')
+            for idx,(index,row) in enumerate(self.lookUpDf.iterrows()):               
+                if idx > 0:
+        
+                    tdBetweenFiles=row["FirstTime"]-lastTime
+                    tdBetweenFilesTotal=tdBetweenFilesTotal+tdBetweenFiles
+        
+                    if tdBetweenFiles > pd.Timedelta('0 second'):
+                        print("Zeitdifferenz: {!s:s} zwischen {:s} ({:s}) und {:s} ({:s})".format(
+                            str(tdBetweenFiles).replace('days','Tage')
+                            ,lastFile,lastZip
+                            ,row["logName"],row["zipName"]
+                        ))        
+                    if tdBetweenFiles < pd.Timedelta('0 second'):            
+                        if tdBetweenFiles < -pd.Timedelta('1 second'):
+                            print("Zeitueberlappung > 1s: {!s:s} zwischen {:s} ({:s}) und {:s} ({:s})".format(
+                                str(tdBetweenFiles).replace('days','Tage')
+                                ,lastFile,lastZip
+                                ,row["logName"],row["zipName"]     
+                            ))
+            
+                td=row["LastTime"]-row["FirstTime"]
+                if type(td) == pd.Timedelta:    
+                    tdTotal=tdTotal+td
+                else:
+                    print(index)# Fehler!
+                lastTime=row["LastTime"]
+                lastFile=row["logName"]
+                lastZip=row["zipName"]      
+                
+            firstTime=self.lookUpDf.iloc[0]["FirstTime"]    
+            lastTime=self.lookUpDf.iloc[-1]["LastTime"]
+            tdTotalGross=lastTime-firstTime
+            tdTotalGross,tdTotal,tdBetweenFilesTotal
+
+                            
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+            return firstTime,lastTime,tdTotalGross,tdTotal,tdBetweenFilesTotal
 
     def extractTCsToH5s(self,dfID=pd.DataFrame(),timeStart=None,timeEnd=None,TCsdfOPCFill=TCsdfOPCFill):
         """
@@ -1640,16 +1478,16 @@ class AppLog():
                 dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
             dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
             dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
-            h5Keys=['Log'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5Keys=['Log'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
             logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
 
 
-            h5KeysOPC=['TCsOPC'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysSirCalc=['TCsSirCalc'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSIn=['TCsLDSIn'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSRes1=['TCsLDSRes1'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSRes2=['TCsLDSRes2'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSRes=['TCsLDSRes'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysOPC=['TCsOPC'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysSirCalc=['TCsSirCalc'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSIn=['TCsLDSIn'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes1=['TCsLDSRes1'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes2=['TCsLDSRes2'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes=['TCsLDSRes'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
 
             h5KeysAll=zip(h5Keys,h5KeysOPC,h5KeysSirCalc,h5KeysLDSIn,h5KeysLDSRes1,h5KeysLDSRes2,h5KeysLDSRes)
             
@@ -1691,217 +1529,102 @@ class AppLog():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return
 
-    def getTCsFromH5s(self,timeStart=None,timeEnd=None, LDSResOnly=False, LDSResColsSpecified=None, LDSResTypeSpecified=None):
-        """
-        returns several TC-dfs from TC-H5s:
-            TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2
-            or
-            TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes        
-
-            LDSResOnly:
-            TCsdfLDSRes1,TCsdfLDSRes2
-            or
-            TCsdfLDSRes       
-            
-                LDSResColsSpecified:
-                return in LDSRes df(s) only the specified cols
-                all cols are returned otherwise
-
-                LDSResTypeSpecified:
-                return 1 (SEG) for 'SEG' or 2 (Druck) for 'Druck'
-                both are returned otherwise
-        """ 
-        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
-        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-                        
-        try:   
-
-            try:
-                self.h5FileLDSRes1                
-                Res2=True
-            except:                
-                Res2=False
-
-            TCsdfOPC=pd.DataFrame()
-            TCsdfSirCalc=pd.DataFrame()
-            TCsdfLDSIn=pd.DataFrame()
-            if Res2:                
-                TCsdfLDSRes1=pd.DataFrame()
-                TCsdfLDSRes2=pd.DataFrame()
-            else:
-                TCsdfLDSRes=pd.DataFrame()
-
-            dfLookUpTimes=self.lookUpDf
-            if timeStart!=None:
-                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['LastTime']>=timeStart] # endet nach dem Anfang oder EndeFile ist Anfang
-            if timeEnd!=None:
-                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
-            dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
-            dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
-            h5Keys=['Log'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
-
-
-            h5KeysOPC=['TCsOPC'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysSirCalc=['TCsSirCalc'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSIn=['TCsLDSIn'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSRes1=['TCsLDSRes1'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSRes2=['TCsLDSRes2'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSRes=['TCsLDSRes'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-
-            h5KeysAll=zip(h5Keys,h5KeysOPC,h5KeysSirCalc,h5KeysLDSIn,h5KeysLDSRes1,h5KeysLDSRes2,h5KeysLDSRes)
-            
-            for idx,(h5Key,h5KeyOPC,h5KeySirCalc,h5KeyLDSIn,h5KeyLDSRes1,h5KeyLDSRes2,h5KeyLDSRes) in enumerate(h5KeysAll):
-
-                if not LDSResOnly:
-                                                           
-                    #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfOPC ...'))                    
-                    TCsdfOPC=pd.read_hdf(self.h5FileOPC,h5KeyOPC)
-
-                    #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfSirCalc ...'))                                           
-                    TCsdfSirCalc=pd.read_hdf(self.h5FileSirCalc,h5KeySirCalc)
-
-                    #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSIn ...'))                      
-                    TCsdfLDSIn=pd.read_hdf(self.h5FileLDSIn,h5KeyLDSIn)
-
-                if Res2:
-                    if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
-                        #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes1 ...'))                      
-                        TCsdfLDSRes1=pd.read_hdf(self.h5FileLDSRes1,h5KeyLDSRes1)
-                    if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
-                        #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2 ...'))                      
-                        TCsdfLDSRes2=pd.read_hdf(self.h5FileLDSRes2,h5KeyLDSRes2)
-                else:                   
-                    #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes ...'))                    
-                    TCsdfLDSRes=pd.read_hdf(self.h5FileLDSRes,h5KeyLDSRes)
-
-                if LDSResColsSpecified != None:                    
-                    if Res2:
-                        if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
-                            #logger.debug("{0:s}{1:s} {2:s}".format(logStr,'TCsdfLDSRes1 Filter ...',str(LDSResColsSpecified)))                      
-                            TCsdfLDSRes1=TCsdfLDSRes1.filter(items=LDSResColsSpecified)
-                        if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
-                            #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2 Filter ...'))                      
-                            TCsdfLDSRes2=TCsdfLDSRes2.filter(items=LDSResColsSpecified)
-                    else:                   
-                        #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes Filter ...'))                    
-                        TCsdfLDSRes=TCsdfLDSRes.filter(items=LDSResColsSpecified)
-
-                if idx==0:
-                    if not LDSResOnly:
-                        TCsdfOPCLst=[]
-                        TCsdfSirCalcLst=[]
-                        TCsdfLDSInLst=[]
-                    if Res2:
-                        if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
-                            TCsdfLDSRes1Lst=[]
-                        if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
-                            TCsdfLDSRes2Lst=[]
-                    else:
-                        TCsdfLDSResLst=[]
-                    
-                #logger.debug("{0:s}Append ...".format(logStr)) 
-
-                if not LDSResOnly:
-                    TCsdfOPCLst.append(TCsdfOPC)
-                    TCsdfSirCalcLst.append(TCsdfSirCalc)
-                    TCsdfLDSInLst.append(TCsdfLDSIn)
-                if Res2:
-                    if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
-                        TCsdfLDSRes1Lst.append(TCsdfLDSRes1)
-                    if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
-                        TCsdfLDSRes2Lst.append(TCsdfLDSRes2)
-                else:
-                    TCsdfLDSResLst.append(TCsdfLDSRes)
-
-            logger.debug("{0:s}Concat ...".format(logStr)) 
-
-            if not LDSResOnly:
-                TCsdfOPC=pd.concat(TCsdfOPCLst)
-                TCsdfSirCalc=pd.concat(TCsdfSirCalcLst)
-                TCsdfLDSIn=pd.concat(TCsdfLDSInLst)
-            if Res2:
-                if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
-                    TCsdfLDSRes1=pd.concat(TCsdfLDSRes1Lst)
-                if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
-                    TCsdfLDSRes2=pd.concat(TCsdfLDSRes2Lst)
-            else:
-                TCsdfLDSRes=pd.concat(TCsdfLDSResLst)
-                                                                    
-        except Exception as e:
-            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
-            logger.error(logStrFinal) 
-            raise LxError(logStrFinal)                       
-        finally:           
-            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
-            if not LDSResOnly:
-                if Res2:
-                    return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2
-                else:
-                    return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes
-            else:
-                if Res2:
-                    if LDSResTypeSpecified == None:
-                        return TCsdfLDSRes1,TCsdfLDSRes2
-                    elif LDSResTypeSpecified=='SEG':
-                        return TCsdfLDSRes1
-                    elif LDSResTypeSpecified=='Druck':
-                        return TCsdfLDSRes2
-                else:
-                    return TCsdfLDSRes
-
-
-    def getTCsSpecified(self,dfID=pd.DataFrame(),timeStart=None,timeEnd=None,f=lambda row: True if row['E'] == 'AL_S' else False):
-        """
-        returns specified IDs as TCs-df (with ScenTime as Index)
+    def shrinkH5File(self):
+        """       
+        die dfs werden geloescht im H5-File
+        extract TCs to H5s sollte vorher gelaufen sein
+        dann stehen die TCs als H5s zur Verfügung und das Master-H5 als lookUp ohne weitere Daten
+        
+        HDF5 does not adjust the size of the store after removal (see SO answer), 
+        so it is necessary to recompress/restructure the store - i.e. via cmd-Line:
+        ptrepack --chunkshape=auto --propindexes --complib=blosc in.h5 out.h5
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
-                        
-        try:   
-                                   
-            dfLookUpTimes=self.lookUpDf
-            if timeStart!=None:
-                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['LastTime']>=timeStart] # endet nach dem Anfang oder EndeFile ist Anfang
-            if timeEnd!=None:
-                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
-            dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
-            dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
-            h5Keys=['Log'+re.search('([0-9,_]+)(\.log)',logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
+        
+        try:  
+            # H5 existiert 
+            if os.path.exists(self.h5File):
+                
+                # Keys available
+                with pd.HDFStore(self.h5File) as h5Store:
+                     h5Keys=sorted(h5Store.keys())         # /Log20201216_0000001                            
+                     logger.debug("{0:s}h5Keys available: {1:s}".format(logStr,str(h5Keys))) 
 
-          
-            dfLst=[]
-            for h5Key in h5Keys:
-                logger.debug("{0:s}Get (read_hdf) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
-                dfSingle=pd.read_hdf(self.h5File, key=h5Key)
-                   
-                dfSingle=dfSingle[['ID','ScenTime','Value']]
-                dfSingle=dfSingle[~(dfSingle['Value'].isnull())]
-
-                if not dfID.empty:
-                    dfSingle=dfSingle.merge(dfID,how='left',left_on='ID',right_index=True,suffixes=('','_r'))       
-                    dfSingle=dfSingle[dfSingle.apply(f,axis=1)]
-
-                dfLst.append(dfSingle[['ID','ScenTime','Value']]) 
-                del dfSingle
-                                              
-            logger.debug("{0:s}{1:s}".format(logStr,'Extraction finished. Concat ...')) 
-            df=pd.concat(dfLst)
-            del dfLst
-            df=df.pivot_table(index='ScenTime', columns='ID', values='Value')  
-                                                       
+                     for key in h5Keys:
+                        if re.match('(^/Log)',key):                            
+                            logger.debug("{0:s}key removed: {1:s}".format(logStr,str(key))) 
+                            h5Store.remove(key.replace(h5KeySep,''))
+                        else:
+                            logger.debug("{0:s}key NOT removed: {1:s}".format(logStr,str(key))) 
+                            
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
             raise LxError(logStrFinal)                       
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-            return df
 
+#1618249550522	STD	CVD		1615442324000	p-p			BEGIN_OF_NEW_CONTROL_VOLUME	6-03-FUD-RB~6-03-PSD-RB	NULL	NULL
+#1618249550522	STD	CVD	<-			45		CV_ID
 
-    def getFromZips(self,timeStart=None,timeEnd=None,filter_fct=None,filterAfter=True,readWithDictReader=False):
+    def get(self,timeStart=None,timeEnd=None,filter_fct=None,filterAfter=True,useRawHdfAPI=False):
+        """
+        returns df with filter_fct applied
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+                
+        dfRet=None
+        try:   
+            dfLst=[]
+
+            dfLookUpTimes=self.lookUpDf
+            if timeStart!=None:
+                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['LastTime']>=timeStart] # endet nach dem Anfang oder EndeFile ist Anfang
+            if timeEnd!=None:
+                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
+            dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
+            dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
+            h5Keys=['Log'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
+                         
+            if useRawHdfAPI:
+                with pd.HDFStore(self.h5File) as h5Store:                   
+                    for h5Key in h5Keys:
+                        logger.debug("{0:s}Get (pd.HDFStore) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
+                        df=h5Store[h5Key]
+                        if not filterAfter and filter_fct != None:
+                            logger.debug("{0:s}Apply Filter ...".format(logStr)) 
+                            df=pd.DataFrame(df[df.apply(filter_fct,axis=1)].values,columns=df.columns)                                                     
+                        dfLst.append(df)
+            else:
+                    for h5Key in h5Keys:
+                        logger.debug("{0:s}Get (read_hdf) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
+                        df=pd.read_hdf(self.h5File, key=h5Key)
+                        if not filterAfter and filter_fct != None:
+                            logger.debug("{0:s}Apply Filter ...".format(logStr)) 
+                            df=pd.DataFrame(df[df.apply(filter_fct,axis=1)].values,columns=df.columns)    
+                        dfLst.append(df)     
+                        
+            logger.debug("{0:s}{1:s}".format(logStr,'Extraction finished. Concat ...')) 
+            dfRet=pd.concat(dfLst)
+            del dfLst
+            if filterAfter and filter_fct != None:
+                logger.debug("{0:s}Apply Filter ...".format(logStr)) 
+                dfRet=pd.DataFrame(dfRet[dfRet.apply(filter_fct,axis=1)].values,columns=dfRet.columns)   
+                               
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+            return dfRet
+
+    def getFromZips(self,timeStart=None,timeEnd=None,filter_fct=None,filterAfter=True,readWithDictReader=False,readWindowsLog=False):
         """
         returns df from Zips
 
@@ -2016,7 +1739,7 @@ class AppLog():
 
                                 # ...
                                 if os.path.isfile(logFile):                                                  
-                                    df = self.__processALogFile(logFile=logFile,readWithDictReader=readWithDictReader) 
+                                    df = self.__processALogFile(logFile=logFile,readWithDictReader=readWithDictReader,readWindowsLog=readWindowsLog) 
                                     if df is None:      
                                         logger.warning("{0:s}idx: {1:d} Log: {2:s} NOT processed?! Continue with next Name in 7Zip.".format(logStr,idx,logFileTail))  
                                         # nichts zu prozessieren ...
@@ -2067,11 +1790,305 @@ class AppLog():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
             return dfRet
 
+    def getTCs(self,dfID=pd.DataFrame(),timeStart=None,timeEnd=None,TCsdfOPCFill=TCsdfOPCFill,persistent=False,overwrite=True):
+        """
+        returns TCs-dfs
+        Verarbeitung von dfs gemaess extractTCsToH5s; siehe dort
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+                        
+        try:   
+
+            TCKeys=['TCsdfOPC','TCsdfSirCalc','TCsdfLDSIn','TCsdfLDSRes1','TCsdfLDSRes2a','TCsdfLDSRes2b','TCsdfLDSRes2c']
+
+            if persistent:        
+                 with pd.HDFStore(self.h5File) as h5Store:
+                    h5Keys=sorted(h5Store.keys())                                     
+                    #logger.debug("{0:s}h5Keys available: {1:s}".format(logStr,str(h5Keys)))                      
+                    h5KeysStripped=[item.replace(h5KeySep,'') for item in h5Keys]                   
+
+                 if set(TCKeys) & set(h5KeysStripped) == set(TCKeys):
+                    if not overwrite:
+                        logger.debug("{0:s}persistent: TCKeys {1:s} existieren alle bereits - return aus H5-File ...".format(logStr,str(TCKeys))) 
+
+                        TCsdfOPC=pd.read_hdf(self.h5File,key='TCsdfOPC')
+                        TCsdfSirCalc=pd.read_hdf(self.h5File,key='TCsdfSirCalc')
+                        TCsdfLDSIn=pd.read_hdf(self.h5File,key='TCsdfLDSIn')
+                        TCsdfLDSRes1=pd.read_hdf(self.h5File,key='TCsdfLDSRes1')
+                        TCsdfLDSRes2a=pd.read_hdf(self.h5File,key='TCsdfLDSRes2a')
+                        TCsdfLDSRes2b=pd.read_hdf(self.h5File,key='TCsdfLDSRes2b')
+                        TCsdfLDSRes2c=pd.read_hdf(self.h5File,key='TCsdfLDSRes2c')
+                       
+                        logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+                        return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2a,TCsdfLDSRes2b,TCsdfLDSRes2c
+                    else:
+                        logger.debug("{0:s}persistent: TCKeys {1:s} existieren alle bereits - sollen aber ueberschrieben werden ...".format(logStr,str(TCKeys))) 
+                        
+                 else:                    
+                    logger.debug("{0:s}persistent: TCKeys {1:s} existieren nicht (alle) ...".format(logStr,str(TCKeys))) 
+                       
+            dfLookUpTimes=self.lookUpDf
+            if timeStart!=None:
+                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['LastTime']>=timeStart] # endet nach dem Anfang oder EndeFile ist Anfang
+            if timeEnd!=None:
+                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
+            dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
+            dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
+            h5Keys=['Log'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
+
+            dfLst=[]
+            for h5Key in h5Keys:
+                logger.debug("{0:s}Get (read_hdf) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
+                dfSingle=pd.read_hdf(self.h5File, key=h5Key)
+                   
+                dfSingle=dfSingle[['ID','ProcessTime','ScenTime','SubSystem','Value','Direction']]
+                dfSingle=dfSingle[~(dfSingle['Value'].isnull())]
+
+                dfLst.append(dfSingle) 
+                                              
+            logger.debug("{0:s}{1:s}".format(logStr,'Extraction finished. Concat ...')) 
+            df=pd.concat(dfLst)
+            del dfLst
+
+            logger.debug("{0:s}{1:s}".format(logStr,'Concat finished. Filter & Pivot ...'))      
+            
+            if not dfID.empty:
+                TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2=self.getTCsFromDf(df,dfID=dfID,TCsdfOPCFill=TCsdfOPCFill)
+            else:
+                TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes=self.getTCsFromDf(df,dfID=dfID,TCsdfOPCFill=TCsdfOPCFill)
+               
+            if persistent:                 
+                    logger.debug("{0:s}peristent: TCKeys {1:s} nach H5-File ...".format(logStr,str(TCKeys))) 
+                    TCsdfOPC.to_hdf(self.h5File,key='TCsdfOPC')
+                    TCsdfSirCalc.to_hdf(self.h5File,key='TCsdfSirCalc')
+                    TCsdfLDSIn.to_hdf(self.h5File,key='TCsdfLDSIn')
+                    TCsdfLDSRes1.to_hdf(self.h5File,key='TCsdfLDSRes1')
+                    TCsdfLDSRes2a.to_hdf(self.h5File,key='TCsdfLDSRes2a')
+                    TCsdfLDSRes2b.to_hdf(self.h5File,key='TCsdfLDSRes2b')
+                    TCsdfLDSRes2c.to_hdf(self.h5File,key='TCsdfLDSRes2c')
+                    
+                                          
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            if not dfID.empty:
+                return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2#a,TCsdfLDSRes2b,TCsdfLDSRes2c
+            else:                
+                return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1
+
+    def getTCsFromH5s(self,timeStart=None,timeEnd=None, LDSResOnly=False, LDSResColsSpecified=None, LDSResTypeSpecified=None):
+        """
+        returns several TC-dfs from TC-H5s:
+            TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2
+            or
+            TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes        
+
+            LDSResOnly:
+            TCsdfLDSRes1,TCsdfLDSRes2
+            or
+            TCsdfLDSRes       
+            
+                LDSResColsSpecified:
+                return in LDSRes df(s) only the specified cols
+                all cols are returned otherwise
+
+                LDSResTypeSpecified:
+                return TCsdfLDSRes1 (SEG) for 'SEG' or TCsdfLDSRes2 (Druck) for 'Druck'
+                both are returned otherwise
+        """ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+                        
+        try:   
+
+            try:
+                self.h5FileLDSRes1                
+                Res2=True
+            except:                
+                Res2=False
+
+            TCsdfOPC=pd.DataFrame()
+            TCsdfSirCalc=pd.DataFrame()
+            TCsdfLDSIn=pd.DataFrame()
+            if Res2:                
+                TCsdfLDSRes1=pd.DataFrame()
+                TCsdfLDSRes2=pd.DataFrame()
+            else:
+                TCsdfLDSRes=pd.DataFrame()
+
+            dfLookUpTimes=self.lookUpDf
+            if timeStart!=None:
+                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['LastTime']>=timeStart] # endet nach dem Anfang oder EndeFile ist Anfang
+            if timeEnd!=None:
+                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
+            dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
+            dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
+            h5Keys=['Log'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
 
 
+            h5KeysOPC=['TCsOPC'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysSirCalc=['TCsSirCalc'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSIn=['TCsLDSIn'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes1=['TCsLDSRes1'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes2=['TCsLDSRes2'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes=['TCsLDSRes'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
 
+            h5KeysAll=zip(h5Keys,h5KeysOPC,h5KeysSirCalc,h5KeysLDSIn,h5KeysLDSRes1,h5KeysLDSRes2,h5KeysLDSRes)
+            
+            for idx,(h5Key,h5KeyOPC,h5KeySirCalc,h5KeyLDSIn,h5KeyLDSRes1,h5KeyLDSRes2,h5KeyLDSRes) in enumerate(h5KeysAll):
 
+                if not LDSResOnly:
+                                                           
+                    #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfOPC ...'))                    
+                    TCsdfOPC=pd.read_hdf(self.h5FileOPC,h5KeyOPC)
 
+                    #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfSirCalc ...'))                                           
+                    TCsdfSirCalc=pd.read_hdf(self.h5FileSirCalc,h5KeySirCalc)
+
+                    #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSIn ...'))                      
+                    TCsdfLDSIn=pd.read_hdf(self.h5FileLDSIn,h5KeyLDSIn)
+
+                if Res2:
+                    if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
+                        #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes1 ...'))                      
+                        TCsdfLDSRes1=pd.read_hdf(self.h5FileLDSRes1,h5KeyLDSRes1)
+                    if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
+                        #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2 ...'))                      
+                        TCsdfLDSRes2=pd.read_hdf(self.h5FileLDSRes2,h5KeyLDSRes2)
+                else:                   
+                    #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes ...'))                    
+                    TCsdfLDSRes=pd.read_hdf(self.h5FileLDSRes,h5KeyLDSRes)
+
+                if LDSResColsSpecified != None:                    
+                    if Res2:
+                        if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
+                            #logger.debug("{0:s}{1:s} {2:s}".format(logStr,'TCsdfLDSRes1 Filter ...',str(LDSResColsSpecified)))                      
+                            TCsdfLDSRes1=TCsdfLDSRes1.filter(items=LDSResColsSpecified)
+                        if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
+                            #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes2 Filter ...'))                      
+                            TCsdfLDSRes2=TCsdfLDSRes2.filter(items=LDSResColsSpecified)
+                    else:                   
+                        #logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSRes Filter ...'))                    
+                        TCsdfLDSRes=TCsdfLDSRes.filter(items=LDSResColsSpecified)
+
+                if idx==0:
+                    if not LDSResOnly:
+                        TCsdfOPCLst=[]
+                        TCsdfSirCalcLst=[]
+                        TCsdfLDSInLst=[]
+                    if Res2:
+                        if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
+                            TCsdfLDSRes1Lst=[]
+                        if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
+                            TCsdfLDSRes2Lst=[]
+                    else:
+                        TCsdfLDSResLst=[]
+                    
+                #logger.debug("{0:s}Append ...".format(logStr)) 
+
+                if not LDSResOnly:
+                    TCsdfOPCLst.append(TCsdfOPC)
+                    TCsdfSirCalcLst.append(TCsdfSirCalc)
+                    TCsdfLDSInLst.append(TCsdfLDSIn)
+                if Res2:
+                    if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
+                        TCsdfLDSRes1Lst.append(TCsdfLDSRes1)
+                    if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
+                        TCsdfLDSRes2Lst.append(TCsdfLDSRes2)
+                else:
+                    TCsdfLDSResLst.append(TCsdfLDSRes)
+
+            logger.debug("{0:s}Concat ...".format(logStr)) 
+
+            if not LDSResOnly:
+                TCsdfOPC=pd.concat(TCsdfOPCLst)
+                TCsdfSirCalc=pd.concat(TCsdfSirCalcLst)
+                TCsdfLDSIn=pd.concat(TCsdfLDSInLst)
+            if Res2:
+                if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
+                    TCsdfLDSRes1=pd.concat(TCsdfLDSRes1Lst)
+                if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
+                    TCsdfLDSRes2=pd.concat(TCsdfLDSRes2Lst)
+            else:
+                TCsdfLDSRes=pd.concat(TCsdfLDSResLst)
+                                                                    
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            if not LDSResOnly:
+                if Res2:
+                    return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2
+                else:
+                    return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes
+            else:
+                if Res2:
+                    if LDSResTypeSpecified == None:
+                        return TCsdfLDSRes1,TCsdfLDSRes2
+                    elif LDSResTypeSpecified=='SEG':
+                        return TCsdfLDSRes1
+                    elif LDSResTypeSpecified=='Druck':
+                        return TCsdfLDSRes2
+                else:
+                    return TCsdfLDSRes
+
+    def getTCsSpecified(self,dfID=pd.DataFrame(),timeStart=None,timeEnd=None,f=lambda row: True if row['E'] == 'AL_S' else False):
+        """
+        returns specified IDs as 1 TCs-df (with ScenTime as Index)
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+                        
+        try:   
+                                   
+            dfLookUpTimes=self.lookUpDf
+            if timeStart!=None:
+                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['LastTime']>=timeStart] # endet nach dem Anfang oder EndeFile ist Anfang
+            if timeEnd!=None:
+                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
+            dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
+            dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
+            h5Keys=['Log'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
+
+          
+            dfLst=[]
+            for h5Key in h5Keys:
+                logger.debug("{0:s}Get (read_hdf) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
+                dfSingle=pd.read_hdf(self.h5File, key=h5Key)
+                   
+                dfSingle=dfSingle[['ID','ScenTime','Value']]
+                dfSingle=dfSingle[~(dfSingle['Value'].isnull())]
+
+                if not dfID.empty:
+                    dfSingle=dfSingle.merge(dfID,how='left',left_on='ID',right_index=True,suffixes=('','_r'))       
+                    dfSingle=dfSingle[dfSingle.apply(f,axis=1)]
+
+                dfLst.append(dfSingle[['ID','ScenTime','Value']]) 
+                del dfSingle
+                                              
+            logger.debug("{0:s}{1:s}".format(logStr,'Extraction finished. Concat ...')) 
+            df=pd.concat(dfLst)
+            del dfLst
+            df=df.pivot_table(index='ScenTime', columns='ID', values='Value', aggfunc='last')  
+                                                       
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+            return df
 
 if __name__ == "__main__":
     """
