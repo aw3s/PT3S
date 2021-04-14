@@ -3275,7 +3275,7 @@ def pltLDSpQAndEvents(
                        ,IDPltKey=IDPltKey 
                        ,IDPltValuePostfix=' RTTM' 
                        ,xDctFcts=fctsDct
-                       ,timeShift=pd.Timedelta('1 hour') #pd.Timedelta('0 seconds')
+                       ,timeShift=pd.Timedelta('0 hour') #pd.Timedelta('0 seconds')
                         )                    
                         lines[label]=linesAct[0]  
 
