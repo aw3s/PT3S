@@ -2453,6 +2453,7 @@ def plotTimespans(
                ,ylimRxlim=ylimRxlim
                ,yticksR=yticksR
 
+               ,plotAC=plotAC
                ,ylimAC=ylimAC 
                ,ylimACxlim=ylimACxlim
                ,yticksAC=yticksAC 
@@ -3340,18 +3341,31 @@ def pltLDSpQAndEvents(
            
             for key, value in QDct.items():   
                 if key in dfTCsLDSIn.columns:
-                        label, linesAct = pltLDSpQHelper(
-                        ax2    
-                       ,TCdf=dfTCsLDSIn
-                       ,ID=key 
-                       ,xDctValue=value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-                       ,xDctAttrs=attrsDct 
-                       ,IDPltKey=IDPltKey 
-                       ,IDPltValuePostfix=None
-                       ,xDctFcts=fctsDct
-                       ,timeShift=pd.Timedelta('1 hour') # pd.Timedelta('0 seconds')
-                        )                    
-                        lines[label]=linesAct[0]  
+                    if key != 'IMDI.PUMP.Objects.3S_FBG_DURCHFL.3S_6_EL1_39_FT_01.In.MW.value':
+                            label, linesAct = pltLDSpQHelper(
+                            ax2    
+                           ,TCdf=dfTCsLDSIn
+                           ,ID=key 
+                           ,xDctValue=value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                           ,xDctAttrs=attrsDct 
+                           ,IDPltKey=IDPltKey 
+                           ,IDPltValuePostfix=None
+                           ,xDctFcts=fctsDct
+                           ,timeShift=pd.Timedelta('1 hour') # pd.Timedelta('0 seconds')
+                            )    
+                    else:                       
+                            label, linesAct = pltLDSpQHelper(
+                            ax2    
+                           ,TCdf=dfTCsLDSIn
+                           ,ID=key 
+                           ,xDctValue=value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                           ,xDctAttrs=attrsDct 
+                           ,IDPltKey=IDPltKey 
+                           ,IDPltValuePostfix=None
+                           ,xDctFcts=fctsDct
+                           ,timeShift=pd.Timedelta('0 hour') # pd.Timedelta('0 seconds')
+                            )    
+                    lines[label]=linesAct[0]  
                 else:
                     logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))       
                        
@@ -4308,20 +4322,24 @@ def pltLDSErgVecHelper(
 
         x=dfReprVec.index.values
 
-        if fct==None:
-            y=dfReprVec[ID].values
-        else:
-            y=dfReprVec[ID].apply(fct).values
+        if ID in dfReprVec.columns.to_list():
 
-        if 'where' in attrs.keys():
-            logger.debug("{0:s}ID: {1:s}: step-Plot".format(logStr,ID))                    
-            lines = ax.step(x,y,label=label
-                            ,where=attrs['where'])                                                                                                           
+            if fct==None:
+                y=dfReprVec[ID].values
+            else:
+                y=dfReprVec[ID].apply(fct).values
+
+            if 'where' in attrs.keys():
+                logger.debug("{0:s}ID: {1:s}: step-Plot".format(logStr,ID))                    
+                lines = ax.step(x,y,label=label
+                                ,where=attrs['where'])                                                                                                           
+            else:
+                lines = ax.plot(x,y,label=label
+                                )
+            for prop,propValue in [(prop,value) for (prop, value) in attrs.items() if prop not in ['where']]:               
+                plt.setp(lines[0],"{:s}".format(prop),propValue)     
         else:
-            lines = ax.plot(x,y,label=label
-                            )
-        for prop,propValue in [(prop,value) for (prop, value) in attrs.items() if prop not in ['where']]:               
-            plt.setp(lines[0],"{:s}".format(prop),propValue)     
+            logger.warning("{0:s}Spalte: {1:s}: nicht vorhanden?!".format(logStr,ID)) 
                                   
     except RmError:
         raise            
