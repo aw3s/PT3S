@@ -508,6 +508,9 @@ def fGetIDSets(
 
 h5KeySep='/'
 
+def fValueFct(x):        
+    return pd.to_numeric(x,errors='ignore',downcast='float')
+
 class AppLog():
     """
     SIR 3S App Log (SQC Log)
@@ -613,20 +616,6 @@ class AppLog():
                 return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2
             else:
                 return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes
-
-    def fValueFct(x):        
-        ###x=x.replace(',', '.')
-        # values koennten auch strings sein ... (kann theoretisch bei jeder ID vorkommen; adHoc keinen Ansatz wann oder wo das vorkommt)
-        #if x in ['true','True']:
-        #    return pd.to_numeric(1,errors='coerce',downcast='float')
-        #elif x in ['false','False']:
-        #    return pd.to_numeric(0,errors='coerce',downcast='float')
-        #elif x in ['p-p','Q-Q','p-Q','Q-p']: # 1615051120421	STD	CVD		1615051118000	p-p			BEGIN_OF_NEW_CONTROL_VOLUME	6-02-MHV-RB~6-02-FUD-RB	NULL	NULL
-        # 1615051120421	STD	CVD	<-			2094		CV_ID
-        #    return pd.to_numeric(['p-p','Q-Q','p-Q','Q-p'].index(x),errors='coerce',downcast='float')
-        #else:
-            #return pd.to_numeric(x,errors='coerce',downcast='float')
-        return pd.to_numeric(x,errors='ignore',downcast='float')
 
     def __init__(self,logFile=None,zip7File=None,h5File=None,h5FileName=None,readWithDictReader=False,nRows=None,readWindowsLog=False):
         """
@@ -834,6 +823,50 @@ class AppLog():
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
 
+
+    def getInitDf(self,useRawHdfAPI=False):
+        """       
+        returns InitDf from H5-File 
+        """ 
+ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+        
+        try:
+            
+            df=pd.DataFrame()
+
+            # H5 existiert 
+            if os.path.exists(self.h5File):
+               
+
+                # Keys available
+                with pd.HDFStore(self.h5File) as h5Store:
+                     h5Keys=sorted(h5Store.keys())                                     
+                     logger.debug("{0:s}h5Keys available: {1:s}".format(logStr,str(h5Keys))) 
+                     
+                h5KeysStripped=[item.replace(h5KeySep,'') for item in h5Keys]
+
+                if useRawHdfAPI:
+                    with pd.HDFStore(self.h5File) as h5Store:
+                        if 'init' in h5KeysStripped:
+                            df=h5Store['init']
+                else:
+                    if 'init' in h5KeysStripped:
+                        df=pd.read_hdf(self.h5File, key='init')        
+            else:
+                logStrFinal="{0:s}h5File {1:s} not existing.".format(logStr,h5File) 
+                logger.debug(logStrFinal)    
+                raise LxError(logStrFinal)      
+            
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
+            return df
+
     def __initzip7File(self,zip7File,h5FileName=None,nRows=None,readWithDictReader=False,readWindowsLog=False):
         """
         (re-)initialize with zip7File
@@ -985,7 +1018,7 @@ class AppLog():
                  logger.debug("{0:s}Writing df with h5Key={1:s} to {2:s} done.".format(logStr,key,h5FileTail))    
 
              if updLookUpDf:
-                 s=df.iloc[[0,-1]]['ScenTime']#['#LogTime']
+                 s=df['ScenTime']#['#LogTime']
                  FirstTime=s.iloc[0]
                  LastTime=s.iloc[-1]
                  if self.lookUpDf.empty:
@@ -1092,12 +1125,8 @@ class AppLog():
              logger.debug("{0:s}{1:s} col ProcessTime processed.".format(logStr,logFileTail)) 
              
              #Value
-             df['ValueProcessed']=df.Value.str.replace(',', '.')
-             #df.Value=pd.to_numeric(df.Value,errors='coerce') # NaN # kann auch true oder false sein ....
-             # df['distance'] = haversine(40.671, -73.985, df['latitude'].values, df['longitude'].values)
-
-             df['ValueProcessed2']=fValueFct(df['ValueProcessed'].values) #df['ValueProcessed'].apply(fValueFct)
-
+             df['Value']=df.Value.str.replace(',', '.')
+             df['Value']=fValueFct(df['Value'].values) # df['ValueProcessed'].apply(fValueFct)
              logger.debug("{0:s}{1:s} col Value processed.".format(logStr,logFileTail)) 
 
              #Strings             
@@ -1106,51 +1135,29 @@ class AppLog():
 
              logger.debug("{0:s}{1:s} String-cols processed.".format(logStr,logFileTail)) 
 
-#1618249551621	STD	CVD		1615442324000	p-p			BEGIN_OF_NEW_CONTROL_VOLUME	6-10-SV1-RB~6-10-BID-RB	NULL	NULL # String in beiden Faellen (Linux und Windows) gleich?
-#1618249551621	STD	CVD	<-			156		CV_ID
+             #1618249551621	STD	CVD		1615442324000	p-p			BEGIN_OF_NEW_CONTROL_VOLUME	6-10-SV1-RB~6-10-BID-RB	NULL	NULL # String in beiden Faellen (Linux und Windows) gleich?
+             #1618249551621	STD	CVD	<-			156		CV_ID
 
              ##ScenTime       
              ##                      SubSystem   Direction   ProcessTime     ID                  Value   State   Remark                              
              ## Linux ---
              ## 1615029280000	INF	SQC		    			                                                    Starting cycle for 2021-03-06 12:14:38.000
-             ## 1615029280000	STD	LDS MCL		            1615029278000	Main cycle loop			            06.03.2021	12:14:38.000 (ScenTime: Tag und Zeit in Klartext; Spalte ProcessTime Logzeit?!)
+             ## 1615029280000	STD	LDS MCL		            1615029278000	Main cycle loop			            06.03.2021	12:14:38.000 (ScenTime: Tag und Zeit in Klartext; Spalte ProcessTime ScenTime!)
              ## Windows ---
-             ## 1618256150711	STD	SQC		                1615457121000	Main cycle loop			            11:05:21.000 (ScenTime-Zeit in Klartext; Spalte ProcessTime ScenTime?!)
-                          
-             ## #######
-             #if nRows==None:
-             #    if readWindowsLog:
-             #        fScenTime=lambda row: row['ProcessTime'] if row['ID']=='Main cycle loop' else None
-             #        df['ScenTime']=df.apply(fScenTime,axis=1)
-             #        firstScenTimeLoggedWithLdsMcl=df['ScenTime'].loc[df['ScenTime'].notnull()].iloc[0]
-             #        df['ScenTime']=df['ScenTime'].fillna(method='ffill')
-             #        df['ScenTime']=df['ScenTime'].fillna(value=firstScenTimeLoggedWithLdsMcl-pd.Timedelta('1000 ms'))
-             #    else:                 
-             #        p=re.compile('(^Starting cycle for )(?P<Time>[0-9,\-,\ ,\:,\.]+)') # Starting cycle for 2020-11-13 15:20:52.000        
-             #        f1=lambda row: p.search(row['Remark'])             
-             #        df['ScenTimeTmp']=df.apply(f1,axis=1)
-             #        ####logger.debug("{0:s}df: {1:s}".format(logStr,str(df)))
-             #        ####logger.debug("{0:s}df['ScenTimeTmp']: {1:s}".format(logStr,str(df['ScenTimeTmp']))) 
-             #        #try:
-             #        f2=lambda row: pd.to_datetime(row['ScenTimeTmp'].group('Time'),format='%Y-%m-%d %H:%M:%S.%f') if row['ScenTimeTmp'] != None else None             
-             #        df['ScenTime']=df.apply(f2,axis=1)
-             #        firstScenTimeLoggedWithLdsMcl=df['ScenTime'].loc[df['ScenTime'].notnull()].iloc[0]
-             #        #lastScenTimeLoggedWithLdsMcl=df['ScenTime'].loc[df['ScenTime'].notnull()].iloc[-1]            
-             #        df['ScenTime']=df['ScenTime'].fillna(method='ffill')
-             #        df['ScenTime']=df['ScenTime'].fillna(value=firstScenTimeLoggedWithLdsMcl-pd.Timedelta('1000 ms'))
-             #        #except:
-             #        #    logger.debug("{0:s}{1:s}: ScenTime set to #LogTime.".format(logStr,logFileTail))
-             #        #    df['ScenTime']=df['#LogTime']        
-             #else:
-             #    # wenn nur wenige Zeilen gelesen werden sollten ist evtl. gar keine Zeile mit Main cycle loop dabei ...
-             #    df['ScenTime']=df['#LogTime']    
-             df['ScenTime']=df['ProcessTime']  
-
-             df=df[['#LogTime','LogLevel','SubSystem','Direction','ProcessTime','ID','ValueProcessed2','ScenTime','State','Remark']]
-             df.rename(columns={'ValueProcessed2':'Value'},inplace=True)
-                        
-             #logger.debug("{0:s}{1:s} processed with nRows (None if all): {2:s}. Unique ScenTimes: {3:s}.".format(logStr,logFileTail,str(nRows),str(df['ScenTime'].unique())))     
-             logger.debug("{0:s}{1:s} processed with nRows (None if all).".format(logStr,logFileTail,str(nRows)))     
+             ## 1618256150711	STD	SQC		                1615457121000	Main cycle loop			            11:05:21.000 (ScenTime-Zeit in Klartext; Spalte ProcessTime ScenTime!)
+                                    
+             dfScenTime=df[df['ID']=='Main cycle loop'][['ProcessTime']]
+             dfScenTime.rename(columns={'ProcessTime':'ScenTime'},inplace=True)
+             df=df.join(dfScenTime) 
+             df['ScenTime']=df['ScenTime'].fillna(method='ffill')
+             df['ScenTime']=df['ScenTime'].fillna(method='bfill')
+             if df['ScenTime'].isnull().values.all():
+                logger.debug("{0:s}Keine Zeile mit ID=='Main cycle loop' gefunden. ScenTime zu #LogTime gesetzt.".format(logStr))     
+                df['ScenTime']=df['#LogTime'] # wenn keine Zeile mit ID=='Main cycle loop' gefunden wurde, wird ScenTime zu #LogTime gesetzt
+            
+             # finalisieren           
+             df=df[['#LogTime','LogLevel','SubSystem','Direction','ProcessTime','ID','Value','ScenTime','State','Remark']]            
+             logger.debug("{0:s}{1:s} processed with nRows: {2:s} (None if all).".format(logStr,logFileTail,str(nRows)))     
                           
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -1185,6 +1192,7 @@ class AppLog():
                     logger.debug("{0:s}addZip7File: {1:s}".format(logStr,zip7File))   
                     self.addZip7File(zip7File,firstsAndLastsLogsOnly=True,nRows=1,readWithDictReader=readWithDictReader,noDfStorage=True,readWindowsLog=readWindowsLog)
 
+                logger.debug("{0:s}lookUpDf: {1:s}".format(logStr,self.lookUpDf.to_string()))  
                 df=self.lookUpDf.groupby(by='zipName').agg(['min', 'max'])
                 logger.debug("{0:s}df: {1:s}".format(logStr,df.to_string()))   
 
