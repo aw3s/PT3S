@@ -553,14 +553,14 @@ class AppLog():
         
         Time curve dfs: cols:
             * Time (TCsdfOPC: ProcessTime, other: ScenTime)
-            * ID
-            * Value
+            * ID 
+            * Value 
 
         Time curve dfs:
             * TCsdfOPC
             * TCsSirCalc
             * TCsLDSIn
-            * TCsLDSRes (dfID empty) or TCsLDSRes1, TCsLDSRes2
+            * TCsLDSRes (dfID empty) or TCsLDSRes1, TCsLDSRes2            
             
         """ 
  
@@ -576,7 +576,7 @@ class AppLog():
                 TCsdfLDSRes1=pd.DataFrame()
                 TCsdfLDSRes2=pd.DataFrame()
             else:
-                TCsdfLDSRes=pd.DataFrame()
+                TCsdfLDSRes=pd.DataFrame()           
 
             if not dfID.empty:
                 df=df.merge(dfID,how='left',left_on='ID',right_index=True,suffixes=('','_r'))             
@@ -591,7 +591,7 @@ class AppLog():
                     TCsdfOPC[col]=TCsdfOPC[col].fillna(method='bfill')
             
             logger.debug("{0:s}{1:s}".format(logStr,'TCsdfSirCalc ...'))                           
-            TCsdfSirCalc=df[(df['SubSystem'].str.contains('^SirCalc'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value',aggfunc='last')       
+            TCsdfSirCalc=df[(df['SubSystem'].str.contains('^SirCalc')) | (df['SubSystem'].str.contains('^RTTM')) ][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value',aggfunc='last')       
             
             logger.debug("{0:s}{1:s}".format(logStr,'TCsdfLDSIn ...'))      
             TCsdfLDSIn=df[(df['SubSystem'].str.contains('^LDS')) & (df['Direction'].str.contains('^<-'))][['ScenTime','ID','Value']].pivot_table(index='ScenTime', columns='ID', values='Value',aggfunc='last')
@@ -1420,7 +1420,7 @@ class AppLog():
 
     def extractTCsToH5s(self,dfID=pd.DataFrame(),timeStart=None,timeEnd=None,TCsdfOPCFill=TCsdfOPCFill):
         """
-        extracts TC-Data from H5 to seperate H5-Files (Postfixe: _TCxxx.h5)
+        extracts TC-Data (and CVD-Data) from H5 to seperate H5-Files (Postfixe: _TCxxx.h5 and _CVD.h5)
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1428,7 +1428,7 @@ class AppLog():
                         
         try:   
 
-            # _TCxxx.h5 anlegen (OPC, SirCalc, LDSIn, LDSRes1, LDSRes2 (,LDSRes))
+            # _TCxxx.h5 anlegen (OPC, SirCalc, LDSIn, LDSRes1, LDSRes2 (,LDSRes)) and _CVD.h5
 
             # ueber alle dfs in H5 (unter Berücksichtigung von timeStart und timeEnd)
                 # lesen
@@ -1477,7 +1477,7 @@ class AppLog():
                     del self.h5FileLDSRes2
                 except:
                     pass
-
+            self.h5FileCVD=name+'_'+'CVD'+ext
 
             dfLookUpTimes=self.lookUpDf
             if timeStart!=None:
@@ -1489,17 +1489,20 @@ class AppLog():
             h5Keys=['Log'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
             logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
 
+            l=[re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
 
-            h5KeysOPC=['TCsOPC'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysSirCalc=['TCsSirCalc'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSIn=['TCsLDSIn'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSRes1=['TCsLDSRes1'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSRes2=['TCsLDSRes2'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSRes=['TCsLDSRes'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysOPC=['TCsOPC'+x for x in l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysSirCalc=['TCsSirCalc'+x for x in l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSIn=['TCsLDSIn'+x for x in l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes1=['TCsLDSRes1'+x for x in l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes2=['TCsLDSRes2'+x for x in l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes=['TCsLDSRes'+x for x in l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
 
-            h5KeysAll=zip(h5Keys,h5KeysOPC,h5KeysSirCalc,h5KeysLDSIn,h5KeysLDSRes1,h5KeysLDSRes2,h5KeysLDSRes)
+            h5KeysCVD=['CVDRes'+x for x in l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+
+            h5KeysAll=zip(h5Keys,h5KeysOPC,h5KeysSirCalc,h5KeysLDSIn,h5KeysLDSRes1,h5KeysLDSRes2,h5KeysLDSRes,h5KeysCVD)
             
-            for idx,(h5Key,h5KeyOPC,h5KeySirCalc,h5KeyLDSIn,h5KeyLDSRes1,h5KeyLDSRes2,h5KeyLDSRes) in enumerate(h5KeysAll):
+            for idx,(h5Key,h5KeyOPC,h5KeySirCalc,h5KeyLDSIn,h5KeyLDSRes1,h5KeyLDSRes2,h5KeyLDSRes,h5KeyCVD) in enumerate(h5KeysAll):
 
                 #H5-Write-Modus
                 if idx==0:
@@ -1509,6 +1512,26 @@ class AppLog():
 
                 logger.debug("{0:s}Get (read_hdf) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
                 df=pd.read_hdf(self.h5File, key=h5Key)                   
+
+                # CVD -------------------------------------------------------------------------------------------------
+                dfCVD=df[df['SubSystem']=='CVD']
+                dfCVDBeginCV=dfCVD[dfCVD['Remark'].str.contains('^BEGIN_OF_NEW_CONTROL_VOLUME')].copy(deep=True)
+
+                dfCVDBeginCV['ZHKNR']=None
+                dfCVDBeginCV['ZHKStr']=None
+                for index,row in dfCVDBeginCV.iterrows():
+                    rowPair=df[index:index+2][['ID','Value','Remark']]
+                    dfCVDBeginCV.loc[index,'ZHKNR']=rowPair.iloc[-1]['Value']
+    
+                    dfFollows=df[index+1:index+1000]   
+                    row=dfFollows[dfFollows['Remark'].str.contains('^END_OF_NEW_CONTROL_VOLUME')].iloc[0]                    
+                    dfCVDBeginCV.loc[index,'ZHKStr']=row['ID']
+                dfCV=dfCVDBeginCV[['ScenTime','ZHKNR','ID','ZHKStr']].rename(columns={'ID':'Type'})
+                logger.debug("{0:s}dfCVD processed.".format(logStr)) 
+                #       ScenTime	        ZHKNR	Type	ZHKStr
+                #48340	2021-03-11 05:58:44	1	    Q-Q	    ~6-26-60,324°6-26-HMV~
+                # ----------------------------------------------------------------------------------------------------
+
                 df=df[['ID','ProcessTime','ScenTime','SubSystem','Value','Direction']]
                 df=df[~(df['Value'].isnull())]                
 
@@ -1528,6 +1551,8 @@ class AppLog():
                     TCsdfLDSRes2.to_hdf(self.h5FileLDSRes2,h5KeyLDSRes2, mode=mode)
                 else:                                       
                     TCsdfLDSRes.to_hdf(self.h5FileLDSRes,h5KeyLDSRes, mode=mode)
+                # ---
+                dfCVD.to_hdf(self.h5FileCVD,h5KeyCVD, mode=mode)
                                                                     
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -1540,12 +1565,8 @@ class AppLog():
     def shrinkH5File(self):
         """       
         die dfs werden geloescht im H5-File
-        extract TCs to H5s sollte vorher gelaufen sein
-        dann stehen die TCs als H5s zur Verfügung und das Master-H5 als lookUp ohne weitere Daten
-        
-        HDF5 does not adjust the size of the store after removal (see SO answer), 
-        so it is necessary to recompress/restructure the store - i.e. via cmd-Line:
-        ptrepack --chunkshape=auto --propindexes --complib=blosc in.h5 out.h5
+        extract TCs to H5s ### MUSS ### vorher gelaufen sein
+        nach shrinkH5File stehen im Master-H5 die eigentlichen Daten nicht mehr zur Verfuegung               
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1566,6 +1587,17 @@ class AppLog():
                             h5Store.remove(key.replace(h5KeySep,''))
                         else:
                             logger.debug("{0:s}key NOT removed: {1:s}".format(logStr,str(key))) 
+                
+                with pd.HDFStore(self.h5File) as h5Store:
+                    pass
+                
+                shrinkCmd="ptrepack --chunkshape=auto --propindexes --complib=blosc "+self.h5File+" "+self.h5File+".Shrinked"
+                logger.debug("{0:s}shrinkCmd: {1:s}".format(logStr,shrinkCmd)) 
+                if os.path.exists(self.h5File+".Shrinked"):
+                    os.remove(self.h5File+".Shrinked")
+                os.system(shrinkCmd)
+                os.remove(self.h5File)
+                os.rename(self.h5File+".Shrinked",self.h5File)                
                             
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -1573,9 +1605,6 @@ class AppLog():
             raise LxError(logStrFinal)                       
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-
-#1618249550522	STD	CVD		1615442324000	p-p			BEGIN_OF_NEW_CONTROL_VOLUME	6-03-FUD-RB~6-03-PSD-RB	NULL	NULL
-#1618249550522	STD	CVD	<-			45		CV_ID
 
     def get(self,timeStart=None,timeEnd=None,filter_fct=None,filterAfter=True,useRawHdfAPI=False):
         """
