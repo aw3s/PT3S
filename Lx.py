@@ -2120,12 +2120,15 @@ class AppLog():
 
     def getCVDFromH5(self,timeStart=None,timeEnd=None):
         """
-        returns dfCVD from H5
+        returns dfCVD, dfCVDataOnly 
+        dfCVD:          all rows with Subsystem CVD 
+        dfCVDataOnly:   CVs from dfCVD
         """ 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
         dfCVD=pd.DataFrame()
+        dfCVDataOnly=pd.DataFrame()
                         
         try:   
 
@@ -2142,14 +2145,25 @@ class AppLog():
                 dfCVDLst.append(dfCVD)
                                
             dfCVD=pd.concat(dfCVDLst)
-                                                                    
+
+            dfCVD=dfCVD.reset_index(drop=True)
+
+            dfCVDBEGIN=dfCVD[dfCVD['Remark'].str.contains('^BEGIN_OF_NEW_CONTROL_VOLUME')].copy(deep=True)
+            dfCVDBEGIN['ZHKNR']=None
+            dfCVDBEGIN['ZHKStr']=None
+            for index,row in dfCVDBEGIN.iterrows():                    
+                df=dfCVD.loc[index:index+1000,:]                
+                dfCVDBEGIN.loc[index,'ZHKNR']=df.loc[index+1,'Value']
+                dfCVDBEGIN.loc[index,'ZHKStr']=df[df['Remark'].str.contains('^END_OF_NEW_CONTROL_VOLUME')].iloc[0]['ID']
+            dfCVDataOnly=dfCVDBEGIN[['ScenTime','ZHKNR','ID','ZHKStr']].rename(columns={'ID':'Type'}).reset_index(drop=True)
+                                                                                    
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
             logger.error(logStrFinal) 
             raise LxError(logStrFinal)                       
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
-            return dfCVD
+            return dfCVD,dfCVDataOnly
 
     def getTCsSpecified(self,dfID=pd.DataFrame(),timeStart=None,timeEnd=None,f=lambda row: True if row['E'] == 'AL_S' else False):
         """
