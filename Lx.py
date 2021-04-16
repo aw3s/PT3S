@@ -743,13 +743,17 @@ class AppLog():
 
     def __initWithH5File(self,h5File,useRawHdfAPI=False):
         """       
-        die lookUp-Dfs vom H5-File werden gelesen
-        die zum H5-File zugehoerigen TC-H5-Filenamen werden belegt
-        die TC-H5-Files werden nicht auf Existenz geprüft oder gar gelesen
-
         self.h5File=h5File
-        self.lookUpDf     from H5-File
-        self.lookUpDfZips from H5-File
+
+        self.lookUpDf     
+        self.lookUpDfZips 
+        die lookUp-Dfs werden gelesen vom H5-File
+
+        die zum H5-File zugehoerigen TC-H5-Filenamen werden belegt, wenn diese H5-Files existieren
+        die TC-H5-Files werden nicht gelesen
+
+        der zum H5-File zugehoerige CVD-Filename wird belegt, wenn das H5-File existiert
+        das H5-File wird nicht gelesen
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -815,6 +819,12 @@ class AppLog():
             if os.path.exists(h5FileLDSRes2):                                         
                 self.h5FileLDSRes2=h5FileLDSRes2
                 logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileLDSRes2))    
+
+
+            h5FileCVD=name+'_'+'CVD'+ext
+            if os.path.exists(h5FileCVD):                                         
+                self.h5FileCVD=h5FileCVD
+                logger.debug("{0:s}Existing H5-File {1:s}.".format(logStr,self.h5FileCVD))    
                     
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -822,7 +832,6 @@ class AppLog():
             raise LxError(logStrFinal)                       
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))   
-
 
     def getInitDf(self,useRawHdfAPI=False):
         """       
@@ -2077,6 +2086,70 @@ class AppLog():
                         return TCsdfLDSRes2
                 else:
                     return TCsdfLDSRes
+
+    def __getH5Keys(self,timeStart=None,timeEnd=None):
+        """
+        returns h5Keys (keys fuer Logfiles in h5File), h5KeysPost (key Postfixe fuer dfs in allen anderen h5Files)  
+        """ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+                        
+        try:   
+
+            dfLookUpTimes=self.lookUpDf
+            if timeStart!=None:
+                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['LastTime']>=timeStart] # endet nach dem Anfang oder EndeFile ist Anfang
+            if timeEnd!=None:
+                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
+            dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
+            #dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
+
+            h5Keys=['Log'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            logger.debug("{0:s}h5Keys: {1:s}".format(logStr,str(h5Keys))) 
+
+            h5KeysPost=[re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            logger.debug("{0:s}h5KeysPost: {1:s}".format(logStr,str(h5KeysPost))) 
+                                                                               
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            return h5Keys,h5KeysPost
+
+    def getCVDFromH5(self,timeStart=None,timeEnd=None):
+        """
+        returns dfCVD from H5
+        """ 
+        logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
+        logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+        dfCVD=pd.DataFrame()
+                        
+        try:   
+
+            h5Keys,h5KeysPost=self.__getH5Keys(timeStart=timeStart,timeEnd=timeEnd)
+
+            h5KeysCVD=['CVDRes'+x for x in h5KeysPost]
+            
+                        
+            for idx,h5KeyCVD in enumerate(h5KeysCVD):
+                                                                                        
+                dfCVD=pd.read_hdf(self.h5FileCVD,h5KeyCVD)
+                if idx==0:
+                    dfCVDLst=[]
+                dfCVDLst.append(dfCVD)
+                               
+            dfCVD=pd.concat(dfCVDLst)
+                                                                    
+        except Exception as e:
+            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+            logger.error(logStrFinal) 
+            raise LxError(logStrFinal)                       
+        finally:           
+            logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+            return dfCVD
 
     def getTCsSpecified(self,dfID=pd.DataFrame(),timeStart=None,timeEnd=None,f=lambda row: True if row['E'] == 'AL_S' else False):
         """

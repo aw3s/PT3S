@@ -1769,10 +1769,10 @@ def dfAlarmEreignisse(
                 #print(VoralarmTyp)
             elif row['LDSResBaseType']=='Druck':
                 VoralarmTyp=TCsLDSRes2.loc[:row['tA']-pd.Timedelta('1 second'),OrtID+'AL_S'].iloc[-1]
-                #print(VoralarmTyp)        
-            logger.debug("{:s}{:d} {!s:s} {:d}".format(logStr,int(row['Nr']),row['tA'],int(VoralarmTyp)))
-            if VoralarmTyp == None:
-                VoralarmTyp=-1
+                #print(VoralarmTyp) 
+            if pd.isnull(VoralarmTyp): # == None: #?!
+                VoralarmTyp=-1                
+            logger.debug("{:s}{:d} {!s:s} {:d}".format(logStr,int(row['Nr']),row['tA'],int(VoralarmTyp)))           
             VoralarmTypen.append(VoralarmTyp)
         dfAlarmEreignisse['Voralarm']=[int(x) for x in VoralarmTypen]
                                                                                                                        
