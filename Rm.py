@@ -3258,7 +3258,7 @@ def pltLDSpQAndEvents(
                        ,IDPltKey=IDPltKey # Schluesselbezeichner in value   
                        ,IDPltValuePostfix=None
                        ,xDctFcts=fctsDct
-                       ,timeShift=pd.Timedelta('1 hour') # pd.Timedelta('0 seconds')
+                       #,timeShift=pd.Timedelta('1 hour') # pd.Timedelta('0 seconds')
                         )                    
                     lines[label]=linesAct[0]               
                 else:
@@ -3276,7 +3276,7 @@ def pltLDSpQAndEvents(
                        ,IDPltKey=IDPltKey 
                        ,IDPltValuePostfix=' RTTM' 
                        ,xDctFcts=fctsDct
-                       ,timeShift=pd.Timedelta('0 hour') #pd.Timedelta('0 seconds')
+                       #,timeShift=pd.Timedelta('0 hour') #pd.Timedelta('0 seconds')
                         )                    
                         lines[label]=linesAct[0]  
 
@@ -3341,30 +3341,18 @@ def pltLDSpQAndEvents(
            
             for key, value in QDct.items():   
                 if key in dfTCsLDSIn.columns:
-                    if key != 'IMDI.PUMP.Objects.3S_FBG_DURCHFL.3S_6_EL1_39_FT_01.In.MW.value':
-                            label, linesAct = pltLDSpQHelper(
-                            ax2    
-                           ,TCdf=dfTCsLDSIn
-                           ,ID=key 
-                           ,xDctValue=value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-                           ,xDctAttrs=attrsDct 
-                           ,IDPltKey=IDPltKey 
-                           ,IDPltValuePostfix=None
-                           ,xDctFcts=fctsDct
-                           ,timeShift=pd.Timedelta('1 hour') # pd.Timedelta('0 seconds')
-                            )    
-                    else:                       
-                            label, linesAct = pltLDSpQHelper(
-                            ax2    
-                           ,TCdf=dfTCsLDSIn
-                           ,ID=key 
-                           ,xDctValue=value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
-                           ,xDctAttrs=attrsDct 
-                           ,IDPltKey=IDPltKey 
-                           ,IDPltValuePostfix=None
-                           ,xDctFcts=fctsDct
-                           ,timeShift=pd.Timedelta('0 hour') # pd.Timedelta('0 seconds')
-                            )    
+                   
+                    label, linesAct = pltLDSpQHelper(
+                    ax2    
+                    ,TCdf=dfTCsLDSIn
+                    ,ID=key 
+                    ,xDctValue=value # a Dct - i.e. {'IDPlt':'Q Src','RTTM':'IMDI.Objects.FBG_MESSW.6_KED_39_FT_01.In.MW.value'}
+                    ,xDctAttrs=attrsDct 
+                    ,IDPltKey=IDPltKey 
+                    ,IDPltValuePostfix=None
+                    ,xDctFcts=fctsDct
+                    # ,timeShift=pd.Timedelta('0 hour') # pd.Timedelta('0 seconds')
+                    )    
                     lines[label]=linesAct[0]  
                 else:
                     logger.debug("{0:s}Spalte {1:s} gibt es nicht. Weiter.".format(logStr,key))       
@@ -3381,7 +3369,7 @@ def pltLDSpQAndEvents(
                        ,IDPltKey=IDPltKey 
                        ,IDPltValuePostfix=' RTTM' 
                        ,xDctFcts=fctsDct
-                       ,timeShift=pd.Timedelta('0 hour') #pd.Timedelta('0 seconds')
+                       #,timeShift=pd.Timedelta('0 hour') #pd.Timedelta('0 seconds')
                         )                    
                         lines[label]=linesAct[0]  
 

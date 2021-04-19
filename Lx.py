@@ -1118,9 +1118,9 @@ class AppLog():
                 df = pd.DataFrame(rows,columns=colNames,index=index)
              else:
                 if nRows==None:
-                    df=pd.read_csv(logFile,delimiter=delimiter,error_bad_lines=False,warn_bad_lines=False)
+                    df=pd.read_csv(logFile,delimiter=delimiter,error_bad_lines=False,warn_bad_lines=True)
                 else:
-                    df=pd.read_csv(logFile,delimiter=delimiter,error_bad_lines=False,warn_bad_lines=False,nrows=nRows)                
+                    df=pd.read_csv(logFile,delimiter=delimiter,error_bad_lines=False,warn_bad_lines=True,nrows=nRows)                
                 
              logger.debug("{0:s}{1:s} pd.DataFrame processed.".format(logStr,logFileTail)) 
              #logger.debug("{0:s}df: {1:s}".format(logStr,str(df))) 
