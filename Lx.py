@@ -1526,19 +1526,19 @@ class AppLog():
 
                 # CVD -------------------------------------------------------------------------------------------------
                 dfCVD=df[df['SubSystem']=='CVD']
-                dfCVDBeginCV=dfCVD[dfCVD['Remark'].str.contains('^BEGIN_OF_NEW_CONTROL_VOLUME')].copy(deep=True)
+                #dfCVDBeginCV=dfCVD[dfCVD['Remark'].str.contains('^BEGIN_OF_NEW_CONTROL_VOLUME')].copy(deep=True)
 
-                dfCVDBeginCV['ZHKNR']=None
-                dfCVDBeginCV['ZHKStr']=None
-                for index,row in dfCVDBeginCV.iterrows():
-                    rowPair=df[index:index+2][['ID','Value','Remark']]
-                    dfCVDBeginCV.loc[index,'ZHKNR']=rowPair.iloc[-1]['Value']
-    
-                    dfFollows=df[index+1:index+1000]   
-                    row=dfFollows[dfFollows['Remark'].str.contains('^END_OF_NEW_CONTROL_VOLUME')].iloc[0]                    
-                    dfCVDBeginCV.loc[index,'ZHKStr']=row['ID']
-                dfCV=dfCVDBeginCV[['ScenTime','ZHKNR','ID','ZHKStr']].rename(columns={'ID':'Type'})
-                logger.debug("{0:s}dfCVD processed.".format(logStr)) 
+                #dfCVDBeginCV['ZHKNR']=None
+                #dfCVDBeginCV['ZHKStr']=None
+                #for index,row in dfCVDBeginCV.iterrows():
+                #    rowPair=df[index:index+2][['ID','Value','Remark']]
+                #    dfCVDBeginCV.loc[index,'ZHKNR']=rowPair.iloc[-1]['Value']
+                # 
+                #    dfFollows=df[index+1:index+1000]   
+                #    row=dfFollows[dfFollows['Remark'].str.contains('^END_OF_NEW_CONTROL_VOLUME')].iloc[0]                    
+                #    dfCVDBeginCV.loc[index,'ZHKStr']=row['ID']
+                #dfCV=dfCVDBeginCV[['ScenTime','ZHKNR','ID','ZHKStr']].rename(columns={'ID':'Type'})
+                #logger.debug("{0:s}dfCVD processed.".format(logStr)) 
                 #       ScenTime	        ZHKNR	Type	ZHKStr
                 #48340	2021-03-11 05:58:44	1	    Q-Q	    ~6-26-60,324°6-26-HMV~
                 # ----------------------------------------------------------------------------------------------------
@@ -2142,13 +2142,15 @@ class AppLog():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return h5Keys,h5KeysPost
 
-    def getCVDFromH5(self,timeStart=None,timeEnd=None,timeDelta=None):
+    def getCVDFromH5(self,timeStart=None,timeEnd=None,timeDelta=None,returnDfCVDataOnly=False):
         """
         returns dfCVD, dfCVDataOnly 
         dfCVD:          all rows with Subsystem CVD 
         dfCVDataOnly:   CVs from dfCVD
 
         timeDelta: i.e. pd.Timedelta('1 Hour'); if not None ScenTime is shifted by + timeDelta
+
+        returns dfCVDataOnly only, if returnDfCVDataOnly
         """ 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -2162,30 +2164,38 @@ class AppLog():
 
             h5KeysCVD=['CVDRes'+x for x in h5KeysPost]
             
+            if timeDelta != None:                
+                    logger.debug("{0:s}timeShift ScenTime by + {1:s} ...".format(logStr,str(timeDelta))) 
                         
             for idx,h5KeyCVD in enumerate(h5KeysCVD):
                                                                                         
                 dfCVD=pd.read_hdf(self.h5FileCVD,h5KeyCVD)
+
+                if timeDelta != None:                
+                    #logger.debug("{0:s}timeShift ScenTime by + {1:s} ...".format(logStr,str(timeDelta))) 
+                    dfCVD['ScenTime']=dfCVD['ScenTime']+timeDelta
+
+                dfCVDBEGIN=dfCVD[dfCVD['Remark'].str.contains('^BEGIN_OF_NEW_CONTROL_VOLUME')].copy(deep=True)
+                dfCVDBEGIN['ZHKNR']=dfCVDBEGIN['Value'].astype('int64')
+                dfCVDataOnly=dfCVDBEGIN[['ScenTime','ZHKNR','ID']].rename(columns={'ID':'Type'}).reset_index(drop=True)
+
                 if idx==0:
-                    dfCVDLst=[]
-                dfCVDLst.append(dfCVD)
+                    if not returnDfCVDataOnly:
+                        dfCVDLst=[]
+                    dfCVDataOnlyLst=[]
+
+                # Liste ergaenzen
+                if not returnDfCVDataOnly:
+                    dfCVDLst.append(dfCVD)
+                dfCVDataOnlyLst.append(dfCVDataOnly)
                                
-            dfCVD=pd.concat(dfCVDLst)
+            # Listen verketten und Nachbereitung
+            if not returnDfCVDataOnly:
+                dfCVD=pd.concat(dfCVDLst)
+                dfCVD=dfCVD.reset_index(drop=True)
 
-            dfCVD=dfCVD.reset_index(drop=True)
-
-            if timeDelta != None:                
-                logger.debug("{0:s}timeShift ScenTime by + {1:s} ...".format(logStr,str(timeDelta))) 
-                dfCVD['ScenTime']=dfCVD['ScenTime']+timeDelta
-
-            dfCVDBEGIN=dfCVD[dfCVD['Remark'].str.contains('^BEGIN_OF_NEW_CONTROL_VOLUME')].copy(deep=True)
-            dfCVDBEGIN['ZHKNR']=None
-            dfCVDBEGIN['ZHKStr']=None
-            for index,row in dfCVDBEGIN.iterrows():                    
-                df=dfCVD.loc[index:index+1000,:]                
-                dfCVDBEGIN.loc[index,'ZHKNR']=df.loc[index+1,'Value']
-                dfCVDBEGIN.loc[index,'ZHKStr']=df[df['Remark'].str.contains('^END_OF_NEW_CONTROL_VOLUME')].iloc[0]['ID']
-            dfCVDataOnly=dfCVDBEGIN[['ScenTime','ZHKNR','ID','ZHKStr']].rename(columns={'ID':'Type'}).reset_index(drop=True)
+            dfCVDataOnly=pd.concat(dfCVDataOnlyLst)
+            dfCVDataOnly=dfCVDataOnly.reset_index(drop=True)
                                                                                     
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -2193,7 +2203,10 @@ class AppLog():
             raise LxError(logStrFinal)                       
         finally:           
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
-            return dfCVD,dfCVDataOnly
+            if returnDfCVDataOnly:
+                return dfCVDataOnly
+            else:
+                return dfCVD,dfCVDataOnly
 
     def getTCsSpecified(self,dfID=pd.DataFrame(),timeStart=None,timeEnd=None,f=lambda row: True if row['E'] == 'AL_S' else False):
         """

@@ -1283,10 +1283,12 @@ def fGetResTimes(
 
 def getAlarmStatistikData(    
      h5File='a.h5'   
-    ,dfSegsNodesNDataDpkt=pd.DataFrame()     
+    ,dfSegsNodesNDataDpkt=pd.DataFrame()    
+    ,timeShiftPair=None # z.B. (1,'H') bei Replay 
+    ,timeDelta=pd.Timedelta('0 seconds') # z.B. pd.Timedelta('1 Hour') bei Replay 
     ):
     """
-    Returns TCsLDSRes1,TCsLDSRes2
+    Returns TCsLDSRes1,TCsLDSRes2,dfCVDataOnly
     """
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
@@ -1314,7 +1316,9 @@ def getAlarmStatistikData(
         ErgIDs=[*DruckErgIDs,*SEGErgIDs]
         
         # Daten lesen
-        TCsLDSRes1,TCsLDSRes2=lx.getTCsFromH5s(LDSResOnly=True,LDSResColsSpecified=ErgIDs) 
+        TCsLDSRes1,TCsLDSRes2=lx.getTCsFromH5s(LDSResOnly=True,LDSResColsSpecified=ErgIDs,timeShiftPair=timeShiftPair) 
+        dfCVDataOnly=lx.getCVDFromH5(timeDelta=timeDelta,returnDfCVDataOnly=True) 
+
 
     except RmError:
         raise            
@@ -1324,7 +1328,7 @@ def getAlarmStatistikData(
         raise RmError(logStrFinal)                       
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
-        return TCsLDSRes1,TCsLDSRes2
+        return TCsLDSRes1,TCsLDSRes2,dfCVDataOnly
 
 def getAlarmStatistikAlarms(    
      TCsLDSRes1=pd.DataFrame()
@@ -1648,7 +1652,7 @@ def dfAlarmEreignisse(
    ,DruckResDct={}
    ,TCsLDSRes1=pd.DataFrame()
    ,TCsLDSRes2=pd.DataFrame()
-     
+   ,dfCVDataOnly=pd.DataFrame() 
     ):
     """
     Returns df
@@ -1756,7 +1760,7 @@ def dfAlarmEreignisse(
 
         dfAlarmEreignisse=dfAlarmEreignisse.reset_index()
         dfAlarmEreignisse.rename(columns={'index':'Nr'},inplace=True)
-        dfAlarmEreignisse['NrResType']=dfAlarmEreignisse.groupby('LDSResBaseType').cumcount() + 1
+        #dfAlarmEreignisse['NrResType']=dfAlarmEreignisse.groupby('LDSResBaseType').cumcount() + 1
 
 
         VoralarmTypen=[]
@@ -1771,10 +1775,25 @@ def dfAlarmEreignisse(
                 VoralarmTyp=TCsLDSRes2.loc[:row['tA']-pd.Timedelta('1 second'),OrtID+'AL_S'].iloc[-1]
                 #print(VoralarmTyp) 
             if pd.isnull(VoralarmTyp): # == None: #?!
-                VoralarmTyp=-1                
-            logger.debug("{:s}{:d} {!s:s} {:d}".format(logStr,int(row['Nr']),row['tA'],int(VoralarmTyp)))           
+                VoralarmTyp=-1      
+                logger.warning("{:s}{:d} {!s:s} kein Vorlalarm gefunden?! - VoralarmTyp:{:d}".format(logStr,int(row['Nr']),row['tA'],int(VoralarmTyp)))           
+                
+            logger.debug("{:s}{:d} {!s:s} VoralarmTyp:{:d}".format(logStr,int(row['Nr']),row['tA'],int(VoralarmTyp)))           
             VoralarmTypen.append(VoralarmTyp)
         dfAlarmEreignisse['Voralarm']=[int(x) for x in VoralarmTypen]
+
+        # Typ
+        dfAlarmEreignisse['ZHKNR']=dfAlarmEreignisse['ZHKNR'].astype('int64')
+        dfAlarmEreignisse['ZHKNRStr']=dfAlarmEreignisse['ZHKNR'].astype('string')
+        dfCVDataOnly['ZHKNRStr']=dfCVDataOnly['ZHKNR'].astype('string')
+
+        dfAlarmEreignisse=pd.merge(dfAlarmEreignisse,dfCVDataOnly,on='ZHKNRStr',suffixes=('','_CVD')).filter(items=dfAlarmEreignisse.columns.to_list()+['Type','ScenTime']) #Kontrolle: ,'ZHKNR_CVD','ZHKNRStr_CVD'])
+
+        dfAlarmEreignisse['NrResType']=dfAlarmEreignisse.groupby(['LDSResBaseType','Type']).cumcount() + 1
+
+
+
+
                                                                                                                        
     except RmError:
         raise            
@@ -1800,9 +1819,9 @@ def plotDfAlarmEreignisse(
 
     try:                     
 
-        df=dfAlarmEreignisse[['Nr','LDSResBaseType','Voralarm','NrResType','tA','tE','ZHKNR','Orte']].copy()
+        df=dfAlarmEreignisse[['Nr','LDSResBaseType','Voralarm','Type','NrResType','tA','tE','ZHKNR','Orte']].copy()
         df['Orte']=df['Orte'].apply(lambda x: str(x).replace('[','').replace(']','').replace("'",""))
-        df['LDSResBaseType']=df.apply(lambda row: "{:s} - {:d}".format(row['LDSResBaseType'],row['Voralarm']),axis=1)
+        df['LDSResBaseType']=df.apply(lambda row: "{:s} {:s} - {:d}".format(row['LDSResBaseType'],row['Type'],row['Voralarm']),axis=1)
         df=df[['Nr','LDSResBaseType','NrResType','tA','tE','ZHKNR','Orte']]
         df.rename(columns={'LDSResBaseType':'ResTyp - Voralarm'},inplace=True)
         df.rename(columns={'NrResType':'NrResTyp'},inplace=True)
