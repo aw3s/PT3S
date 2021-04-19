@@ -2178,7 +2178,6 @@ class AppLog():
                 logger.debug("{0:s}timeShift ScenTime by + {1:s} ...".format(logStr,str(timeDelta))) 
                 dfCVD['ScenTime']=dfCVD['ScenTime']+timeDelta
 
-
             dfCVDBEGIN=dfCVD[dfCVD['Remark'].str.contains('^BEGIN_OF_NEW_CONTROL_VOLUME')].copy(deep=True)
             dfCVDBEGIN['ZHKNR']=None
             dfCVDBEGIN['ZHKStr']=None
