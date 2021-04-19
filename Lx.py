@@ -534,7 +534,7 @@ class AppLog():
     * lookUpDfZips
     """
 
-    TCsdfOPCFill=False
+    TCsdfOPCFill=False # wenn Wahr, werden in TCsdfOPCFill die NULLen aufgefuellt; default: Falsch
 
     @classmethod
     def getTCsFromDf(cls,df,dfID=pd.DataFrame(),TCsdfOPCFill=TCsdfOPCFill):
@@ -549,7 +549,7 @@ class AppLog():
             * dfID
                 * index: ID
                 * erf. nur, wenn IDs nach Res1 und Res2 aufgeteilt werden sollen
-            * TCsdfOPCFill: if True (default): fill NaNs
+            * TCsdfOPCFill: if True (default): fill NaNs in this df
         
         Time curve dfs: cols:
             * Time (TCsdfOPC: ProcessTime, other: ScenTime)
@@ -1430,6 +1430,8 @@ class AppLog():
     def extractTCsToH5s(self,dfID=pd.DataFrame(),timeStart=None,timeEnd=None,TCsdfOPCFill=TCsdfOPCFill):
         """
         extracts TC-Data (and CVD-Data) from H5 to seperate H5-Files (Postfixe: _TCxxx.h5 and _CVD.h5)
+
+        TCsdfOPCFill: wenn Wahr, werden in TCsdfOPCFill die NULLen aufgefuellt; default: Falsch
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1928,7 +1930,7 @@ class AppLog():
             else:                
                 return TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1
 
-    def getTCsFromH5s(self,timeStart=None,timeEnd=None, LDSResOnly=False, LDSResColsSpecified=None, LDSResTypeSpecified=None):
+    def getTCsFromH5s(self,timeStart=None,timeEnd=None, LDSResOnly=False, LDSResColsSpecified=None, LDSResTypeSpecified=None, timeShiftPair=None):
         """
         returns several TC-dfs from TC-H5s:
             TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn,TCsdfLDSRes1,TCsdfLDSRes2
@@ -1947,6 +1949,8 @@ class AppLog():
                 LDSResTypeSpecified:
                 return TCsdfLDSRes1 (SEG) for 'SEG' or TCsdfLDSRes2 (Druck) for 'Druck'
                 both are returned otherwise
+
+            timeShiftPair: (preriod,freq): i.e. (1,'H'); if not None index is shifted
         """ 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -2057,13 +2061,33 @@ class AppLog():
                 TCsdfOPC=pd.concat(TCsdfOPCLst)
                 TCsdfSirCalc=pd.concat(TCsdfSirCalcLst)
                 TCsdfLDSIn=pd.concat(TCsdfLDSInLst)
+                
+                if timeShiftPair != None:
+                    (period,freq)=timeShiftPair
+                    logger.debug("{0:s}timeShift TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn by {1:d} {2:s} ...".format(logStr,period,freq)) 
+                    for df in TCsdfOPC,TCsdfSirCalc,TCsdfLDSIn:
+                        df.index=df.index.shift(period,freq=freq)
+
             if Res2:
                 if LDSResTypeSpecified == None or LDSResTypeSpecified=='SEG':
                     TCsdfLDSRes1=pd.concat(TCsdfLDSRes1Lst)
                 if LDSResTypeSpecified == None or LDSResTypeSpecified=='Druck':
                     TCsdfLDSRes2=pd.concat(TCsdfLDSRes2Lst)
+
+                if timeShiftPair != None:
+                    (period,freq)=timeShiftPair
+                    logger.debug("{0:s}timeShift LDSRes by {1:d} {2:s} ...".format(logStr,period,freq)) 
+                    for df in TCsdfLDSRes1,TCsdfLDSRes2:
+                        df.index=df.index.shift(period,freq=freq)
+
             else:
                 TCsdfLDSRes=pd.concat(TCsdfLDSResLst)
+
+                if timeShiftPair != None:
+                    (period,freq)=timeShiftPair
+                    logger.debug("{0:s}timeShift LDSRes by {1:d} {2:s} ...".format(logStr,period,freq)) 
+                    for df in TCsdfLDSRes:
+                        df.index=df.index.shift(period,freq=freq)
                                                                     
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
@@ -2118,11 +2142,13 @@ class AppLog():
             logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
             return h5Keys,h5KeysPost
 
-    def getCVDFromH5(self,timeStart=None,timeEnd=None):
+    def getCVDFromH5(self,timeStart=None,timeEnd=None,timeDelta=None):
         """
         returns dfCVD, dfCVDataOnly 
         dfCVD:          all rows with Subsystem CVD 
         dfCVDataOnly:   CVs from dfCVD
+
+        timeDelta: i.e. pd.Timedelta('1 Hour'); if not None ScenTime is shifted by + timeDelta
         """ 
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
         logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -2147,6 +2173,11 @@ class AppLog():
             dfCVD=pd.concat(dfCVDLst)
 
             dfCVD=dfCVD.reset_index(drop=True)
+
+            if timeDelta != None:                
+                logger.debug("{0:s}timeShift ScenTime by + {1:s} ...".format(logStr,str(timeDelta))) 
+                dfCVD['ScenTime']=dfCVD['ScenTime']+timeDelta
+
 
             dfCVDBEGIN=dfCVD[dfCVD['Remark'].str.contains('^BEGIN_OF_NEW_CONTROL_VOLUME')].copy(deep=True)
             dfCVDBEGIN['ZHKNR']=None
