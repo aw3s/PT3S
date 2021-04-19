@@ -49,7 +49,7 @@
 >>> #am3=Am.Am(accFile=accFile3)
 """
 
-__version__='90.12.4.3.dev1'
+__version__='90.12.4.8.dev1'
 
 
 
