@@ -1391,14 +1391,17 @@ class AppLog():
                     tdBetweenFilesTotal=tdBetweenFilesTotal+tdBetweenFiles
         
                     if tdBetweenFiles > pd.Timedelta('0 second'):
-                        print("Zeitdifferenz: {!s:s} zwischen {:s} ({:s}) und {:s} ({:s})".format(
-                            str(tdBetweenFiles).replace('days','Tage')
-                            ,lastFile,lastZip
-                            ,row["logName"],row["zipName"]
-                        ))        
+                        if tdBetweenFiles > pd.Timedelta('1 second'):
+                            logger.info("{:s}Zeitdifferenz: {!s:s} zwischen {:s} ({:s}) und {:s} ({:s})".format(logStr,
+                                str(tdBetweenFiles).replace('days','Tage')
+                                ,lastFile,lastZip
+                                ,row["logName"],row["zipName"]
+                            ))    
+                        pass
                     if tdBetweenFiles < pd.Timedelta('0 second'):            
                         if tdBetweenFiles < -pd.Timedelta('1 second'):
-                            print("Zeitueberlappung > 1s: {!s:s} zwischen {:s} ({:s}) und {:s} ({:s})".format(
+                            pass
+                            logger.info("{:s}Zeitueberlappung > 1s: {!s:s} zwischen {:s} ({:s}) und {:s} ({:s})".format(logStr,
                                 str(tdBetweenFiles).replace('days','Tage')
                                 ,lastFile,lastZip
                                 ,row["logName"],row["zipName"]     

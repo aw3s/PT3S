@@ -409,7 +409,8 @@ def fTotalTimeFromPairs(
                 print("Zeitpaar überlappt?!")        
         td=t2-t1
         if td < pd.Timedelta('1 seconds'):
-            print("Zeitpaar < als 1 Sekunde?!")     
+            pass
+            #print("Zeitpaar < als 1 Sekunde?!")     
         
         
         tdTotal=tdTotal+td
@@ -426,10 +427,8 @@ def fTotalTimeFromPairs(
 def findAllTimeIntervalls(
  df
 ,fct=lambda row: True if row['col'] == 46 else False
-,tdAllowed=None # if not None all subsequent TimePairs with TimeDifference <= tdAllowed are combined to one TimePair
+,tdAllowed=None 
 ):
-# alle [Zeitbereiche] finden fuer die fct Wahr ist
-# returns array of Time-Pair-Tuples
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
@@ -437,42 +436,61 @@ def findAllTimeIntervalls(
     tPairs=[]
 
     try:
-        tEin=None
-        # paarweise über alle Zeilen
-        for (i1, row1), (i2, row2) in pairwise(df.iterrows()):    
-            row1Value=fct(row1)
-            row2Value=fct(row2)
 
-            # wenn 1 nicht x und 2       x tEin=t2 "geht Ein"
-            if not row1Value and row2Value:
-                tEin=i2
+        rows,cols=df.shape
 
-            # wenn 1       x und 2 nicht x tAus=t2 "geht Aus"
-            elif row1Value and not row2Value:
-                if tEin != None:
-                    # Paar speichern                    
-                    tPair=(tEin,i1)
-                    tPairs.append(tPair)            
-                else:
-                    pass # sonst: Bed. ist jetzt Aus und war nicht Ein
-                    # Bed. kann nur im ersten Fall Ein gehen
+        if df.empty:            
+            logger.debug("{:s}df ist leer".format(logStr)) 
 
-            # wenn 1       x und 2       x
-            elif row1Value and row2Value: 
-                if tEin != None:
-                    pass
-                else:
-                    # im ersten Wertepaar ist der Bereich Ein
-                    tEin=i1
+        elif rows == 1:            
+            logger.debug("{:s}df hat nur 1 Zeile: {:s}".format(logStr,df.to_string()))       
+                                   
+            rowValue=fct(df.iloc[0])
+            if rowValue:
+                tPair=(df.index[0],df.index[0])
+                tPairs.append(tPair)    
+            else:
+                pass                
+            
+        else:
 
-        # letztes Paar
-        if row1Value and row2Value: 
-                if tEin != None:
-                    tPair=(tEin,i2)
-                    tPairs.append(tPair)    
 
-        if tdAllowed != None:            
-            tPairs=fCombineSubsequenttPairs(tPairs,tdAllowed)
+            tEin=None
+            # paarweise über alle Zeilen
+            for (i1, row1), (i2, row2) in pairwise(df.iterrows()):    
+                row1Value=fct(row1)
+                row2Value=fct(row2)
+
+                # wenn 1 nicht x und 2       x tEin=t2 "geht Ein"
+                if not row1Value and row2Value:
+                    tEin=i2
+
+                # wenn 1       x und 2 nicht x tAus=t2 "geht Aus"
+                elif row1Value and not row2Value:
+                    if tEin != None:
+                        # Paar speichern                    
+                        tPair=(tEin,i1)
+                        tPairs.append(tPair)            
+                    else:
+                        pass # sonst: Bed. ist jetzt Aus und war nicht Ein
+                        # Bed. kann nur im ersten Fall Ein gehen
+
+                # wenn 1       x und 2       x
+                elif row1Value and row2Value: 
+                    if tEin != None:
+                        pass
+                    else:
+                        # im ersten Wertepaar ist der Bereich Ein
+                        tEin=i1
+
+            # letztes Paar
+            if row1Value and row2Value: 
+                    if tEin != None:
+                        tPair=(tEin,i2)
+                        tPairs.append(tPair)    
+
+            if tdAllowed != None:            
+                tPairs=fCombineSubsequenttPairs(tPairs,tdAllowed)
 
     except RmError:
         raise            
@@ -490,13 +508,18 @@ def findAllTimeIntervallsSeries(
 ,tdAllowed=None # if not None all subsequent TimePairs with TimeDifference <= tdAllowed are combined to one TimePair
 ):
     """
-    # alle [Zeitbereiche] finden fuer die fct Wahr ist; diese Zeitbereiche werden geliefert; es werden nur Paare geliefert; d.h. Wahr-Solitäre sind nicht enthalten (gehen verloren)
+    # if fct: 
+    #       alle [Zeitbereiche] finden fuer die fct Wahr ist; diese Zeitbereiche werden geliefert; es werden nur Paare geliefert; d.h. Wahr-Solitäre sind nicht enthalten (gehen verloren)
+    #       Wahr-Solitäre sind dann enthalten, wenn Series nur 1 Wert enthält und dieser Wahr ist; das 1 gelieferte Paar enthaelt dann denselben Zeitstempel 2x
+    #       tdAllowed can be be specified
+    #       in Zeitbereiche zerlegen, die nicht mehr als tdAllowed auseinander liegen; diese Zeitbereiche werden geliefert
 
     # if fct None: 
     #       tdAllowed must be specified
     #       in Zeitbereiche zerlegen, die nicht mehr als tdAllowed auseinander liegen; diese Zeitbereiche werden geliefert
     #       generell ist jeder gelieferte Zeitbereich >=2, auch dann, wenn er dadurch ein oder mehrere unzul. ZeitGaps enthalten muss
     #       denn es soll kein Wert verloren gehen
+    #       wenn Series nur 1 Wert enthält, wird 1 Zeitpaar mit demselben Zeitstempel 2x geliefert, wenn Wert nicht Null
 
     # returns array of Time-Pair-Tuples    
     >>> import pandas as pd
@@ -524,6 +547,13 @@ def findAllTimeIntervallsSeries(
     >>> s2PaarEin=pd.concat([s1PaarGehtEin,s1PaarGehtEinE])
     >>> s2PaarAusEin=pd.concat([s1PaarGehtAus,s1PaarGehtEinE])
     >>> s2PaarEinAus=pd.concat([s1PaarGehtEin,s1PaarGehtAusE])
+    >>> # 1 Wert
+    >>> d = {t1: 46} # 1 Wert - Wahr
+    >>> s1WertWahr=pd.Series(data=d, index=[t1])
+    >>> d = {t1: 44} # 1 Wert - Falsch
+    >>> s1WertFalsch=pd.Series(data=d, index=[t1])
+    >>> d = {t1: None} # 1 Wert - None
+    >>> s1WertNone=pd.Series(data=d, index=[t1])
     >>> ###
     >>> # 46  0
     >>> # 0  46
@@ -550,6 +580,11 @@ def findAllTimeIntervallsSeries(
     []
     >>> findAllTimeIntervallsSeries(s2PaarEinAus)
     [(Timestamp('2021-03-19 01:02:02'), Timestamp('2021-03-19 01:02:05'))]
+    >>> # 1 Wert
+    >>> findAllTimeIntervallsSeries(s1WertWahr)
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:01'))]
+    >>> findAllTimeIntervallsSeries(s1WertFalsch)
+    []
     >>> ###
     >>> # 46  0 !1 Paar
     >>> # 0  46 !1 Paar
@@ -576,6 +611,11 @@ def findAllTimeIntervallsSeries(
     [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:05'), Timestamp('2021-03-19 01:02:06'))]
     >>> findAllTimeIntervallsSeries(s2PaarEinAus,fct=None,tdAllowed=pd.Timedelta('1 second'))
     [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:02')), (Timestamp('2021-03-19 01:02:05'), Timestamp('2021-03-19 01:02:06'))]
+    >>> # 1 Wert
+    >>> findAllTimeIntervallsSeries(s1WertWahr,fct=None)
+    [(Timestamp('2021-03-19 01:02:01'), Timestamp('2021-03-19 01:02:01'))]
+    >>> findAllTimeIntervallsSeries(s1WertNone,fct=None)
+    []
     >>> ###
     >>> d = {t1: 0, t3: 0} 
     >>> s1PaarmZ=pd.Series(data=d, index=[t1, t3])
@@ -616,93 +656,116 @@ def findAllTimeIntervallsSeries(
     tPairs=[]
 
     try:
-        tEin=None
+
+        if s.empty:            
+            logger.debug("{:s}Series ist leer".format(logStr)) 
+
+        elif s.size == 1:            
+            logger.debug("{:s}Series hat nur 1 Element: {:s}".format(logStr,s.to_string()))       
+           
+            if fct != None:
+                sValue=fct(s.iloc[0]) 
+                if sValue:
+                    tPair=(s.index[0],s.index[0])
+                    tPairs.append(tPair)    
+                else:
+                    pass                
+            else:
+                sValue=s.iloc[0]
+                if sValue != None:
+                #if sValue != None:
+                    tPair=(s.index[0],s.index[0])
+                    tPairs.append(tPair) 
+                else:
+                    pass                
+        else:
+            tEin=None
         
-        if fct != None:
-            # paarweise über alle Zeilen
-            for idx,((i1, s1), (i2, s2)) in enumerate(pairwise(s.iteritems())):    
-                s1Value=fct(s1)
-                s2Value=fct(s2)
+            if fct != None:
+                # paarweise über alle Zeilen
+                for idx,((i1, s1), (i2, s2)) in enumerate(pairwise(s.iteritems())):    
+                    s1Value=fct(s1)
+                    s2Value=fct(s2)
 
-                # wenn 1 nicht x und 2       x tEin=t2 "geht Ein"
-                if not s1Value and s2Value:
-                    tEin=i2
-                    if idx > 0:
-                            pass
-                    else:
-                            pass
-                            #print('beim ersten Paar "geht Ein"')      
-
-                # wenn 1       x und 2 nicht x tAus=t2 "geht Aus"
-                elif s1Value and not s2Value:
-                    if tEin != None:
-                        if tEin<i1:
-                            # Paar speichern                                                
-                            tPair=(tEin,i1)
-                            tPairs.append(tPair)            
-                        else:
-                            pass
-                    else: # geht Aus ohne Ein zu sein
+                    # wenn 1 nicht x und 2       x tEin=t2 "geht Ein"
+                    if not s1Value and s2Value:
+                        tEin=i2
                         if idx > 0:
-                            pass # geht im ersten Paar Aus
-                            
+                                pass
                         else:
-                            pass 
+                                pass
+                                #print('beim ersten Paar "geht Ein"')      
+
+                    # wenn 1       x und 2 nicht x tAus=t2 "geht Aus"
+                    elif s1Value and not s2Value:
+                        if tEin != None:
+                            if tEin<i1:
+                                # Paar speichern                                                
+                                tPair=(tEin,i1)
+                                tPairs.append(tPair)            
+                            else:
+                                pass
+                        else: # geht Aus ohne Ein zu sein
+                            if idx > 0:
+                                pass # geht im ersten Paar Aus
+                            
+                            else:
+                                pass 
                            
 
-                # wenn 1       x und 2       x
-                elif s1Value and s2Value: 
-                    if tEin != None:
-                        pass
-                    else:
-                        # im ersten Wertepaar ist der Bereich Ein
-                        tEin=i1
-            # letztes Paar
-            if s1Value and s2Value: 
-                if tEin != None:
-                    tPair=(tEin,i2)
-                    tPairs.append(tPair)      
-
-            if tdAllowed != None:            
-                tPairs=fCombineSubsequenttPairs(tPairs,tdAllowed)
-        else:            
-            # paarweise über alle Zeilen
-            # neues Paar beginnen
-            anzInPair=1 
-            for (i1, s1), (i2, s2) in pairwise(s.iteritems()):    
-                td=i2-i1
-                if td > tdAllowed:
-                    if tEin==None:
-                        # erstes Paar liegt bereits zu weit auseinander
-                        # Paarabschluss wird ignoriert, denn sonst nur 1 Wert am Anfang
-                        # aktuelles Paar beginnt beim 1. Wert und geht über diese Schwelle
-                        tEin=i1
-                        anzInPair=2
-                    else:                    
-                        if anzInPair>=2:
-                            # Paar abschließen                            
-                            tPair=(tEin,i1)
-                            tPairs.append(tPair)      
-                            # neues Paar beginnen
-                            tEin=i2
-                            anzInPair=1
+                    # wenn 1       x und 2       x
+                    elif s1Value and s2Value: 
+                        if tEin != None:
+                            pass
                         else:
-                            # Paarabschluss wird ignoriert, denn sonst nur 1 Wert
+                            # im ersten Wertepaar ist der Bereich Ein
+                            tEin=i1
+                # letztes Paar
+                if s1Value and s2Value: 
+                    if tEin != None:
+                        tPair=(tEin,i2)
+                        tPairs.append(tPair)      
+
+                if tdAllowed != None:            
+                    tPairs=fCombineSubsequenttPairs(tPairs,tdAllowed)
+            else:            
+                # paarweise über alle Zeilen
+                # neues Paar beginnen
+                anzInPair=1 
+                for (i1, s1), (i2, s2) in pairwise(s.iteritems()):    
+                    td=i2-i1
+                    if td > tdAllowed:
+                        if tEin==None:
+                            # erstes Paar liegt bereits zu weit auseinander
+                            # Paarabschluss wird ignoriert, denn sonst nur 1 Wert am Anfang
+                            # aktuelles Paar beginnt beim 1. Wert und geht über diese Schwelle
+                            tEin=i1
                             anzInPair=2
-                else:
-                    if tEin==None:
-                        tEin=i1
-                    anzInPair=anzInPair+1
+                        else:                    
+                            if anzInPair>=2:
+                                # Paar abschließen                            
+                                tPair=(tEin,i1)
+                                tPairs.append(tPair)      
+                                # neues Paar beginnen
+                                tEin=i2
+                                anzInPair=1
+                            else:
+                                # Paarabschluss wird ignoriert, denn sonst nur 1 Wert
+                                anzInPair=2
+                    else:
+                        if tEin==None:
+                            tEin=i1
+                        anzInPair=anzInPair+1
                     
-            # letztes Paar
-            if anzInPair>=2:
-                tPair=(tEin,i2)
-                tPairs.append(tPair)                                  
-            else:                
-                # ein letzter Wert wuere ueber bleiben ... 
-                tPair=tPairs[-1]
-                tPair=(tPair[0],i2)
-                tPairs[-1]=tPair  
+                # letztes Paar
+                if anzInPair>=2:
+                    tPair=(tEin,i2)
+                    tPairs.append(tPair)                                  
+                else:                
+                    # ein letzter Wert wuerde ueber bleiben ... 
+                    tPair=tPairs[-1]
+                    tPair=(tPair[0],i2)
+                    tPairs[-1]=tPair  
                 
             
 
@@ -989,10 +1052,69 @@ def getNamesFromDruckResIDBase(dfSegsNodesNDataDpkt
 def dfSegsNodesNDataDpkt(
      VersionDir=r"C:\3s\Projekte\Projekt\04 - Versionen\Version82.3"
     ,Model=r"MDBDOC\FBG.mdb" # a Access Model
-    ,
+    ,LDSPara=r"App LDS\Modelle\WDFBG\B1\V0\BZ1\LDS_Para.xml"
+    ,LDSParaPT=r"App LDS\SirOPC\AppLDS_DPDTParams.csv"
+    ,LDSParameter=[
+        'ACC_SLOWTRANSIENT'
+        ,'ACC_TRANSIENT'
+        ,'DESIGNFLOW'
+        ,'DT'
+        ,'FILTERWINDOW'
+
+        #,'L_PERCENT'   
+        ,'L_PERCENT_STDY'
+        ,'L_PERCENT_STRAN'
+        ,'L_PERCENT_TRANS'
+        
+        ,'L_SHUTOFF'
+        ,'L_SLOWTRANSIENT'
+        ,'L_SLOWTRANSIENTQP'
+        ,'L_STANDSTILL'
+        ,'L_STANDSTILLQP'
+        ,'L_TRANSIENT'
+        ,'L_TRANSIENTQP'
+        ,'L_TRANSIENTVBIGF'
+        ,'L_TRANSIENTPDNTF'
+        ,'MEAN'
+        ,'NAME'
+        ,'ORDER'
+        ,'TIMER'
+        ,'TTIMERTOALARM'
+        ,'TIMERTOLISS'
+        ,'TIMERTOLIST']
+    ,LDSParameterDataD={
+         'ACC_SLOWTRANSIENT':0.1
+        ,'ACC_TRANSIENT':0.8
+        ,'DESIGNFLOW':250.
+        ,'DT':1
+        ,'FILTERWINDOW':180
+
+        #'L_PERCENT':1.6
+        ,'L_PERCENT_STDY':1.6
+        ,'L_PERCENT_STRAN':1.6
+        ,'L_PERCENT_TRANS':1.6
+
+        ,'L_SHUTOFF':2.
+        ,'L_SLOWTRANSIENT':4.
+        ,'L_SLOWTRANSIENTQP':4.
+        ,'L_STANDSTILL':2.
+        ,'L_STANDSTILLQP':2.
+        ,'L_TRANSIENT':10.
+        ,'L_TRANSIENTQP':10.
+        ,'L_TRANSIENTVBIGF':3.
+        ,'L_TRANSIENTPDNTF':1.5
+        ,'MEAN':1
+       
+        ,'ORDER':1
+        ,'TIMER':180
+        ,'TTIMERTOALARM':45 # TIMER/4
+        ,'TIMERTOLISS':180
+        ,'TIMERTOLIST':180
+
+        ,'NAME':''}
     ):
     """
-
+    Alle Segmente mit Pfaddaten (Kantenzuege mit Kanten- und Knotendaten)
     """
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
@@ -1120,6 +1242,100 @@ def dfSegsNodesNDataDpkt(
                                           ,suffixes=('','_df')
                                           ).filter(items=cols)
         dfSegsNodesNDataDpkt['NODEsSEGDruckErgLfdNr']=dfSegsNodesNDataDpkt['NODEsSEGDruckErgLfdNr'].astype(int,errors='ignore')
+
+
+        # --- LDSPara
+        LDSParaFile=os.path.join(VersionDir,LDSPara)
+        logger.debug("{:s}LDS Para: {:s}".format(logStr,LDSParaFile)) 
+        with open(LDSParaFile) as f:
+            xml = f.read()
+            xmlWellFormed='<root>'+xml+'</root>'
+        root=ET.fromstring(xmlWellFormed)
+
+        LDSParameterData={}
+        for key in LDSParameterDataD.keys():
+            LDSParameterData[key]=[]
+
+        for idx,element in enumerate(root.iter(tag='LDSI')):
+    
+            attribKeysMute=[]
+            for key,value in element.attrib.items():
+                if key not in LDSParameter:
+                    logger.error("{:s}{:s}: Parameter: {:s} undefiniert.".format(logStr,element.attrib['NAME'],key))
+                    attribKeysMute.append(key)
+            
+            keysIst=element.attrib.keys()
+            keysSoll=set(LDSParameter)    
+            keysExplizitFehlend=keysSoll-keysIst        
+    
+            LDSIParaDct=element.attrib    
+            for key in keysExplizitFehlend:  
+                if key=='ORDER':
+                    LDSIParaDct[key]=LDSParameterDataD[key]
+                    logger.info("{:s}{:s}: explizit fehlender Parameter: {:s} gesetzt zu: {!s:s}.".format(logStr,element.attrib['NAME'],key,LDSIParaDct[key]))
+                elif key=='TTIMERTOALARM':
+                    LDSIParaDct[key]=int(LDSIParaDct['TIMER'])/4
+                    logger.info("{:s}{:s}: explizit fehlender Parameter: {:s} gesetzt zu: {!s:s}.".format(logStr,element.attrib['NAME'],key,LDSIParaDct[key]))
+                else:                        
+                    logger.error("{:s}{:s}: explizit fehlender Parameter: {:s} in diesem Skript unbehandelt.".format(logStr,element.attrib['NAME'],key))
+    
+            keyListToProcess=[key for key in LDSIParaDct.keys() if key not in attribKeysMute]
+            for key in keyListToProcess:        
+                LDSParameterData[key].append(LDSIParaDct[key])
+
+        df=pd.DataFrame.from_dict(LDSParameterData)
+        df=df.set_index('NAME').sort_index()
+        df.index.rename('SEGMENT', inplace=True)
+        df=df[sorted(df.columns.to_list())]
+        df = df.apply(pd.to_numeric)       
+        #logger.debug("{:s}df: {:s}".format(logStr,df.to_string()))      
+
+        for index, row in df.iterrows():    
+            for colName, colValue in zip(df.columns.to_list(),row):
+                if colValue != LDSParameterDataD[colName]:
+                    logger.info("{:s}Segment: {:30s} Parameter: {:20s} Wert: {:10s} (Standard: {:s})".format(logStr,index,colName,str(colValue),str(LDSParameterDataD[colName])))
+        
+        logger.debug("{:s}dfSegsNodesNDataDpkt: shape vorher:  {!s:s}".format(logStr,dfSegsNodesNDataDpkt.shape))     
+        dfSegsNodesNDataDpkt=pd.merge(dfSegsNodesNDataDpkt,df,left_on='SEGNodes',right_index=True,suffixes=('','_LDSPara'))
+        logger.debug("{:s}dfSegsNodesNDataDpkt: shape nachher: {!s:s}".format(logStr,dfSegsNodesNDataDpkt.shape))     
+
+        # --- LDSParaPT
+        LDSParaPTFile=os.path.join(VersionDir,LDSParaPT)
+        dfDPDTParams=pd.read_csv(LDSParaPTFile,delimiter=';')
+
+        dfMehrfach=dfDPDTParams.groupby(by='#ID').filter(lambda x: len(x) > 1)
+        rows,cols=dfMehrfach.shape
+        if rows > 0:            
+            logger.warning("{:s}LDSParaPT: Mehrfachkonfigurationen: {:s}".format(logStr,dfMehrfach.to_string()))     
+        
+            dfDPDTParams=dfDPDTParams.groupby(by='#ID').first()
+
+        logger.debug("{:s}dfSegsNodesNDataDpkt: shape vorher:  {!s:s}".format(logStr,dfSegsNodesNDataDpkt.shape))     
+        dfSegsNodesNDataDpkt=pd.merge(dfSegsNodesNDataDpkt,dfDPDTParams,left_on='CLIENT_ID',right_on='#ID',how='left')
+        logger.debug("{:s}dfSegsNodesNDataDpkt: shape nachher:  {!s:s}".format(logStr,dfSegsNodesNDataDpkt.shape))     
+
+        dfOhne=dfSegsNodesNDataDpkt[(~pd.isnull(dfSegsNodesNDataDpkt['CLIENT_ID']) & dfSegsNodesNDataDpkt['CLIENT_ID'].str.len()>0 ) & (pd.isnull(dfSegsNodesNDataDpkt['pMin'])) ][['DIVPipelineName','SEGName','NODEsName','ZKOR','CLIENT_ID']].reset_index(drop=True)
+        rows,cols=dfOhne.shape
+        if rows > 0:            
+            logger.warning("{:s}LDSParaPT: Druckmessstellen ohne Mindestdruck: {:s}".format(logStr,dfOhne.to_string()))     
+        dfSegsNodesNDataDpkt['pMinMlc']=dfSegsNodesNDataDpkt.apply(lambda row: row['ZKOR']+row['pMin']*100000/(794.*9.81),axis=1)
+
+        g=dfSegsNodesNDataDpkt.groupby(by='SEGName')
+        df=g.pMinMlc.agg(pMinMlcMinSEG=np.min,pMinMlcMaxSEG=np.max)
+
+        logger.debug("{:s}dfSegsNodesNDataDpkt: shape vorher:  {!s:s}".format(logStr,dfSegsNodesNDataDpkt.shape))     
+        dfSegsNodesNDataDpkt=pd.merge(dfSegsNodesNDataDpkt,df,left_on='SEGName',right_index=True,how='left')
+        logger.debug("{:s}dfSegsNodesNDataDpkt: shape nachher:  {!s:s}".format(logStr,dfSegsNodesNDataDpkt.shape))    
+
+        df=dfSegsNodesNDataDpkt.groupby(['SEGName']).first()
+
+        df=df[pd.isnull(df['pMinMlcMinSEG'])][['DIVPipelineName','SEGNodes']]
+        rows,cols=df.shape
+        if rows > 0:            
+            logger.warning("{:s}LDSParaPT: Segmente ohne Mindestdruck: {:s}".format(logStr,df.to_string()))     
+
+        df=dfSegsNodesNDataDpkt[(~pd.isnull(dfSegsNodesNDataDpkt['CLIENT_ID']) & dfSegsNodesNDataDpkt['CLIENT_ID'].str.len()>0 ) & (~pd.isnull(dfSegsNodesNDataDpkt['pMin'])) ][['DIVPipelineName','SEGName','NODEsName','ZKOR','CLIENT_ID','pMin']].reset_index(drop=True)
+        logger.debug("{:s}dfSegsNodesNDataDpkt: Mindestdrücke: {!s:s}".format(logStr,df.to_string()))    
                                                                                                                    
     except RmError:
         raise            
@@ -1131,10 +1347,18 @@ def dfSegsNodesNDataDpkt(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
         return dfSegsNodesNDataDpkt
 
-
 def fResValidSeriesSTAT_S(x): # STAT_S
     if pd.isnull(x)==False:
         if x >=0:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+def fResValidSeriesSTAT_S601(x): # STAT_S
+    if pd.isnull(x)==False:
+        if x ==601:
             return True
         else:
             return False
@@ -1164,7 +1388,9 @@ fResValidSeriesDct['AL_S10']=fResValidSeriesAL_S10
 fResValidSeriesDct['AL_S4']=fResValidSeriesAL_S4
 fResValidSeriesDct['AL_S3']=fResValidSeriesAL_S3
 
-ResChannelTypes=['STAT_S','AL_S']#,'AL_S10','AL_S4','AL_S3'] # Erg-Kanaele und abgeleitete Erg-Kanäle fuer Statistik
+fResValidSeriesDct['STAT_S601']=fResValidSeriesSTAT_S601
+
+ResChannelTypes=['STAT_S','AL_S','STAT_S601']#,'AL_S10','AL_S4','AL_S3'] # Erg-Kanaele und abgeleitete Erg-Kanäle fuer Statistik
 # (fast) alle verfuegbaren Erg-Kanaele
 ResChannelTypesAll=['AL_S','STAT_S','SB_S','MZ_AV','LR_AV','NG_AV','LP_AV','AC_AV','ACCST_AV','ACCTR_AV','ACF_AV','TIMER_AV','AM_AV','DNTD_AV','DNTP_AV','DPDT_AV','DPDT_REF_AV','QM_AV','ZHKNR_S']
 
@@ -1227,8 +1453,8 @@ def getLDSResVecDf(
         IMDIErgIDs=['IMDI.'+ID for ID in ErgIDs]
         ErgIDsAll=[*ErgIDs,*IMDIErgIDs]
         
-        # Daten lesen von TC-H5s
-        dfFiltered=lx.getTCsFromH5s(timeStart=timeStart,timeEnd=timeEnd,LDSResOnly=True,LDSResColsSpecified=ErgIDsAll,LDSResBaseTypeSpecified=LDSResBaseType) 
+        # Daten lesen von TC-H5s       
+        dfFiltered=lx.getTCsFromH5s(timeStart=timeStart,timeEnd=timeEnd,LDSResOnly=True,LDSResColsSpecified=ErgIDsAll,LDSResTypeSpecified=LDSResBaseType) 
         
         # Spalten umbenennen
         colDct={}
@@ -1418,7 +1644,7 @@ def getAlarmStatistikAlarms(
             for DruckSBS in lDruckSBS:
                 if DruckSBS not in TCsLDSRes2.columns.to_list():
                     lDruckSBS.remove(DruckSBS)
-                    logger.warning("{:s}SEG: {:s}: zugeh. Druck-PV: {:s} taucht gar nicht in den Ergebnissen auf?! Nur Foerderbetrieb?!".format(logStr,ID,DruckSBS))                    
+                    logger.info("{:s}Druck-PV: {:s} nicht in den Ergebnissen?!".format(logStr,DruckSBS))                    
             
             # verschiedene Auspraegungen SB_S pro Alarmzeit ermitteln
             tPairs=tPairsDct['AL_S']
@@ -1579,13 +1805,11 @@ def plotDfAlarmStatistik(
                 else: # hat Förderzeit
                     if df.loc[row-1,'FörderZeitenAlAnz']==0:
                         cellObj.set_text_props(backgroundcolor='springgreen')       
-                    else:
-                        pass
+                    else:                        
                         cellObj.set_text_props(ha='center')
                         cellObj.set_text_props(backgroundcolor='navajowhite')   # palegoldenrod
                         if df.loc[row-1,'FörderZeitAl']/ df.loc[row-1,'FörderZeit']*100>1:
                             cellObj.set_text_props(backgroundcolor='tomato') 
-
                 
             if col == colIdxRuheZeitenAlAnz:
         
@@ -1600,9 +1824,7 @@ def plotDfAlarmStatistik(
                     else:
                         pass
                         cellObj.set_text_props(ha='center')
-                        cellObj.set_text_props(backgroundcolor='navajowhite')  #  # palegoldenrod     
-                        #zu hoher % andersfarbig
-
+                        cellObj.set_text_props(backgroundcolor='navajowhite')  #  # palegoldenrod                            
                         if df.loc[row-1,'RuheZeitAl']/ df.loc[row-1,'RuheZeit']*100>1:
                             cellObj.set_text_props(backgroundcolor='tomato') 
                 
@@ -1776,7 +1998,7 @@ def dfAlarmEreignisse(
                 #print(VoralarmTyp) 
             if pd.isnull(VoralarmTyp): # == None: #?!
                 VoralarmTyp=-1      
-                logger.warning("{:s}{:d} {!s:s} kein Vorlalarm gefunden?! - VoralarmTyp:{:d}".format(logStr,int(row['Nr']),row['tA'],int(VoralarmTyp)))           
+                logger.warning("{:s}Alarm Nr. {:d} tA {!s:s}: kein Vorlalarm gefunden?! - Voralarm gesetzt:{:d}".format(logStr,int(row['Nr']),row['tA'],int(VoralarmTyp)))           
                 
             logger.debug("{:s}{:d} {!s:s} VoralarmTyp:{:d}".format(logStr,int(row['Nr']),row['tA'],int(VoralarmTyp)))           
             VoralarmTypen.append(VoralarmTyp)
@@ -2002,11 +2224,23 @@ def plotDfAlarmStatistikReportsSEGErgs(
             ,ylimTV=(0,300)
             ,yticksTV=[0,100,180,200,300]    
             )    
-                                             
-            txt="SEG: {:s}: FörderZeitenAlAnz: {:d}".format(row['SEGNodes'],row['FörderZeitenAlAnz'])        
+                       
+            backgroundcolor='white'
+            if row['FörderZeit']==0:
+                backgroundcolor='lightgrey'               
+            else: # hat Förderzeit
+                if row['FörderZeitenAlAnz']==0:
+                    backgroundcolor='springgreen'       
+                else:                                           
+                    backgroundcolor='navajowhite'
+                    if row['FörderZeitAl']/row['FörderZeit']*100>1:
+                        backgroundcolor='tomato' 
+            
+            txt="SEG: {:s}: Förderzeit: {:8.2f} Min FörderZeitenAlAnz: {:d}".format(row['SEGNodes'],row['FörderZeit'],row['FörderZeitenAlAnz'])        
             ax.text(.98, .1,txt,
             horizontalalignment='right',
             verticalalignment='center',
+            backgroundcolor=backgroundcolor,
             transform=ax.transAxes)
 
             titleStr="LfdNr {:2d} - {:s}: {:s}: {:s}".format(
@@ -2177,16 +2411,29 @@ def plotDfAlarmStatistikReportsDruckErgs(
             ,ylimTV=(0,300)
             ,yticksTV=[0,100,180,200,300]    
             )    
+
+            backgroundcolor='white'
+            if row['RuheZeit']==0:
+                backgroundcolor='lightgrey'               
+            else: # hat Ruhezeit
+                if row['RuheZeitenAlAnz']==0:
+                    backgroundcolor='springgreen'       
+                else:                                           
+                    backgroundcolor='navajowhite'
+                    if row['RuheZeitAl']/row['RuheZeit']*100>1:
+                        backgroundcolor='tomato' 
         
-            txt="SEG: {:s}: LfdNr {:2d} - {:s}: RuheZeitenAlAnz: {:d}".format(
+            txt="SEG: {:s}: LfdNr {:2d} - {:s}: Ruhezeit: {:8.2f} RuheZeitenAlAnz: {:d}".format(
                     row['SEGNodes']  
                    ,int(row.Nr)+1         
-                   ,str(row.DIVPipelineName)                 
+                   ,str(row.DIVPipelineName)        
+                   ,row['RuheZeit']
                    ,row['RuheZeitenAlAnz'])        
 
             ax.text(.98, .1,txt,
             horizontalalignment='right',
             verticalalignment='center',
+            backgroundcolor=backgroundcolor,
             transform=ax.transAxes)
 
             titleStr="Nr. {:3d} {:s} ({:1d})x: {:s}: Nr. {:2d}: {:s}".format(
