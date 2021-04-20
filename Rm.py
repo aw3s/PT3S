@@ -1358,7 +1358,7 @@ def fResValidSeriesSTAT_S(x): # STAT_S
 
 def fResValidSeriesSTAT_S601(x): # STAT_S
     if pd.isnull(x)==False:
-        if x ==601:
+        if x==601:
             return True
         else:
             return False
@@ -1381,16 +1381,18 @@ def fResValidSeriesAL_S4(x):
 def fResValidSeriesAL_S3(x): 
     return fResValidSeriesAL_S(x,value=3)
     
-fResValidSeriesDct={}
-fResValidSeriesDct['STAT_S']=fResValidSeriesSTAT_S
-fResValidSeriesDct['AL_S']=fResValidSeriesAL_S
-fResValidSeriesDct['AL_S10']=fResValidSeriesAL_S10
-fResValidSeriesDct['AL_S4']=fResValidSeriesAL_S4
-fResValidSeriesDct['AL_S3']=fResValidSeriesAL_S3
+#fResValidSeriesDct={}
+#fResValidSeriesDct['STAT_S']=fResValidSeriesSTAT_S
+#fResValidSeriesDct['AL_S']=fResValidSeriesAL_S
+#fResValidSeriesDct['AL_S10']=fResValidSeriesAL_S10
+#fResValidSeriesDct['AL_S4']=fResValidSeriesAL_S4
+#fResValidSeriesDct['AL_S3']=fResValidSeriesAL_S3
+#fResValidSeriesDct['STAT_S601']=fResValidSeriesSTAT_S601
 
-fResValidSeriesDct['STAT_S601']=fResValidSeriesSTAT_S601
+ResChannelFunctions=[fResValidSeriesSTAT_S,fResValidSeriesAL_S,fResValidSeriesSTAT_S601]
+ResChannelResultNames=['Zustaendig','Alarm','Stoerung']
+ResChannelTypes=['STAT_S','AL_S','STAT_S'] 
 
-ResChannelTypes=['STAT_S','AL_S','STAT_S601']#,'AL_S10','AL_S4','AL_S3'] # Erg-Kanaele und abgeleitete Erg-Kanäle fuer Statistik
 # (fast) alle verfuegbaren Erg-Kanaele
 ResChannelTypesAll=['AL_S','STAT_S','SB_S','MZ_AV','LR_AV','NG_AV','LP_AV','AC_AV','ACCST_AV','ACCTR_AV','ACF_AV','TIMER_AV','AM_AV','DNTD_AV','DNTP_AV','DPDT_AV','DPDT_REF_AV','QM_AV','ZHKNR_S']
 
@@ -1475,20 +1477,21 @@ def getLDSResVecDf(
 def fGetResTimes(
     ResIDBases
    ,df # TCsLDSRes...
-   ,ResChannelTypes=ResChannelTypes
-   ,fResValidSeriesDct=fResValidSeriesDct
+   ,ResChannelTypes=ResChannelTypes # ['STAT_S','AL_S','STAT_S'] 
+   ,ResChannelFunctions=ResChannelFunctions # [fResValidSeriesSTAT_S,ResValidSeriesAL_S,fResValidSeriesSTAT_S601]
+   ,ResChannelResultNames=ResChannelResultNames # ['Zustaendig','Alarm','Stoerung']
 ):
     """
     Return: dct mit ResIDBases als Schluessel
             value: dct:
-                        Schluessel: ResChannels
+                        Schluessel: ResChannelResultNames
                         Value: Liste mit Zeitpaaren oder leere Liste
     """
     resTimesDct={}
     for ResIDBase in ResIDBases:
         tPairsDct={}
 
-        for ext in ResChannelTypes:
+        for idx,ext in enumerate(ResChannelTypes):
 
             ID=ResIDBase+ext
 
@@ -1496,13 +1499,13 @@ def fGetResTimes(
                 #print("{:s} in Ergliste".format(ID))
                 tPairs=findAllTimeIntervallsSeries(
                             s=df[ID].dropna()  #!                             
-                           ,fct=fResValidSeriesDct[ext]                           
+                           ,fct=ResChannelFunctions[idx]                       
                            ,tdAllowed=pd.Timedelta('1 second')
                                         )                            
             else:
                 #print("{:s} nicht in Ergliste".format(ID))
                 tPairs=[]
-            tPairsDct[ext]=tPairs
+            tPairsDct[ResChannelResultNames[idx]]=tPairs
 
         resTimesDct[ResIDBase]=tPairsDct
     return resTimesDct
@@ -1577,7 +1580,7 @@ def getAlarmStatistikAlarms(
         SEGResDct=fGetResTimes(dfSegsNodesNDataDpkt['SEGResIDBase'].unique(),TCsLDSRes1)
         # verschiedene Auspraegungen SB_S pro Alarmzeit ermitteln
         for idx,(ID,tPairsDct) in enumerate(SEGResDct.items()):            
-            tPairs=tPairsDct['AL_S']
+            tPairs=tPairsDct['Alarm']#['AL_S']
             SB_S_tPairs=[]           
             if tPairs != []:        
                 for tPair in tPairs:                    
@@ -1620,18 +1623,18 @@ def getAlarmStatistikAlarms(
                     SEGDruckResDct[SEGResIDBase]=deepcopy(tPairsDct)
                 else:
                     for idx2,ext in enumerate(ResChannelTypes):
-                        tPairs=tPairsDct[ext]
+                        tPairs=tPairsDct[ResChannelResultNames[idx2]]
                         for idx3,tPair in enumerate(tPairs):            
-                            if tPair not in SEGDruckResDct[SEGResIDBase][ext]: #  keine identischen Zeiten mehrfach zaehlen
-                                SEGDruckResDct[SEGResIDBase][ext].append(tPair)
+                            if tPair not in SEGDruckResDct[SEGResIDBase][ResChannelResultNames[idx2]]: #  keine identischen Zeiten mehrfach zaehlen
+                                SEGDruckResDct[SEGResIDBase][ResChannelResultNames[idx2]].append(tPair)
 
         # Ergebnis: sortieren und dann angrenzende oder ueberlappende Zeiten zusammenfassen
         for idx,(ID,tPairsDct) in enumerate(SEGDruckResDct.items()):
             for idx2,ext in enumerate(tPairsDct.keys()):        
-                tPairs=tPairsDct[ext]
+                tPairs=tPairsDct[ResChannelResultNames[idx2]]
                 tPairs=sorted(tPairs,key=lambda tup: tup[0])
                 tPairs=fCombineSubsequenttPairs(tPairs)
-                SEGDruckResDct[ID][ext]=tPairs
+                SEGDruckResDct[ID][ResChannelResultNames[idx2]]=tPairs
 
         # verschiedene Auspraegungen SB_S pro Alarmzeit ermitteln
         for idx,(ID,tPairsDct) in enumerate(SEGDruckResDct.items()):
@@ -1647,7 +1650,7 @@ def getAlarmStatistikAlarms(
                     logger.info("{:s}Druck-PV: {:s} nicht in den Ergebnissen?!".format(logStr,DruckSBS))                    
             
             # verschiedene Auspraegungen SB_S pro Alarmzeit ermitteln
-            tPairs=tPairsDct['AL_S']
+            tPairs=tPairsDct['Alarm']#['AL_S']
             SB_S_tPairs=[]            
             if tPairs != []:        
                 for tPair in tPairs:
@@ -1698,22 +1701,16 @@ def dfAlarmStatistik(
         dfAlarmStatistik=dfSegsNodesNDataDpkt[['DIVPipelineName','SEGName','SEGNodes','SEGResIDBase']].drop_duplicates(keep='first').reset_index(drop=True)
         dfAlarmStatistik['Nr']=dfAlarmStatistik.apply(lambda row: "{:2d}".format(int(row.name)),axis=1)
     
-        dfAlarmStatistik['FörderZeiten']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGResDct[x]['STAT_S'])
-        dfAlarmStatistik['FörderZeitenAl']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGResDct[x]['AL_S'])
-
-        #dfAlarmStatistik['FörderZeitenAl10']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGResDct[x]['AL_S10'])
-        #dfAlarmStatistik['FörderZeitenAl4']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGResDct[x]['AL_S4'])
-        #dfAlarmStatistik['FörderZeitenAl3']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGResDct[x]['AL_S3'])
+        dfAlarmStatistik['FörderZeiten']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGResDct[x]['Zustaendig'])
+        dfAlarmStatistik['FörderZeitenAl']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGResDct[x]['Alarm'])
+        dfAlarmStatistik['FörderZeitenSt']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGResDct[x]['Stoerung'])
 
         dfAlarmStatistik['FörderZeitenAlAnz']=dfAlarmStatistik['FörderZeitenAl'].apply(lambda x: len(x))
         dfAlarmStatistik['FörderZeitenAlSbs']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGResDct[x]['AL_S_SB_S'])
 
-        dfAlarmStatistik['RuheZeiten']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGDruckResDct[x]['STAT_S'] if x in SEGDruckResDct.keys() else [])
-        dfAlarmStatistik['RuheZeitenAl']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGDruckResDct[x]['AL_S'] if x in SEGDruckResDct.keys() else [])
-
-        #dfAlarmStatistik['RuheZeitenAl10']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGDruckResDct[x]['AL_S10'] if x in SEGDruckResDct.keys() else [])
-        #dfAlarmStatistik['RuheZeitenAl4']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGDruckResDct[x]['AL_S4'] if x in SEGDruckResDct.keys() else [])
-        #dfAlarmStatistik['RuheZeitenAl3']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGDruckResDct[x]['AL_S3'] if x in SEGDruckResDct.keys() else [])
+        dfAlarmStatistik['RuheZeiten']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGDruckResDct[x]['Zustaendig'] if x in SEGDruckResDct.keys() else [])
+        dfAlarmStatistik['RuheZeitenAl']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGDruckResDct[x]['Alarm'] if x in SEGDruckResDct.keys() else [])
+        dfAlarmStatistik['RuheZeitenSt']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGDruckResDct[x]['Stoerung'] if x in SEGDruckResDct.keys() else [])
 
         dfAlarmStatistik['RuheZeitenAlAnz']=dfAlarmStatistik['RuheZeitenAl'].apply(lambda x: len(x))
         dfAlarmStatistik['RuheZeitenAlSbs']=dfAlarmStatistik['SEGResIDBase'].apply(lambda x: SEGDruckResDct[x]['AL_S_SB_S'] if x in SEGDruckResDct.keys() else [])
@@ -1722,6 +1719,8 @@ def dfAlarmStatistik(
         dfAlarmStatistik['RuheZeit']=dfAlarmStatistik['RuheZeiten'].apply(lambda x: fTotalTimeFromPairs(x,pd.Timedelta('1 minute'),False))
         dfAlarmStatistik['FörderZeitAl']=dfAlarmStatistik['FörderZeitenAl'].apply(lambda x: fTotalTimeFromPairs(x,pd.Timedelta('1 minute'),False))
         dfAlarmStatistik['RuheZeitAl']=dfAlarmStatistik['RuheZeitenAl'].apply(lambda x: fTotalTimeFromPairs(x,pd.Timedelta('1 minute'),False))        
+        dfAlarmStatistik['FörderZeitSt']=dfAlarmStatistik['FörderZeitenSt'].apply(lambda x: fTotalTimeFromPairs(x,pd.Timedelta('1 minute'),False))
+        dfAlarmStatistik['RuheZeitSt']=dfAlarmStatistik['RuheZeitenSt'].apply(lambda x: fTotalTimeFromPairs(x,pd.Timedelta('1 minute'),False))        
                                                                                                                    
     except RmError:
         raise            
@@ -1751,11 +1750,16 @@ def plotDfAlarmStatistik(
        ,'FörderZeit'
        ,'FörderZeitenAlAnz'
        ,'FörderZeitAl'
+       ,'FörderZeitSt'
 
        ,'RuheZeit'
        ,'RuheZeitenAlAnz'
-       ,'RuheZeitAl'       
+       ,'RuheZeitAl'     
+       ,'RuheZeitSt'            
         ]].copy()
+
+    df['FörderZeit']=df.apply(lambda row: "{!s:s} ({!s:s})".format(row['FörderZeit'],row['FörderZeitSt']),axis=1)
+    df['RuheZeit']=df.apply(lambda row: "{!s:s} ({!s:s})".format(row['RuheZeit'],row['RuheZeitSt']),axis=1)
 
     df['LfdNr']=df.apply(lambda row: "{:2d} - {:s}".format(int(row.Nr)+1,str(row.DIVPipelineName)),axis=1)
     df=df[[
@@ -1791,7 +1795,7 @@ def plotDfAlarmStatistik(
                 if row==0:
                     continue
         
-                if df.loc[row-1,'FörderZeit']==0:
+                if dfAlarmStatistik.loc[row-1,'FörderZeit']==0:
                     pass
                     #cellObj.set_text_props(backgroundcolor='lightgrey')
                 
@@ -1800,7 +1804,7 @@ def plotDfAlarmStatistik(
                 if row==0:
                     continue
         
-                if df.loc[row-1,'FörderZeit']==0:
+                if dfAlarmStatistik.loc[row-1,'FörderZeit']==0:
                     cellObj.set_text_props(backgroundcolor='lightgrey')               
                 else: # hat Förderzeit
                     if df.loc[row-1,'FörderZeitenAlAnz']==0:
@@ -1808,7 +1812,7 @@ def plotDfAlarmStatistik(
                     else:                        
                         cellObj.set_text_props(ha='center')
                         cellObj.set_text_props(backgroundcolor='navajowhite')   # palegoldenrod
-                        if df.loc[row-1,'FörderZeitAl']/ df.loc[row-1,'FörderZeit']*100>1:
+                        if df.loc[row-1,'FörderZeitAl']/ dfAlarmStatistik.loc[row-1,'FörderZeit']*100>1:
                             cellObj.set_text_props(backgroundcolor='tomato') 
                 
             if col == colIdxRuheZeitenAlAnz:
@@ -1816,7 +1820,7 @@ def plotDfAlarmStatistik(
                 if row==0:
                     continue
         
-                if df.loc[row-1,'RuheZeit']==0:
+                if dfAlarmStatistik.loc[row-1,'RuheZeit']==0:
                     cellObj.set_text_props(backgroundcolor='lightgrey')               
                 else: # hat Ruhezeit
                     if df.loc[row-1,'RuheZeitenAlAnz']==0:
@@ -1825,7 +1829,7 @@ def plotDfAlarmStatistik(
                         pass
                         cellObj.set_text_props(ha='center')
                         cellObj.set_text_props(backgroundcolor='navajowhite')  #  # palegoldenrod                            
-                        if df.loc[row-1,'RuheZeitAl']/ df.loc[row-1,'RuheZeit']*100>1:
+                        if df.loc[row-1,'RuheZeitAl']/ dfAlarmStatistik.loc[row-1,'RuheZeit']*100>1:
                             cellObj.set_text_props(backgroundcolor='tomato') 
                 
             
@@ -2160,7 +2164,7 @@ def plotDfAlarmStatistikReportsSEGErgs(
             ax=fig.gca()          
 
             pltLDSErgVec(
-                ax
+             ax
             ,dfSegReprVec=dfSegReprVec # Ergebnisvektor SEG; pass empty Df if Druck only    
             ,dfDruckReprVec=pd.DataFrame() # Ergebnisvektor DRUCK; pass empty Df if Seg only    
 
@@ -2189,7 +2193,7 @@ def plotDfAlarmStatistikReportsSEGErgs(
             ,ySpanMin=0.9 # wenn ylim R/AC undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
 
             ,plotLegend=True    
-            ,legendLoc='best'
+            ,legendLoc='upper center' #'best'
             ,legendFramealpha=.2
             ,legendFacecolor='white' 
 
@@ -2376,7 +2380,7 @@ def plotDfAlarmStatistikReportsDruckErgs(
             ,ySpanMin=0.9 # wenn ylim R/AC undef. vermeidet dieses Maß eine y-Achse mit einer zu kleinen Differenz zwischen min/max
 
             ,plotLegend=True    
-            ,legendLoc='best'
+            ,legendLoc='upper center' #'best'
             ,legendFramealpha=.2
             ,legendFacecolor='white' 
 
@@ -4290,23 +4294,30 @@ def pltLDSErgVec(
 
             if plotLegend:
                 legendHorizontalPos='center'
-                
-                               
+                                               
                 if not dfSegReprVec.empty:
+                    if dfDruckReprVec.empty:
+                        loc=legendLoc # Vorgabe                  
+                    else:
+                        loc='upper '+legendHorizontalPos  # beide: fix   
                     patternSeg='Seg$'
                     axes['A'].add_artist(axes['A'].legend(
                                 tuple([yLines[line] for line in yLines if re.search(patternSeg,line) != None]) 
                                 ,tuple([line for line in yLines if re.search(patternSeg,line) != None]) 
-                                ,loc='upper '+legendHorizontalPos
+                                ,loc=loc #'upper '+legendHorizontalPos
                                 ,framealpha=legendFramealpha
                                 ,facecolor=legendFacecolor
                                 ))         
                 if not dfDruckReprVec.empty:
+                    if dfSegReprVec.empty:
+                        loc=legendLoc # Vorgabe                  
+                    else:
+                        loc='lower '+legendHorizontalPos  # beide: fix   
                     patternDruck='Drk$'
                     axes['A'].add_artist(axes['A'].legend(
                                 tuple([yLines[line] for line in yLines if re.search(patternDruck,line) != None]) 
                                 ,tuple([line for line in yLines if re.search(patternDruck,line) != None]) 
-                                ,loc='lower '+legendHorizontalPos
+                                ,loc=loc #'lower '+legendHorizontalPos
                                 ,framealpha=legendFramealpha
                                 ,facecolor=legendFacecolor
                                 ))                   
