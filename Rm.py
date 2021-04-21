@@ -1758,8 +1758,8 @@ def plotDfAlarmStatistik(
        ,'RuheZeitSt'            
         ]].copy()
 
-    df['FörderZeit']=df.apply(lambda row: "{!s:s} ({!s:s})".format(row['FörderZeit'],row['FörderZeitSt']),axis=1)
-    df['RuheZeit']=df.apply(lambda row: "{!s:s} ({!s:s})".format(row['RuheZeit'],row['RuheZeitSt']),axis=1)
+    df['FörderZeit']=df.apply(lambda row: "{!s:s} ({!s:s})".format(row['FörderZeit'],row['FörderZeitSt']) if row['FörderZeitSt'] > 0. else row['FörderZeit'] ,axis=1)
+    df['RuheZeit']=df.apply(lambda row: "{!s:s} ({!s:s})".format(row['RuheZeit'],row['RuheZeitSt']) if row['RuheZeitSt'] > 0. else row['RuheZeit'],axis=1)
 
     df['LfdNr']=df.apply(lambda row: "{:2d} - {:s}".format(int(row.Nr)+1,str(row.DIVPipelineName)),axis=1)
     df=df[[
@@ -1796,8 +1796,10 @@ def plotDfAlarmStatistik(
                     continue
         
                 if dfAlarmStatistik.loc[row-1,'FörderZeit']==0:
-                    pass
-                    #cellObj.set_text_props(backgroundcolor='lightgrey')
+                    pass                    
+                else:
+                    if dfAlarmStatistik.loc[row-1,'FörderZeitSt']/ dfAlarmStatistik.loc[row-1,'FörderZeit']*100>1:
+                        cellObj.set_text_props(backgroundcolor='goldenrod') 
                 
             if col == colIdxFoerderZeitenAlAnz:
         
@@ -1815,6 +1817,17 @@ def plotDfAlarmStatistik(
                         if df.loc[row-1,'FörderZeitAl']/ dfAlarmStatistik.loc[row-1,'FörderZeit']*100>1:
                             cellObj.set_text_props(backgroundcolor='tomato') 
                 
+            if col == colIdxRuheZeit:
+        
+                if row==0:
+                    continue
+        
+                if dfAlarmStatistik.loc[row-1,'RuheZeit']==0:
+                    pass                    
+                else:
+                    if dfAlarmStatistik.loc[row-1,'RuheZeitSt']/ dfAlarmStatistik.loc[row-1,'RuheZeit']*100>1:
+                        cellObj.set_text_props(backgroundcolor='goldenrod')             
+
             if col == colIdxRuheZeitenAlAnz:
         
                 if row==0:
@@ -1919,7 +1932,7 @@ def dfAlarmEreignisse(
         AlarmEventsOrte={}
 
         for ResIDBase,dct in SEGResDct.items():
-            AL_S=dct['AL_S']
+            AL_S=dct['Alarm']
             if len(AL_S) > 0:        
                 ID=ResIDBase+'ZHKNR_S'
                 #print(ResIDBase)            
@@ -1942,7 +1955,7 @@ def dfAlarmEreignisse(
                             AlarmEventsOrte[alarmEvent].append(ResIDBase)
                     
         for ResIDBase,dct in DruckResDct.items():
-            AL_S=dct['AL_S']
+            AL_S=dct['Alarm']
             if len(AL_S) > 0:        
                 ID=ResIDBase+'ZHKNR_S'
                 #print(ResIDBase)            
@@ -1988,7 +2001,6 @@ def dfAlarmEreignisse(
         dfAlarmEreignisse.rename(columns={'index':'Nr'},inplace=True)
         #dfAlarmEreignisse['NrResType']=dfAlarmEreignisse.groupby('LDSResBaseType').cumcount() + 1
 
-
         VoralarmTypen=[]
         for index, row in dfAlarmEreignisse.iterrows():            
             OrteIDs=row['OrteIDs']
@@ -2017,9 +2029,7 @@ def dfAlarmEreignisse(
 
         dfAlarmEreignisse['NrResType']=dfAlarmEreignisse.groupby(['LDSResBaseType','Type']).cumcount() + 1
 
-
-
-
+        dfAlarmEreignisse=dfAlarmEreignisse.sort_values(by=['tA','ZHKNR'])
                                                                                                                        
     except RmError:
         raise            
@@ -2240,13 +2250,24 @@ def plotDfAlarmStatistikReportsSEGErgs(
                     if row['FörderZeitAl']/row['FörderZeit']*100>1:
                         backgroundcolor='tomato' 
             
-            txt="SEG: {:s}: Förderzeit: {:8.2f} Min FörderZeitenAlAnz: {:d}".format(row['SEGNodes'],row['FörderZeit'],row['FörderZeitenAlAnz'])        
+            txt="SEG: {:s}: FörderZeit: {:8.2f} FörderZeitenAlAnz: {:d}".format(row['SEGNodes'],row['FörderZeit'],row['FörderZeitenAlAnz'])        
             ax.text(.98, .1,txt,
             horizontalalignment='right',
             verticalalignment='center',
             backgroundcolor=backgroundcolor,
             transform=ax.transAxes)
 
+            if row['FörderZeitSt']>0:
+                backgroundcolor='white'
+                if row['FörderZeitSt']/row['FörderZeit']*100>1:
+                    backgroundcolor='goldenrod'    
+                txt="(SEG: FörderZeitSt: {:8.2f})".format(row['FörderZeitSt'])        
+                ax.text(.98, .05,txt,
+                horizontalalignment='right',
+                verticalalignment='center',
+                backgroundcolor=backgroundcolor,
+                transform=ax.transAxes)
+           
             titleStr="LfdNr {:2d} - {:s}: {:s}: {:s}".format(
                              int(row.Nr)+1         
                             ,str(row.DIVPipelineName)
@@ -2255,7 +2276,7 @@ def plotDfAlarmStatistikReportsSEGErgs(
                             ,row['SEGResIDBase'])  
         
             ax.set_title( titleStr,loc='left') 
-            logger.debug("{0:s}{1:s}".format(logStr,titleStr))       
+            logger.info("{:s}".format(titleStr))       
 
 
             fig.tight_layout(pad=2.) 
@@ -2283,6 +2304,7 @@ def plotDfAlarmStatistikReportsDruckErgs(
      h5File='a.h5'   
     ,dfAlarmStatistik=pd.DataFrame()    
     ,dfSegsNodesNDataDpkt=pd.DataFrame()    
+    ,DruckErgsDct=pd.DataFrame()    
     ,timeStart=None,timeEnd=None
     ,DruckErgsFile='DruckErgs.pdf'
     ,stopAtDruckNr=None
@@ -2293,7 +2315,7 @@ def plotDfAlarmStatistikReportsDruckErgs(
     ,timeFloorCeilStr='1H'
     ):
     """
-    Returns 
+
     """
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
@@ -2427,10 +2449,9 @@ def plotDfAlarmStatistikReportsDruckErgs(
                     if row['RuheZeitAl']/row['RuheZeit']*100>1:
                         backgroundcolor='tomato' 
         
-            txt="SEG: {:s}: LfdNr {:2d} - {:s}: Ruhezeit: {:8.2f} RuheZeitenAlAnz: {:d}".format(
+            txt="SEG: {:s}: LfdNr {:2d}: RuheZeit: {:8.2f} RuheZeitenAlAnz: {:d}".format(
                     row['SEGNodes']  
-                   ,int(row.Nr)+1         
-                   ,str(row.DIVPipelineName)        
+                   ,int(row.Nr)+1                            
                    ,row['RuheZeit']
                    ,row['RuheZeitenAlAnz'])        
 
@@ -2440,7 +2461,39 @@ def plotDfAlarmStatistikReportsDruckErgs(
             backgroundcolor=backgroundcolor,
             transform=ax.transAxes)
 
-            titleStr="Nr. {:3d} {:s} ({:1d})x: {:s}: Nr. {:2d}: {:s}".format(
+            if row['RuheZeitSt']>0:
+                backgroundcolor='white'
+                if row['RuheZeitSt']/row['RuheZeit']*100>1:
+                    backgroundcolor='goldenrod'    
+                txt="(SEG: RuheZeitSt: {:8.2f})".format(row['RuheZeitSt'])        
+                ax.text(.98, .05,txt,
+                horizontalalignment='right',
+                verticalalignment='center',
+                backgroundcolor=backgroundcolor,
+                transform=ax.transAxes)
+
+            RuheZeiten=DruckErgsDct[row['DruckResIDBase']]['Zustaendig']
+            RuheZeit=fTotalTimeFromPairs(RuheZeiten,pd.Timedelta('1 minute'),False)
+
+            AlarmZeiten=DruckErgsDct[row['DruckResIDBase']]['Alarm']
+            AlarmZeit=fTotalTimeFromPairs(AlarmZeiten,pd.Timedelta('1 minute'),False)
+
+            RuheZeitenSt=DruckErgsDct[row['DruckResIDBase']]['Stoerung']
+            RuheZeitSt=fTotalTimeFromPairs(RuheZeitenSt,pd.Timedelta('1 minute'),False)
+
+            txt="Druck: RuheZeit: {:8.2f} (davon St: {:8.2f}) RuheZeitenAlAnz: {:3d}".format(                  
+                    RuheZeit
+                   ,RuheZeitSt
+                   ,len(AlarmZeiten))        
+
+            ax.text(.98, .15,txt,
+            horizontalalignment='right',
+            verticalalignment='center',
+            backgroundcolor='white',
+            transform=ax.transAxes)
+
+
+            titleStr="Nr. {:3d} {:12s} ({:1d})x: {:s}: Nr. {:2d}: {:s}".format(
                              idx+1
                             ,row['NODEsName']
                             ,row['NODEsRef_max']                           
@@ -2449,7 +2502,7 @@ def plotDfAlarmStatistikReportsDruckErgs(
                             ,row['DruckResIDBase'])  
         
             ax.set_title( titleStr,loc='left') 
-            logger.debug("{0:s}{1:s}".format(logStr,titleStr))   
+            logger.info("{:s}".format(titleStr))   
        
             fig.tight_layout(pad=2.) 
             pdf.savefig(fig)            
