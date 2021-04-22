@@ -1347,8 +1347,8 @@ def dfSegsNodesNDataDpkt(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
         return dfSegsNodesNDataDpkt
 
-def fResValidSeriesSTAT_S(x): # STAT_S
-    if pd.isnull(x)==False:
+def fResValidSeriesSTAT_S(x): # STAT_S    
+    if pd.isnull(x)==False:     
         if x >=0:
             return True
         else:
@@ -1381,13 +1381,6 @@ def fResValidSeriesAL_S4(x):
 def fResValidSeriesAL_S3(x): 
     return fResValidSeriesAL_S(x,value=3)
     
-#fResValidSeriesDct={}
-#fResValidSeriesDct['STAT_S']=fResValidSeriesSTAT_S
-#fResValidSeriesDct['AL_S']=fResValidSeriesAL_S
-#fResValidSeriesDct['AL_S10']=fResValidSeriesAL_S10
-#fResValidSeriesDct['AL_S4']=fResValidSeriesAL_S4
-#fResValidSeriesDct['AL_S3']=fResValidSeriesAL_S3
-#fResValidSeriesDct['STAT_S601']=fResValidSeriesSTAT_S601
 
 ResChannelFunctions=[fResValidSeriesSTAT_S,fResValidSeriesAL_S,fResValidSeriesSTAT_S601]
 ResChannelResultNames=['Zustaendig','Alarm','Stoerung']

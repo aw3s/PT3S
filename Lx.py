@@ -33,6 +33,10 @@ import csv
 
 import glob
 
+import warnings 
+#warnings.simplefilter(action='ignore', category=PerformanceWarning)
+
+
 # pd.set_option("max_rows", None)
 # pd.set_option("max_columns", None)
 
@@ -44,6 +48,57 @@ class LxError(Exception):
         self.value = value
     def __str__(self):
         return repr(self.value)
+
+def fTCCast(x):
+    logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
+    #logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
+
+    v=x
+    try:
+        if x in ['true','True']:
+            v=1
+        elif x in ['false','False','']:
+            v=0
+        else:
+            try:
+                v = float(x) 
+            except Exception as e:
+                #logStrTmp="{:s}{!s:s}: Konvertierung zu float schlaegt fehl! - Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,x,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                #logger.debug(logStrTmp)            
+                
+                try:
+                    v = pd.to_numeric(x,errors='raise',downcast='float') 
+                    #logStrTmp="{:s}{!s:s}: Konvertierung mit pd.to_numeric liefert: {!s:s}".format(logStr,x,v)
+                    #logger.debug(logStrTmp)                                             
+                except Exception as e:
+                    #logStrTmp="{:s}{!s:s}: Konvertierung zu float mit pd.to_numeric schlaegt auch fehl! - Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,x,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                    #logger.debug(logStrTmp)  
+
+                    #x='2021-04-20 10:56:12.000'
+                    #t = pd.Timestamp(x)
+                    #t # Timestamp('2021-04-20 10:56:12')
+
+                    #i=int(t.to_datetime64())/1000000000
+                    #i # 1618916172.0
+                    #pd.to_datetime(i,unit='s',errors='coerce'): Timestamp('2021-04-20 10:56:12')
+
+                    try:
+                        t = pd.Timestamp(x)
+                        i=int(t.to_datetime64())/1000000000                   
+                        v=pd.to_numeric(i,errors='raise',downcast='float') 
+
+                    except Exception as e:
+                        logStrTmp="{:s}{!s:s}: Konvertierung zu float (mit pd.to_numeric) schlaegt (auch nach Annahme vaulue=Zeitstring) fehl! - Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,x,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                        logger.debug(logStrTmp)  
+
+    except Exception as e:
+        logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+        logger.error(logStrFinal) 
+        raise LxError(logStrFinal)     
+
+    finally:           
+        #logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))  
+        return v
 
 def getTCsOPCDerivative(TCsOPC,col,shiftSize,windowSize,fct=None):
     """
@@ -1118,9 +1173,9 @@ class AppLog():
                 df = pd.DataFrame(rows,columns=colNames,index=index)
              else:
                 if nRows==None:
-                    df=pd.read_csv(logFile,delimiter=delimiter,error_bad_lines=False,warn_bad_lines=True)
+                    df=pd.read_csv(logFile,delimiter=delimiter,error_bad_lines=False,warn_bad_lines=True,low_memory=False)
                 else:
-                    df=pd.read_csv(logFile,delimiter=delimiter,error_bad_lines=False,warn_bad_lines=True,nrows=nRows)                
+                    df=pd.read_csv(logFile,delimiter=delimiter,error_bad_lines=False,warn_bad_lines=True,low_memory=False,nrows=nRows)                
                 
              logger.debug("{0:s}{1:s} pd.DataFrame processed.".format(logStr,logFileTail)) 
              #logger.debug("{0:s}df: {1:s}".format(logStr,str(df))) 
@@ -1134,7 +1189,7 @@ class AppLog():
              logger.debug("{0:s}{1:s} col ProcessTime processed.".format(logStr,logFileTail)) 
              
              #Value
-             df['Value']=df.Value.str.replace(',', '.')
+             df['Value']=df.Value.str.replace(',', '.') # Exception: Line: 1137: <class 'AttributeError'>: Can only use .str accessor with string values!
              df['Value']=fValueFct(df['Value'].values) # df['ValueProcessed'].apply(fValueFct)
              logger.debug("{0:s}{1:s} col Value processed.".format(logStr,logFileTail)) 
 
@@ -1198,7 +1253,7 @@ class AppLog():
                 #self.__initzip7File(zip7File=zip7Files[0],h5FileName=h5FileName,nRows=1,readWithDictReader=True)
             
                 for zip7File in zip7Files:                    
-                    logger.debug("{0:s}addZip7File: {1:s}".format(logStr,zip7File))   
+                    logger.info("{0:s}addZip7File: {1:s}".format(logStr,zip7File))   
                     self.addZip7File(zip7File,firstsAndLastsLogsOnly=True,nRows=1,readWithDictReader=readWithDictReader,noDfStorage=True,readWindowsLog=readWindowsLog)
 
                 logger.debug("{0:s}lookUpDf: {1:s}".format(logStr,self.lookUpDf.to_string()))  
@@ -1275,10 +1330,10 @@ class AppLog():
 
                         if firstsAndLastsLogsOnly:
                             if idx not in [0,1,allLogFilesLen-2,allLogFilesLen-1]:
-                                logger.debug("{0:s}idx: {1:d} item: {2:s} NOT processed ...".format(logStr,idx,logFileNameInZip))   
+                                #logger.debug("{0:s}idx: {1:d} item: {2:s} NOT processed ...".format(logStr,idx,logFileNameInZip))   
                                 continue
 
-                        logger.debug("{0:s}idx: {1:d} item: {2:s} ...".format(logStr,idx,logFileNameInZip))   
+                        logger.info("{0:s}idx: {1:d} item: {2:s} ...".format(logStr,idx,logFileNameInZip))   
 
                         # die Datei die 7Zip bei extract erzeugen wird
                         logFile=os.path.join(tmpDir,logFileNameInZip)
@@ -1493,26 +1548,30 @@ class AppLog():
                     pass
             self.h5FileCVD=name+'_'+'CVD'+ext
 
-            dfLookUpTimes=self.lookUpDf
-            if timeStart!=None:
-                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['LastTime']>=timeStart] # endet nach dem Anfang oder EndeFile ist Anfang
-            if timeEnd!=None:
-                dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
-            dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
-            dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
-            h5Keys=['Log'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
+            h5Keys,h5KeysPost=self.__getH5Keys(timeStart=timeStart,timeEnd=timeEnd)
 
-            l=[re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            #h5KeysCVD=['CVDRes'+x for x in h5KeysPost]
 
-            h5KeysOPC=['TCsOPC'+x for x in l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysSirCalc=['TCsSirCalc'+x for x in l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSIn=['TCsLDSIn'+x for x in l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSRes1=['TCsLDSRes1'+x for x in l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSRes2=['TCsLDSRes2'+x for x in l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSRes=['TCsLDSRes'+x for x in l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            #dfLookUpTimes=self.lookUpDf
+            #if timeStart!=None:
+            #    dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['LastTime']>=timeStart] # endet nach dem Anfang oder EndeFile ist Anfang
+            #if timeEnd!=None:
+            #    dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
+            #dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
+            #dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
+            #h5Keys=['Log'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            #logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
 
-            h5KeysCVD=['CVDRes'+x for x in l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            #l=[re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+
+            h5KeysOPC=['TCsOPC'+x for x in h5KeysPost]# l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysSirCalc=['TCsSirCalc'+x for x in h5KeysPost]#l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSIn=['TCsLDSIn'+x for x in h5KeysPost]#l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes1=['TCsLDSRes1'+x for x in h5KeysPost]#l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes2=['TCsLDSRes2'+x for x in h5KeysPost]#l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysLDSRes=['TCsLDSRes'+x for x in h5KeysPost]#l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+
+            h5KeysCVD=['CVDRes'+x for x in h5KeysPost]#l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
 
             h5KeysAll=zip(h5Keys,h5KeysOPC,h5KeysSirCalc,h5KeysLDSIn,h5KeysLDSRes1,h5KeysLDSRes2,h5KeysLDSRes,h5KeysCVD)
             
@@ -1524,29 +1583,15 @@ class AppLog():
                 else:
                     mode='a'
 
-                logger.debug("{0:s}Get (read_hdf) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
+                logger.info("{0:s}Get (read_hdf) df with h5Key: {1:s} ...".format(logStr,h5Key)) 
                 df=pd.read_hdf(self.h5File, key=h5Key)                   
 
                 # CVD -------------------------------------------------------------------------------------------------
                 dfCVD=df[df['SubSystem']=='CVD']
-                #dfCVDBeginCV=dfCVD[dfCVD['Remark'].str.contains('^BEGIN_OF_NEW_CONTROL_VOLUME')].copy(deep=True)
-
-                #dfCVDBeginCV['ZHKNR']=None
-                #dfCVDBeginCV['ZHKStr']=None
-                #for index,row in dfCVDBeginCV.iterrows():
-                #    rowPair=df[index:index+2][['ID','Value','Remark']]
-                #    dfCVDBeginCV.loc[index,'ZHKNR']=rowPair.iloc[-1]['Value']
-                # 
-                #    dfFollows=df[index+1:index+1000]   
-                #    row=dfFollows[dfFollows['Remark'].str.contains('^END_OF_NEW_CONTROL_VOLUME')].iloc[0]                    
-                #    dfCVDBeginCV.loc[index,'ZHKStr']=row['ID']
-                #dfCV=dfCVDBeginCV[['ScenTime','ZHKNR','ID','ZHKStr']].rename(columns={'ID':'Type'})
-                #logger.debug("{0:s}dfCVD processed.".format(logStr)) 
-                #       ScenTime	        ZHKNR	Type	ZHKStr
-                #48340	2021-03-11 05:58:44	1	    Q-Q	    ~6-26-60,324°6-26-HMV~
-                # ----------------------------------------------------------------------------------------------------
 
                 df=df[['ID','ProcessTime','ScenTime','SubSystem','Value','Direction']]
+
+                df['Value']=df['Value'].apply(lambda x: fTCCast(x))
                 df=df[~(df['Value'].isnull())]                
 
                 if not dfID.empty:
