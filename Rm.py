@@ -2133,6 +2133,8 @@ def plotDfAlarmStatistikReportsSEGErgs(
 
         #with PdfPages(SEGErgsFile) as pdf:
         pdf=PdfPages(SEGErgsFile)
+
+        fig=plt.figure(figsize=DINA4q,dpi=dpiSize) 
     
         for idx,(index,row) in enumerate(dfAlarmStatistik.iterrows()):
 
@@ -2161,8 +2163,8 @@ def plotDfAlarmStatistikReportsSEGErgs(
             
             
             # -----------------------------------------------------
-            if idx==0:
-                fig=plt.figure(figsize=DINA4q,dpi=dpiSize) 
+            #if idx==0:
+            #    fig=plt.figure(figsize=DINA4q,dpi=dpiSize) 
 
             ax=fig.gca()          
 
@@ -2333,6 +2335,8 @@ def plotDfAlarmStatistikReportsDruckErgs(
 
         #with PdfPages(DruckErgsFile) as pdf:
         pdf=PdfPages(DruckErgsFile)
+
+        fig=plt.figure(figsize=DINA4q,dpi=dpiSize) 
     
         for idx,(index,row) in enumerate(df2.iterrows()):
 
@@ -2361,8 +2365,8 @@ def plotDfAlarmStatistikReportsDruckErgs(
             
             
             # -----------------------------------------------------
-            if idx==0:
-                fig=plt.figure(figsize=DINA4q,dpi=dpiSize) 
+            #if idx==0:
+            #    fig=plt.figure(figsize=DINA4q,dpi=dpiSize) 
             ax=fig.gca()          
 
             pltLDSErgVec(

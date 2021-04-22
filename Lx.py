@@ -1490,6 +1490,8 @@ class AppLog():
         extracts TC-Data (and CVD-Data) from H5 to seperate H5-Files (Postfixe: _TCxxx.h5 and _CVD.h5)
 
         TCsdfOPCFill: wenn Wahr, werden in TCsdfOPCFill die NULLen aufgefuellt; default: Falsch
+
+        wenn timeStart != None: es wird an exisitierende .h5s angehaengt; sonst werden diese ueberschrieben
         """ 
  
         logStr = "{0:s}.{1:s}: ".format(self.__class__.__name__, sys._getframe().f_code.co_name)
@@ -1516,9 +1518,11 @@ class AppLog():
             self.h5FileSirCalc=name+TCPost+'SirCalc'+ext
             self.h5FileLDSIn=name+TCPost+'LDSIn'+ext
             if not dfID.empty:
+                # Attribute
                 self.h5FileLDSRes1=name+TCPost+'LDSRes1'+ext
                 self.h5FileLDSRes2=name+TCPost+'LDSRes2'+ext
 
+                # Komplement wird geloescht
                 h5FileLDSRes=name+TCPost+'LDSRes'+ext
                 try:
                     # wenn TC-H5 existiert wird es geloescht
@@ -1529,8 +1533,10 @@ class AppLog():
                 except:
                     pass
             else:
+                # Attribut
                 self.h5FileLDSRes=name+TCPost+'LDSRes'+ext
 
+                # Komplemente werden geloescht
                 h5FileLDSRes1=name+TCPost+'LDSRes1'+ext
                 h5FileLDSRes2=name+TCPost+'LDSRes2'+ext
                 try:
@@ -1550,28 +1556,14 @@ class AppLog():
 
             h5Keys,h5KeysPost=self.__getH5Keys(timeStart=timeStart,timeEnd=timeEnd)
 
-            #h5KeysCVD=['CVDRes'+x for x in h5KeysPost]
+            h5KeysOPC=['TCsOPC'+x for x in h5KeysPost]
+            h5KeysSirCalc=['TCsSirCalc'+x for x in h5KeysPost]
+            h5KeysLDSIn=['TCsLDSIn'+x for x in h5KeysPost]
+            h5KeysLDSRes1=['TCsLDSRes1'+x for x in h5KeysPost]
+            h5KeysLDSRes2=['TCsLDSRes2'+x for x in h5KeysPost]
+            h5KeysLDSRes=['TCsLDSRes'+x for x in h5KeysPost]
 
-            #dfLookUpTimes=self.lookUpDf
-            #if timeStart!=None:
-            #    dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['LastTime']>=timeStart] # endet nach dem Anfang oder EndeFile ist Anfang
-            #if timeEnd!=None:
-            #    dfLookUpTimes=dfLookUpTimes[dfLookUpTimes['FirstTime']<=timeEnd] # beginnt vor dem Ende oder AnfangFile ist Ende
-            #dfLookUpTimesIdx=dfLookUpTimes.set_index('logName')
-            #dfLookUpTimesIdx.filter(regex='\.log$',axis=0)
-            #h5Keys=['Log'+re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            #logger.debug("{0:s}h5Keys used: {1:s}".format(logStr,str(h5Keys))) 
-
-            #l=[re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-
-            h5KeysOPC=['TCsOPC'+x for x in h5KeysPost]# l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysSirCalc=['TCsSirCalc'+x for x in h5KeysPost]#l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSIn=['TCsLDSIn'+x for x in h5KeysPost]#l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSRes1=['TCsLDSRes1'+x for x in h5KeysPost]#l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSRes2=['TCsLDSRes2'+x for x in h5KeysPost]#l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-            h5KeysLDSRes=['TCsLDSRes'+x for x in h5KeysPost]#l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
-
-            h5KeysCVD=['CVDRes'+x for x in h5KeysPost]#l]#re.search(logFilenameHeadPattern,logFile).group(1) for logFile in dfLookUpTimesIdx.index]
+            h5KeysCVD=['CVDRes'+x for x in h5KeysPost]
 
             h5KeysAll=zip(h5Keys,h5KeysOPC,h5KeysSirCalc,h5KeysLDSIn,h5KeysLDSRes1,h5KeysLDSRes2,h5KeysLDSRes,h5KeysCVD)
             
@@ -1579,7 +1571,10 @@ class AppLog():
 
                 #H5-Write-Modus
                 if idx==0:
-                    mode='w'
+                    if timeStart!=None:
+                        mode='a'
+                    else:
+                        mode='w'
                 else:
                     mode='a'
 
