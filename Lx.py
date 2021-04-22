@@ -2218,9 +2218,16 @@ class AppLog():
                     #logger.debug("{0:s}timeShift ScenTime by + {1:s} ...".format(logStr,str(timeDelta))) 
                     dfCVD['ScenTime']=dfCVD['ScenTime']+timeDelta
 
+                dfCVDataOnly=pd.DataFrame()
                 dfCVDBEGIN=dfCVD[dfCVD['Remark'].str.contains('^BEGIN_OF_NEW_CONTROL_VOLUME')].copy(deep=True)
-                dfCVDBEGIN['ZHKNR']=dfCVDBEGIN['Value'].astype('int64')
-                dfCVDataOnly=dfCVDBEGIN[['ScenTime','ZHKNR','ID']].rename(columns={'ID':'Type'}).reset_index(drop=True)
+                
+                if not dfCVDBEGIN.empty:
+                    dfCVDBEGIN['ZHKNR']=dfCVDBEGIN['Value'].astype('int64')
+                    dfCVDBEGIN_Remarks=dfCVDBEGIN['Remark'].str.split(pat=';',expand=True)
+                    #logger.debug("{:s}dfCVDBEGIN_Remarks: {:s}".format(logStr,dfCVDBEGIN_Remarks.to_string())) 
+                    dfCVDNames=dfCVDBEGIN_Remarks[dfCVDBEGIN_Remarks[0].str.contains('^BEGIN_OF_NEW_CONTROL_VOLUME')][[1]][1].str.replace('NULL','')
+                    dfCVDBEGIN=dfCVDBEGIN.join(dfCVDNames).rename(columns={1:'Name'})                                   
+                    dfCVDataOnly=dfCVDBEGIN[['ScenTime','ZHKNR','ID','Name']].rename(columns={'ID':'Type'}).reset_index(drop=True)
 
                 if idx==0:
                     if not returnDfCVDataOnly:
@@ -2230,7 +2237,8 @@ class AppLog():
                 # Liste ergaenzen
                 if not returnDfCVDataOnly:
                     dfCVDLst.append(dfCVD)
-                dfCVDataOnlyLst.append(dfCVDataOnly)
+                if not dfCVDataOnly.empty:
+                    dfCVDataOnlyLst.append(dfCVDataOnly)
                                
             # Listen verketten und Nachbereitung
             if not returnDfCVDataOnly:

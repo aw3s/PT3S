@@ -1854,7 +1854,7 @@ def plotDfAlarmStatistik(
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
         return t
 
-def f(LDSResBaseType,OrteIDs):
+def fOrteStripped(LDSResBaseType,OrteIDs):
     """
     returns Orte stripped
     """    
@@ -1879,12 +1879,43 @@ def f(LDSResBaseType,OrteIDs):
     else:
         return None
 
+def fCVDTime(row,dfSEG,dfDruck,replaceTup=('2021-','')):
+    
+    ID=row['OrteIDs'][0]+'ZHKNR_S'
+    ZHKNR=row['ZHKNR']
+    
+    if row['LDSResBaseType']=='SEG':
+        df=dfSEG
+    else:
+        df=dfDruck
+    
+    s=df[df[ID]==ZHKNR][ID]
+    tA=s.index[0]
+    tE=s.index[-1]
+    
+    s=df[ID].index[0]
+    
+    Time="{!s:s} - {!s:s}".format(tA,tE)
+    
+    if tA==df[ID].dropna().index[0]:
+        Time='x'+Time
+    else:
+        Time=' '+Time
+
+    if tE==df[ID].dropna().index[-1]:
+        Time=Time+'x'        
+        
+        
+    
+    return Time.replace(replaceTup[0],replaceTup[1])
+
 def dfAlarmEreignisse( 
     SEGResDct={}
    ,DruckResDct={}
    ,TCsLDSRes1=pd.DataFrame()
    ,TCsLDSRes2=pd.DataFrame()
    ,dfCVDataOnly=pd.DataFrame() 
+   ,replaceTup=('2021-','')
     ):
     """
     Returns df
@@ -1908,16 +1939,14 @@ def dfAlarmEreignisse(
         for col in TCsLDSRes1.columns.to_list():    
             m=re.search(Lx.pID,col)
             ext=m.group('E')
-            if ext == 'ZHKNR_S':
-                #print(col)
+            if ext == 'ZHKNR_S':               
                 TCsLDSRes1[col]=TCsLDSRes1[col].fillna(method='ffill')
                 TCsLDSRes1[col]=TCsLDSRes1[col].fillna(method='bfill')
 
         for col in TCsLDSRes2.columns.to_list():    
             m=re.search(Lx.pID,col)
             ext=m.group('E')
-            if ext == 'ZHKNR_S':
-                #print(col)
+            if ext == 'ZHKNR_S':                
                 TCsLDSRes2[col]=TCsLDSRes2[col].fillna(method='ffill')
                 TCsLDSRes2[col]=TCsLDSRes2[col].fillna(method='bfill')
        
@@ -1928,101 +1957,96 @@ def dfAlarmEreignisse(
             AL_S=dct['Alarm']
             if len(AL_S) > 0:        
                 ID=ResIDBase+'ZHKNR_S'
-                #print(ResIDBase)            
+                      
                 for idx,AL_S_Timepair in enumerate(AL_S):            
                     (t1,t2)=AL_S_Timepair
                     ZHKNR_S_Lst=TCsLDSRes1.loc[t1:t2,ID].unique()
                     if len(ZHKNR_S_Lst) != 1:                
-                        logger.warning(("{:s}{:s}: Alarm {:d}: Anzahl verschiedener ZHKNRn: {:d}?!".format(logStr,ID,idx,len(ZHKNR_S_Lst))))            
+                        logger.warning(("{:s}ID: {:s}: Alarm {:d}: Anzahl verschiedener ZHKNRn !=1: {:d}?! ZHKNR kann waehrend eines Alarms einer ID nicht wechseln. Alarm wird nicht verarbeitet.".format(logStr,ID,idx,len(ZHKNR_S_Lst))))            
                     else:
-                        ZHKNR=int(ZHKNR_S_Lst[0])
-                        #print("{:s}: Alarm {:d}: ZHKNR: {:d}".format(ID,idx+1,ZHKNR))
+                        ZHKNR=int(ZHKNR_S_Lst[0])                        
                         alarmEvent=AlarmEvent(t1,t2,ZHKNR,'SEG')
-                        if alarmEvent not in AlarmEvents:
-                            #print("{!s:s} neu in Liste".format(alarmEvent))
+                        if alarmEvent not in AlarmEvents:                            
                             AlarmEvents.append(alarmEvent)   
                             AlarmEventsOrte[alarmEvent]=[]
                             AlarmEventsOrte[alarmEvent].append(ResIDBase)
-                        else:
-                            #print("{!s:s} bereits in Liste".format(alarmEvent))
+                        else:                            
                             AlarmEventsOrte[alarmEvent].append(ResIDBase)
                     
         for ResIDBase,dct in DruckResDct.items():
             AL_S=dct['Alarm']
             if len(AL_S) > 0:        
-                ID=ResIDBase+'ZHKNR_S'
-                #print(ResIDBase)            
+                ID=ResIDBase+'ZHKNR_S'                
                 for idx,AL_S_Timepair in enumerate(AL_S):            
                     (t1,t2)=AL_S_Timepair
                     ZHKNR_S_Lst=TCsLDSRes2.loc[t1:t2,ID].unique()
                     if len(ZHKNR_S_Lst) != 1:                
-                        logger.warning("{:s}{:s}: Alarm {:d}: Anzahl verschiedener ZHKNRn: {:d}?!".format(logStr,ID,idx,len(ZHKNR_S_Lst)))            
+                        logger.warning(("{:s}ID: {:s}: Alarm {:d}: Anzahl verschiedener ZHKNRn !=1: {:d}?! ZHKNR kann waehrend eines Alarms einer ID nicht wechseln. Alarm wird nicht verarbeitet.".format(logStr,ID,idx,len(ZHKNR_S_Lst))))                        
                     else:
-                        ZHKNR=int(ZHKNR_S_Lst[0])
-                        #print("{:s}: Alarm {:d}: ZHKNR: {:d}".format(ID,idx+1,ZHKNR))
+                        ZHKNR=int(ZHKNR_S_Lst[0])                        
                         alarmEvent=AlarmEvent(t1,t2,ZHKNR,'Druck')
-                        if alarmEvent not in AlarmEvents:
-                            #print("{!s:s} neu in Liste".format(alarmEvent))
+                        if alarmEvent not in AlarmEvents:                           
                             AlarmEvents.append(alarmEvent)   
                             AlarmEventsOrte[alarmEvent]=[]
                             AlarmEventsOrte[alarmEvent].append(ResIDBase)
                             logger.debug("{:s}Alarm: {!s:s} {!s:s} {:d} {:s}".format(logStr,alarmEvent.tA,alarmEvent.tE,alarmEvent.ZHKNR,alarmEvent.LDSResBaseType))            
-                        else:
-                            #print("{!s:s} bereits in Liste".format(alarmEvent))
+                        else:                            
                             AlarmEventsOrte[alarmEvent].append(ResIDBase)
      
-        #AlarmEvents=sorted(AlarmEvents, key=lambda alarmEvent: alarmEvent.tA) 
+        # diese Sortierung scheint a) nicht zu funktionieren?! und wird b) im df-Ergebnis per sort_values ohnehin ueberschrieben
         AlarmEvents=sorted(AlarmEvents,key=attrgetter('tA','ZHKNR')) 
-
-        l=[]
-        for idx,alarmEvent in enumerate(AlarmEvents):
-            #alarmEvent=AlarmEvents[idx]
-            pass
-            #print("{:d}: {!s:s}: {!s:s}".format(idx+1,alarmEvent,AlarmEventsOrte[alarmEvent]))
-            l.append(AlarmEventsOrte[alarmEvent])
     
+        # df erzeugen
         dfAlarmEreignisse=pd.DataFrame.from_records(
            [alarmEvent for alarmEvent in AlarmEvents],
            columns=AlarmEvent._fields
         )
+
+        # Liste der EventOrte erstellen, zuweisen
+        l=[]
+        for idx,alarmEvent in enumerate(AlarmEvents):           
+            l.append(AlarmEventsOrte[alarmEvent])
         dfAlarmEreignisse['OrteIDs']=l
-        dfAlarmEreignisse['Orte']=dfAlarmEreignisse.apply(lambda row: f(row.LDSResBaseType,row.OrteIDs),axis=1)
+        dfAlarmEreignisse['Orte']=dfAlarmEreignisse.apply(lambda row: fOrteStripped(row.LDSResBaseType,row.OrteIDs),axis=1)
 
+        # Nr.
         dfAlarmEreignisse.index = np.arange(1, len(dfAlarmEreignisse)+1)
-
         dfAlarmEreignisse=dfAlarmEreignisse.reset_index()
-        dfAlarmEreignisse.rename(columns={'index':'Nr'},inplace=True)
-        #dfAlarmEreignisse['NrResType']=dfAlarmEreignisse.groupby('LDSResBaseType').cumcount() + 1
+        dfAlarmEreignisse.rename(columns={'index':'Nr'},inplace=True)       
 
+        # Voralarm
         VoralarmTypen=[]
         for index, row in dfAlarmEreignisse.iterrows():            
             OrteIDs=row['OrteIDs']
             OrtID=OrteIDs[0]
             #print(row['tA'])
             if row['LDSResBaseType']=='SEG':
-                VoralarmTyp=TCsLDSRes1.loc[:row['tA']-pd.Timedelta('1 second'),OrtID+'AL_S'].iloc[-1]
-                #print(VoralarmTyp)
+                VoralarmTyp=TCsLDSRes1.loc[:row['tA']-pd.Timedelta('1 second'),OrtID+'AL_S'].iloc[-1]               
             elif row['LDSResBaseType']=='Druck':
-                VoralarmTyp=TCsLDSRes2.loc[:row['tA']-pd.Timedelta('1 second'),OrtID+'AL_S'].iloc[-1]
-                #print(VoralarmTyp) 
-            if pd.isnull(VoralarmTyp): # == None: #?!
+                VoralarmTyp=TCsLDSRes2.loc[:row['tA']-pd.Timedelta('1 second'),OrtID+'AL_S'].iloc[-1]                
+            if pd.isnull(VoralarmTyp): # == None: #?! - ggf. Nachfolger eines neutralen Bilanzraumwechsels
                 VoralarmTyp=-1      
-                logger.warning("{:s}Alarm Nr. {:d} tA {!s:s}: kein Vorlalarm gefunden?! - Voralarm gesetzt:{:d}".format(logStr,int(row['Nr']),row['tA'],int(VoralarmTyp)))           
+                logger.debug("{:s}Alarm Nr. {:d} tA {!s:s}: kein Vorlalarm gefunden?! - Voralarm gesetzt auf:{:d}".format(logStr,int(row['Nr']),row['tA'],int(VoralarmTyp)))           
                 
             logger.debug("{:s}{:d} {!s:s} VoralarmTyp:{:d}".format(logStr,int(row['Nr']),row['tA'],int(VoralarmTyp)))           
             VoralarmTypen.append(VoralarmTyp)
         dfAlarmEreignisse['Voralarm']=[int(x) for x in VoralarmTypen]
 
-        # Typ
+        # Type (aus dfCVDataOnly) und Erzeugungszeit (aus dfCVDataOnly) und Name (aus dfCVDataOnly)
         dfAlarmEreignisse['ZHKNR']=dfAlarmEreignisse['ZHKNR'].astype('int64')
         dfAlarmEreignisse['ZHKNRStr']=dfAlarmEreignisse['ZHKNR'].astype('string')
         dfCVDataOnly['ZHKNRStr']=dfCVDataOnly['ZHKNR'].astype('string')
 
-        dfAlarmEreignisse=pd.merge(dfAlarmEreignisse,dfCVDataOnly,on='ZHKNRStr',suffixes=('','_CVD')).filter(items=dfAlarmEreignisse.columns.to_list()+['Type','ScenTime']) #Kontrolle: ,'ZHKNR_CVD','ZHKNRStr_CVD'])
+        dfAlarmEreignisse=pd.merge(dfAlarmEreignisse,dfCVDataOnly,on='ZHKNRStr',suffixes=('','_CVD')).filter(items=dfAlarmEreignisse.columns.to_list()+['Type','ScenTime','Name'])         
 
         dfAlarmEreignisse['NrResType']=dfAlarmEreignisse.groupby(['LDSResBaseType','Type']).cumcount() + 1
 
+        dfAlarmEreignisse['Time']=dfAlarmEreignisse.apply(lambda row: fCVDTime(row,TCsLDSRes1,TCsLDSRes2,replaceTup),axis=1)
+
         dfAlarmEreignisse=dfAlarmEreignisse.sort_values(by=['tA','ZHKNR'])
+
+        dfAlarmEreignisse['tA']=dfAlarmEreignisse['tA'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))
+        dfAlarmEreignisse['tE']=dfAlarmEreignisse['tE'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))
                                                                                                                        
     except RmError:
         raise            
@@ -2033,6 +2057,23 @@ def dfAlarmEreignisse(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
         return dfAlarmEreignisse
+
+
+def fCVDName(Name
+):
+    """
+    """
+    
+    
+    lName=len(Name)
+    lNameMaxH=20
+    if lName > 2*lNameMaxH:
+        
+        
+        Name=Name[:lNameMaxH-2]+'....'+Name[lName-lNameMaxH+2:]
+        
+    Name=Name.replace('Â°','|')
+    return Name
 
 def plotDfAlarmEreignisse(    
      dfAlarmEreignisse=pd.DataFrame()    
@@ -2048,16 +2089,21 @@ def plotDfAlarmEreignisse(
 
     try:                     
 
-        df=dfAlarmEreignisse[['Nr','LDSResBaseType','Voralarm','Type','NrResType','tA','tE','ZHKNR','Orte']].copy()
+        df=dfAlarmEreignisse[['Nr','LDSResBaseType','Voralarm','Type','NrResType','tA','tE','ZHKNR','Name','Orte','Time']].copy()
+        df['Anz']=df['Orte'].apply(lambda x: len(x))
+
         df['Orte']=df['Orte'].apply(lambda x: str(x).replace('[','').replace(']','').replace("'",""))
         df['LDSResBaseType']=df.apply(lambda row: "{:s} {:s} - {:d}".format(row['LDSResBaseType'],row['Type'],row['Voralarm']),axis=1)
-        df=df[['Nr','LDSResBaseType','NrResType','tA','tE','ZHKNR','Orte']]
+        df=df[['Nr','LDSResBaseType','NrResType','tA','tE','ZHKNR','Name','Anz','Time']]#,'Orte']]
         df.rename(columns={'LDSResBaseType':'ResTyp - Voralarm'},inplace=True)
-        df.rename(columns={'NrResType':'NrResTyp'},inplace=True)
+        df.rename(columns={'NrResType':'NrResTyp','Time':'ZHKZeit','Name':'ZHKName','Anz':'AnzEIDs'},inplace=True)
+
+        df['ZHKName']=df['ZHKName'].apply(lambda x: fCVDName(x))
 
         t=plt.table(cellText=df.values, colLabels=df.columns
                     #,colWidths=[.05,.125,.075,.15,.15,.075,.375]
-                    ,colWidths=[.05,.1,.075,.125,.125,.05,.475]
+                    #,colWidths=[.05,.1,.075,.125,.125,.05,.475]
+                    ,colWidths=[.05,.1,.05,.08,.08,.05,.20,.05,.18]
                     , cellLoc='left'
                     , loc='center')    
 
@@ -2066,7 +2112,8 @@ def plotDfAlarmEreignisse(
         
         
         cols=df.columns.to_list()
-        colIdxOrte=cols.index('Orte')
+        #colIdxOrte=cols.index('Orte')
+        colIdxName=cols.index('ZHKName')
 
         cells = t.properties()["celld"]
         for cellTup,cellObj in cells.items():
@@ -2075,9 +2122,9 @@ def plotDfAlarmEreignisse(
 
              row,col=cellTup # row: 0 fuer Ueberschrift bei Ueberschrift; col mit 0
     
-             if col == colIdxOrte:
+             if col == colIdxName:
                  pass
-                 cellObj.set_text_props(fontsize=4)
+                 #cellObj.set_text_props(fontsize=4)
                  cellObj.set_text_props(ha='left')
              else:
                  pass
