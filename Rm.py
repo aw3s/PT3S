@@ -265,6 +265,24 @@ linestyle_tuple = [
      ('loosely dashdotdotted', (0, (3, 10, 1, 10, 1, 10))),
      ('densely dashdotdotted', (0, (3, 1, 1, 1, 1, 1)))]
 
+
+def fCVDNodesFromName(x):
+    Nodes=x.replace('Â°','~')
+    Nodes=Nodes.split('~')
+    
+    Nodes =[Node.lstrip().rstrip() for Node in Nodes if len(Node)>0]
+    return Nodes
+
+def fgetMaxpMinFromName(CVDName,dfSegsNodesNDataDpkt):
+    """
+    returns max. pMin for alle NODEs in CVDName
+    """
+    
+    nodeLst=fCVDNodesFromName(CVDName)
+    df=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['NODEsName'].isin(nodeLst)][['pMin','pMinMlc']]
+    s=df.max()
+    return s.pMin
+
 # --- Funktionen Allgemein
 # -----------------------
 
@@ -941,13 +959,16 @@ attrsDctLDS={
     ,'Druck_NG_AV_Attrs':{'color':'red','zorder':2,'ls':'dashed','where':'post'}
     
     ,'Seg_SB_S_Attrs':{'color':'black','alpha':.5,'where':'post'}
-    ,'Druck_SB_S_Attrs':{'color':'black','ls':'dashed','alpha':.5,'where':'post'}    
+    ,'Druck_SB_S_Attrs':{'color':'black','ls':'dashed','alpha':.75,'where':'post','lw':1.0}    
     
     ,'Seg_AC_AV_Attrs':{'color':'indigo','where':'post'}
     ,'Druck_AC_AV_Attrs':{'color':'indigo','ls':'dashed','where':'post'}       
 
-    ,'Seg_ACC_Limits_Attrs':{'color':'indigo','ls':linestyle_tuple[2][1]}
-    ,'Druck_ACC_Limits_Attrs':{'color':'indigo','ls':linestyle_tuple[8][1]}
+    ,'Seg_ACF_AV_Attrs':{'color':'blueviolet','where':'post','lw':1.0}
+    ,'Druck_ACF_AV_Attrs':{'color':'blueviolet','ls':'dashed','where':'post','lw':1.0}       
+
+    ,'Seg_ACC_Limits_Attrs':{'color':'indigo','ls':linestyle_tuple[2][1]} # 'densely dotted'
+    ,'Druck_ACC_Limits_Attrs':{'color':'indigo','ls':linestyle_tuple[8][1]} # 'densely dashdotted'
 
     ,'Seg_TIMER_AV_Attrs':{'color':'chartreuse','where':'post'}
     ,'Druck_TIMER_AV_Attrs':{'color':'chartreuse','ls':'dashed','where':'post'}      
@@ -1422,6 +1443,7 @@ markerDefSchieber=[ # Schiebersymobole
                     ]          
 
 yticksAL=[0,3,4,10,20,30,40]
+yticksTV=[0,100,135,180,200,300]    
 
 # --- Reports LDS: Funktionen und Hilfsfunktionen
 # -----------------------------------------------
@@ -1571,6 +1593,7 @@ def getAlarmStatistikAlarms(
       
         # Zeiten SEGErgs mit zustaendig und Alarm
         SEGResDct=fGetResTimes(dfSegsNodesNDataDpkt['SEGResIDBase'].unique(),TCsLDSRes1)
+
         # verschiedene Auspraegungen SB_S pro Alarmzeit ermitteln
         for idx,(ID,tPairsDct) in enumerate(SEGResDct.items()):            
             tPairs=tPairsDct['Alarm']#['AL_S']
@@ -1631,21 +1654,23 @@ def getAlarmStatistikAlarms(
 
         # verschiedene Auspraegungen SB_S pro Alarmzeit ermitteln
         for idx,(ID,tPairsDct) in enumerate(SEGDruckResDct.items()):
+
+            tPairs=tPairsDct['Alarm']#['AL_S']            
+            SB_S_tPairs=[]      
+            if tPairs == []:                   
+                pass
+            else:    
+                #DruckErgPVs zum SEG ermitteln
+                lDruckSBS=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['SEGResIDBase']==ID]['DruckResIDBase'].unique()
+                lDruckSBS=lDruckSBS[lDruckSBS != np.array(None)]
+                lDruckSBS=[x+'SB_S' for x in lDruckSBS]           
     
-            #DruckErgPVs zum SEG ermitteln
-            lDruckSBS=dfSegsNodesNDataDpkt[dfSegsNodesNDataDpkt['SEGResIDBase']==ID]['DruckResIDBase'].unique()
-            lDruckSBS=lDruckSBS[lDruckSBS != np.array(None)]
-            lDruckSBS=[x+'SB_S' for x in lDruckSBS]           
-    
-            for DruckSBS in lDruckSBS:
-                if DruckSBS not in TCsLDSRes2.columns.to_list():
-                    lDruckSBS.remove(DruckSBS)
-                    logger.info("{:s}Druck-PV: {:s} nicht in den Ergebnissen?!".format(logStr,DruckSBS))                    
+                for DruckSBS in lDruckSBS:
+                    if DruckSBS not in TCsLDSRes2.columns.to_list():
+                        lDruckSBS.remove(DruckSBS)
+                        logger.info("{:s}Druck-PV: {:s} nicht in den Ergebnissen?! SEG: {:s}".format(logStr,DruckSBS,ID))                    
             
-            # verschiedene Auspraegungen SB_S pro Alarmzeit ermitteln
-            tPairs=tPairsDct['Alarm']#['AL_S']
-            SB_S_tPairs=[]            
-            if tPairs != []:        
+                # verschiedene Auspraegungen SB_S pro Alarmzeit ermitteln                    
                 for tPair in tPairs:
                     #print(tPair)
                     df=TCsLDSRes2.loc[tPair[0]:tPair[1],lDruckSBS]
@@ -1653,6 +1678,7 @@ def getAlarmStatistikAlarms(
                     l = l[~np.isnan(l)]
                     l=sorted([int(x) for x in l])
                     SB_S_tPairs.append(l)
+
             tPairsDct['AL_S_SB_S']=SB_S_tPairs  
             SEGDruckResDct[ID]=tPairsDct 
 
@@ -2103,7 +2129,7 @@ def plotDfAlarmEreignisse(
         t=plt.table(cellText=df.values, colLabels=df.columns
                     #,colWidths=[.05,.125,.075,.15,.15,.075,.375]
                     #,colWidths=[.05,.1,.075,.125,.125,.05,.475]
-                    ,colWidths=[.05,.1,.05,.08,.08,.05,.20,.05,.18]
+                    ,colWidths=[.05,.1,.05,.08,.08,.05,.225,.05,.18]
                     , cellLoc='left'
                     , loc='center')    
 
@@ -2145,7 +2171,6 @@ def plotDfAlarmEreignisse(
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
         return t
-
 
 def plotDfAlarmStatistikReportsSEGErgs( 
      h5File='a.h5'   
@@ -2278,7 +2303,7 @@ def plotDfAlarmStatistikReportsSEGErgs(
             ,plotTVAmFct=lambda x: x*100 
             ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
             ,ylimTV=(0,300)
-            ,yticksTV=[0,100,180,200,300]    
+            ,yticksTV=yticksTV   
             )    
                        
             backgroundcolor='white'
@@ -2479,7 +2504,7 @@ def plotDfAlarmStatistikReportsDruckErgs(
             ,plotTVAmFct=lambda x: x*100 
             ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
             ,ylimTV=(0,300)
-            ,yticksTV=[0,100,180,200,300]    
+            ,yticksTV=yticksTV
             )    
 
             backgroundcolor='white'
@@ -2703,7 +2728,7 @@ def plotTimespans(
    ,plotTVAmFct=lambda x: x*100 
    ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
    ,ylimTV=(0,300)
-   ,yticksTV=[0,100,180,200,300]   
+   ,yticksTV=yticksTV  
     
 ):
     
@@ -3244,7 +3269,7 @@ def plotTimespansLDS(
     ,plotTVAmFct=lambda x: x*100 
     ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
     ,ylimTV=(0,300)
-    ,yticksTV=[0,100,180,200,300]        
+    ,yticksTV=yticksTV     
 ):
 
     # plots pltLDSErgVec-Sections 
@@ -3968,7 +3993,7 @@ def pltLDSErgVec(
     ,plotTVAmFct=lambda x: x*100 
     ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
     ,ylimTV=(0,300)
-    ,yticksTV=[0,100,180,200,300]           
+    ,yticksTV=yticksTV       
     ):
     """
     zeichnet Zeitkurven von App LDS Ergebnisvektoren auf ax
@@ -4252,11 +4277,17 @@ def pltLDSErgVec(
         
                 if not dfSegReprVec.empty:
                     lines = pltLDSErgVecHelper(ax3,dfSegReprVec,'AC_AV',attrsDctLDS['Seg_AC_AV_Attrs'])                    
-                    yLines['AC_AV Seg']=lines[0]                        
+                    yLines['AC_AV Seg']=lines[0]              
+                    
+                    lines = pltLDSErgVecHelper(ax3,dfSegReprVec,'ACF_AV',attrsDctLDS['Seg_ACF_AV_Attrs'])                    
+                    yLines['ACF_AV Seg']=lines[0]    
     
                 if not dfDruckReprVec.empty:
                     lines = pltLDSErgVecHelper(ax3,dfDruckReprVec,'AC_AV',attrsDctLDS['Druck_AC_AV_Attrs'])                   
-                    yLines['AC_AV Drk']=lines[0]                 
+                    yLines['AC_AV Drk']=lines[0]             
+                    
+                    lines = pltLDSErgVecHelper(ax3,dfDruckReprVec,'ACF_AV',attrsDctLDS['Druck_ACF_AV_Attrs'])                   
+                    yLines['ACF_AV Drk']=lines[0]    
 
                 # ACC Limits
                 if plotACCLimits:
