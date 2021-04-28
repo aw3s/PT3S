@@ -2074,11 +2074,11 @@ def dfAlarmEreignisse(
 
         dfAlarmEreignisse=pd.merge(dfAlarmEreignisse,dfCVDataOnly,on='ZHKNRStr',suffixes=('','_CVD')).filter(items=dfAlarmEreignisse.columns.to_list()+['Type','ScenTime','Name'])         
 
+        dfAlarmEreignisse=dfAlarmEreignisse.sort_values(by=['tA','ZHKNR'])
+
         dfAlarmEreignisse['NrResTypeVA']=dfAlarmEreignisse.groupby(['LDSResBaseType','Type','Voralarm']).cumcount() + 1
 
         dfAlarmEreignisse['Time']=dfAlarmEreignisse.apply(lambda row: fCVDTime(row,TCsLDSRes1,TCsLDSRes2,replaceTup),axis=1)
-
-        dfAlarmEreignisse=dfAlarmEreignisse.sort_values(by=['tA','ZHKNR'])
 
         dfAlarmEreignisse['tA']=dfAlarmEreignisse['tA'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))
         dfAlarmEreignisse['tE']=dfAlarmEreignisse['tE'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))

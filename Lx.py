@@ -1314,6 +1314,7 @@ class AppLog():
                    (zip7FileHead, zip7FileTail)=os.path.split(zip7File)
                    logger.debug("{0:s}zip7FileHead (leer wenn zip7 im selben Verz.): {1:s} zip7FileTail: {2:s}.".format(logStr,zip7FileHead,zip7FileTail))  
 
+                logger.info("{0:s}zip7File: {1:s} ...".format(logStr,zip7File))  
                 
                 tmpDir=os.path.dirname(zip7File)
                 tmpDirContent=glob.glob(tmpDir)
@@ -1371,7 +1372,17 @@ class AppLog():
                   
                         # extrahieren 
                         logger.debug("{0:s}Log: {1:s} wird extrahiert ... ".format(logStr,logFileTail))   
-                        zip7FileObj.extract(path=tmpDir,targets=logFileNameInZip)
+                        import lzma
+                        try:
+                            zip7FileObj.extract(path=tmpDir,targets=logFileNameInZip)
+                        except lzma.LZMAError:
+                            logger.warning("{0:s}Log: {1:s} nicht erfolgreich extrahiert - continue ... ".format(logStr,logFileTail))   
+                            continue
+                        except Exception as e:
+                            logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))
+                            logger.error(logStrFinal) 
+                            raise LxError(logStrFinal)    
+
                         logger.debug("{0:s}Log: {1:s} wurde extrahiert. ".format(logStr,logFileTail))   
                     
                         if os.path.exists(logFile):
