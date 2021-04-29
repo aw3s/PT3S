@@ -1071,7 +1071,7 @@ def getNamesFromDruckResIDBase(dfSegsNodesNDataDpkt
         return []
 
 def dfSegsNodesNDataDpkt(
-     VersionDir=r"C:\3s\Projekte\Projekt\04 - Versionen\Version82.3"
+     VersionsDir=r"C:\3s\Projekte\Projekt\04 - Versionen\Version82.3"
     ,Model=r"MDBDOC\FBG.mdb" # a Access Model
     ,LDSPara=r"App LDS\Modelle\WDFBG\B1\V0\BZ1\LDS_Para.xml"
     ,LDSParaPT=r"App LDS\SirOPC\AppLDS_DPDTParams.csv"
@@ -1145,7 +1145,7 @@ def dfSegsNodesNDataDpkt(
 
     try:             
         # --- Einlesen Modell    
-        accFile=os.path.join(VersionDir,Model)
+        accFile=os.path.join(VersionsDir,Model)
         logger.debug("{:s}Access Model: {:s}".format(logStr,accFile)) 
         am=Am.Am(accFile=accFile)
 
@@ -1266,7 +1266,7 @@ def dfSegsNodesNDataDpkt(
 
 
         # --- LDSPara
-        LDSParaFile=os.path.join(VersionDir,LDSPara)
+        LDSParaFile=os.path.join(VersionsDir,LDSPara)
         logger.debug("{:s}LDS Para: {:s}".format(logStr,LDSParaFile)) 
         with open(LDSParaFile) as f:
             xml = f.read()
@@ -1321,7 +1321,7 @@ def dfSegsNodesNDataDpkt(
         logger.debug("{:s}dfSegsNodesNDataDpkt: shape nachher: {!s:s}".format(logStr,dfSegsNodesNDataDpkt.shape))     
 
         # --- LDSParaPT
-        LDSParaPTFile=os.path.join(VersionDir,LDSParaPT)
+        LDSParaPTFile=os.path.join(VersionsDir,LDSParaPT)
         dfDPDTParams=pd.read_csv(LDSParaPTFile,delimiter=';')
 
         dfMehrfach=dfDPDTParams.groupby(by='#ID').filter(lambda x: len(x) > 1)
@@ -2059,9 +2059,12 @@ def dfAlarmEreignisse(
                 VoralarmTyp=TCsLDSRes2.loc[:row['tA']-pd.Timedelta('1 second'),OrtID+'AL_S'].iloc[-1]                
             if pd.isnull(VoralarmTyp): # == None: #?! - ggf. Nachfolger eines neutralen Bilanzraumwechsels
                 VoralarmTyp=-1      
-                logger.warning("{:s}Alarm Nr. {:d} {:d} tA {!s:s}: kein Vorlalarm gefunden?! - Voralarm gesetzt auf: {:d}".format(logStr,int(row['Nr']),row['ZHKNR'],row['tA'],int(VoralarmTyp)))          
-            if int(VoralarmTyp) not in [-1,3,4,10]:                
-                logger.warning("{:s}Alarm Nr. {:d} {:d} tA {!s:s}: unbekannter Vorlalarm gefunden: {:d}".format(logStr,int(row['Nr']),row['ZHKNR'],row['tA'],int(VoralarmTyp)))                          
+                logger.warning("{:s}PV: {:s} Alarm Nr. {:d} {:d} tA {!s:s}: kein (isnull) Vorlalarm gefunden?! (ggf. neutraler BRWechsel) - Voralarm gesetzt auf: {:d}".format(logStr,row['OrteIDs'][0],int(row['Nr']),row['ZHKNR'],row['tA'],int(VoralarmTyp)))    
+            if int(VoralarmTyp)==0: # == 0: #?! - ggf. Nachfolger eines neutralen Bilanzraumwechsels                 
+                VoralarmTyp=0  
+                logger.warning("{:s}PV: {:s} Alarm Nr. {:d} {:d} tA {!s:s}: Vorlalarm 0?! (ggf. war Bilanz in Stoerung)".format(logStr,row['OrteIDs'][0],int(row['Nr']),row['ZHKNR'],row['tA']))                          
+            if int(VoralarmTyp) not in [-1,0,3,4,10]:                
+                logger.warning("{:s}PV: {:s} Alarm Nr. {:d} {:d} tA {!s:s}: unbekannter Vorlalarm gefunden: {:d}".format(logStr,row['OrteIDs'][0],int(row['Nr']),row['ZHKNR'],row['tA'],int(VoralarmTyp)))                          
                 
             logger.debug("{:s}{:d} {!s:s} VoralarmTyp:{:d}".format(logStr,int(row['Nr']),row['tA'],int(VoralarmTyp)))           
             VoralarmTypen.append(VoralarmTyp)
@@ -2077,6 +2080,8 @@ def dfAlarmEreignisse(
         dfAlarmEreignisse=dfAlarmEreignisse.sort_values(by=['tA','ZHKNR'])
 
         dfAlarmEreignisse['NrResTypeVA']=dfAlarmEreignisse.groupby(['LDSResBaseType','Type','Voralarm']).cumcount() + 1
+
+        dfAlarmEreignisse['NrName']=dfAlarmEreignisse.sort_values(by=['Name','tA','ZHKNR']).groupby(['Name']).cumcount() + 1
 
         dfAlarmEreignisse['Time']=dfAlarmEreignisse.apply(lambda row: fCVDTime(row,TCsLDSRes1,TCsLDSRes2,replaceTup),axis=1)
 
@@ -2123,13 +2128,13 @@ def plotDfAlarmEreignisse(
 
 
     try:                     
-
-        df=dfAlarmEreignisse[['Nr','LDSResBaseType','Voralarm','Type','NrResTypeVA','tA','tE','ZHKNR','Name','Orte','Time']].copy()
+     
+        df=dfAlarmEreignisse[['Nr','LDSResBaseType','Voralarm','Type','NrResTypeVA','tA','tE','ZHKNR','Name','Orte','Time','NrName']].copy()
         df['Anz']=df['Orte'].apply(lambda x: len(x))
 
         df['Orte']=df['Orte'].apply(lambda x: str(x).replace('[','').replace(']','').replace("'",""))
         df['LDSResBaseType']=df.apply(lambda row: "{:s} {:s} - {:d}".format(row['LDSResBaseType'],row['Type'],row['Voralarm']),axis=1)
-        df=df[['Nr','LDSResBaseType','NrResTypeVA','tA','tE','ZHKNR','Name','Anz','Time']]#,'Orte']]
+        df=df[['Nr','LDSResBaseType','NrResTypeVA','tA','tE','ZHKNR','Name','NrName','Anz','Time']]#,'Orte']]
         df.rename(columns={'LDSResBaseType':'ResTyp - Voralarm'},inplace=True)
         df.rename(columns={'NrResTypeVA':'NrResTypV','Time':'ZHKZeit','Name':'ZHKName','Anz':'AnzEIDs'},inplace=True)
 
@@ -2138,7 +2143,8 @@ def plotDfAlarmEreignisse(
         t=plt.table(cellText=df.values, colLabels=df.columns
                     #,colWidths=[.05,.125,.075,.15,.15,.075,.375]
                     #,colWidths=[.05,.1,.075,.125,.125,.05,.475]
-                    ,colWidths=[.05,.1,.075,.08,.08,.05,.225,.05,.18]
+                    #,colWidths=[.05,.1,.075,.08,.08,.05,.225,.05,.18]
+                    ,colWidths=[.05,.1,.075,.08,.08,.05,.225,.11,.05,.18]
                     , cellLoc='left'
                     , loc='center')    
 
