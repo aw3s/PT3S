@@ -1110,7 +1110,7 @@ def dfSegsNodesNDataDpkt(
         ,'DT':1
         ,'FILTERWINDOW':180
 
-        #'L_PERCENT':1.6
+        #,'L_PERCENT':1.6
         ,'L_PERCENT_STDY':1.6
         ,'L_PERCENT_STRAN':1.6
         ,'L_PERCENT_TRANS':1.6
@@ -1277,12 +1277,19 @@ def dfSegsNodesNDataDpkt(
         for key in LDSParameterDataD.keys():
             LDSParameterData[key]=[]
 
+        logger.debug("{:s}LDSParameter: {!s:s}.".format(logStr,LDSParameter))
+
         for idx,element in enumerate(root.iter(tag='LDSI')):
     
             attribKeysMute=[]
             for key,value in element.attrib.items():
                 if key not in LDSParameter:
-                    logger.error("{:s}{:s}: Parameter: {:s} undefiniert.".format(logStr,element.attrib['NAME'],key))
+                    logger.warning("{:s}{:s}: Parameter: {:s} undefiniert.".format(logStr,element.attrib['NAME'],key))
+
+
+                    #TTIMERTOLISS: konfiguriert in V80 in 7-43-LX1-RB~7-43-LX1L-RB (wohl Tippfehler)
+                    #TIMERTOLISS (korrekter Name)
+
                     attribKeysMute.append(key)
             
             keysIst=element.attrib.keys()
@@ -1298,8 +1305,10 @@ def dfSegsNodesNDataDpkt(
                     LDSIParaDct[key]=int(LDSIParaDct['TIMER'])/4
                     logger.info("{:s}{:s}: explizit fehlender Parameter: {:s} gesetzt zu: {!s:s}.".format(logStr,element.attrib['NAME'],key,LDSIParaDct[key]))
                 else:                        
-                    logger.error("{:s}{:s}: explizit fehlender Parameter: {:s} in diesem Skript unbehandelt.".format(logStr,element.attrib['NAME'],key))
-    
+                    #logger.error("{:s}{:s}: explizit fehlender Parameter: {:s} in diesem Skript unbehandelt.".format(logStr,element.attrib['NAME'],key))
+                    LDSIParaDct[key]=LDSParameterDataD[key]
+                    logger.info("{:s}{:s}: explizit fehlender Parameter: {:s} gesetzt zu: {!s:s}.".format(logStr,element.attrib['NAME'],key,LDSIParaDct[key]))
+
             keyListToProcess=[key for key in LDSIParaDct.keys() if key not in attribKeysMute]
             for key in keyListToProcess:        
                 LDSParameterData[key].append(LDSIParaDct[key])
@@ -1314,7 +1323,7 @@ def dfSegsNodesNDataDpkt(
         for index, row in df.iterrows():    
             for colName, colValue in zip(df.columns.to_list(),row):
                 if colValue != LDSParameterDataD[colName]:
-                    logger.info("{:s}Segment: {:30s} Parameter: {:20s} Wert: {:10s} (Standard: {:s})".format(logStr,index,colName,str(colValue),str(LDSParameterDataD[colName])))
+                    logger.info("Segment: {:30s} Parameter: {:20s} Wert: {:10s} (Standard: {:s})".format(index,colName,str(colValue),str(LDSParameterDataD[colName])))
         
         logger.debug("{:s}dfSegsNodesNDataDpkt: shape vorher:  {!s:s}".format(logStr,dfSegsNodesNDataDpkt.shape))     
         dfSegsNodesNDataDpkt=pd.merge(dfSegsNodesNDataDpkt,df,left_on='SEGNodes',right_index=True,suffixes=('','_LDSPara'))
@@ -1322,41 +1331,41 @@ def dfSegsNodesNDataDpkt(
 
         # --- LDSParaPT
         LDSParaPTFile=os.path.join(VersionsDir,LDSParaPT)
-        dfDPDTParams=pd.read_csv(LDSParaPTFile,delimiter=';')
+        if os.path.exists(LDSParaPTFile):
+            dfDPDTParams=pd.read_csv(LDSParaPTFile,delimiter=';')
 
-        dfMehrfach=dfDPDTParams.groupby(by='#ID').filter(lambda x: len(x) > 1)
-        rows,cols=dfMehrfach.shape
-        if rows > 0:            
-            logger.warning("{:s}LDSParaPT: Mehrfachkonfigurationen: {:s}".format(logStr,dfMehrfach.to_string()))     
-        
-            dfDPDTParams=dfDPDTParams.groupby(by='#ID').first()
+            dfMehrfach=dfDPDTParams.groupby(by='#ID').filter(lambda x: len(x) > 1)
+            rows,cols=dfMehrfach.shape
+            if rows > 0:            
+                logger.warning("{:s}LDSParaPT: Mehrfachkonfigurationen: {:s}".format(logStr,dfMehrfach.to_string()))             
+                dfDPDTParams=dfDPDTParams.groupby(by='#ID').first()
 
-        logger.debug("{:s}dfSegsNodesNDataDpkt: shape vorher:  {!s:s}".format(logStr,dfSegsNodesNDataDpkt.shape))     
-        dfSegsNodesNDataDpkt=pd.merge(dfSegsNodesNDataDpkt,dfDPDTParams,left_on='CLIENT_ID',right_on='#ID',how='left')
-        logger.debug("{:s}dfSegsNodesNDataDpkt: shape nachher:  {!s:s}".format(logStr,dfSegsNodesNDataDpkt.shape))     
+            logger.debug("{:s}dfSegsNodesNDataDpkt: shape vorher:  {!s:s}".format(logStr,dfSegsNodesNDataDpkt.shape))     
+            dfSegsNodesNDataDpkt=pd.merge(dfSegsNodesNDataDpkt,dfDPDTParams,left_on='CLIENT_ID',right_on='#ID',how='left')
+            logger.debug("{:s}dfSegsNodesNDataDpkt: shape nachher:  {!s:s}".format(logStr,dfSegsNodesNDataDpkt.shape))     
 
-        dfOhne=dfSegsNodesNDataDpkt[(~pd.isnull(dfSegsNodesNDataDpkt['CLIENT_ID']) & dfSegsNodesNDataDpkt['CLIENT_ID'].str.len()>0 ) & (pd.isnull(dfSegsNodesNDataDpkt['pMin'])) ][['DIVPipelineName','SEGName','NODEsName','ZKOR','CLIENT_ID']].reset_index(drop=True)
-        rows,cols=dfOhne.shape
-        if rows > 0:            
-            logger.warning("{:s}LDSParaPT: Druckmessstellen ohne Mindestdruck: {:s}".format(logStr,dfOhne.to_string()))     
-        dfSegsNodesNDataDpkt['pMinMlc']=dfSegsNodesNDataDpkt.apply(lambda row: row['ZKOR']+row['pMin']*100000/(794.*9.81),axis=1)
+            dfOhne=dfSegsNodesNDataDpkt[(~pd.isnull(dfSegsNodesNDataDpkt['CLIENT_ID']) & dfSegsNodesNDataDpkt['CLIENT_ID'].str.len()>0 ) & (pd.isnull(dfSegsNodesNDataDpkt['pMin'])) ][['DIVPipelineName','SEGName','NODEsName','ZKOR','CLIENT_ID']].reset_index(drop=True)
+            rows,cols=dfOhne.shape
+            if rows > 0:            
+                logger.warning("{:s}LDSParaPT: Druckmessstellen ohne Mindestdruck: {:s}".format(logStr,dfOhne.to_string()))     
+            dfSegsNodesNDataDpkt['pMinMlc']=dfSegsNodesNDataDpkt.apply(lambda row: row['ZKOR']+row['pMin']*100000/(794.*9.81),axis=1)
 
-        g=dfSegsNodesNDataDpkt.groupby(by='SEGName')
-        df=g.pMinMlc.agg(pMinMlcMinSEG=np.min,pMinMlcMaxSEG=np.max)
+            g=dfSegsNodesNDataDpkt.groupby(by='SEGName')
+            df=g.pMinMlc.agg(pMinMlcMinSEG=np.min,pMinMlcMaxSEG=np.max)
 
-        logger.debug("{:s}dfSegsNodesNDataDpkt: shape vorher:  {!s:s}".format(logStr,dfSegsNodesNDataDpkt.shape))     
-        dfSegsNodesNDataDpkt=pd.merge(dfSegsNodesNDataDpkt,df,left_on='SEGName',right_index=True,how='left')
-        logger.debug("{:s}dfSegsNodesNDataDpkt: shape nachher:  {!s:s}".format(logStr,dfSegsNodesNDataDpkt.shape))    
+            logger.debug("{:s}dfSegsNodesNDataDpkt: shape vorher:  {!s:s}".format(logStr,dfSegsNodesNDataDpkt.shape))     
+            dfSegsNodesNDataDpkt=pd.merge(dfSegsNodesNDataDpkt,df,left_on='SEGName',right_index=True,how='left')
+            logger.debug("{:s}dfSegsNodesNDataDpkt: shape nachher:  {!s:s}".format(logStr,dfSegsNodesNDataDpkt.shape))    
 
-        df=dfSegsNodesNDataDpkt.groupby(['SEGName']).first()
+            df=dfSegsNodesNDataDpkt.groupby(['SEGName']).first()
 
-        df=df[pd.isnull(df['pMinMlcMinSEG'])][['DIVPipelineName','SEGNodes']]
-        rows,cols=df.shape
-        if rows > 0:            
-            logger.warning("{:s}LDSParaPT: Segmente ohne Mindestdruck: {:s}".format(logStr,df.to_string()))     
+            df=df[pd.isnull(df['pMinMlcMinSEG'])][['DIVPipelineName','SEGNodes']]
+            rows,cols=df.shape
+            if rows > 0:            
+                logger.warning("{:s}LDSParaPT: Segmente ohne Mindestdruck: {:s}".format(logStr,df.to_string()))     
 
-        df=dfSegsNodesNDataDpkt[(~pd.isnull(dfSegsNodesNDataDpkt['CLIENT_ID']) & dfSegsNodesNDataDpkt['CLIENT_ID'].str.len()>0 ) & (~pd.isnull(dfSegsNodesNDataDpkt['pMin'])) ][['DIVPipelineName','SEGName','NODEsName','ZKOR','CLIENT_ID','pMin']].reset_index(drop=True)
-        logger.debug("{:s}dfSegsNodesNDataDpkt: Mindestdrücke: {!s:s}".format(logStr,df.to_string()))    
+            df=dfSegsNodesNDataDpkt[(~pd.isnull(dfSegsNodesNDataDpkt['CLIENT_ID']) & dfSegsNodesNDataDpkt['CLIENT_ID'].str.len()>0 ) & (~pd.isnull(dfSegsNodesNDataDpkt['pMin'])) ][['DIVPipelineName','SEGName','NODEsName','ZKOR','CLIENT_ID','pMin']].reset_index(drop=True)
+            logger.debug("{:s}dfSegsNodesNDataDpkt: Mindestdrücke: {!s:s}".format(logStr,df.to_string()))    
                                                                                                                    
     except RmError:
         raise            
@@ -2075,7 +2084,11 @@ def dfAlarmEreignisse(
         dfAlarmEreignisse['ZHKNRStr']=dfAlarmEreignisse['ZHKNR'].astype('string')
         dfCVDataOnly['ZHKNRStr']=dfCVDataOnly['ZHKNR'].astype('string')
 
-        dfAlarmEreignisse=pd.merge(dfAlarmEreignisse,dfCVDataOnly,on='ZHKNRStr',suffixes=('','_CVD')).filter(items=dfAlarmEreignisse.columns.to_list()+['Type','ScenTime','Name'])         
+        #                                                                                            wg. aelteren App-Log Versionen in denen ZHKNR in dfCVDataOnly nicht ermittelt werden konnte 
+        #                                                                                            Type,ScenTime,Name sind dann undefiniert
+        dfAlarmEreignisse=pd.merge(dfAlarmEreignisse,dfCVDataOnly,on='ZHKNRStr',suffixes=('','_CVD'),how='left').filter(items=dfAlarmEreignisse.columns.to_list()+['Type'
+                                                                                                                                                                   #,'ScenTime'
+                                                                                                                                                                   ,'Name'])         
 
         dfAlarmEreignisse=dfAlarmEreignisse.sort_values(by=['tA','ZHKNR'])
 
@@ -2083,10 +2096,16 @@ def dfAlarmEreignisse(
 
         dfAlarmEreignisse['NrName']=dfAlarmEreignisse.sort_values(by=['Name','tA','ZHKNR']).groupby(['Name']).cumcount() + 1
 
-        dfAlarmEreignisse['Time']=dfAlarmEreignisse.apply(lambda row: fCVDTime(row,TCsLDSRes1,TCsLDSRes2,replaceTup),axis=1)
+        try:
+            dfAlarmEreignisse['Time']=dfAlarmEreignisse.apply(lambda row: fCVDTime(row,TCsLDSRes1,TCsLDSRes2,replaceTup),axis=1)
+        except:
+            logger.debug("{:s}Spalte Time (Lebenszeit einer ZHKNR) konnte nicht ermittelt werden. Vmtl. aeltere App-Log Version.".format(logStr))        
+            dfAlarmEreignisse['Time']='-1'
 
         dfAlarmEreignisse['tA']=dfAlarmEreignisse['tA'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))
         dfAlarmEreignisse['tE']=dfAlarmEreignisse['tE'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))
+
+        dfAlarmEreignisse=dfAlarmEreignisse.drop(['ZHKNRStr'],axis=1)
                                                                                                                        
     except RmError:
         raise            

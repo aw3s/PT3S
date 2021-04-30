@@ -2233,10 +2233,22 @@ class AppLog():
                 dfCVDBEGIN=dfCVD[dfCVD['Remark'].str.contains('^BEGIN_OF_NEW_CONTROL_VOLUME')].copy(deep=True)
                 
                 if not dfCVDBEGIN.empty:
-                    dfCVDBEGIN['ZHKNR']=dfCVDBEGIN['Value'].astype('int64')
+                    try:
+                        dfCVDBEGIN['ZHKNR']=dfCVDBEGIN['Value'].astype('int64')
+                    except:
+                        logger.debug("{:s}Parsen von Value nach ZHKNR in Zeile mit BEGIN_OF_NEW_CONTROL_VOLUME schlaegt fehlt. Vmtl. aeltere App-Log Version.".format(logStr)) 
+                        dfCVDBEGIN['ZHKNR']=-1
+
                     dfCVDBEGIN_Remarks=dfCVDBEGIN['Remark'].str.split(pat=';',expand=True)
                     #logger.debug("{:s}dfCVDBEGIN_Remarks: {:s}".format(logStr,dfCVDBEGIN_Remarks.to_string())) 
-                    dfCVDNames=dfCVDBEGIN_Remarks[dfCVDBEGIN_Remarks[0].str.contains('^BEGIN_OF_NEW_CONTROL_VOLUME')][[1]][1].str.replace('NULL','')
+                    try:
+                        dfCVDNames=dfCVDBEGIN_Remarks[dfCVDBEGIN_Remarks[0].str.contains('^BEGIN_OF_NEW_CONTROL_VOLUME')][[1]][1].str.replace('NULL','')
+                    except:
+                        logger.debug("{:s}Split von Remark mit ; schlug vmtl. fehl. Vmtl. aeltere App-Log Version.".format(logStr)) 
+                        dfCVDBEGIN_Remarks=dfCVDBEGIN['Remark'].str.split(pat='\t',expand=True)
+                        #logger.debug("{:s}dfCVDBEGIN_Remarks: {:s}".format(logStr,dfCVDBEGIN_Remarks.to_string())) 
+                        dfCVDNames=dfCVDBEGIN_Remarks[dfCVDBEGIN_Remarks[0].str.contains('^BEGIN_OF_NEW_CONTROL_VOLUME')][[1]][1].str.replace('NULL','')
+
                     dfCVDBEGIN=dfCVDBEGIN.join(dfCVDNames).rename(columns={1:'Name'})                                   
                     dfCVDataOnly=dfCVDBEGIN[['ScenTime','ZHKNR','ID','Name']].rename(columns={'ID':'Type'}).reset_index(drop=True)
 
