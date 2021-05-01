@@ -975,6 +975,13 @@ attrsDctLDS={
 
     ,'Seg_AM_AV_Attrs':{'color':'chocolate','where':'post'}
     ,'Druck_AM_AV_Attrs':{'color':'chocolate','ls':'dashed','where':'post'}      
+    #
+    ,'Seg_DPDT_REF_Attrs':{'color':'violet','ls':linestyle_tuple[2][1]} # 'densely dotted'
+    ,'Druck_DPDT_REF_Attrs':{'color':'violet','ls':linestyle_tuple[8][1]} # 'densely dashdotted'
+
+    ,'Seg_DPDT_AV_Attrs':{'color':'darkviolet','where':'post','lw':1.0}
+    ,'Druck_DPDT_AV_Attrs':{'color':'darkviolet','ls':'dashed','where':'post','lw':1.0}       
+
     }
 
 pSIDEvents=re.compile('(?P<Prae>IMDI\.)?Objects\.(?P<colRegExMiddle>3S_FBG_ESCHIEBER|FBG_ESCHIEBER{1})\.(3S_)?(?P<colRegExSchieberID>[a-z,A-Z,0-9,_]+)\.(?P<colRegExEventID>(In\.ZUST|In\.LAEUFT|In\.LAEUFT_NICHT|In\.STOER|Out\.AUF|Out\.HALT|Out\.ZU)$)')
@@ -2338,6 +2345,8 @@ def plotDfAlarmStatistikReportsSEGErgs(
             ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
             ,ylimTV=(0,300)
             ,yticksTV=yticksTV   
+
+            ,plotDPDT=True
             )    
                        
             backgroundcolor='white'
@@ -2539,6 +2548,8 @@ def plotDfAlarmStatistikReportsDruckErgs(
             ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
             ,ylimTV=(0,300)
             ,yticksTV=yticksTV
+
+            ,plotDPDT=True
             )    
 
             backgroundcolor='white'
@@ -2635,7 +2646,12 @@ def plotTimespans(
    ,pad=3.5
    ,x_pad=0.5
    ,rectSpalteLinks=[0, 0, 0.5, 1]
-   ,rectSpalteRechts=[0.4, 0, 1, 1]
+   #                    x
+   #                    je kleiner x, desto weniger freier Platz zwischen den Spalten - bis hin zu Ueberlappung 
+   #                    mit x kann der Platz justiert werden, den matplotlob infolge mehrere y-Achsen der rechten Spalten zwischen den Spalten laesst
+   #                    bei vielen y-Achsen der rechten Spalte  kann dieser Platz zu gross sein
+   ,rectSpalteRechts=[0.355, 0, 1, 1]
+   # 'landscape':
    ,rectZeileOben=[0, .5, 1, 1] 
    ,rectZeileUnten=[0, 0, 1, .5]
     
@@ -2763,6 +2779,8 @@ def plotTimespans(
    ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
    ,ylimTV=(0,300)
    ,yticksTV=yticksTV  
+
+   ,plotDPDT=True
     
 ):
     
@@ -2890,6 +2908,8 @@ def plotTimespans(
                ,plotTVAmLabel=plotTVAmLabel
                ,ylimTV=ylimTV
                ,yticksTV=yticksTV    
+
+               ,plotDPDT=plotDPDT
         )  
     
         if orientation=='landscape':
@@ -3304,6 +3324,8 @@ def plotTimespansLDS(
     ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
     ,ylimTV=(0,300)
     ,yticksTV=yticksTV     
+
+    ,plotDPDT=True
 ):
 
     # plots pltLDSErgVec-Sections 
@@ -3437,6 +3459,8 @@ def plotTimespansLDS(
                     ,plotTVAmLabel=plotTVAmLabel
                     ,ylimTV=ylimTV
                     ,yticksTV=yticksTV            
+
+                    ,plotDPDT=plotDPDT
                     )    
             pltLDSErgVecResults.append((axes,lines))
 
@@ -4027,7 +4051,9 @@ def pltLDSErgVec(
     ,plotTVAmFct=lambda x: x*100 
     ,plotTVAmLabel='TIMER u. AM [Sek. u. (N)m3*100]'
     ,ylimTV=(0,300)
-    ,yticksTV=yticksTV       
+    ,yticksTV=yticksTV    
+    
+    ,plotDPDT=True
     ):
     """
     zeichnet Zeitkurven von App LDS Ergebnisvektoren auf ax
@@ -4433,10 +4459,10 @@ def pltLDSErgVec(
                     lines = pltLDSErgVecHelper(ax4,dfSegReprVec,'AM_AV',attrsDctLDS['Seg_AM_AV_Attrs'],fct=plotTVAmFct)                    
                     yLines['AM_AV Seg']=lines[0]      
 
-                if not dfSegReprVec.empty or not dfDruckReprVec.empty:
-                    ax4.set_ylim(ylimTV)
-                    ax4.set_yticks(yticksTV)        
-                    ax4.set_ylabel(plotTVAmLabel)    
+                #if not dfSegReprVec.empty or not dfDruckReprVec.empty:
+                #    ax4.set_ylim(ylimTV)
+                #    ax4.set_yticks(yticksTV)        
+                #    ax4.set_ylabel(plotTVAmLabel)    
     
                 if not dfDruckReprVec.empty:
 
@@ -4453,6 +4479,68 @@ def pltLDSErgVec(
                     ax4.set_yticks(yticksTV)        
                     ax4.set_ylabel(plotTVAmLabel)  
                     ax4.grid() 
+
+
+            # 5. y-Achse DPDT  ----------------------------------------    
+            if plotDPDT and (not dfSegReprVec.empty or not dfDruckReprVec.empty):
+
+                # Min. ermitteln
+                DPDT_REF_MinSEG=0
+                if not dfSegReprVec.empty:
+                    if 'DPDT_REF' in dfSegReprVec.columns.to_list():
+                        DPDT_REF_MinSEG=dfSegReprVec['DPDT_REF'].min()               
+
+                DPDT_REF_MinDruck=0
+                if not dfDruckReprVec.empty:
+                    if 'DPDT_REF' in dfDruckReprVec.columns.to_list():
+                        DPDT_REF_MinDruck=dfDruckReprVec['DPDT_REF'].min()              
+
+                DPDT_REF_Min=min(DPDT_REF_MinSEG,DPDT_REF_MinDruck)
+
+                if DPDT_REF_Min >= 0:
+                    pass # es gibt nichts zu plotten
+                else:
+
+                    # 5. y-Achse DPDT  ---------------------------------------- 
+                    ax5 = ax.twinx()
+                    axes['DPDT']=ax5               
+    
+                    yPos=yTwinedAxesPosDeltaHPStart+3*yTwinedAxesPosDeltaHP
+                    if plotAC:
+                        yPos=yPos+yTwinedAxesPosDeltaHP
+                                 
+                    pltHelperX(
+                     ax5
+                    ,dateFormat=dateFormat
+                    ,bysecond=bysecond
+                    ,byminute=byminute
+                    ,byhour=byhour
+                    ,yPos=yPos
+                    )           
+                    pltLDSHelperY(ax5)
+                    
+                    if not dfSegReprVec.empty:
+                        if 'DPDT_REF' in dfSegReprVec.columns.to_list():                    
+                            lines = pltLDSErgVecHelper(ax5,dfSegReprVec,'DPDT_REF',attrsDctLDS['Seg_DPDT_REF_Attrs'],fct=None)                    
+                            yLines['DPDT_REF Seg']=lines[0]    
+                            lines = pltLDSErgVecHelper(ax5,dfSegReprVec,'DPDT_AV',attrsDctLDS['Seg_DPDT_AV_Attrs'],fct=None)                    
+                            yLines['DPDT_AV Seg']=lines[0]    
+
+                    if not dfDruckReprVec.empty:
+                        if 'DPDT_REF' in dfDruckReprVec.columns.to_list():                    
+                            lines = pltLDSErgVecHelper(ax5,dfDruckReprVec,'DPDT_REF',attrsDctLDS['Druck_DPDT_REF_Attrs'],fct=None)                    
+                            yLines['DPDT_REF Drk']=lines[0]    
+                            lines = pltLDSErgVecHelper(ax5,dfDruckReprVec,'DPDT_AV',attrsDctLDS['Druck_DPDT_AV_Attrs'],fct=None)                    
+                            yLines['DPDT_AV Drk']=lines[0]   
+                                                    
+                    yTickList=[DPDT_REF_Min*10
+                               ,DPDT_REF_Min/0.9
+                               #,DPDT_REF_Min
+                               ,0,DPDT_REF_Min*-1]               
+                    ax5.set_ylim(yTickList[0],yTickList[-1])
+                    ax5.set_yticks([round(yTick,2) for yTick in yTickList])        
+                    ax5.set_ylabel('bar/Minute')  
+                    ax5.grid() 
 
             if plotLegend:
                 legendHorizontalPos='center'
