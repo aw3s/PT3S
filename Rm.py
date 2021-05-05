@@ -979,8 +979,11 @@ attrsDctLDS={
     ,'Seg_DPDT_REF_Attrs':{'color':'violet','ls':linestyle_tuple[2][1]} # 'densely dotted'
     ,'Druck_DPDT_REF_Attrs':{'color':'violet','ls':linestyle_tuple[8][1]} # 'densely dashdotted'
 
-    ,'Seg_DPDT_AV_Attrs':{'color':'darkviolet','where':'post','lw':1.0}
-    ,'Druck_DPDT_AV_Attrs':{'color':'darkviolet','ls':'dashed','where':'post','lw':1.0}       
+    ,'Seg_DPDT_AV_Attrs':{'color':'fuchsia','where':'post','lw':1.0}
+    ,'Druck_DPDT_AV_Attrs':{'color':'fuchsia','ls':'dashed','where':'post','lw':1.0}       
+
+    ,'Seg_QM16_AV_Attrs':{'color':'sandybrown','ls':linestyle_tuple[6][1],'where':'post','lw':1.0}        # 'loosely dashdotted'
+    ,'Druck_QM16_AV_Attrs':{'color':'sandybrown','ls':linestyle_tuple[10][1],'where':'post','lw':1.0}     # 'loosely dashdotdotted'
 
     }
 
@@ -4196,7 +4199,10 @@ def pltLDSErgVec(
                 lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'NG_AV',attrsDctLDS['Seg_NG_AV_Attrs'])                            
                 yLines['NG_AV Seg']=lines[0]
 
-                    
+                lines = pltLDSErgVecHelper(ax2,dfSegReprVec,'QM_AV',attrsDctLDS['Seg_QM16_AV_Attrs'],fct=lambda x: x*1.6/100.)                            
+                yLines['QM16_AV Seg']=lines[0]
+
+    
                 if plotLPRate:        
                     # R2 = R1 - LP
                     # R2 - R1 = -LP
@@ -4246,6 +4252,9 @@ def pltLDSErgVec(
                 if plotLPRate:        
                     lines = pltLDSErgVecHelper(ax2,dfDruckReprVec,'LP_AV',attrsDctLDS['Druck_LP_AV_Attrs'])                    
                     yLines['LP_AV Drk']=lines[0]
+
+                lines = pltLDSErgVecHelper(ax2,dfDruckReprVec,'QM_AV',attrsDctLDS['Druck_QM16_AV_Attrs'],fct=lambda x: x*1.6/100.)                            
+                yLines['QM16_AV Drk']=lines[0]
   
 
                 if plotR2FillDruck: 
@@ -4484,22 +4493,46 @@ def pltLDSErgVec(
             # 5. y-Achse DPDT  ----------------------------------------    
             if plotDPDT and (not dfSegReprVec.empty or not dfDruckReprVec.empty):
 
-                # Min. ermitteln
+                # Min. ermitteln                
                 DPDT_REF_MinSEG=0
                 if not dfSegReprVec.empty:
                     if 'DPDT_REF' in dfSegReprVec.columns.to_list():
-                        DPDT_REF_MinSEG=dfSegReprVec['DPDT_REF'].min()               
+                        s=dfSegReprVec.loc[xlim[0]:xlim[1],'DPDT_REF'].dropna()
+                        if not s.empty:
+                            DPDT_REF_MinSEG=s.min()               
 
                 DPDT_REF_MinDruck=0
                 if not dfDruckReprVec.empty:
                     if 'DPDT_REF' in dfDruckReprVec.columns.to_list():
-                        DPDT_REF_MinDruck=dfDruckReprVec['DPDT_REF'].min()              
+                        s=dfDruckReprVec.loc[xlim[0]:xlim[1],'DPDT_REF'].dropna()
+                        if not s.empty:
+                            DPDT_REF_MinDruck=s.min()             
 
                 DPDT_REF_Min=min(DPDT_REF_MinSEG,DPDT_REF_MinDruck)
 
                 if DPDT_REF_Min >= 0:
                     pass # es gibt nichts zu plotten
                 else:
+
+                    # Max ermitteln
+                    maxSeg=DPDT_REF_Min
+                    if not dfSegReprVec.empty:
+                        if 'DPDT_REF' in dfSegReprVec.columns.to_list():
+                            s=dfSegReprVec.loc[xlim[0]:xlim[1],'DPDT_REF'].dropna()
+                            s=s[s<0]
+                            if not s.empty:
+                                DPDT_REF_MinSEG=s.max()         
+
+                    maxDruck=DPDT_REF_Min
+                    if not dfDruckReprVec.empty:
+                        if 'DPDT_REF' in dfDruckReprVec.columns.to_list():
+                            s=dfDruckReprVec.loc[xlim[0]:xlim[1],'DPDT_REF'].dropna()
+                            s=s[s<0]
+                            if not s.empty:
+                                DPDT_REF_MinDruck=s.max()               
+
+                    DPDT_REF_Max=max(maxSeg,maxDruck)
+
 
                     # 5. y-Achse DPDT  ---------------------------------------- 
                     ax5 = ax.twinx()
@@ -4539,7 +4572,10 @@ def pltLDSErgVec(
                                ,0,DPDT_REF_Min*-1]               
                     ax5.set_ylim(yTickList[0],yTickList[-1])
                     ax5.set_yticks([round(yTick,2) for yTick in yTickList])        
-                    ax5.set_ylabel('bar/Minute')  
+                    if DPDT_REF_Max > DPDT_REF_Min:                       
+                        ax5.set_ylabel("bar/Minute (max. Wert: {:6.3f})".format(DPDT_REF_Max))  
+                    else:
+                        ax5.set_ylabel('bar/Minute')  
                     ax5.grid() 
 
             if plotLegend:
