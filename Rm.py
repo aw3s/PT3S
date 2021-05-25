@@ -2112,8 +2112,10 @@ def dfAlarmEreignisse(
             logger.debug("{:s}Spalte Time (Lebenszeit einer ZHKNR) konnte nicht ermittelt werden. Vmtl. aeltere App-Log Version.".format(logStr))        
             dfAlarmEreignisse['Time']='-1'
 
+        dfAlarmEreignisse['tD']=dfAlarmEreignisse.apply(lambda row: row['tE']-row['tA'],axis=1)
+
         dfAlarmEreignisse['tA']=dfAlarmEreignisse['tA'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))
-        dfAlarmEreignisse['tE']=dfAlarmEreignisse['tE'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))
+        dfAlarmEreignisse['tE']=dfAlarmEreignisse['tE'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))        
 
         dfAlarmEreignisse=dfAlarmEreignisse.drop(['ZHKNRStr'],axis=1)
                                                                                                                        
@@ -2146,6 +2148,8 @@ def fCVDName(Name
 
 def plotDfAlarmEreignisse(    
      dfAlarmEreignisse=pd.DataFrame()    
+    ,sortBy=[]
+    ,replaceTup=('0 days','')
     ):
     """
     Returns the plt.table
@@ -2158,16 +2162,25 @@ def plotDfAlarmEreignisse(
 
     try:                     
      
-        df=dfAlarmEreignisse[['Nr','LDSResBaseType','Voralarm','Type','NrResTypeVA','tA','tE','ZHKNR','Name','Orte','Time','NrName']].copy()
+        df=dfAlarmEreignisse[['Nr','LDSResBaseType','Voralarm','Type','NrResTypeVA','tA','tE','tD','ZHKNR','Name','Orte','Time','NrName']].copy()
         df['Anz']=df['Orte'].apply(lambda x: len(x))
 
         df['Orte']=df['Orte'].apply(lambda x: str(x).replace('[','').replace(']','').replace("'",""))
         df['LDSResBaseType']=df.apply(lambda row: "{:s} {:s} - {:d}".format(row['LDSResBaseType'],row['Type'],row['Voralarm']),axis=1)
-        df=df[['Nr','LDSResBaseType','NrResTypeVA','tA','tE','ZHKNR','Name','NrName','Anz','Time']]#,'Orte']]
+        df=df[['Nr','LDSResBaseType','NrResTypeVA','tA','tE','tD','ZHKNR','Name','NrName','Anz','Time']]#,'Orte']]
         df.rename(columns={'LDSResBaseType':'ResTyp - Voralarm'},inplace=True)
         df.rename(columns={'NrResTypeVA':'NrResTypV','Time':'ZHKZeit','Name':'ZHKName','Anz':'AnzEIDs'},inplace=True)
 
         df['ZHKName']=df['ZHKName'].apply(lambda x: fCVDName(x))
+
+        df=df[['Nr','ResTyp - Voralarm','NrResTypV','tA','tD','ZHKNR','ZHKName','NrName','AnzEIDs','ZHKZeit']]
+
+
+        df['tD']=df['tD'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))
+
+        if sortBy!=[]:
+            df=df.sort_values(by=sortBy)
+       
 
         t=plt.table(cellText=df.values, colLabels=df.columns
                     #,colWidths=[.05,.125,.075,.15,.15,.075,.375]
