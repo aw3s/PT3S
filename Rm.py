@@ -1473,6 +1473,7 @@ def getLDSResVecDf(
     ,lx=None
     ,timeStart=None,timeEnd=None
     ,ResChannelTypes=ResChannelTypesAll
+    ,timeShiftPair=None
     ):
     """
     returns a df: the specified LDSResChannels (AL_S, ...) for an ResIDBase 
@@ -1490,7 +1491,7 @@ def getLDSResVecDf(
         ErgIDsAll=[*ErgIDs,*IMDIErgIDs]
         
         # Daten lesen von TC-H5s       
-        dfFiltered=lx.getTCsFromH5s(timeStart=timeStart,timeEnd=timeEnd,LDSResOnly=True,LDSResColsSpecified=ErgIDsAll,LDSResTypeSpecified=LDSResBaseType) 
+        dfFiltered=lx.getTCsFromH5s(timeStart=timeStart,timeEnd=timeEnd,LDSResOnly=True,LDSResColsSpecified=ErgIDsAll,LDSResTypeSpecified=LDSResBaseType,timeShiftPair=timeShiftPair) 
         
         # Spalten umbenennen
         colDct={}
@@ -1962,7 +1963,7 @@ def dfAlarmEreignisse(
    ,TCsLDSRes1=pd.DataFrame()
    ,TCsLDSRes2=pd.DataFrame()
    ,dfCVDataOnly=pd.DataFrame() 
-   ,replaceTup=('2021-','')
+   #,replaceTup=('2021-','')
     ):
     """
     Returns df
@@ -2114,8 +2115,8 @@ def dfAlarmEreignisse(
 
         dfAlarmEreignisse['tD']=dfAlarmEreignisse.apply(lambda row: row['tE']-row['tA'],axis=1)
 
-        dfAlarmEreignisse['tA']=dfAlarmEreignisse['tA'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))
-        dfAlarmEreignisse['tE']=dfAlarmEreignisse['tE'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))        
+        #dfAlarmEreignisse['tA']=dfAlarmEreignisse['tA'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))
+        #dfAlarmEreignisse['tE']=dfAlarmEreignisse['tE'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))        
 
         dfAlarmEreignisse=dfAlarmEreignisse.drop(['ZHKNRStr'],axis=1)
                                                                                                                        
@@ -2149,7 +2150,8 @@ def fCVDName(Name
 def plotDfAlarmEreignisse(    
      dfAlarmEreignisse=pd.DataFrame()    
     ,sortBy=[]
-    ,replaceTup=('0 days','')
+    ,replaceTup=('2021-','')
+    ,replaceTuptD=('0 days','')
     ):
     """
     Returns the plt.table
@@ -2163,6 +2165,10 @@ def plotDfAlarmEreignisse(
     try:                     
      
         df=dfAlarmEreignisse[['Nr','LDSResBaseType','Voralarm','Type','NrResTypeVA','tA','tE','tD','ZHKNR','Name','Orte','Time','NrName']].copy()
+
+        df['tA']=df['tA'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))
+        df['tE']=df['tE'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))       
+
         df['Anz']=df['Orte'].apply(lambda x: len(x))
 
         df['Orte']=df['Orte'].apply(lambda x: str(x).replace('[','').replace(']','').replace("'",""))
@@ -2176,7 +2182,7 @@ def plotDfAlarmEreignisse(
         df=df[['Nr','ResTyp - Voralarm','NrResTypV','tA','tD','ZHKNR','ZHKName','NrName','AnzEIDs','ZHKZeit']]
 
 
-        df['tD']=df['tD'].apply(lambda x: str(x).replace(replaceTup[0],replaceTup[1]))
+        df['tD']=df['tD'].apply(lambda x: str(x).replace(replaceTuptD[0],replaceTuptD[1]))
 
         if sortBy!=[]:
             df=df.sort_values(by=sortBy)
@@ -2240,6 +2246,7 @@ def plotDfAlarmStatistikReportsSEGErgs(
     ,byminute=None
     ,bysecond=None  
     ,timeFloorCeilStr='1H'
+    ,timeShiftPair=None
     ):
     """
     Returns 
@@ -2273,7 +2280,7 @@ def plotDfAlarmStatistikReportsSEGErgs(
 
             # Erg lesen
             ResIDBase=row['SEGResIDBase']               
-            dfSegReprVec=getLDSResVecDf(ResIDBase=ResIDBase,LDSResBaseType='SEG',lx=lx,timeStart=timeStart,timeEnd=timeEnd)
+            dfSegReprVec=getLDSResVecDf(ResIDBase=ResIDBase,LDSResBaseType='SEG',lx=lx,timeStart=timeStart,timeEnd=timeEnd,timeShiftPair=timeShiftPair)
 
             ID='AL_S'
             if ID not in dfSegReprVec.keys():
@@ -2439,6 +2446,7 @@ def plotDfAlarmStatistikReportsDruckErgs(
     ,byminute=None
     ,bysecond=None  
     ,timeFloorCeilStr='1H'
+    ,timeShiftPair=None
     ):
     """
 
@@ -2477,7 +2485,7 @@ def plotDfAlarmStatistikReportsDruckErgs(
 
             # Erg lesen
             ResIDBase=row['DruckResIDBase']               
-            dfDruckReprVec=getLDSResVecDf(ResIDBase=ResIDBase,LDSResBaseType='Druck',lx=lx,timeStart=timeStart,timeEnd=timeEnd)
+            dfDruckReprVec=getLDSResVecDf(ResIDBase=ResIDBase,LDSResBaseType='Druck',lx=lx,timeStart=timeStart,timeEnd=timeEnd,timeShiftPair=timeShiftPair)
 
             ID='AL_S'
             if ID not in dfDruckReprVec.keys():
