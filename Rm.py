@@ -115,7 +115,7 @@ True
 ...    os.remove(plotFileName)
 """
 
-__version__='90.12.4.11.dev1'
+__version__='90.12.4.12.dev1'
 
 import warnings # 3.6
 #...\Anaconda3\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
@@ -1963,7 +1963,7 @@ def dfAlarmEreignisse(
    ,TCsLDSRes1=pd.DataFrame()
    ,TCsLDSRes2=pd.DataFrame()
    ,dfCVDataOnly=pd.DataFrame() 
-   #,replaceTup=('2021-','')
+   ,replaceTup=('2021-','')
     ):
     """
     Returns df
