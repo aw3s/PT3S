@@ -69,7 +69,84 @@ class Am():
         * accFile (str): SIR 3S AccessDB
            
     Attributes:
-       
+        * zu den Spaltennamen der Views:
+            * grundsaetzlich die Originalnamen - aber ...
+                * bei den _BVZ_ Views:
+                    * :_BZ, wenn Spalten Namensgleich
+                * Datenebenen:
+                    * _VMBZ,_VMVARIANTE,_VMBASIS, wenn Spalten Namensgleich
+                * CONT:
+                    * immer _CONT
+                * VKNO:
+                    * immer _VKNO
+                * VBEL:
+                    * immer _i und _k fuer die Knotendaten
+
+        * dataFrames i.e. dataFrames['V3_KNOT']
+            * V3_KNOT: Knoten: "alle" Knotendaten                
+            * V3_VBEL: Kanten: "alle" Verbindungselementdaten des hydr. Prozessmodells
+                * Multiindex:
+                    * OBJTYPE
+                    * OBJID (pk)
+            * V3_DPKT: ausgewaehlte Daten von Datenpunkten
+            * V3_RKNOT: Knoten: "alle" Knotendaten des Signalmodells
+                * Kn: Knotenname
+                *_rkRUES: RUES-Selbstbezug
+                * OBJTYPE: RUES fuer RUES
+            * V3_RVBEL: Kanten: "alle" Verbindungen des Signalmodells
+                * Multiindex:
+                    * OBJTYPE_i
+                    * OBJTYPE_k
+                    * OBJID (pk)
+
+        * viewSets['pairViews_BZ']:
+            * ['V_BVZ_ALLG'
+            *, 'V_BVZ_BEVE', 'V_BVZ_BEWI', 'V_BVZ_BZAG'
+            *, 'V_BVZ_DPGR', 'V_BVZ_DPRG'
+            *, 'V_BVZ_EBES'
+            *, 'V_BVZ_FKNL', 'V_BVZ_FQPS', 'V_BVZ_FWEA', 'V_BVZ_FWES', 'V_BVZ_FWVB', 'V_BVZ_FWWU'
+            *, 'V_BVZ_GVWK'
+            *, 'V_BVZ_HYDR'
+            *, 'V_BVZ_KLAP', 'V_BVZ_KNOT', 'V_BVZ_KOMP'
+            *, 'V_BVZ_LFAL'
+            *, 'V_BVZ_MREG'
+            *, 'V_BVZ_NSCH'
+            *, 'V_BVZ_OBEH'
+            *, 'V_BVZ_PARI', 'V_BVZ_PARZ', 'V_BVZ_PGRP', 'V_BVZ_PGRP_PUMP', 'V_BVZ_PHTR', 'V_BVZ_PREG', 'V_BVZ_PUMP', 'V_BVZ_PZVR'
+            *, 'V_BVZ_RADD', 'V_BVZ_RART', 'V_BVZ_RDIV', 'V_BVZ_REGV', 'V_BVZ_RFKT', 'V_BVZ_RHYS', 'V_BVZ_RINT', 'V_BVZ_RLSR', 'V_BVZ_RLVG', 'V_BVZ_RMES', 'V_BVZ_RMMA', 'V_BVZ_RMUL'
+            *, 'V_BVZ_ROHR'
+            *, 'V_BVZ_RPID', 'V_BVZ_RPT1', 'V_BVZ_RSLW', 'V_BVZ_RSTE', 'V_BVZ_RSTN', 'V_BVZ_RTOT', 'V_BVZ_RUES'
+            *, 'V_BVZ_SIVE', 'V_BVZ_SLNK', 'V_BVZ_SNDE', 'V_BVZ_STRO'
+            *, 'V_BVZ_VENT'
+            *, 'V_BVZ_WIND']
+        * viewSets['pairViews_ROWS']:
+            * ['V_BVZ_ANTE', 'V_BVZ_ANTP', 'V_BVZ_AVOS', 'V_BVZ_DPGR', 'V_BVZ_ETAM', 'V_BVZ_ETAR', 'V_BVZ_ETAU', 'V_BVZ_KOMK', 'V_BVZ_MAPG'
+            *, 'V_BVZ_PHI2', 'V_BVZ_PHIV', 'V_BVZ_PUMK', 'V_BVZ_RPLAN', 'V_BVZ_SRAT', 'V_BVZ_STOF', 'V_BVZ_TFKT', 'V_BVZ_TRFT', 'V_BVZ_ZEP1', 'V_BVZ_ZEP2']
+        * viewSets['pairViews_ROWT']:
+            * ['V_BVZ_LFKT', 'V_BVZ_PHI1', 'V_BVZ_PUMD', 'V_BVZ_PVAR', 'V_BVZ_QVAR', 'V_BVZ_RCPL', 'V_BVZ_SWVT', 'V_BVZ_TEVT', 'V_BVZ_WEVT', 'V_BVZ_WTTR']
+        * viewSets['pairViews_ROWD']:
+            * ['V_BVZ_DTRO']
+        * viewSets['notPairViews']:
+            * ['V_AB_DEF', 'V_AGSN', 'V_ARRW', 'V_ATMO'
+            *, 'V_BENUTZER', 'V_BREF'
+            *, 'V_CIRC', 'V_CONT', 'V_CRGL'
+            *, 'V_DATENEBENE', 'V_DPGR_DPKT', 'V_DPKT', 'V_DRNP'
+            *, 'V_ELEMENTQUERY'
+            *, 'V_FSTF', 'V_FWBZ'
+            *, 'V_GKMP', 'V_GMIX', 'V_GRAV', 'V_GTXT'
+            *, 'V_HAUS'
+            *, 'V_LAYR', 'V_LTGR'
+            *, 'V_MODELL', 'V_MWKA'
+            *, 'V_NRCV'
+            *, 'V_OVAL'
+            *, 'V_PARV', 'V_PGPR', 'V_PLYG', 'V_POLY', 'V_PROZESSE', 'V_PZON'
+            *, 'V_RCON', 'V_RECT', 'V_REGP', 'V_RMES_DPTS', 'V_ROHR_VRTX', 'V_RPFL', 'V_RRCT'
+            *, 'V_SIRGRAF', 'V_SOKO', 'V_SPLZ', 'V_STRASSE', 'V_SYSTEMKONFIG'
+            *, 'V_TIMD', 'V_TRVA'
+            *, 'V_UTMP'
+            *, 'V_VARA', 'V_VARA_CSIT', 'V_VARA_WSIT', 'V_VERB', 'V_VKNO', 'V_VRCT'
+            *, 'V_WBLZ']
+
     Raises:
         AmError
     """
@@ -322,21 +399,25 @@ class Am():
             self.viewSets['notPairViews']=sorted(notPairViews)
             self.viewSets['notPairViewsProbablyNotSir3sTables']=sorted(notPairViewsProbablyNotSir3sTables)
 
-            # KNOT (V3_KNOT)
+            # KNOT (V3_KNOT) - "alle" Knotendaten
             vKNOT=Dm.f_HelperVKNO(
                     self.dataFrames['V_BVZ_KNOT']
                    ,self.dataFrames['V_VKNO']                   
                     )            
             self.dataFrames['V3_KNOT']=vKNOT
 
-            # VBEL (V3_VBEL)           
+            # VBEL (V3_VBEL) - "alle" Verbindungselementdaten des hydr. Prozessmodells; Knotendaten mit _i und _k             
             vVBEL_UnionList=[]
             for vName in self.viewSets['pairViews_BZ']:                
                 dfVBEL=self.dataFrames[vName]
                 if 'fkKI' in dfVBEL.columns.to_list():
-                    df=pd.merge(dfVBEL,vKNOT,left_on='fkKI',right_on='pk',suffixes=('','_i'))           
+                    df=pd.merge(dfVBEL,vKNOT.add_suffix('_i'),left_on='fkKI',right_on='pk_i'
+                                #,suffixes=('','_i')
+                                )           
                     if 'fkKK' in df.columns.to_list():
-                        df=pd.merge(df,vKNOT,left_on='fkKK',right_on='pk',suffixes=('','_k'))
+                        df=pd.merge(df,vKNOT.add_suffix('_k'),left_on='fkKK',right_on='pk_k'
+                                    #,suffixes=('','_k')
+                                    )
                         m=re.search('^(V_BVZ_)(\w+)',vName)         
                         OBJTYPE=m.group(2)
                         df=df.assign(OBJTYPE=lambda x: OBJTYPE)
@@ -349,7 +430,7 @@ class Am():
             vVBEL.sort_index(level=0,inplace=True)
             self.dataFrames['V3_VBEL']=vVBEL
 
-            # DPKT (V3_DPKT)    
+            # DPKT (V3_DPKT) - relevante Datenpunktdaten   
             if 'V_DPKT' in self.dataFrames.keys():
                 vDPKT=self.dataFrames['V_DPKT']                
             elif 'V_BVZ_DPKT' in self.dataFrames.keys():
@@ -370,6 +451,75 @@ class Am():
              ,'pk_DPGR'
              ,'NAME'
             ]].drop_duplicates().reset_index(drop=True)
+
+            # RXXX ########################################
+          
+            # RUES-Nodes
+            vRUES=self.dataFrames['V_BVZ_RUES']
+            vRUES=pd.merge(vRUES,vRUES,how='left',left_on='rkRUES',right_on='pk',suffixes=('','_rkRUES'))
+            vRUES['Kn'] = vRUES.apply(lambda row: row.IDUE if row.IOTYP=='1' else row.IDUE_rkRUES, axis=1)
+            #vRUES=vRUES[[
+            # 'Kn'
+            #,'IDUE'
+            #,'IOTYP'
+            #,'rkRUES'
+
+            #,'IDUE_rkRUES'            
+            #,'IOTYP_rkRUES'
+
+            #,'NAME'
+            #,'ID'
+
+            #,'NAME_rkRUES'
+            #,'ID_rkRUES'
+
+            #,'pk'
+            #,'rk'
+            #]]
+            vRUES['OBJTYPE']='RUES'
+            vRUES['BESCHREIBUNG']=None
+
+            # RXXX-Nodes but RUES-Nodes
+            vRXXX_nodes =['RSLW','RMES','RHYS','RLVG','RLSR','RMMA','RADD','RMUL','RDIV','RTOT','RPT1','RINT','RPID','RFKT','RSTN']
+            vRXXX_UnionList=[]
+            for NODE in vRXXX_nodes:
+                vName='V_BVZ_'+NODE
+                if vName in self.dataFrames:
+                    vRXXX=self.dataFrames[vName]
+                    if vRXXX is None:
+                        pass
+                    else:
+                        vRXXX['OBJTYPE']=NODE
+                        vRXXX_UnionList.append(vRXXX)
+            vRXXX=pd.concat(vRXXX_UnionList)
+            vRXXX=vRXXX.rename(columns={'KA':'Kn'})
+
+            # all RXXX-Nodes
+            V3_RKNOT_UnionList=[]
+            V3_RKNOT_UnionList.append(vRXXX)#[['OBJTYPE','BESCHREIBUNG','Kn','NAME','pk']])
+            V3_RKNOT_UnionList.append(vRUES)#[['OBJTYPE','BESCHREIBUNG','Kn','NAME','pk']])
+            V3_RKNOT=pd.concat(V3_RKNOT_UnionList)
+            self.dataFrames['V3_RKNOT']=V3_RKNOT
+
+            # alle RXXX-Kanten
+            howMode='inner'
+            V_CRGL=self.dataFrames['V_CRGL']
+            V3_RVBEL=pd.merge(V_CRGL,V3_RKNOT.add_suffix('_i'),left_on='fkKi',right_on='pk_i'
+                              #,suffixes=('','_Ki')
+                              ,how=howMode)
+            #vREdges=vREdges[['fkKk','OBJTYPE','BESCHREIBUNG','Kn','NAME','pk']]
+            V3_RVBEL['KnExt_i']=V3_RVBEL['Kn_i']+'_'+V3_RVBEL['OBJTYPE_i'] 
+            #V3_RVBEL=V3_RVBEL.rename(columns={'OBJTYPE':'OBJTYPE_Ki','BESCHREIBUNG':'BESCHREIBUNG_Ki','Kn':'Kn_Ki','pk':'pk_Ki','KnExt':'KnExt_Ki'})
+
+            V3_RVBEL=pd.merge(V3_RVBEL,V3_RKNOT.add_suffix('_k'),left_on='fkKk',right_on='pk_k'
+                              #,suffixes=('','_Kk')
+                              ,how=howMode)
+            V3_RVBEL['KnExt_k']=V3_RVBEL['Kn_k']+'_'+V3_RVBEL['OBJTYPE_k'] 
+            #V3_RVBEL=V3_RVBEL.rename(columns={'OBJTYPE':'OBJTYPE_Kk','BESCHREIBUNG':'BESCHREIBUNG_Kk','Kn':'Kn_Kk','pk':'pk_Kk','KnExt':'KnExt_Kk'})
+            #vREdges=vREdges[['OBJTYPE_Ki','BESCHREIBUNG_Ki','Kn_Ki','pk_Ki','OBJTYPE_Kk','BESCHREIBUNG_Kk','Kn_Kk','pk_Kk','NAME','KnExt_Ki','KnExt_Kk']]      
+
+            V3_RVBEL=Xm.Xm.constructNewMultiindexFromCols(df=V3_RVBEL,mColNames=['OBJTYPE_i','OBJTYPE_k','pk'],mIdxNames=['OBJTYPE_i','OBJTYPE_k','OBJID'])
+            self.dataFrames['V3_RVBEL']=V3_RVBEL
                                                         
         except Exception as e:
             logStrFinal="{:s}Exception: Line: {:d}: {!s:s}: {:s}".format(logStr,sys.exc_info()[-1].tb_lineno,type(e),str(e))

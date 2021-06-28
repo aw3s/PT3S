@@ -183,10 +183,11 @@ def f_HelperDECONT(
                         ,how='left')               
         if 'fkCONT' in cols:
             df=pd.merge(df
-                        ,dfCONT                                                        
+                        ,dfCONT.add_suffix('_CONT')                                                        
                         ,left_on=['fkCONT']
-                        ,right_on=['pk']
-                        ,suffixes=('','_CONT'))   
+                        ,right_on=['pk_CONT']
+                        #,suffixes=('','_CONT')
+                        )   
                                                                                                                           
     except DmError:
         raise            
@@ -210,8 +211,14 @@ def f_HelperVKNO(
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
     logger.debug("{0:s}{1:s}".format(logStr,'Start.')) 
 
+
+    logger.debug("{:s}dfKNOT: {!s:s}".format(logStr,dfKNOT.columns.to_list())) 
+    logger.debug("{:s}dfVKNO: {!s:s}".format(logStr,dfVKNO.columns.to_list())) 
+
     try:                          
-        df=pd.merge(dfKNOT,dfVKNO,left_on='pk',right_on='fkKNOT',how='left',suffixes=('','_VKNO'))
+        df=pd.merge(dfKNOT,dfVKNO.add_suffix('_VKNO'),left_on='pk',right_on='fkKNOT_VKNO',how='left'
+                  # ,suffixes=('','_VKNO')
+                    )
                                                                                                                           
     except DmError:
         raise            
