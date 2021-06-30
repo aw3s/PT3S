@@ -69,6 +69,10 @@ class Am():
         * accFile (str): SIR 3S AccessDB
            
     Attributes:
+        * dataFrames: enthaelt alle gelesenen Tabellen und konstruierten Views
+
+        * viewSets: fasst View- bzw. Tabellennamen zu Kategorien zusammen; dient zur Uebersicht bei Bedarf
+
         * zu den Spaltennamen der Views:
             * grundsaetzlich die Originalnamen - aber ...
                 * bei den _BVZ_ Views:
@@ -82,7 +86,7 @@ class Am():
                 * VBEL:
                     * immer _i und _k fuer die Knotendaten
 
-        * dataFrames i.e. dataFrames['V3_KNOT']
+        * V3-Views i.e. dataFrames['V3_KNOT']
             * V3_KNOT: Knoten: "alle" Knotendaten                
             * V3_VBEL: Kanten: "alle" Verbindungselementdaten des hydr. Prozessmodells
                 * Multiindex:
@@ -92,7 +96,7 @@ class Am():
             * V3_RKNOT: Knoten: "alle" Knotendaten des Signalmodells
                 * Kn: Knotenname
                 *_rkRUES: RUES-Selbstbezug
-                * OBJTYPE: RUES fuer RUES
+                * OBJTYPE: RUES fuer RUES; sonst der Typname des Elementes des Signalmodells z.B. RADD
             * V3_RVBEL: Kanten: "alle" Verbindungen des Signalmodells
                 * Multiindex:
                     * OBJTYPE_i
@@ -123,7 +127,11 @@ class Am():
             * ['V_BVZ_ANTE', 'V_BVZ_ANTP', 'V_BVZ_AVOS', 'V_BVZ_DPGR', 'V_BVZ_ETAM', 'V_BVZ_ETAR', 'V_BVZ_ETAU', 'V_BVZ_KOMK', 'V_BVZ_MAPG'
             *, 'V_BVZ_PHI2', 'V_BVZ_PHIV', 'V_BVZ_PUMK', 'V_BVZ_RPLAN', 'V_BVZ_SRAT', 'V_BVZ_STOF', 'V_BVZ_TFKT', 'V_BVZ_TRFT', 'V_BVZ_ZEP1', 'V_BVZ_ZEP2']
         * viewSets['pairViews_ROWT']:
-            * ['V_BVZ_LFKT', 'V_BVZ_PHI1', 'V_BVZ_PUMD', 'V_BVZ_PVAR', 'V_BVZ_QVAR', 'V_BVZ_RCPL', 'V_BVZ_SWVT', 'V_BVZ_TEVT', 'V_BVZ_WEVT', 'V_BVZ_WTTR']
+            * ['V_BVZ_LFKT', 'V_BVZ_PHI1', 'V_BVZ_PUMD', 'V_BVZ_PVAR', 'V_BVZ_QVAR'
+            *, 'V_BVZ_RCPL' # da RCPL_ROWT existiert "landet" RCPL bei den ROWTs; es handelt sich aber bei RCPL_ROWT um gar keine Zeittabelle
+            *, 'V_BVZ_SWVT', 'V_BVZ_TEVT', 'V_BVZ_WEVT', 'V_BVZ_WTTR']
+            * enthalten alle Zeiten
+            * Spalte lfdNrZEIT beginnt mit 1 fuer die chronologisch 1. Zeit
         * viewSets['pairViews_ROWD']:
             * ['V_BVZ_DTRO']
         * viewSets['notPairViews']:
@@ -172,19 +180,22 @@ class Am():
                 logStrFinal="{:s}accFile: {:s}: Not existing!".format(logStr,accFile)     
                 raise AmError(logStrFinal)  
           
+            # die MDB existiert und ist lesbar
             logger.debug("{:s}accFile (abspath): {:s}".format(logStr,os.path.abspath(accFile))) 
-
+           
             Driver=[x for x in pyodbc.drivers() if x.startswith('Microsoft Access Driver')]
             if Driver == []:
                 logStrFinal="{:s}{:s}: No Microsoft Access Driver!".format(logStr,accFile)     
                 raise AmError(logStrFinal)  
 
+            # ein Treiber ist installiert
             conStr=(
                 r'DRIVER={'+Driver[0]+'};'
                 r'DBQ='+accFile+';'
                 )
             logger.debug("{0:s}conStr: {1:s}".format(logStr,conStr)) 
 
+            # Verbindung ...
             con = pyodbc.connect(conStr)
             cur = con.cursor()
 
@@ -193,17 +204,18 @@ class Am():
             logger.debug("{0:s}tableNames: {1:s}".format(logStr,str(tableNames))) 
             allTables=set(tableNames)
           
+            # pandas DataFrames
             self.dataFrames={}
 
-            # process pairTables
+            # Mengen von Typen von Tabellen und Views
             pairTables=set()
-
             pairViews=set()
             pairViews_BZ=set()
             pairViews_ROWS=set()
             pairViews_ROWT=set()
             pairViews_ROWD=set()
 
+            # SIR 3S Grundtabellen und -views lesen
             try:
                 dfViewModelle=pd.read_sql('select * from VIEW_MODELLE',con)
             except pd.io.sql.DatabaseError as e:
@@ -225,7 +237,6 @@ class Am():
                 logger.error(logStrFinal) 
                 raise AmError(logStrFinal)   
 
-
             # Paare
             for pairType in ['_BZ','_ROWS','_ROWT','_ROWD']:
                 logger.debug("{0:s}pairType: {1:s}: ####".format(logStr,pairType)) 
@@ -241,35 +252,45 @@ class Am():
                     
                     if BZ == 'PGRP_PUMP_BZ': # BV: PUMP BVZ: PGRP_PUMP_BZ V: V_PUMP - Falsch!; wird unten ergaenzt
                         continue
+
+                    # TabellenNamen in entspr. Mengen abspeichern
+                    pairTables.add(BV)
+                    pairTables.add(BZ)      
+
+                    # VName
+                    VName='V_BVZ_'+BV                    
+                    logger.debug("{0:s}BV: {1:s} BVZ: {2:s} V: {3:s} ...".format(logStr,BV,BZ,VName))   
                                         
-                    df=Dm.f_HelperBVBZ(
+                    df,dfBV,dfBZ=Dm.f_HelperBVBZ(
                                     con
                                    ,BV
                                    ,BZ                                 
                                     )
-
+                    self.dataFrames[BV]=dfBV
+                    self.dataFrames[BZ]=dfBZ
 
                     df=Dm.f_HelperDECONT(
                         df
                        ,dfViewModelle 
                        ,dfCONT
                         )
-
-                                                                                                                                                        
-                    VName='V_BVZ_'+BV
-                    self.dataFrames[VName]=df
-                    logger.debug("{0:s}BV: {1:s} BVZ: {2:s} V: {3:s}".format(logStr,BV,BZ,VName))                     
-
-                    pairTables.add(BV)
-                    pairTables.add(BZ)
                     
-                    pairViews.add(VName)
+                    if pairType=='_ROWT':                             
+                        if 'ZEIT' in df.columns.to_list():
+                            df['lfdNrZEIT']=df.groupby(['pk'])['ZEIT'].cumcount(ascending=True)+1
+                        else:
+                            logger.debug("{0:s}ROWT: {1:s} hat keine Spalte ZEIT?!".format(logStr,VName))   
 
+                    # View abspeichern                    
+                    self.dataFrames[VName]=df                    
+
+                    # ViewName in entspr. Menge abspeichern                
+                    pairViews.add(VName)
                     if pairType=='_BZ':
                         pairViews_BZ.add(VName)
                     elif pairType=='_ROWS':
                         pairViews_ROWS.add(VName)
-                    elif pairType=='_ROWT':
+                    elif pairType=='_ROWT':                        
                         pairViews_ROWT.add(VName)
                     elif pairType=='_ROWD':
                         pairViews_ROWD.add(VName)
@@ -277,11 +298,13 @@ class Am():
             # BVZ-Paare Nachzuegler
             for (BV,BZ) in [('PGRP_PUMP','PGRP_PUMP_BZ')]:
                                        
-                    df=Dm.f_HelperBVBZ(
+                    df,dfBV,dfBZ=Dm.f_HelperBVBZ(
                                     con
                                    ,BV
                                    ,BZ                              
-                                    )                              
+                                    )      
+                    self.dataFrames[BV]=dfBV
+                    self.dataFrames[BZ]=dfBZ                    
 
                     df=Dm.f_HelperDECONT(
                         df
@@ -388,6 +411,9 @@ class Am():
 
             self.viewSets={}
 
+            self.viewSets['allTables']=sorted(allTables)
+            self.viewSets['pairTables']=sorted(pairTables)
+            
             self.viewSets['pairViews']=sorted(pairViews)
             self.viewSets['pairViews_BZ']=sorted(pairViews_BZ)
             self.viewSets['pairViews_ROWS']=sorted(pairViews_ROWS)

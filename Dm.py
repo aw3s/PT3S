@@ -102,7 +102,7 @@ def f_HelperBVBZ(
     ):
     """
     Returns:
-        df
+         df,dfBV,dfBZ
     """
 
     logStr = "{0:s}.{1:s}: ".format(__name__, sys._getframe().f_code.co_name)
@@ -143,7 +143,7 @@ def f_HelperBVBZ(
         raise DmError(logStrFinal)                       
     finally:       
         logger.debug("{0:s}{1:s}".format(logStr,'_Done.'))         
-        return df
+        return df,dfBV,dfBZ
 
 def f_HelperDECONT(   
     df
